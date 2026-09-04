@@ -65,7 +65,8 @@ Usage:
   harness <command> [options]
 
 Commands:
-  doctor [--json]                                  Diagnose the ~/.claude deployment
+  doctor [--json] [--verbose]                      Diagnose the ~/.claude deployment
+                                                     (--verbose names each check as it runs)
   init [--stack auto|node|python|rust|go] [--dry-run] [--force]
                                                      Scaffold REVIEW.md, PROGRESS.md,
                                                      CLAUDE.md, CI gate, lint thresholds

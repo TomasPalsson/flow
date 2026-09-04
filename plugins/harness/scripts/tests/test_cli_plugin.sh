@@ -602,3 +602,39 @@ t_clip_doctor_double_load_warns_when_marketplace_copy_also_enabled() {
 	assert_contains "$block" '"status": "PASS"' "double-load: PASS once the marketplace copy is disabled"
 	rm -rf "$home"
 }
+
+# macOS regression: `claude plugin list --json` left a background process
+# holding stdout, so spawnSync's timeout killed claude but doctor still waited
+# on the pipe forever. Doctor must finish and WARN, not hang.
+t_clip_doctor_plugin_list_survives_claude_leaving_a_background_child() {
+	local home fakebin restricted_path block start end
+	home=$(tmp_dir); fakebin=$(tmp_dir)
+	ln -s "$(command -v node)" "$fakebin/node"
+	cat >"$fakebin/claude" <<'EOF2'
+#!/usr/bin/env bash
+# holds stdout open long after this script exits, then never prints JSON
+sleep 12 &
+exec sleep 12
+EOF2
+	chmod +x "$fakebin/claude"
+	_clip_write_plugin_harness "$home" 1
+	restricted_path="$fakebin:/bin:/usr/bin"
+	start=$(date +%s)
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$3"; shift 3; exec "$@"' \
+		_ "$home" "$home" "$restricted_path" node "$CLI_PATH" doctor --json
+	end=$(date +%s)
+	[ $((end - start)) -lt 20 ] && assert_eq "fast" "fast" "doctor returned within 20s despite a lingering claude child" || assert_eq "$((end - start))s" "<20s" "doctor returned within 20s despite a lingering claude child"
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "plugin-list"')
+	assert_contains "$block" '"status": "WARN"' "hung claude: plugin-list is a WARN"
+	assert_contains "$OUT" "killed" "hung claude: detail says the call was killed"
+	rm -rf "$home" "$fakebin"
+}
+
+t_clip_doctor_verbose_names_each_check() {
+	local home
+	home=$(tmp_dir)
+	_clip_cli_in "$home" "$home" doctor --json --verbose
+	assert_contains "$ERR" "check plugin-list" "doctor --verbose names checks on stderr"
+	assert_contains "$ERR" "check skills-lint" "doctor --verbose names the skills-lint check"
+	rm -rf "$home"
+}

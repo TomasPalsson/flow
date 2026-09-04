@@ -135,7 +135,8 @@ ${C.accent}Usage:${C.reset}
   harness <command> [options]
 
 ${C.accent}Commands:${C.reset}
-  doctor [--json]                                  Diagnose the ~/.claude deployment
+  doctor [--json] [--verbose]                      Diagnose the ~/.claude deployment
+                                                     (--verbose names each check as it runs)
   init [--stack auto|node|python|rust|go] [--dry-run] [--force]
                                                      Scaffold REVIEW.md, PROGRESS.md,
                                                      CLAUDE.md, CI gate, lint thresholds
@@ -682,7 +683,11 @@ function doctorSkillIndexCostCheck(push) {
 function doctorSkillsLintCheck(push) {
   const target = path.join(HOME, '.claude', 'scripts', 'skills-lint');
   if (!fs.existsSync(target)) return; // skip, not fail, per C9
-  const r = spawnSync(target, [], { encoding: 'utf8' });
+  const r = spawnSync(target, [], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000, killSignal: 'SIGKILL' });
+  if (r.signal) {
+    push('skills-lint', 'WARN', `skills-lint killed (${r.signal}) after 120s; run it by hand with --verbose`);
+    return;
+  }
   const out = (r.stdout || '') + (r.stderr || '');
   const missingCount = (out.match(/^MISSING /gm) || []).length;
   const toolCount = (out.match(/^TOOL /gm) || []).length;
@@ -910,13 +915,25 @@ function doctorPluginListCheck(push) {
     push('plugin-list', 'WARN', 'claude CLI not found on PATH; cannot verify harness@skills-dir is loaded');
     return;
   }
-  const r = spawnSync('claude', ['plugin', 'list', '--json'], { encoding: 'utf8', timeout: 5000, input: '' });
+  // No pipes: stdout goes to a temp file and every stdio is 'ignore'. With a
+  // pipe, a background process left behind by `claude` (daemon, updater)
+  // keeps the pipe open and spawnSync waits on it forever even after the
+  // timeout has killed claude itself — that hung `harness install` on macOS.
+  const tmpOut = path.join(os.tmpdir(), `harness-plugin-list-${process.pid}.json`);
+  const r = spawnSync('sh', ['-c', 'exec "$0" plugin list --json >"$1" 2>/dev/null </dev/null', 'claude', tmpOut], {
+    stdio: 'ignore',
+    timeout: 5000,
+    killSignal: 'SIGKILL',
+  });
+  let out = '';
+  try { out = fs.readFileSync(tmpOut, 'utf8'); } catch { out = ''; }
+  try { fs.unlinkSync(tmpOut); } catch { /* absent: fine */ }
   if (r.error || r.status !== 0) {
-    const why = r.error ? r.error.message : `exit ${r.status}`;
+    const timedOut = (r.error && r.error.code === 'ETIMEDOUT') || r.signal;
+    const why = timedOut ? 'killed after 5s: claude did not answer' : r.error ? r.error.message : `exit ${r.status}`;
     push('plugin-list', 'WARN', `claude plugin list --json failed (${why}); cannot verify harness@skills-dir`);
     return;
   }
-  const out = r.stdout || '';
   // SPEC.md C21 M3: "claude plugin list --json (if available) shows
   // harness@skills-dir enabled". A substring match on the raw JSON only
   // proves the id is mentioned somewhere — it says nothing about the
@@ -943,24 +960,31 @@ function doctorPluginListCheck(push) {
 // dotfilesRoot: see doctorSymlinkChecks above — forwarded through so a
 // `harness install --dotfiles <path>` recheck (C18 step 7) compares against
 // the root that install actually used, not always $HOME/.dotfiles.
+// --verbose (or HARNESS_VERBOSE=1) names each check on stderr before it runs,
+// so a check that hangs (a subprocess that never returns) is identifiable.
+const VERBOSE = process.argv.includes('--verbose') || process.env.HARNESS_VERBOSE === '1';
 function buildDoctorChecks(dotfilesRoot) {
   const checks = [];
   const push = (id, status, detail) => checks.push({ id, status, detail });
-  doctorSymlinkChecks(push, dotfilesRoot);
-  doctorHooksKeyCheck(push);
-  doctorHooksDriftCheck(push);
-  doctorHarnessJsonOverridesCheck(push);
-  doctorThresholdsReferencedCheck(push);
-  doctorProgressCheck(push);
-  doctorToolChecks(push);
-  doctorSkillIndexCostCheck(push);
-  doctorSkillsLintCheck(push);
-  doctorPluginSkillsHarnessCheck(push);
-  doctorPluginHooksJsonCheck(push);
-  doctorPluginDoubleRegistrationCheck(push);
-  doctorPluginDoubleLoadCheck(push);
-  doctorLocalBinHarnessCheck(push);
-  doctorPluginListCheck(push);
+  const run = (name, fn) => {
+    if (VERBOSE) process.stderr.write(`  check ${name}\n`);
+    fn();
+  };
+  run('symlinks', () => doctorSymlinkChecks(push, dotfilesRoot));
+  run('settings:hooks-key', () => doctorHooksKeyCheck(push));
+  run('hooks-drift', () => doctorHooksDriftCheck(push));
+  run('harness-json-overrides', () => doctorHarnessJsonOverridesCheck(push));
+  run('thresholds-referenced', () => doctorThresholdsReferencedCheck(push));
+  run('progress-md', () => doctorProgressCheck(push));
+  run('tools', () => doctorToolChecks(push));
+  run('skill-index-cost', () => doctorSkillIndexCostCheck(push));
+  run('skills-lint', () => doctorSkillsLintCheck(push));
+  run('plugin-skills-harness', () => doctorPluginSkillsHarnessCheck(push));
+  run('plugin-hooks-json', () => doctorPluginHooksJsonCheck(push));
+  run('plugin-double-registration', () => doctorPluginDoubleRegistrationCheck(push));
+  run('plugin-double-load', () => doctorPluginDoubleLoadCheck(push));
+  run('local-bin-harness', () => doctorLocalBinHarnessCheck(push));
+  run('plugin-list', () => doctorPluginListCheck(push));
   return checks;
 }
 
@@ -1709,11 +1733,19 @@ function readFlowJson(cwd) {
   }
 }
 
-// planSliceProgress: parses a plan's "## Progress" section (until the next
-// "## " heading) for `- [ ]`/`- [x]` checkboxes and returns { total, done },
-// or null when there is no such section or it has no checkbox lines (in
-// which case the caller treats the plan as having nothing left to track).
-function planSliceProgress(raw) {
+// parseProgressCheckboxes: parses a document's "## Progress" section (until
+// the next "## " heading) for `- [ ]`/`- [x]` checkboxes and returns
+// { total, done }, or null when there is no such section or it has no
+// checkbox lines. Used against BOTH `.claude/workflow-state.local.md`
+// (the real, spec-documented home of live per-slice checkbox progress —
+// see flow/planning.md: "Mirror each slice's sub-phases into `## Progress`
+// in `.claude/workflow-state.local.md` ... that is what step 0's resume
+// check reads") and the plan file itself (kept as a defensive fallback;
+// the plan's own `## Progress` section, when present, normally holds
+// `Ruling:` lines from the fix ladder, not checkboxes, so this yields
+// null there in the common case, which is correct — it just means "no
+// checkbox data here").
+function parseProgressCheckboxes(raw) {
   const lines = raw.split('\n');
   let inProgress = false;
   let sawSection = false;
@@ -1736,6 +1768,77 @@ function planSliceProgress(raw) {
   }
   if (!sawSection || total === 0) return null;
   return { total, done };
+}
+
+// sliceHeadingDoneStatus: C23 state 3(d)'s second detection method ("slice
+// headings without a done marker"). Fence-aware per C7 (a `## Slice N —`
+// line inside a ``` or ~~~ fence is never a heading). No "done marker"
+// syntax is frozen anywhere in the spec or produced anywhere by the
+// shipped flow skill, so this is a narrow, documented ASSUMPTION: a slice
+// counts as done when its own section body (until the next `## ` heading)
+// contains a standalone line reading "Done", "**Done**", or "Status: Done"
+// (case-insensitive). Returns { total, done } (total = number of `## Slice
+// <N> — ...` headings found), or null when the plan has no slice headings
+// at all.
+function sliceHeadingDoneStatus(raw) {
+  const lines = raw.split('\n');
+  let inFence = false;
+  let fenceMarker = null;
+  const slices = [];
+  let current = null;
+  const doneMarker = /^(\*\*)?done(\*\*)?$|^status:\s*done\s*$/i;
+  for (const line of lines) {
+    const fenceMatch = line.match(/^\s*(```|~~~)/);
+    if (fenceMatch) {
+      if (!inFence) {
+        inFence = true;
+        fenceMarker = fenceMatch[1];
+      } else if (fenceMatch[1] === fenceMarker) {
+        inFence = false;
+        fenceMarker = null;
+      }
+      continue;
+    }
+    if (!inFence) {
+      const headingMatch = line.match(/^##\s+Slice\s+\d+\s+—/);
+      if (headingMatch) {
+        if (current) slices.push(current);
+        current = { done: false };
+        continue;
+      }
+      if (/^##\s/.test(line.trim())) {
+        if (current) slices.push(current);
+        current = null;
+        continue;
+      }
+    }
+    if (current && doneMarker.test(line.trim())) current.done = true;
+  }
+  if (current) slices.push(current);
+  if (slices.length === 0) return null;
+  let done = 0;
+  for (const s of slices) if (s.done) done++;
+  return { total: slices.length, done };
+}
+
+// computeSliceProgress: tries, in order, (1) checkbox progress in
+// `.claude/workflow-state.local.md` (the real source the flow skill
+// writes and reads — see parseProgressCheckboxes's comment), (2) checkbox
+// progress inside the plan file's own "## Progress" section (defensive
+// fallback), (3) the slice-heading-done-marker method over the plan file.
+// Returns { total, done, source } or null when none of the three yield
+// anything (e.g. a plan with zero slice headings).
+function computeSliceProgress(cwd, planRaw) {
+  const workflowStateRaw = safeRead(path.join(cwd, '.claude', 'workflow-state.local.md'));
+  if (workflowStateRaw) {
+    const p = parseProgressCheckboxes(workflowStateRaw);
+    if (p) return Object.assign({ source: 'workflow-state-checkboxes' }, p);
+  }
+  const fromPlan = parseProgressCheckboxes(planRaw);
+  if (fromPlan) return Object.assign({ source: 'plan-checkboxes' }, fromPlan);
+  const fromHeadings = sliceHeadingDoneStatus(planRaw);
+  if (fromHeadings) return Object.assign({ source: 'slice-heading-marker' }, fromHeadings);
+  return null;
 }
 
 function gitBranch(dir) {
@@ -1823,7 +1926,7 @@ function computeNext(cwd) {
         state: { gitRepo: true, branch, dirty, source: 'flow-plan-unapproved', flow },
       };
     }
-    const progress = planSliceProgress(planRaw);
+    const progress = computeSliceProgress(cwd, planRaw);
     if (progress && progress.done < progress.total) {
       return {
         next: '/flow',
@@ -1831,8 +1934,9 @@ function computeNext(cwd) {
         state: { gitRepo: true, branch, dirty, source: 'flow-slices-unfinished', flow, progress },
       };
     }
-    // All slices done (or a plan with no "## Progress" checkbox section at
-    // all — nothing pending is tracked, so it is treated the same way).
+    // All slices done (or computeSliceProgress found nothing to track at
+    // all — a plan with zero "## Slice N —" headings, which plan-lint
+    // would already have rejected before approval — treated the same way).
     if (dirty) {
       return {
         next: '/wrap then /ship',

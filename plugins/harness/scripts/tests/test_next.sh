@@ -149,7 +149,15 @@ t_next_flow_plan_unapproved() {
 }
 
 # ---------------------------------------------------------------------------
-# state 3d — approved plan, unfinished slices in ## Progress
+# state 3d — approved plan, unfinished slices tracked in
+# .claude/workflow-state.local.md's `## Progress` checkboxes. This is the
+# REAL location the flow skill writes and reads (flow/planning.md: "Mirror
+# each slice's sub-phases into `## Progress` in
+# `.claude/workflow-state.local.md` ... that is what step 0's resume check
+# reads"); the plan file's own `## Progress` section, when the flow skill
+# writes one at all, holds `Ruling:` lines from the fix ladder, never
+# checkboxes — so the fixture below intentionally does NOT put a `##
+# Progress` checkbox section in the plan file itself.
 # ---------------------------------------------------------------------------
 
 t_next_flow_slices_unfinished() {
@@ -167,11 +175,16 @@ Approved: 2026-09-04 by user
 
 ## Slice 1 — x
 
+## Slice 2 — y
+
+## Gate Phases
+EOF
+	cat >"$proj/.claude/workflow-state.local.md" <<'EOF'
+type: flow
+
 ## Progress
 - [x] Slice 1
 - [ ] Slice 2
-
-## Gate Phases
 EOF
 
 	nx_cli_in "$proj" "$home" next
@@ -182,7 +195,44 @@ Why: 1 of 2 slices done" "t_next_flow_slices_unfinished exact"
 }
 
 # ---------------------------------------------------------------------------
-# state 3e — approved plan, all slices done, dirty tree
+# state 3d, alternate detection method — no workflow-state.local.md and no
+# checkbox `## Progress` in the plan at all: falls back to slice headings
+# without a "Done" marker (C23: "checkboxes under ## Progress, or slice
+# headings without a done marker").
+# ---------------------------------------------------------------------------
+
+t_next_flow_slices_unfinished_heading_marker() {
+	local home proj branch
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	branch=$(nx_branch "$proj")
+	mkdir -p "$proj/.claude"
+	printf '{"number":"001","slug":"x","spec_dir":".specs/001-x","branch":"%s","worktree":null}\n' "$branch" \
+		>"$proj/.claude/flow.json"
+	cat >"$proj/.claude/feature-plan.local.md" <<'EOF'
+Approved: 2026-09-04 by user
+
+## Behavior Inventory
+
+## Slice 1 — x
+
+Done
+
+## Slice 2 — y
+
+## Gate Phases
+EOF
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: /flow
+Why: 1 of 2 slices done" "t_next_flow_slices_unfinished_heading_marker exact"
+
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# state 3e — approved plan, all slices done (per workflow-state.local.md),
+# dirty tree
 # ---------------------------------------------------------------------------
 
 t_next_flow_done_dirty() {
@@ -200,10 +250,13 @@ Approved: 2026-09-04 by user
 
 ## Slice 1 — x
 
+## Gate Phases
+EOF
+	cat >"$proj/.claude/workflow-state.local.md" <<'EOF'
+type: flow
+
 ## Progress
 - [x] Slice 1
-
-## Gate Phases
 EOF
 	printf 'dirty\n' >"$proj/dirty.txt"
 
@@ -214,7 +267,8 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# state 3f — approved plan, all slices done, clean tree, non-default branch
+# state 3f — approved plan, all slices done (per workflow-state.local.md),
+# clean tree, non-default branch
 # ---------------------------------------------------------------------------
 
 t_next_flow_done_clean_non_default_branch() {
@@ -235,10 +289,13 @@ Approved: 2026-09-04 by user
 
 ## Slice 1 — x
 
+## Gate Phases
+EOF
+	cat >"$proj/.claude/workflow-state.local.md" <<'EOF'
+type: flow
+
 ## Progress
 - [x] Slice 1
-
-## Gate Phases
 EOF
 	(
 		cd "$proj" || exit 1
@@ -248,6 +305,27 @@ EOF
 
 	nx_cli_in "$proj" "$home" next
 	assert_eq "$OUT" "Next: /ship" "t_next_flow_done_clean_non_default_branch exact"
+
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# state 3a, branch-mismatch sub-path — worktree is null (matches, since
+# there is none) but flow.json's branch differs from the current checkout.
+# Previously only the worktree-mismatch sub-path had a test.
+# ---------------------------------------------------------------------------
+
+t_next_flow_branch_mismatch_no_worktree() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.claude"
+	printf '{"number":"001","slug":"x","spec_dir":".specs/001-x","branch":"flow/elsewhere","worktree":null}\n' \
+		>"$proj/.claude/flow.json"
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: agents flow/elsewhere
+Why: this flow lives in flow/elsewhere (branch flow/elsewhere)" "t_next_flow_branch_mismatch_no_worktree exact"
 
 	rm -rf "$home" "$proj"
 }
