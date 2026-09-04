@@ -967,8 +967,10 @@ function buildDoctorChecks(dotfilesRoot) {
   const checks = [];
   const push = (id, status, detail) => checks.push({ id, status, detail });
   const run = (name, fn) => {
-    if (VERBOSE) process.stderr.write(`  check ${name}\n`);
+    if (VERBOSE) process.stderr.write(`  check ${name}`);
+    const t0 = Date.now();
     fn();
+    if (VERBOSE) process.stderr.write(` (${Date.now() - t0} ms)\n`);
   };
   run('symlinks', () => doctorSymlinkChecks(push, dotfilesRoot));
   run('settings:hooks-key', () => doctorHooksKeyCheck(push));

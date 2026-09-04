@@ -131,9 +131,7 @@ skills_dir=${skills_dir%/}
 
 had_missing=0
 BT='`'
-TOKEN_RE='[^[:space:]`"()]+'
-CV_RE='command -v [A-Za-z0-9_.-]+'
-TOOL_RE="$BT(better-plan|rtk|gh|bun|uv)[^A-Za-z0-9_-]"
+# Token / "command -v" / tool patterns live in the awk scan below (one pass per file).
 
 # check_and_report <raw-ref> <candidate-path>...
 # Prints MISSING and sets had_missing=1 unless one candidate both exists
@@ -205,40 +203,69 @@ while IFS= read -r file; do
   skill_root="$skills_dir/$first_seg"
   # Plugin layouts nest skills (<plugin>/skills/<name>/SKILL.md): the containing
   # skill is the nearest ancestor directory of the file that holds a SKILL.md.
-  _sr=$(dirname "$file")
-  while [ "$_sr" != "/" ] && [ -n "$_sr" ]; do
+  # (parameter expansion, not dirname: one fork per level per file adds up)
+  _sr=${file%/*}
+  while [ "$_sr" != "$file" ] && [ -n "$_sr" ] && [ "$_sr" != "/" ]; do
     if [ -f "$_sr/SKILL.md" ]; then skill_root="$_sr"; break; fi
-    _sr=$(dirname "$_sr")
+    case "$_sr" in */*) _sr=${_sr%/*} ;; *) break ;; esac
   done
   # Lazy per-file cache: only walk for a plugin root when a
   # "${CLAUDE_PLUGIN_ROOT}/..." reference is actually seen in this file.
   plugin_root_computed=0
   plugin_root=""
 
-  # One grep per file per pattern (not per line): keeps subprocess count
-  # at O(files) instead of O(lines).
-  # Reference matching (only) runs over a "defenced" copy: every line in a
-  # ```/~~~ fence is blanked, not dropped, so line numbers still line up
-  # (C16 — a fenced reference is never checked). TOOL detection below still
-  # scans the original file; fences do not exempt those.
-  tok_matches=$(awk '
+  # One awk pass per file emits every candidate, tagged:
+  #   T:<line>:<token>   a reference-shaped token (contains "/"), only from
+  #                      lines outside ```/~~~ fences (C16 — a fenced
+  #                      reference is never checked; fences do not exempt
+  #                      the TOOL forms below, which scan every line)
+  #   C:<line>:<match>   "command -v <tool>"
+  #   L:<line>:<match>   `<allowlisted tool><boundary>
+  # One subprocess per file instead of four greps plus a dirname walk: the
+  # per-token shell loop is where the runtime went (every word of every
+  # prose file used to reach it), and on bash 3.2 each fork costs more.
+  scan=$(awk '
     BEGIN { infence = 0 }
     {
       line = $0
       t = line
       sub(/^[ \t]*/, "", t)
-      if (t ~ /^(```|~~~)/) { infence = !infence; print ""; next }
-      if (infence) { print ""; next }
-      print line
+      fenced = 0
+      if (t ~ /^(```|~~~)/) { infence = !infence; fenced = 1 }
+      else if (infence) fenced = 1
+      if (!fenced) {
+        s = line
+        while (match(s, /[^[:space:]`"()]+/)) {
+          tok = substr(s, RSTART, RLENGTH)
+          s = substr(s, RSTART + RLENGTH)
+          if (index(tok, "/")) print "T:" NR ":" tok
+        }
+      }
+      s = line
+      while (match(s, /command -v [A-Za-z0-9_.-]+/)) {
+        print "C:" NR ":" substr(s, RSTART, RLENGTH)
+        s = substr(s, RSTART + RLENGTH)
+      }
+      s = line
+      while (match(s, /`(better-plan|rtk|gh|bun|uv)[^A-Za-z0-9_-]/)) {
+        print "L:" NR ":" substr(s, RSTART, RLENGTH)
+        s = substr(s, RSTART + RLENGTH)
+      }
     }
-  ' "$file" | grep -noE "$TOKEN_RE" 2>/dev/null || true)
-  if [ -n "$tok_matches" ]; then
-    while IFS= read -r entry; do
-      [ -z "$entry" ] && continue
-      lineno=${entry%%:*}
-      tok=${entry#*:}
+  ' "$file" 2>/dev/null || true)
+  [ -z "$scan" ] && continue
+  while IFS= read -r entry; do
+    [ -z "$entry" ] && continue
+    kind=${entry%%:*}
+    rest0=${entry#*:}
+    lineno=${rest0%%:*}
+    payload=${rest0#*:}
+    case "$kind" in
+    T)
+      tok=$payload
+
       # A reference written in prose (no backticks) absorbs trailing
-      # sentence punctuation into the token, since TOKEN_RE's boundary
+      # sentence punctuation into the token, since the token pattern's boundary
       # set is whitespace/backtick/quote/paren only. Strip a trailing
       # '.', ',', ';', ':', '?' or '!' (repeatedly, for e.g. "file.md.")
       # before resolving so "See references/a.md." matches references/a.md
@@ -332,17 +359,9 @@ while IFS= read -r file; do
         check_and_report "$tok" "$skill_root/$tok"
         ;;
       esac
-    done <<TOKEOF
-$tok_matches
-TOKEOF
-  fi
-
-  cv_matches=$(grep -noE "$CV_RE" "$file" 2>/dev/null || true)
-  if [ -n "$cv_matches" ]; then
-    while IFS= read -r entry; do
-      [ -z "$entry" ] && continue
-      lineno=${entry%%:*}
-      cvm=${entry#*:}
+      ;;
+    C)
+      cvm=$payload
       cmd=${cvm#command -v }
       # Only the allowlisted tools are reported (C8); a "command -v"
       # guard for an unrelated tool is normal defensive shell, not a
@@ -352,25 +371,18 @@ TOKEOF
         have "$cmd" || printf 'TOOL %s:%s %s\n' "$file" "$lineno" "$cmd"
         ;;
       esac
-    done <<CVEOF
-$cv_matches
-CVEOF
-  fi
-
-  tool_matches=$(grep -noE "$TOOL_RE" "$file" 2>/dev/null || true)
-  if [ -n "$tool_matches" ]; then
-    while IFS= read -r entry; do
-      [ -z "$entry" ] && continue
-      lineno=${entry%%:*}
-      matched=${entry#*:}
+      ;;
+    L)
+      matched=$payload
       # matched = <backtick><word><one boundary char>; drop both ends.
       rest=${matched#"$BT"}
       w=${rest%?}
       have "$w" || printf 'TOOL %s:%s %s\n' "$file" "$lineno" "$w"
-    done <<TOOLEOF
-$tool_matches
-TOOLEOF
-  fi
+      ;;
+    esac
+  done <<SCANEOF
+$scan
+SCANEOF
 done <<FILEOF
 $files
 FILEOF
