@@ -13,7 +13,7 @@ Every component that was considered, with the verdict and the downside that was 
 | Saved workflows (build-slices, review-diff, research-sweep, plan-review) | Deterministic orchestration; script holds the loop, context holds the answer; resumable | No mid-run user input; a failed agent forces later agents to rerun on resume | Human gates stay outside; waves keep fan-outs small |
 | Wave scheduling from Depends-on + file ownership | Multi-agent failures cluster at unowned interfaces; independent slices should not serialise | Two implementations (script and workflow) must agree | Same log format; stage 0 computes maps from the plan when omitted |
 | `claim-check`, `triage`, `explorer` agents; 8 agents deleted | Usage audit: all 10 custom agents effectively unused; fabrication clusters after compaction and failed tool calls; error triage is the top keyword | Every agent description loads every session | Roster kept at 5 |
-| `/btw`, `/wrap`, `/ship`, `/memory-audit`; 13 commands deleted | Commands merged into skills; same-named skill wins resolution; `/btw` typed 13 times with no file behind it | `allowed-tools` grants clear on the next message | Human-timed commands only (`disable-model-invocation`) |
+| `/aside`, `/wrap`, `/ship`, `/memory-audit`; 13 commands deleted | Commands merged into skills; same-named skill wins resolution; `/aside` typed 13 times with no file behind it | `allowed-tools` grants clear on the next message | Human-timed commands only (`disable-model-invocation`) |
 | Auto-memory kept; agent memory only on `explorer` | Memory is an index of where to look, never a cache of what will be found | Stale facts recalled with no freshness signal; nothing validates memory against the filesystem | verify-before-report rule in the agent body; monthly `/memory-audit`; four line types only, dated |
 | `outputStyle: Concise` | Built-in styles get a tailored per-turn reminder; custom ones do not | Trained-in closing behaviour survives triple-stacked steering | Two-line persona, one style, no third layer |
 | `skillListingBudgetFraction: 0.02` | 39 of 66 descriptions were being dropped | Keeps paying ~12K tokens per session | Real fix (per-project marketplace for domain skills) still open |
@@ -42,6 +42,7 @@ Every component that was considered, with the verdict and the downside that was 
 
 ## Open items, in priority order
 
+0. Guard against command names that collide with Claude Code built-ins (`/btw` did; renamed to `/aside`). A deterministic check needs the built-in list, which the CLI does not expose; until then `harness doctor` cannot catch it.
 0. Split `plugins/harness/bin/harness` (1,500+ lines; `cmdInit`/`cmdInstall` ~95 lines each) into modules — the harness's own size guard flags it on every edit.
 
 1. Move ~20 domain skills into a private local marketplace enabled per project (the largest remaining context win).

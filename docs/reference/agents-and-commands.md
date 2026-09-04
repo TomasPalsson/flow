@@ -10,7 +10,7 @@
 
 ## Commands (`~/.claude/commands/`)
 
-- **/btw** — Log a note without changing course on the current task; classifies it as a durable project fact, a durable personal preference, or session-only, and proposes the exact line to add.
+- **/aside** — Log a note without changing course on the current task; classifies it as a durable project fact, a durable personal preference, or session-only, and proposes the exact line to add.
 - **/memory-audit** — Audit ~/.claude/projects/*/memory/*.md for staleness, dead structural references, and credential-shaped strings; propose deletions and CLAUDE.md promotions as a diff.
 - **/ship** — Commit, push, and open a draft PR with a conventional-commit message and a verification checklist.
 - **/wrap** — Snapshot session state into PROGRESS.md — Now/Next/Done/Rulings/Blocked — and print the exact command to resume.

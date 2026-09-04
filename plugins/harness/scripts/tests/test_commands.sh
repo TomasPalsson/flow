@@ -7,7 +7,7 @@
 # are already set. Tests prefixed t_commands_.
 
 CMD_DIR="${COMMANDS_DIR:-$SCAN_DIR/../commands}"
-NEW_CMDS="btw wrap ship memory-audit"
+NEW_CMDS="aside wrap ship memory-audit"
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -69,7 +69,7 @@ t_commands_disable_model_invocation() {
 }
 
 t_commands_btw_argument_hint() {
-  assert_contains "$(cat "$CMD_DIR/btw.md")" "argument-hint: [the note]" "btw.md has argument-hint: [the note]"
+  assert_contains "$(cat "$CMD_DIR/aside.md")" "argument-hint: [the note]" "aside.md has argument-hint: [the note]"
 }
 
 t_commands_wrap_allowed_tools_exact() {
@@ -85,7 +85,7 @@ t_commands_ship_allowed_tools_exact() {
 }
 
 t_commands_arguments_expands_in_btw() {
-  assert_contains "$(cat "$CMD_DIR/btw.md")" '$ARGUMENTS' "btw.md body expands \$ARGUMENTS"
+  assert_contains "$(cat "$CMD_DIR/aside.md")" '$ARGUMENTS' "aside.md body expands \$ARGUMENTS"
 }
 
 # ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ t_commands_line_caps() {
   for name in $NEW_CMDS; do
     f="$CMD_DIR/$name.md"
     case "$name" in
-    btw) cap=25 ;;
+    aside) cap=25 ;;
     wrap) cap=30 ;;
     ship) cap=35 ;;
     memory-audit) cap=30 ;;
@@ -139,7 +139,7 @@ t_commands_no_skill_name_collision() {
     [ -d "$entry" ] || continue
     base=${entry##*/}
     case "$base" in
-    btw | wrap | ship | memory-audit) hit="$hit $base" ;;
+    aside | wrap | ship | memory-audit) hit="$hit $base" ;;
     esac
   done
   assert_eq "$hit" "" "no new command name collides with an existing skills/ directory"
@@ -153,7 +153,7 @@ t_commands_no_skill_name_collision() {
 # orchestrator; see repo facts). skills-lint's "~/.claude/..." resolution
 # only ever looks under $HOME, with no repo-relative fallback, so running it
 # against the real $HOME here would report both as MISSING regardless of
-# whether btw.md / wrap.md are correct - a deployment-timing false red, not
+# whether aside.md / wrap.md are correct - a deployment-timing false red, not
 # a defect in this unit's files. To get a real signal, fake $HOME with the
 # same symlinks the orchestrator will create and run the real skills-lint
 # binary against it (never touches the real ~/.claude).
