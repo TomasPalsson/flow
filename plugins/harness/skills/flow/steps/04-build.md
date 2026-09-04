@@ -44,3 +44,5 @@ Per slice inside the wave:
 6. Apply `review.md`'s fix ladder to fatal and significant findings. The ladder is per slice and never blocks another slice; the wave ends when every slice in it has reported, and only then does the next wave start.
 
 Commit after every sub-phase; update `.claude/workflow-state.local.md` after every sub-phase. When all slices are done, read [`05-verify.md`](05-verify.md).
+
+End the step with the line `Next: …` from `harness next`.

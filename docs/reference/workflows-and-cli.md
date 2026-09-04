@@ -59,12 +59,12 @@ export const meta = {
 
 ```
 
-[38;2;122;162;247m[1mharness[0m [38;2;86;95;137m— deterministic project harness CLI[0m
+harness — deterministic project harness CLI
 
-[38;2;187;154;247mUsage:[0m
+Usage:
   harness <command> [options]
 
-[38;2;187;154;247mCommands:[0m
+Commands:
   doctor [--json]                                  Diagnose the ~/.claude deployment
   init [--stack auto|node|python|rust|go] [--dry-run] [--force]
                                                      Scaffold REVIEW.md, PROGRESS.md,
@@ -74,11 +74,13 @@ export const meta = {
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
+  next [--json]                                     Print the next command to run, from
+                                                     deterministic repo state only
 
-[38;2;187;154;247mOptions:[0m
+Options:
   -h, --help   Show this help message
 
-[38;2;187;154;247mExit codes:[0m
+Exit codes:
   0  ok
   1  doctor found a FAIL, or the underlying tool failed
 ```

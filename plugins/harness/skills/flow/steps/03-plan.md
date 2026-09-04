@@ -37,3 +37,5 @@ Present the full plan — slices, Behavior Inventory, verification steps, gates,
 Under `--unattended` the plan is still written, validated and rendered, the batched offer still goes out, and the plan is auto-approved when it expires — for that auto-approval, add `Approved: <YYYY-MM-DD> auto (--unattended)` instead, never the plain `by user` form; with `better-plan`, render but do NOT poll and do NOT pass `--wait-approval`.
 
 Then read [`04-build.md`](04-build.md).
+
+End the step with the line `Next: …` from `harness next`.

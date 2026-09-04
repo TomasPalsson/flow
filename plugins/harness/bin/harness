@@ -144,6 +144,8 @@ ${C.accent}Commands:${C.reset}
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
+  next [--json]                                     Print the next command to run, from
+                                                     deterministic repo state only
 
 ${C.accent}Options:${C.reset}
   -h, --help   Show this help message
@@ -1584,6 +1586,251 @@ function cmdSkillsLint(argv) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// next — C23: "Next: <command>" derived only from deterministic repo state
+// (no network, no model). Checked in the exact priority order the spec lists:
+// (1) not a git repo, (2) PROGRESS.md's `## Now` names a resume command,
+// (3) `.claude/flow.json` present (a flow is in progress), (4) no flow but
+// the branch is `flow/*` with no plan file, (5) generic dirty/clean fallback.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function printNextHelp() {
+  stdout.write(`
+${C.primary}${C.bold}harness next${C.reset} ${C.muted}— print the next command to run${C.reset}
+
+${C.accent}Usage:${C.reset}
+  harness next [--json]
+
+${C.accent}Options:${C.reset}
+  --json        Print { next, why, state } instead of plain lines
+  -h, --help    Show this help message
+`);
+}
+
+// stripBackticks("`cmd`") -> "cmd"; anything else is returned unchanged.
+function stripBackticks(s) {
+  const m = s.match(/^`([^`]+)`$/);
+  return m ? m[1] : s;
+}
+
+// readProgressResume: scans PROGRESS.md's "## Now" section (until the next
+// "## " heading) for a bullet that either starts with "resume:" or contains
+// a backticked command, per C23 state 2. Returns { command, bullet } (bullet
+// is the section's first bullet, verbatim, for the "Why" line) or null.
+function readProgressResume(progressPath) {
+  const raw = safeRead(progressPath);
+  if (!raw) return null;
+  const lines = raw.split('\n');
+  let inNow = false;
+  let firstBullet = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^##\s/.test(trimmed)) {
+      if (inNow) break; // left the "## Now" section
+      inNow = trimmed === '## Now';
+      continue;
+    }
+    if (!inNow || trimmed === '') continue;
+    const bullet = trimmed.replace(/^-+\s*/, '');
+    if (firstBullet === null) firstBullet = bullet;
+    const resumeMatch = bullet.match(/^resume:\s*(.+)$/i);
+    if (resumeMatch) return { command: stripBackticks(resumeMatch[1].trim()), bullet: firstBullet };
+    const backtickMatch = bullet.match(/`([^`]+)`/);
+    if (backtickMatch) return { command: backtickMatch[1], bullet: firstBullet };
+  }
+  return null;
+}
+
+function readFlowJson(cwd) {
+  const raw = safeRead(path.join(cwd, '.claude', 'flow.json'));
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// planSliceProgress: parses a plan's "## Progress" section (until the next
+// "## " heading) for `- [ ]`/`- [x]` checkboxes and returns { total, done },
+// or null when there is no such section or it has no checkbox lines (in
+// which case the caller treats the plan as having nothing left to track).
+function planSliceProgress(raw) {
+  const lines = raw.split('\n');
+  let inProgress = false;
+  let sawSection = false;
+  let total = 0;
+  let done = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^##\s/.test(trimmed)) {
+      if (inProgress) break;
+      inProgress = trimmed === '## Progress';
+      if (inProgress) sawSection = true;
+      continue;
+    }
+    if (!inProgress) continue;
+    const m = trimmed.match(/^-\s*\[([ xX])\]/);
+    if (m) {
+      total++;
+      if (m[1].toLowerCase() === 'x') done++;
+    }
+  }
+  if (!sawSection || total === 0) return null;
+  return { total, done };
+}
+
+function gitBranch(dir) {
+  const r = spawnSync('git', ['-C', dir, 'branch', '--show-current'], { encoding: 'utf8' });
+  if (r.status !== 0) return '';
+  return (r.stdout || '').trim();
+}
+
+function gitDirty(dir) {
+  const r = spawnSync('git', ['-C', dir, 'status', '--porcelain'], { encoding: 'utf8' });
+  if (r.status !== 0) return false;
+  return (r.stdout || '').trim() !== '';
+}
+
+function gitToplevel(dir) {
+  const r = spawnSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+  if (r.status !== 0) return null;
+  return (r.stdout || '').trim();
+}
+
+// gitDefaultBranch: reads the LOCAL refs/remotes/origin/HEAD symref only
+// (no fetch, no network per C23's "no network" requirement); null when it
+// is not set, in which case the caller falls back to a main/master guess.
+function gitDefaultBranch(dir) {
+  const r = spawnSync('git', ['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { encoding: 'utf8' });
+  if (r.status === 0 && r.stdout) {
+    const s = r.stdout.trim();
+    const idx = s.indexOf('/');
+    return idx !== -1 ? s.slice(idx + 1) : s;
+  }
+  return null;
+}
+
+// computeNext(cwd) -> { next, why (string|null), state }. Pure decision
+// logic, no printing — cmdNext formats it for --json or plain-text output.
+function computeNext(cwd) {
+  if (!isGitRepo(cwd)) {
+    return { next: 'cd into a project (harness init to set one up)', why: null, state: { gitRepo: false } };
+  }
+
+  const branch = gitBranch(cwd);
+  const dirty = gitDirty(cwd);
+  const toplevel = gitToplevel(cwd) || cwd;
+
+  const progressPath = path.join(cwd, 'PROGRESS.md');
+  const resume = fs.existsSync(progressPath) ? readProgressResume(progressPath) : null;
+  if (resume) {
+    return {
+      next: resume.command,
+      why: `PROGRESS.md · Now: ${resume.bullet}`,
+      state: { gitRepo: true, branch, dirty, source: 'progress-resume' },
+    };
+  }
+
+  const flow = readFlowJson(cwd);
+  const planPath = path.join(cwd, '.claude', 'feature-plan.local.md');
+  const planExists = fs.existsSync(planPath);
+
+  if (flow) {
+    const flowBranch = flow.branch || '';
+    const flowWorktree = flow.worktree || null;
+    let mismatch = null;
+    if (flowWorktree && flowWorktree !== toplevel) mismatch = flowWorktree;
+    else if (flowBranch && flowBranch !== branch) mismatch = flowBranch;
+    if (mismatch) {
+      return {
+        next: `agents ${mismatch}`,
+        why: `this flow lives in ${mismatch} (branch ${flowBranch})`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-mismatch', flow },
+      };
+    }
+    if (!planExists) {
+      return {
+        next: '/flow',
+        why: `spec exists (${flow.spec_dir || ''}), plan not written`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-no-plan', flow },
+      };
+    }
+    const planRaw = safeRead(planPath) || '';
+    const approved = /^Approved:\s*\d{4}-\d{2}-\d{2}/m.test(planRaw);
+    if (!approved) {
+      return {
+        next: 'review and approve the plan (then /flow continues)',
+        why: null,
+        state: { gitRepo: true, branch, dirty, source: 'flow-plan-unapproved', flow },
+      };
+    }
+    const progress = planSliceProgress(planRaw);
+    if (progress && progress.done < progress.total) {
+      return {
+        next: '/flow',
+        why: `${progress.done} of ${progress.total} slices done`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-slices-unfinished', flow, progress },
+      };
+    }
+    // All slices done (or a plan with no "## Progress" checkbox section at
+    // all — nothing pending is tracked, so it is treated the same way).
+    if (dirty) {
+      return {
+        next: '/wrap then /ship',
+        why: null,
+        state: { gitRepo: true, branch, dirty, source: 'flow-done-dirty', flow },
+      };
+    }
+    const defaultBranch = gitDefaultBranch(cwd);
+    const isDefault = branch === defaultBranch || branch === 'main' || branch === 'master';
+    if (!isDefault) {
+      return {
+        next: '/ship',
+        why: null,
+        state: { gitRepo: true, branch, dirty, source: 'flow-done-clean', flow },
+      };
+    }
+    // Flow tracked, all slices done, clean tree, back on the default branch:
+    // nothing left for this flow to drive — fall through to the generic
+    // no-flow suggestion below.
+  }
+
+  if (!flow && /^flow\//.test(branch) && !planExists) {
+    return {
+      next: '/flow <describe the feature>',
+      why: 'spec gate is active on this branch',
+      state: { gitRepo: true, branch, dirty, source: 'flow-branch-no-plan' },
+    };
+  }
+
+  if (dirty) {
+    return {
+      next: '/wrap before leaving, or continue',
+      why: null,
+      state: { gitRepo: true, branch, dirty, source: 'dirty-no-flow' },
+    };
+  }
+
+  return {
+    next: '/flow <feature> for a feature, or just ask for a one-sentence change',
+    why: null,
+    state: { gitRepo: true, branch, dirty, source: 'clean-no-flow' },
+  };
+}
+
+function cmdNext(argv) {
+  const jsonMode = argv.includes('--json');
+  const result = computeNext(process.cwd());
+  if (jsonMode) {
+    stdout.write(JSON.stringify({ next: result.next, why: result.why || '', state: result.state }, null, 2) + '\n');
+    return 0;
+  }
+  stdout.write(`Next: ${result.next}\n`);
+  if (result.why) stdout.write(`Why: ${result.why}\n`);
+  return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1603,6 +1850,8 @@ function main() {
       printInitHelp();
     } else if (cmd === 'install') {
       printInstallHelp();
+    } else if (cmd === 'next') {
+      printNextHelp();
     } else {
       printTopHelp();
     }
@@ -1614,6 +1863,7 @@ function main() {
   else if (cmd === 'install') process.exit(cmdInstall(rest));
   else if (cmd === 'check') process.exit(cmdCheck(rest));
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
+  else if (cmd === 'next') process.exit(cmdNext(rest));
   else {
     stderr.write(`${C.error}harness: unknown command '${cmd}'${C.reset}\n`);
     printTopHelp();

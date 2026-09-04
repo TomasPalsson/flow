@@ -69,6 +69,7 @@ git clone <dotfiles> ~/.dotfiles
 node ~/Desktop/Projects/harness/plugins/harness/bin/harness install   # links ~/.claude/* and ~/.local/bin/harness, then runs doctor
 harness doctor
 cd <any project> && harness init && git add REVIEW.md PROGRESS.md .claude/harness.json
+harness next   # prints the next command to run (PROGRESS.md resume line, flow state, dirty tree)
 ```
 
 Without a checkout: `claude plugin marketplace add TomasPalsson/harness && claude plugin install harness@harness` (copy mode; `claude plugin update` to refresh).

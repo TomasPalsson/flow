@@ -259,6 +259,32 @@ SKILLEOF
 	assert_not_contains "$OUT" "MISSING" "skills-lint does not report the .claude/skills/... reference as missing"
 }
 
+t_lint_skills_lint_anchor_reference_resolves() {
+	# "references/note.md#section" points inside an existing file; the
+	# fragment must be stripped before the path is checked, and a
+	# fragment on a genuinely missing file must still report MISSING.
+	d=$(tmp_dir)
+	mkdir -p "$d/skills/anchor-skill/references"
+	cat >"$d/skills/anchor-skill/SKILL.md" <<'SKILLEOF'
+---
+name: anchor-skill
+description: fixture verifying that #anchors are stripped before resolving a reference.
+---
+
+# anchor-skill
+
+See `references/note.md#the-plan-file` and references/note.md#dedupe-search.
+SKILLEOF
+	echo "note" >"$d/skills/anchor-skill/references/note.md"
+	run_cmd env HOME=/nonexistent-home-for-skills-lint-test "$SKILLS_LINT" "$d/skills"
+	assert_rc 0 "skills-lint resolves an anchored reference to an existing file"
+	assert_not_contains "$OUT" "MISSING" "skills-lint does not report an anchored reference as missing"
+	echo 'Dead: `references/gone.md#section`' >>"$d/skills/anchor-skill/SKILL.md"
+	run_cmd env HOME=/nonexistent-home-for-skills-lint-test "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "skills-lint still fails on an anchored reference to a missing file"
+	assert_contains "$OUT" "references/gone.md" "skills-lint names the missing file without its fragment"
+}
+
 t_lint_skills_lint_command_v_non_allowlisted_no_tool_line() {
 	# C8: TOOL lines are only for the allowlisted tools (better-plan, rtk,
 	# gh, bun, uv). A "command -v <other>" mention must never produce a

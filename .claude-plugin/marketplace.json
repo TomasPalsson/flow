@@ -30,7 +30,7 @@
     {
       "name": "web",
       "source": "./plugins/web",
-      "description": "Web tooling skills: SEO audits, Google Ads, Figma-to-Strapi, website cloning, API exploration, and browser automation.",
+      "description": "Web tooling skills: SEO audits, Google Ads, HubSpot prospecting, Figma-to-Strapi, website cloning, API exploration, and browser automation.",
       "version": "0.1.0"
     },
     {

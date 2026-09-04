@@ -101,4 +101,27 @@ if [ -f "$dir/.claude/flow.json" ] && have jq; then
   fi
 fi
 
+# harness next (C23): append its output within the 20-line budget above,
+# via the CLI at $HERE/../bin/harness when present, else `harness` on PATH,
+# else print nothing (a missing/broken CLI never fails the session). No
+# `timeout` binary here — GNU-only and banned by the portability scan; `next`
+# only reads local git state and small files, so it returns fast enough that
+# a hard guard is unnecessary.
+_sc_next_cli=""
+if [ -x "$HERE/../bin/harness" ]; then
+  _sc_next_cli="$HERE/../bin/harness"
+elif have harness; then
+  _sc_next_cli="harness"
+fi
+if [ -n "$_sc_next_cli" ]; then
+  _sc_next_out=$(cd "$dir" 2>/dev/null && "$_sc_next_cli" next 2>/dev/null || true)
+  if [ -n "$_sc_next_out" ]; then
+    while IFS= read -r _sc_next_line; do
+      _sc_print "$_sc_next_line"
+    done <<EOF
+$_sc_next_out
+EOF
+  fi
+fi
+
 hook_ok

@@ -249,6 +249,13 @@ while IFS= read -r file; do
         *) break ;;
         esac
       done
+      # A markdown heading anchor ("references/a.md#section") names a
+      # location inside the file, not a different path: drop it before
+      # resolving so the file itself is what gets checked.
+      case "$tok" in
+      *'#'*) tok=${tok%%#*} ;;
+      esac
+      [ -z "$tok" ] && continue
       case "$tok" in
       *'<'* | *'>'* | *'*'* | *NNN*) continue ;;
       esac

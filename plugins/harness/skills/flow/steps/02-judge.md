@@ -36,3 +36,5 @@ Apply only the fixes the user agrees to, **surgically** — the smallest scope p
 Under `--unattended`, flow applies its own recommendation without asking — ship-blockers only, surgically — and records the rest as `Assumption (confidence: Low)`.
 
 Then read [`03-plan.md`](03-plan.md).
+
+End the step with the line `Next: …` from `harness next`.

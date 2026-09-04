@@ -33,3 +33,5 @@ Record every auto-resolved or inferred answer as `Assumption (confidence: <level
 
 - Run carries `--judge` → read [`02-judge.md`](02-judge.md).
 - Otherwise → say in one line *"Skipping the harsh judge (not requested; pass `--judge` to run it)"* and read [`03-plan.md`](03-plan.md).
+
+End the step with the line `Next: …` from `harness next`.

@@ -75,12 +75,13 @@
 - version-audit
 - worklog
 
-## web (6 skills)
+## web (7 skills)
 
 - agent-browser
 - api-explorer
 - figma-to-strapi
 - google-ads
+- hubspot-prospect
 - seo-audit
 - website-cloner
 

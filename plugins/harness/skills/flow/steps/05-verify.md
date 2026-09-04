@@ -39,3 +39,5 @@ Under `--unattended` this gate is **deferred, not skipped**: capture all evidenc
 Invoke the `qa` skill against the branch when the work is large or user-facing enough that an independent sweep could plausibly catch something this pipeline missed; skip it on a Small change and say so. Read `.qa-report/QA-REPORT.md`: PASS → proceed; PASS WITH NOTES → fix quick wins; FAIL → fix ship-blockers, re-run inline gates, re-run `/qa`.
 
 Then read [`06-pr.md`](06-pr.md).
+
+End the step with the line `Next: …` from `harness next`.

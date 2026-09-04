@@ -27,3 +27,14 @@ t_ctx_extra_no_flow_json_no_note() {
   assert_rc 0 "no flow.json: rc 0"
   assert_not_contains "$OUT" "mismatch" "no flow.json: no mismatch note"
 }
+
+# C23: session-context.sh appends the `harness next` line via the sibling CLI
+# at $HERE/../bin/harness (present in this repo layout — hooks/ and bin/
+# are siblings under the plugin root). A clean tmp_repo with no PROGRESS.md
+# or .claude/flow.json is the CLI's "no flow, clean tree" default line.
+t_ctx_extra_harness_next_line_appended() {
+  d=$(tmp_repo)
+  run_hook "$SCAN_DIR/session-context.sh" '{"session_id":"ctx-next"}' CLAUDE_PROJECT_DIR="$d"
+  assert_rc 0 "harness next line: rc 0"
+  assert_contains "$OUT" "Next: /flow <feature> for a feature, or just ask for a one-sentence change" "harness next line: printed"
+}

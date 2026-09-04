@@ -37,3 +37,5 @@ State in one line how many times this run stops for the user and where.
 - Unattended: *"Unattended: no stops. Plan auto-approved; verification deferred to PR review; PR stays draft."*
 
 Then read [`01-spec.md`](01-spec.md).
+
+End the step with the line `Next: …` from `harness next`.

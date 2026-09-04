@@ -1,0 +1,24 @@
+icelandic,english,scope,ladder_rank,note
+Framkvæmdastjóri upplýsingatæknisviðs,CIO (exec-board level),runs_it,1,Seen at Landsbankinn. Highest clarity signal.
+Forstjóri upplýsingatæknisviðs,IT Division CEO,runs_it,1,Rare; large orgs only.
+Forstöðumaður upplýsingatæknisviðs,Head of IT Division,runs_it,2,
+Forstöðumaður upplýsingatæknideildar,Head of IT Department,runs_it,2,
+Sviðsstjóri upplýsingatæknisviðs,Division Head IT,runs_it,2,Seen at VR. Co-equal with forstöðumaður.
+Sviðsstjóri upplýsingatækni,Division Head IT,runs_it,2,
+Upplýsingatæknistjóri,IT Manager,runs_it,3,Most common standalone title. Best default SMB target.
+IT-stjóri,IT Manager (informal),runs_it,3,Loanword hybrid; smaller-firm usage.
+Tæknistjóri,CTO,runs_it,3.5,VERIFY — in a non-tech company can mean head of technical facilities.
+Framkvæmdastjóri tæknisviðs,VP Engineering / CTO,runs_it,3,Inferred from the verified compositional pattern; not independently attested.
+Þróunarstjóri,Head of Development,ambiguous,,May be software OR business OR real-estate development. Needs company context.
+Gagnastjóri,Data Manager,adjacent,5,Owns data governance; does not run IT.
+Kerfisstjóri,Systems Administrator,works_in_it,6,Technical operator, not decision-maker.
+Netstjóri,Network Administrator,works_in_it,6,Technical operator, not decision-maker.
+Tölvunarfræðingur,Computer Scientist,works_in_it,7,LEGALLY PROTECTED CREDENTIAL (Law 8/1996) = holds a CS degree. Not a rank.
+Upplýsingafulltrúi,PR / Communications Officer,NOT_IT,,FALSE FRIEND — PR spokesperson. Zero IT scope. An 'upplýsinga-' keyword match hits this. Never target.
+Framkvæmdastjóri,Managing Director,fallback,10,Legally mandatory for every hf./ehf. Highest-hit-rate fallback; registered in fyrirtækjaskrá.
+Forstjóri,CEO,fallback,10,Larger/listed companies and state institutions.
+Bankastjóri,Bank CEO,fallback,10,Bank-specific form of forstjóri.
+Rekstrarstjóri,Operations Manager,fallback,11,One rung below framkvæmdastjóri.
+Fjármálastjóri,CFO,fallback,11,Frequently the real IT budget-holder at small firms. A legitimate rung, not a last resort.
+Skrifstofustjóri,Office Manager,fallback,12,At small offices often the de facto IT/purchasing contact.
+Formaður,Chair,fallback,10,For félög (unions/associations). Such entities often have no framkvæmdastjóri at all — this is the correct top of ladder for them.
