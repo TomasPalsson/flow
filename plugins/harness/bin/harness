@@ -287,6 +287,36 @@ function doctorSymlinkChecks(push, dotfilesRoot) {
       continue;
     }
     if (!lst.isSymbolicLink()) {
+      const src = path.join(dotfilesClaude, name);
+      if ((name === 'agents' || name === 'commands') && lst.isDirectory() && isDir(src)) {
+        // Merged layout: every dotfiles entry must be a link into the dotfiles.
+        let entries = [];
+        try { entries = fs.readdirSync(src).sort(); } catch { entries = []; }
+        const unlinked = entries.filter((e) => {
+          let real = null;
+          try { real = fs.realpathSync(path.join(p, e)); } catch { real = null; }
+          const linkedIn = real && (real === dotfilesClaudeReal || real.startsWith(dotfilesClaudeReal + path.sep));
+          let l = null;
+          try { l = fs.lstatSync(path.join(p, e)); } catch { l = null; }
+          return !(l && l.isSymbolicLink() && linkedIn);
+        });
+        if (unlinked.length === 0) push(`symlink:${name}`, 'PASS', `${p} (merged: ${entries.length} dotfiles entries linked; your own files kept)`);
+        else push(`symlink:${name}`, 'WARN', `${p} (merged) has ${unlinked.length} dotfiles entr${unlinked.length === 1 ? 'y' : 'ies'} not linked: ${unlinked.join(', ')} — harness install links them (--force replaces differing files, backup kept)`);
+        continue;
+      }
+      if (name === 'settings.json' && lst.isFile()) {
+        let ok = false;
+        try { ok = JSON.parse(safeRead(p) || 'null') !== null; } catch { ok = false; }
+        push(`symlink:${name}`, ok ? 'PASS' : 'FAIL', ok ? `${p} (machine-specific real file; not linked)` : `${p} does not parse`);
+        continue;
+      }
+      if (name === 'CLAUDE.md' && lst.isFile() && fs.existsSync(src)) {
+        let identical = false;
+        try { identical = fs.readFileSync(p).equals(fs.readFileSync(src)); } catch { identical = false; }
+        if (identical) push(`symlink:${name}`, 'PASS', `${p} is an identical copy of ${src} (harness install links it)`);
+        else push(`symlink:${name}`, 'WARN', `${p} differs from ${src}: the harness rules in it may be missing here — diff them, then harness install --force replaces it (backup kept)`);
+        continue;
+      }
       push(`symlink:${name}`, missingSeverity, `${p} exists but is not a symlink`);
       continue;
     }
@@ -951,7 +981,7 @@ function doctorPluginListCheck(push) {
   if (!entry) {
     push('plugin-list', 'WARN', 'harness@skills-dir not found in claude plugin list --json');
   } else if (entry.enabled !== true) {
-    push('plugin-list', 'WARN', 'harness@skills-dir present in claude plugin list --json but not enabled');
+    push('plugin-list', 'WARN', 'harness@skills-dir present in claude plugin list --json but not enabled — run: claude plugin enable harness@skills-dir');
   } else {
     push('plugin-list', 'PASS', 'harness@skills-dir present and enabled in claude plugin list --json');
   }
@@ -1394,6 +1424,62 @@ function installEnsureLink(opts) {
   report('create', linkPath, `-> ${desired} (previous moved to ${backup})`);
 }
 
+// Link one dotfiles entry into an existing real location. Absent → link;
+// identical real file → replaced by the link (nothing is lost); differing
+// real file (or a real directory) → kept unless --force, which moves it to
+// <name>.pre-harness.<epoch> first. Returns 'linked' | 'kept'.
+function installLinkEntry(opts) {
+  const { dest, targetAbs, relative, force, dryRun, epoch, report } = opts;
+  const desired = relative ? path.relative(path.dirname(dest), targetAbs) : targetAbs;
+  let lst = null;
+  try { lst = fs.lstatSync(dest); } catch { lst = null; }
+  if (!lst) {
+    if (!dryRun) fs.symlinkSync(desired, dest);
+    report(dryRun ? 'skip' : 'create', dest, `${dryRun ? 'would link ' : ''}-> ${desired}`);
+    return 'linked';
+  }
+  if (lst.isSymbolicLink()) {
+    const current = fs.readlinkSync(dest);
+    if (current === desired) { report('ok', dest, `-> ${desired}`); return 'linked'; }
+    if (!dryRun) { fs.unlinkSync(dest); fs.symlinkSync(desired, dest); }
+    report(dryRun ? 'skip' : 'create', dest, `${dryRun ? 'would relink ' : ''}-> ${desired} (was -> ${current})`);
+    return 'linked';
+  }
+  let identical = false;
+  if (lst.isFile()) {
+    try { identical = fs.readFileSync(dest).equals(fs.readFileSync(targetAbs)); } catch { identical = false; }
+  }
+  if (identical) {
+    if (!dryRun) { fs.unlinkSync(dest); fs.symlinkSync(desired, dest); }
+    report(dryRun ? 'skip' : 'create', dest, `${dryRun ? 'would link ' : ''}-> ${desired} (was an identical copy)`);
+    return 'linked';
+  }
+  if (!force) {
+    report('skip', dest, `differs from ${targetAbs}; kept yours (--force moves it aside and links)`);
+    return 'kept';
+  }
+  const backup = `${dest}.pre-harness.${epoch}`;
+  if (!dryRun) { fs.renameSync(dest, backup); fs.symlinkSync(desired, dest); }
+  report(dryRun ? 'skip' : 'create', dest, `${dryRun ? 'would move to ' : 'previous moved to '}${backup}${dryRun ? ' and link' : ''} -> ${desired}`);
+  return 'linked';
+}
+
+// A real directory already sits where ~/.claude/<x> would be linked (agents,
+// commands): link each dotfiles entry into it and leave everything else in
+// the directory alone — the user's own agents and commands stay.
+function installMergeDir(opts) {
+  const { linkDir, targetDir, relative, force, dryRun, epoch, report } = opts;
+  let entries = [];
+  try { entries = fs.readdirSync(targetDir).sort(); } catch { entries = []; }
+  let linked = 0;
+  let kept = 0;
+  for (const e of entries) {
+    const r = installLinkEntry({ dest: path.join(linkDir, e), targetAbs: path.join(targetDir, e), relative, force, dryRun, epoch, report });
+    if (r === 'linked') linked++; else kept++;
+  }
+  report('ok', linkDir, `merged: ${linked} linked from ${targetDir}${kept ? `, ${kept} kept (yours)` : ''}; other files untouched`);
+}
+
 // chmod +x a single file, reporting ok/create/skip/FAIL (C18 step 3).
 function installChmodFile(p, dryRun, report) {
   let st;
@@ -1500,11 +1586,34 @@ function cmdInstall(argv) {
   // workflows and templates now come from the marketplace plugin, step 1b).
   const marketplaceRoot = resolveMarketplaceRoot(argv);
   const pluginMode = isDir(path.join(marketplaceRoot, 'plugins', 'harness'));
+  let liveSettingsKept = false;
   for (const x of INSTALL_CLAUDE_ITEMS) {
     const fromDotfiles = path.join(dotfilesRoot, 'claude', '.claude', x);
     if (pluginMode && (!fs.existsSync(fromDotfiles) || ['skills','hooks','scripts','workflows','harness-templates'].indexOf(x) !== -1)) continue; // provided by the plugin below
+    const linkPath = path.join(HOME, '.claude', x);
+    let lst = null;
+    try { lst = fs.lstatSync(linkPath); } catch { lst = null; }
+    const isReal = !!(lst && !lst.isSymbolicLink());
+    // A real ~/.claude/agents or /commands is merged, not replaced: every
+    // dotfiles entry is linked in and the user's own files stay.
+    if (isReal && lst.isDirectory() && (x === 'agents' || x === 'commands') && isDir(fromDotfiles)) {
+      installMergeDir({ linkDir: linkPath, targetDir: fromDotfiles, relative, force, dryRun, epoch, report });
+      continue;
+    }
+    // settings.json is machine-specific (gitignored in the dotfiles): a real
+    // one in ~/.claude is the source of truth and is never replaced.
+    if (isReal && x === 'settings.json') {
+      liveSettingsKept = true;
+      report('ok', linkPath, 'kept (machine-specific; not linked)');
+      continue;
+    }
+    // A real CLAUDE.md: linked when identical, kept (with a note) when not.
+    if (isReal && x === 'CLAUDE.md') {
+      installLinkEntry({ dest: linkPath, targetAbs: fromDotfiles, relative, force, dryRun, epoch, report });
+      continue;
+    }
     installEnsureLink({
-      linkPath: path.join(HOME, '.claude', x),
+      linkPath,
       targetAbs: fromDotfiles,
       relative,
       force,
@@ -1572,7 +1681,9 @@ function cmdInstall(argv) {
   // copy is gitignored (machine-specific), so in plugin mode a fresh checkout
   // has none: seed a minimal one (the only harness-required key is the skill
   // index budget) rather than failing on a file that was never going to exist.
-  const settingsPath = path.join(dotfilesRoot, 'claude', '.claude', 'settings.json');
+  const settingsPath = liveSettingsKept
+    ? path.join(HOME, '.claude', 'settings.json')
+    : path.join(dotfilesRoot, 'claude', '.claude', 'settings.json');
   let raw = safeRead(settingsPath);
   if (raw === null && pluginMode) {
     raw = JSON.stringify({ skillListingBudgetFraction: 0.02 }, null, 2) + '\n';

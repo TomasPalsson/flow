@@ -374,3 +374,81 @@ t_install_warns_when_local_bin_not_on_path() {
 
 	rm -rf "$home"
 }
+
+# ---------------------------------------------------------------------------
+# Existing real ~/.claude/agents, /commands, settings.json, CLAUDE.md are
+# merged / kept, not refused (the Mac had all four as real files).
+# ---------------------------------------------------------------------------
+
+t_install_merges_real_agents_dir_keeping_own_files() {
+	local home
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	printf 'dev\n' >"$home/.dotfiles/claude/.claude/agents/developer.md"
+	mkdir -p "$home/.claude/agents"
+	printf 'mine\n' >"$home/.claude/agents/mine.md"
+	_install_cli "$home" install
+	assert_contains "$OUT" "merged: 1 linked" "merge: summary line"
+	assert_eq "$(_install_is_symlink "$home/.claude/agents/developer.md")" "yes" "merge: dotfiles agent linked in"
+	assert_eq "$(readlink "$home/.claude/agents/developer.md")" "../../.dotfiles/claude/.claude/agents/developer.md" "merge: relative link under ~/.dotfiles"
+	assert_eq "$(cat "$home/.claude/agents/mine.md")" "mine" "merge: own agent untouched"
+	assert_eq "$(_install_is_symlink "$home/.claude/agents")" "no" "merge: directory itself stays real"
+	assert_not_contains "$OUT" "FAIL $home/.claude/agents" "merge: not reported as a conflict"
+	# doctor accepts the merged layout
+	_install_cli "$home" doctor --json
+	assert_contains "$(printf '%s' "$OUT" | grep -A2 '"id": "symlink:agents"')" '"status": "PASS"' "merge: doctor PASS on merged agents"
+	rm -rf "$home"
+}
+
+t_install_merge_keeps_differing_file_unless_force() {
+	local home backup
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	printf 'theirs\n' >"$home/.dotfiles/claude/.claude/commands/wrap.md"
+	mkdir -p "$home/.claude/commands"
+	printf 'ours\n' >"$home/.claude/commands/wrap.md"
+	_install_cli "$home" install
+	assert_contains "$OUT" "skip $home/.claude/commands/wrap.md differs" "merge: differing file reported"
+	assert_eq "$(cat "$home/.claude/commands/wrap.md")" "ours" "merge: differing file kept without --force"
+	_install_cli "$home" doctor --json
+	assert_contains "$(printf '%s' "$OUT" | grep -A2 '"id": "symlink:commands"')" '"status": "WARN"' "merge: doctor WARN names the unlinked entry"
+	_install_cli "$home" install --force
+	assert_eq "$(_install_is_symlink "$home/.claude/commands/wrap.md")" "yes" "merge --force: linked"
+	backup=$(find "$home/.claude/commands" -maxdepth 1 -name 'wrap.md.pre-harness.*' | head -1)
+	assert_eq "$(cat "$backup")" "ours" "merge --force: backup keeps the old content"
+	rm -rf "$home"
+}
+
+t_install_identical_real_claude_md_is_linked_differing_is_kept() {
+	local home
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	mkdir -p "$home/.claude"
+	cp "$home/.dotfiles/claude/.claude/CLAUDE.md" "$home/.claude/CLAUDE.md"
+	_install_cli "$home" install
+	assert_eq "$(_install_is_symlink "$home/.claude/CLAUDE.md")" "yes" "identical CLAUDE.md: replaced by the link"
+	assert_contains "$OUT" "was an identical copy" "identical CLAUDE.md: reported"
+	rm -f "$home/.claude/CLAUDE.md"; printf '# mine\n' >"$home/.claude/CLAUDE.md"
+	_install_cli "$home" install
+	assert_eq "$(cat "$home/.claude/CLAUDE.md")" "# mine" "differing CLAUDE.md: kept"
+	assert_not_contains "$OUT" "FAIL $home/.claude/CLAUDE.md" "differing CLAUDE.md: not a FAIL"
+	_install_cli "$home" doctor --json
+	assert_contains "$(printf '%s' "$OUT" | grep -A2 '"id": "symlink:CLAUDE.md"')" '"status": "WARN"' "differing CLAUDE.md: doctor WARN"
+	rm -rf "$home"
+}
+
+t_install_real_settings_json_is_kept_and_validated() {
+	local home
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	rm -f "$home/.dotfiles/claude/.claude/settings.json"
+	mkdir -p "$home/.claude"
+	printf '{ "model": "opus", "hooks": { "SessionStart": [] } }\n' >"$home/.claude/settings.json"
+	_install_cli "$home" install
+	assert_contains "$OUT" "settings.json kept (machine-specific" "real settings: kept"
+	assert_eq "$(_install_is_symlink "$home/.claude/settings.json")" "no" "real settings: not replaced"
+	assert_contains "$OUT" "ok $home/.claude/settings.json parses and has a hooks key" "real settings: the live file is what step 4 validates"
+	_install_cli "$home" doctor --json
+	assert_contains "$(printf '%s' "$OUT" | grep -A2 '"id": "symlink:settings.json"')" '"status": "PASS"' "real settings: doctor PASS"
+	rm -rf "$home"
+}

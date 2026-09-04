@@ -67,6 +67,8 @@ Full version with justifications: [`docs/research/01-harness-engineering-2026.md
 git clone git@github.com:TomasPalsson/harness.git ~/Desktop/Projects/harness   # or set HARNESS_REPO
 git clone git@github.com:TomasPalsson/dotfiles.git ~/.dotfiles   # or set DOTFILES=<path>; install refuses to run without one
 node ~/Desktop/Projects/harness/plugins/harness/bin/harness install   # links ~/.claude/* and ~/.local/bin/harness, then runs doctor
+# An existing real ~/.claude/agents or /commands is merged (your files stay); a real settings.json is kept;
+# a real CLAUDE.md is linked when identical, otherwise kept and reported (--force replaces it, backup kept).
 harness doctor
 cd <any project> && harness init && git add REVIEW.md PROGRESS.md .claude/harness.json
 harness next   # prints the next command to run (PROGRESS.md resume line, flow state, dirty tree)
