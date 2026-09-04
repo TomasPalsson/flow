@@ -65,7 +65,7 @@ Full version with justifications: [`docs/research/01-harness-engineering-2026.md
 
 ```bash
 git clone git@github.com:TomasPalsson/harness.git ~/Desktop/Projects/harness   # or set HARNESS_REPO
-git clone <dotfiles> ~/.dotfiles
+git clone git@github.com:TomasPalsson/dotfiles.git ~/.dotfiles   # or set DOTFILES=<path>; install refuses to run without one
 node ~/Desktop/Projects/harness/plugins/harness/bin/harness install   # links ~/.claude/* and ~/.local/bin/harness, then runs doctor
 harness doctor
 cd <any project> && harness init && git add REVIEW.md PROGRESS.md .claude/harness.json

@@ -1224,8 +1224,8 @@ ${C.accent}Usage:${C.reset}
   harness install [--dry-run] [--dotfiles <path>] [--marketplace <path>] [--force]
 
 ${C.accent}Options:${C.reset}
-  --dotfiles <path>     Dotfiles repo root (default: $HOME/.dotfiles, else the repo
-                         containing this CLI's own real path)
+  --dotfiles <path>     Dotfiles repo root (default: $DOTFILES, $HOME/.dotfiles,
+                         $HOME/dotfiles; a marketplace checkout never qualifies)
   --marketplace <path>  Marketplace repo root (default: $HARNESS_REPO, else
                          $HOME/Desktop/Projects/harness); for each plugins/<name>
                          found there, symlinks ~/.claude/skills/<name> to it
@@ -1239,12 +1239,26 @@ Ends by running \`harness doctor\` and printing its summary.
 
 // Default dotfiles root: $HOME/.dotfiles when it looks like a real checkout,
 // else the repo that contains this CLI's own real path (C18).
+// Candidates, in order: --dotfiles, $DOTFILES, $HOME/.dotfiles, $HOME/dotfiles,
+// then the CLI's own repo — but only when that repo carries claude/.claude.
+// A marketplace checkout never qualifies (it has no user config), so a plugin
+// CLI on a machine without a dotfiles checkout returns null instead of
+// silently installing from the wrong tree.
+function dotfilesCandidates(argv) {
+  const di = argv.indexOf('--dotfiles');
+  const out = [];
+  if (di !== -1 && argv[di + 1]) out.push(path.resolve(argv[di + 1]));
+  if (process.env.DOTFILES) out.push(path.resolve(process.env.DOTFILES));
+  out.push(path.join(HOME, '.dotfiles'), path.join(HOME, 'dotfiles'), REPO_ROOT);
+  return out;
+}
 function resolveDotfilesRoot(argv) {
   const di = argv.indexOf('--dotfiles');
   if (di !== -1 && argv[di + 1]) return path.resolve(argv[di + 1]);
-  const homeDotfiles = path.join(HOME, '.dotfiles');
-  if (isDir(path.join(homeDotfiles, 'claude', '.claude'))) return homeDotfiles;
-  return REPO_ROOT;
+  for (const c of dotfilesCandidates(argv)) {
+    if (isDir(path.join(c, 'claude', '.claude'))) return c;
+  }
+  return null;
 }
 
 // Default marketplace root: --marketplace, else $HARNESS_REPO, else
@@ -1413,6 +1427,13 @@ function cmdInstall(argv) {
   const dryRun = argv.includes('--dry-run');
   const force = argv.includes('--force');
   const dotfilesRoot = resolveDotfilesRoot(argv);
+  if (dotfilesRoot === null) {
+    stdout.write(
+      `\n${C.error}harness install: no dotfiles checkout found${C.reset} (looked for claude/.claude under: ${dotfilesCandidates(argv).join(', ')})\n` +
+        `  clone the dotfiles repo to ~/.dotfiles, or pass --dotfiles <path> / set DOTFILES=<path>\n`
+    );
+    return 1;
+  }
   const relative = dotfilesRoot === path.join(HOME, '.dotfiles');
   const epoch = Math.floor(Date.now() / 1000);
   const lines = [];
@@ -1492,9 +1513,17 @@ function cmdInstall(argv) {
   installChmodDir(path.join(dotfilesRoot, 'claude', '.claude', 'scripts'), () => true, dryRun, report);
   installChmodFile(path.join(dotfilesRoot, 'bin', '.local', 'bin', 'harness'), dryRun, report);
 
-  // Step 4: settings.json must parse and carry a "hooks" key. Never written.
+  // Step 4: settings.json must parse and carry a "hooks" key. The dotfiles
+  // copy is gitignored (machine-specific), so in plugin mode a fresh checkout
+  // has none: seed a minimal one (the only harness-required key is the skill
+  // index budget) rather than failing on a file that was never going to exist.
   const settingsPath = path.join(dotfilesRoot, 'claude', '.claude', 'settings.json');
-  const raw = safeRead(settingsPath);
+  let raw = safeRead(settingsPath);
+  if (raw === null && pluginMode) {
+    raw = JSON.stringify({ skillListingBudgetFraction: 0.02 }, null, 2) + '\n';
+    if (!dryRun) fs.writeFileSync(settingsPath, raw);
+    report('create', settingsPath, 'seeded (gitignored, machine-specific; add your own keys)');
+  }
   let settingsOk = false;
   if (raw !== null) {
     try {
@@ -1510,7 +1539,8 @@ function cmdInstall(argv) {
   try { parsedSettings = JSON.parse(raw); } catch { parsedSettings = null; }
   const hasHooksKey = !!(parsedSettings && typeof parsedSettings.hooks === 'object' && parsedSettings.hooks !== null);
   if (pluginMode) {
-    if (parsedSettings === null) report('FAIL', settingsPath, 'does not parse');
+    if (raw === null) report('FAIL', settingsPath, 'not found');
+    else if (parsedSettings === null) report('FAIL', settingsPath, 'does not parse');
     else if (hasHooksKey) report('FAIL', settingsPath, 'has a hooks key AND the plugin provides hooks.json — remove the settings block or every hook fires twice');
     else report('ok', settingsPath, 'parses; hooks come from the plugin hooks.json');
   } else if (settingsOk) {

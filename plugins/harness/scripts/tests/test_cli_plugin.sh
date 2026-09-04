@@ -539,3 +539,48 @@ t_clip_install_no_marketplace_checkout_prints_alternative() {
 	assert_contains "$OUT" "claude plugin marketplace add TomasPalsson/harness" "no checkout: alternative command printed"
 	rm -rf "$home" "$dotfiles"
 }
+
+# The Mac regression: a plugin CLI with no ~/.dotfiles must refuse to install
+# rather than treat the marketplace checkout (which has no claude/.claude) as
+# the dotfiles root and then FAIL on a settings.json that was never there.
+t_clip_install_no_dotfiles_refuses_instead_of_using_marketplace() {
+	local home mkt
+	home=$(tmp_dir); mkt=$(tmp_dir)
+	_clip_write_core_plugin "$mkt"
+	_clip_cli_in "$home" "$home" install --marketplace "$mkt"
+	assert_rc 1 "no dotfiles: install exits 1"
+	assert_contains "$OUT" "no dotfiles checkout found" "no dotfiles: names the problem"
+	assert_contains "$OUT" "--dotfiles" "no dotfiles: says how to fix it"
+	assert_not_contains "$OUT" "does not parse" "no dotfiles: no misleading settings.json failure"
+	assert_eq "$(_install_is_symlink_clip "$home/.claude/skills")" "no" "no dotfiles: nothing was linked"
+	rm -rf "$home" "$mkt"
+}
+_install_is_symlink_clip() { if [ -L "$1" ]; then printf 'yes'; else printf 'no'; fi; }
+
+t_clip_install_dotfiles_env_var_is_honoured() {
+	local home dotfiles mkt
+	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	_clip_write_stub_dotfiles "$dotfiles"
+	_clip_write_core_plugin "$mkt"
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2" DOTFILES="$3"; shift 3; unset HARNESS_REPO; exec "$@"' \
+		_ "$home" "$home" "$dotfiles" node "$CLI_PATH" install --marketplace "$mkt"
+	assert_contains "$OUT" "(dotfiles: $dotfiles)" "DOTFILES env: used as the dotfiles root"
+	rm -rf "$home" "$dotfiles" "$mkt"
+}
+
+# settings.json is gitignored in the dotfiles (machine-specific), so a fresh
+# checkout has none: plugin mode seeds a minimal parseable one instead of FAIL.
+t_clip_install_plugin_mode_seeds_missing_settings() {
+	local home dotfiles mkt
+	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	_clip_write_stub_dotfiles "$dotfiles"
+	rm -f "$dotfiles/claude/.claude/settings.json"
+	_clip_write_core_plugin "$mkt"
+	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$mkt"
+	assert_contains "$OUT" "settings.json seeded" "missing settings: seeded"
+	assert_not_contains "$OUT" "does not parse" "missing settings: no parse failure"
+	assert_eq "$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).skillListingBudgetFraction)' "$dotfiles/claude/.claude/settings.json")" "0.02" "missing settings: seeded file carries the skill index budget"
+	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$mkt" --dry-run
+	assert_not_contains "$OUT" "seeded" "existing settings: not re-seeded"
+	rm -rf "$home" "$dotfiles" "$mkt"
+}
