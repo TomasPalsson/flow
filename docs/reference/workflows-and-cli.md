@@ -1,8 +1,8 @@
 # Saved workflows
 
-Discovered from `~/.claude/workflows/*.js` at session start; invoked with `Workflow({ name })`.
+Discovered from the plugin's `workflows/` at session start and registered as `harness:<name>`; invoked with `Workflow({ name: 'harness:<name>' })`.
 
-## build-slices
+## harness:build-slices
 
 export const meta = {
   name: 'build-slices',
@@ -16,7 +16,7 @@ export const meta = {
   ],
 }
 
-## plan-review
+## harness:plan-review
 
 export const meta = {
   name: 'plan-review',
@@ -28,7 +28,7 @@ export const meta = {
   ],
 }
 
-## research-sweep
+## harness:research-sweep
 
 export const meta = {
   name: 'research-sweep',
@@ -42,7 +42,7 @@ export const meta = {
   ],
 }
 
-## review-diff
+## harness:review-diff
 
 export const meta = {
   name: 'review-diff',
@@ -69,6 +69,9 @@ export const meta = {
   init [--stack auto|node|python|rust|go] [--dry-run] [--force]
                                                      Scaffold REVIEW.md, PROGRESS.md,
                                                      CLAUDE.md, CI gate, lint thresholds
+  install [--dry-run] [--dotfiles <path>] [--marketplace <path>] [--force]
+                                                     Deploy the harness on this machine
+                                                     (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
 

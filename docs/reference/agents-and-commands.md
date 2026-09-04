@@ -1,12 +1,12 @@
-# Agents and commands
+# Agents and commands (user-level, in the dotfiles)
 
 ## Agents (`~/.claude/agents/`)
 
 - **adversary** (model: sonnet) — Adversarial diff reviewer for ultracode workflows — a kill-mandate reviewer that assumes the code is wrong and must earn any pass verdict. Read-only; returns severity-sorted, evidence-gated findings and a BLUF verdict, never edits code. Spawn 2+ per implementer with distinct lenses (correctness, security, gaming, cross-file, spec) via agentType 'adversary'. Also useful solo for a hostile second opinion on any diff or spec.
-- **claim-check** (model: sonnet) — Re-runs the evidence behind status claims made in the main session ("tests pass", "committed", "deployed", "gate green", "file exists") and returns CONFIRMED / UNSUPPORTED / NOT-CHECKABLE per claim, with the command it ran and its trimmed output. Read-only; never edits; never hunts for new problems beyond the claims handed to it. Spawn after a compaction, after a failed tool call, before trusting any "done" report, and before a /goal clears.
+- **claim-check** (model: sonnet) — Re-runs the evidence behind status claims made in the main session ("tests pass", "committed", "deployed", "gate green", "file exists") and returns CONFIRMED / UNSUPPORTED / NOT-CHECKABLE per claim, with the command it ran and its trimmed output. Read-only; never edits; never hunts for new problems beyond the claims handed to it. Spawn after a compaction, after a failed tool call, before trusting any "done" report, and before a /goal clears. Do NOT use for: reviewing a diff for defects (use adversary).
 - **developer** (model: sonnet) — Fleet implementer for ultracode workflows. Implements exactly one assigned unit of work from a SPEC, returns evidence (real command output, test counts), and never touches files outside its assignment. Use as agentType 'developer' in Workflow fan-outs, or standalone for any well-specified implementation task that should run on Sonnet.
 - **explorer** (model: haiku) — Read-only codebase reader for flow step 1 and any "where does X live" question. Returns locations with path:line receipts it opened this run, never a plan and never an edit. Spawn up to three in parallel with distinct questions.
-- **triage** (model: sonnet) — Reproduces a reported error and localises it — returns the minimal failing command, exact error text, file:line origin, and the top two candidate causes. Never edits, never proposes a fix; that's the developer's job once triage hands off. Spawn from `fix` Step 2 (reproduction) with the pasted error text, or any time an error needs localising before someone starts changing code.
+- **triage** (model: sonnet) — Reproduces a reported error and localises it — returns the minimal failing command, exact error text, file:line origin, and the top two candidate causes. Never edits, never proposes a fix; that's the developer's job once triage hands off. Spawn from `fix` Step 2 (reproduction) with the pasted error text, or any time an error needs localising before someone starts changing code. Do NOT use for: implementing the fix (use developer).
 
 ## Commands (`~/.claude/commands/`)
 

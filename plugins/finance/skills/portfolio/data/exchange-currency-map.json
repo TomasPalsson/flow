@@ -1,0 +1,260 @@
+{
+  "_meta": {
+    "generated_at": "GENERATED_AT_PLACEHOLDER — fill with the actual build/verification timestamp when this file is next regenerated or spot-checked",
+    "source": "Derived from the build-time global data-sourcing research (Suffix / Exchange / Currency Mapping Table + Empirical Yahoo Coverage Matrix), which in turn cites the build-time live IBKR probe for all IBKR-side facts. Entries marked verified:true were literally observed in the IBKR probe’s search_contracts output; verified:false entries are standard public IBKR convention, never observed in either probe session, and must be spot-checked with a live search_contracts call before being trusted in skill logic.",
+    "warning": "IBKR exposes NO currency field anywhere in search_contracts/get_price_snapshot/get_price_history (the IBKR probe, verbatim: \"No `currency` field anywhere in the snapshot response.\"). Every trading_currency value below is therefore an INFERENCE from the exchange, not an IBKR-confirmed fact — this inference is exactly what the skill's reconciliation gate (references/05-ibkr-handoff.md) tests on every trade candidate by cross-checking the currency-normalized price against Yahoo's live quote.currency. Do not treat this file as ground truth without that runtime cross-check.",
+    "minor_unit_convention_note": "Yahoo's documented convention: a currency code ending in a lowercase letter after otherwise-uppercase ISO letters (e.g. \"GBp\") denotes minor-unit (subunit) quoting — divide by the stated divisor before use. Only \"GBp\" was empirically observed live in the source session (SHEL.L, ULVR.L). The existence of other minor-unit codes (e.g. \"ZAc\" for Johannesburg cents, \"ILa\") is general convention knowledge cited in the source, NOT independently re-verified — none of those markets are in this file's coverage, and none should be assumed minor-unit without live verification of the exact currency string.",
+    "lot_size_note": "lot_size is null everywhere in this file. Neither source document establishes a numeric lot/board-lot size for any market — the build-time research mention that Japan and Hong Kong conventionally use non-1 round lots / board lots (referenced from SKILL.md's 08-multi-currency.md, which was not provided as a source for this file) but no exact unit count was observed or cited in the two documents this file is built from. Do not invent a number — verify via a live IBKR contract-details call before sizing any order in an affected market."
+  },
+  "markets": {
+    "": {
+      "suffix": "",
+      "exchange_name": "NYSE / Nasdaq (US)",
+      "ibkr_exchange_code": [
+        { "code": "NYSE", "verified": true },
+        { "code": "NASDAQ", "verified": true },
+        { "code": "ARCA", "verified": true },
+        { "code": "BATS", "verified": true }
+      ],
+      "trading_currency": "USD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Baseline market. Empty Yahoo suffix = bare US ticker. Multiple IBKR exchange codes are valid depending on the specific primary/alternate listing venue; all four were directly observed in the IBKR probe’s search_contracts output."
+    },
+    ".TO": {
+      "suffix": ".TO",
+      "exchange_name": "Toronto Stock Exchange",
+      "ibkr_exchange_code": [
+        { "code": "TSE", "verified": true }
+      ],
+      "trading_currency": "CAD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Some Canadian names dual-report financials in USD (empirically observed: Shopify/SHOP.TO — CAD shares, USD financialData.financialCurrency) even though shares trade in CAD. Always check financialData.financialCurrency separately from quote.currency; do not assume CAD financials from a CAD-quoted listing."
+    },
+    ".L": {
+      "suffix": ".L",
+      "exchange_name": "London Stock Exchange",
+      "ibkr_exchange_code": [
+        { "code": "LSE", "verified": true }
+      ],
+      "trading_currency": "GBp (pence) for most equities — confirmed live for SHEL.L and ULVR.L; GBP (pounds) also occurs on the same suffix for some ETFs/gilts",
+      "minor_unit": true,
+      "divisor": 100,
+      "lot_size": null,
+      "notes": "#1 trap in the whole dataset. Yahoo's currency field literally returns the string \"GBp\" (lowercase p) for penny-quoted LSE equities — the actual price is regularMarketPrice / 100 in pounds. \"GBP\" (all caps) is a DIFFERENT, also-valid Yahoo currency code used for some GBP-denominated ETFs/gilts on the same .L suffix. Never assume minor-unit quoting from the suffix alone — read the exact quote.currency string for every instrument, every time, per the skill's mandatory rule. minor_unit=true/divisor=100 here reflects the majority (equity) case only."
+    },
+    ".IR": {
+      "suffix": ".IR",
+      "exchange_name": "Euronext Dublin (Ireland)",
+      "ibkr_exchange_code": [
+        { "code": "ISE", "verified": false }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred. Yahoo confirms \"ISE\" as quote.exchange / fullExchangeName \"Irish\", which matches the IBKR probe’s IBKR country_code \"IE\" convention, but the IBKR probe never actually searched an Irish name via search_contracts — spot-check before trusting in skill logic."
+    },
+    ".AS": {
+      "suffix": ".AS",
+      "exchange_name": "Euronext Amsterdam",
+      "ibkr_exchange_code": [
+        { "code": "AEB", "verified": true }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Yahoo's own exchange short code is \"AMS\", not \"AEB\" — Yahoo and IBKR use genuinely different short codes for the same venue. Never pass one system's exchange code to the other's API."
+    },
+    ".DE": {
+      "suffix": ".DE",
+      "exchange_name": "Deutsche Börse Xetra",
+      "ibkr_exchange_code": [
+        { "code": "IBIS", "verified": true },
+        { "code": "FWB", "verified": false },
+        { "code": "FWB2", "verified": false }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "IBIS is the IBKR probe’s primary observed Xetra code; FWB/FWB2 (Frankfurt floor) are alternate codes cited in the data-sourcing research but not independently confirmed as separately observed in the IBKR probe’s raw output — treat as unverified until spot-checked. Yahoo's own exchange short code is \"GER\", displayed name \"XETRA\" — a third, different short code from IBKR's.  Never pass one system's exchange code to the other's API."
+    },
+    ".PA": {
+      "suffix": ".PA",
+      "exchange_name": "Euronext Paris",
+      "ibkr_exchange_code": [
+        { "code": "SBF", "verified": true }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Yahoo's own exchange short code is \"PAR\" — different from IBKR's \"SBF\". Never pass one system's exchange code to the other's API."
+    },
+    ".SW": {
+      "suffix": ".SW",
+      "exchange_name": "SIX Swiss Exchange",
+      "ibkr_exchange_code": [
+        { "code": "EBS", "verified": true }
+      ],
+      "trading_currency": "CHF",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "One of the few venues where Yahoo's own exchange code (\"EBS\") and IBKR's exchange code coincide — do not generalize this coincidence to other exchanges in this table; every other row here has been observed to differ between the two systems."
+    },
+    ".MC": {
+      "suffix": ".MC",
+      "exchange_name": "Bolsa de Madrid (Spain)",
+      "ibkr_exchange_code": [
+        { "code": "MEFF", "verified": false },
+        { "code": "BM", "verified": false }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred, not observed in either probe session — spot-check before trusting. Financial-statement-history modules (incomeStatementHistory/balanceSheetHistory/cashflowStatementHistory) were EMPTY for the one Spanish name tested (Inditex, ITX.MC) despite summaryDetail/defaultKeyStatistics/financialData all being populated on the same call. Verify per-name before relying on IS/BS/CFS history for Spanish names; treat an empty result as \"no data\", not an error to retry."
+    },
+    ".MI": {
+      "suffix": ".MI",
+      "exchange_name": "Borsa Italiana (Milan)",
+      "ibkr_exchange_code": [
+        { "code": "BVME", "verified": false }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred, not observed in either probe session — spot-check before trusting in skill logic."
+    },
+    ".ST": {
+      "suffix": ".ST",
+      "exchange_name": "Nasdaq Stockholm",
+      "ibkr_exchange_code": [
+        { "code": "SFB", "verified": false },
+        { "code": "OMX", "verified": false }
+      ],
+      "trading_currency": "SEK",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred, not observed in either probe session — spot-check before trusting in skill logic."
+    },
+    ".OL": {
+      "suffix": ".OL",
+      "exchange_name": "Oslo Børs",
+      "ibkr_exchange_code": [
+        { "code": "OSE", "verified": false }
+      ],
+      "trading_currency": "NOK",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred exchange code, not observed in either probe session. Observed financialData.financialCurrency=\"USD\" for Equinor (EQNR.OL) despite NOK-quoted shares — oil/gas majors commonly report financials in USD regardless of home listing currency. Do not assume Nordic-listed names report financials in the Nordic trading currency; always check financialCurrency separately."
+    },
+    ".CO": {
+      "suffix": ".CO",
+      "exchange_name": "Nasdaq Copenhagen",
+      "ibkr_exchange_code": [
+        { "code": "CSE", "verified": false }
+      ],
+      "trading_currency": "DKK",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred, not observed in either probe session — spot-check before trusting in skill logic."
+    },
+    ".HE": {
+      "suffix": ".HE",
+      "exchange_name": "Nasdaq Helsinki",
+      "ibkr_exchange_code": [
+        { "code": "HEX", "verified": false },
+        { "code": "HSE", "verified": false }
+      ],
+      "trading_currency": "EUR",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred, not observed in either probe session — spot-check before trusting in skill logic."
+    },
+    ".T": {
+      "suffix": ".T",
+      "exchange_name": "Tokyo Stock Exchange (JPX)",
+      "ibkr_exchange_code": [
+        { "code": "TSEJ", "verified": true }
+      ],
+      "trading_currency": "JPY",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "JPY has no minor/decimal subunit, so there is no GBp-style trap here — but nominal prices are very large; sanity-check magnitude, not currency identity. Japanese equities are conventionally traded in non-1 \"round lots\" — the exact unit is NOT established by either source document behind this file; verify via a live IBKR contract-details call before sizing an order, do not assume 100 or any other number. Separately (unrelated to lot size): Japanese GAAP (J-GAAP) still amortizes goodwill over up to 20 years, unlike IFRS/US GAAP — check accounting regime per Japanese company before trusting net-income-based multiples (see withholding-tax.json's sibling normalization notes / the IBKR probe fundamentals research)."
+    },
+    ".HK": {
+      "suffix": ".HK",
+      "exchange_name": "Hong Kong Stock Exchange",
+      "ibkr_exchange_code": [
+        { "code": "SEHK", "verified": false }
+      ],
+      "trading_currency": "HKD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred exchange code, not observed in either probe session. Observed financialData.financialCurrency=\"CNY\" for Tencent (0700.HK) — mainland-China-domiciled issuers listed in HK commonly report financials in CNY/RMB while shares trade in HKD; do not assume \"Hong Kong listing implies HKD financials.\" HK uses non-1 \"board lots\" that vary per security — exact unit not established by either source document; verify via a live IBKR contract-details call before sizing."
+    },
+    ".AX": {
+      "suffix": ".AX",
+      "exchange_name": "Australian Securities Exchange",
+      "ibkr_exchange_code": [
+        { "code": "ASX", "verified": true }
+      ],
+      "trading_currency": "AUD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Observed financialData.financialCurrency=\"USD\" for BHP (BHP.AX) — large diversified miners with US-dollar-denominated global operations frequently report in USD despite an ASX-primary, AUD-quoted listing. Also see withholding-tax.json: Australian franking credits mean headline dividend yield is not a reliable after-tax proxy for this market."
+    },
+    ".SI": {
+      "suffix": ".SI",
+      "exchange_name": "Singapore Exchange",
+      "ibkr_exchange_code": [
+        { "code": "SGX", "verified": false }
+      ],
+      "trading_currency": "SGD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred exchange code, not observed in either probe session. Financial-statement-history modules were EMPTY for the one Singaporean name tested (DBS, D05.SI) despite summaryDetail/defaultKeyStatistics/financialData all being populated — same caveat as .MC (Spain) above; verify per-name."
+    },
+    ".KS": {
+      "suffix": ".KS",
+      "exchange_name": "Korea Exchange (KOSPI)",
+      "ibkr_exchange_code": [
+        { "code": "KRX", "verified": true }
+      ],
+      "trading_currency": "KRW",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "No specific trap flagged in the source session beyond the general rules (always read quote.currency live, never assume from suffix)."
+    },
+    ".TW": {
+      "suffix": ".TW",
+      "exchange_name": "Taiwan Stock Exchange",
+      "ibkr_exchange_code": [
+        { "code": "TWSE", "verified": false },
+        { "code": "TAIWAN", "verified": false }
+      ],
+      "trading_currency": "TWD",
+      "minor_unit": false,
+      "divisor": null,
+      "lot_size": null,
+      "notes": "Inferred exchange code, not observed in either probe session — spot-check before trusting in skill logic. Separately (dividend, not exchange-code, trap): the US has NO income tax treaty with Taiwan at all — see withholding-tax.json, this is a structural withholding-drag trap distinct from the exchange-code uncertainty here."
+    }
+  }
+}

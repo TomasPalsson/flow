@@ -1,0 +1,11 @@
+{
+  "name": "design",
+  "version": "0.1.0",
+  "description": "Design and UI skills: visual design, UX critique, mobile design, polish passes, showcase pages, and UI animation.",
+  "author": {
+    "name": "TomasPalsson"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}

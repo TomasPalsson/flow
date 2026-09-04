@@ -1,0 +1,326 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+const net = require('node:net');
+const { spawn, execSync, spawnSync } = require('node:child_process');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI Args
+// ─────────────────────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+let port = 0;
+let timeout = 30000;
+let killFirst = false;
+let customCmd = '';
+let dir = process.cwd();
+
+for (let i = 0; i < args.length; i++) {
+  switch (args[i]) {
+    case '--port':    port = parseInt(args[++i], 10); break;
+    case '--timeout': timeout = parseInt(args[++i], 10) * 1000; break;
+    case '--kill':    killFirst = true; break;
+    case '--cmd':     customCmd = args[++i]; break;
+    case '--dir':     dir = path.resolve(args[++i]); break;
+    case '-h': case '--help':
+      process.stdout.write(`start-dev-server — start dev server, wait for ready, output JSON
+
+Usage: start-dev-server [options]
+
+Options:
+  --port N       Port to poll (auto-detected if omitted)
+  --timeout N    Seconds to wait for ready (default: 30)
+  --kill         Kill existing process on port before starting
+  --cmd "..."    Override dev command
+  --dir <path>   Project directory (default: cwd)
+  -h, --help     Show this help
+
+Output (stdout): {"url","pid","command","ready_ms"} or {"error","message","command"}
+`);
+      process.exit(0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function output(obj) {
+  process.stdout.write(JSON.stringify(obj) + '\n');
+}
+
+function fail(error, message, command) {
+  output({ error, message, command });
+  process.exit(1);
+}
+
+function readPackageJson(root) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Detect dev command
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectDevCmd(root) {
+  if (customCmd) return customCmd;
+
+  // Try detect-project script
+  const detectScript = path.join(root, '.claude', 'skills', 'shared', 'scripts', 'detect-project');
+  if (fs.existsSync(detectScript)) {
+    try {
+      const result = spawnSync('node', [detectScript, '--dir', root], { encoding: 'utf8', timeout: 5000 });
+      if (result.status === 0) {
+        const data = JSON.parse(result.stdout);
+        if (data.dev_cmd) return data.dev_cmd;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Also check home directory for the script (stowed dotfiles)
+  const homeDetect = path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project');
+  if (homeDetect !== detectScript && fs.existsSync(homeDetect)) {
+    try {
+      const result = spawnSync('node', [homeDetect, '--dir', root], { encoding: 'utf8', timeout: 5000 });
+      if (result.status === 0) {
+        const data = JSON.parse(result.stdout);
+        if (data.dev_cmd) return data.dev_cmd;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Try package.json
+  const pkg = readPackageJson(root);
+  if (pkg && pkg.scripts) {
+    for (const name of ['dev', 'start', 'serve']) {
+      if (pkg.scripts[name]) {
+        // Detect package manager
+        const lockMap = [
+          ['bun.lockb', 'bun'], ['bun.lock', 'bun'],
+          ['pnpm-lock.yaml', 'pnpm'], ['yarn.lock', 'yarn'],
+          ['package-lock.json', 'npm'],
+        ];
+        let mgr = 'npm';
+        for (const [file, m] of lockMap) {
+          if (fs.existsSync(path.join(root, file))) { mgr = m; break; }
+        }
+        const run = mgr === 'yarn' ? `yarn ${name}` : `${mgr} run ${name}`;
+        return run;
+      }
+    }
+  }
+
+  // Try Makefile
+  const makefile = path.join(root, 'Makefile');
+  if (fs.existsSync(makefile)) {
+    const content = fs.readFileSync(makefile, 'utf8');
+    if (/^dev\s*:/m.test(content)) return 'make dev';
+    if (/^serve\s*:/m.test(content)) return 'make serve';
+  }
+
+  return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Kill existing process on port
+// ─────────────────────────────────────────────────────────────────────────────
+
+function killPort(p) {
+  try {
+    const result = execSync(`lsof -ti :${p}`, { encoding: 'utf8' }).trim();
+    if (result) {
+      for (const pid of result.split('\n')) {
+        try { process.kill(parseInt(pid, 10), 'SIGTERM'); } catch { /* already dead */ }
+      }
+      // Give it a moment to die
+      spawnSync('sleep', ['0.5']);
+    }
+  } catch { /* nothing on port */ }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Check if port is open (TCP connect)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkPort(p) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(1000);
+    socket.once('connect', () => { socket.destroy(); resolve(true); });
+    socket.once('error', () => { socket.destroy(); resolve(false); });
+    socket.once('timeout', () => { socket.destroy(); resolve(false); });
+    socket.connect(p, '127.0.0.1');
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Check if HTTP responds
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkHttp(p) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${p}/`, (res) => {
+      res.resume();
+      resolve(true);
+    });
+    req.setTimeout(2000);
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Detect port from server output
+// ─────────────────────────────────────────────────────────────────────────────
+
+function parsePort(text) {
+  // Match patterns like "localhost:3000", "port 3000", ":3000", "0.0.0.0:3000"
+  const patterns = [
+    /(?:localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{4,5})/i,
+    /port\s+(\d{4,5})/i,
+    /listening\s+(?:on\s+)?(?:.*:)?(\d{4,5})/i,
+    /http:\/\/[^:]+:(\d{4,5})/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m) return parseInt(m[1], 10);
+  }
+  return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function main() {
+  const devCmd = detectDevCmd(dir);
+  if (!devCmd) {
+    fail('no_command', 'Could not detect dev server command. Use --cmd to specify.', '');
+  }
+
+  // Determine port candidates
+  const portCandidates = port ? [port] : [3000, 5173, 4321, 8000, 8080, 3001];
+  let targetPort = port || 0;
+
+  if (killFirst && targetPort) {
+    killPort(targetPort);
+  }
+
+  // Start server
+  const parts = devCmd.split(' ');
+  const child = spawn(parts[0], parts.slice(1), {
+    cwd: dir,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, FORCE_COLOR: '0' },
+  });
+
+  child.unref();
+
+  let serverOutput = '';
+
+  // Pipe server output to stderr and capture for port detection
+  child.stdout.on('data', (data) => {
+    const text = data.toString();
+    serverOutput += text;
+    process.stderr.write(text);
+    if (!targetPort) {
+      const p = parsePort(serverOutput);
+      if (p) targetPort = p;
+    }
+  });
+
+  child.stderr.on('data', (data) => {
+    const text = data.toString();
+    serverOutput += text;
+    process.stderr.write(text);
+    if (!targetPort) {
+      const p = parsePort(serverOutput);
+      if (p) targetPort = p;
+    }
+  });
+
+  child.on('error', (err) => {
+    fail('spawn_error', `Failed to start: ${err.message}`, devCmd);
+  });
+
+  child.on('exit', (code) => {
+    if (code !== null && code !== 0) {
+      fail('server_crashed', `Server exited with code ${code}`, devCmd);
+    }
+  });
+
+  // Wait a bit for port to appear in output
+  const start = Date.now();
+  await new Promise(r => setTimeout(r, 1500));
+
+  // If still no port detected, try candidates
+  if (!targetPort) {
+    for (const p of portCandidates) {
+      if (await checkPort(p)) {
+        targetPort = p;
+        break;
+      }
+    }
+  }
+
+  // If still nothing, wait and retry
+  if (!targetPort) {
+    await new Promise(r => setTimeout(r, 2000));
+    // Check output again
+    const p = parsePort(serverOutput);
+    if (p) targetPort = p;
+    // Try candidates again
+    if (!targetPort) {
+      for (const c of portCandidates) {
+        if (await checkPort(c)) {
+          targetPort = c;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!targetPort) {
+    // Default to first candidate and hope for the best
+    targetPort = portCandidates[0];
+  }
+
+  if (killFirst && !port) {
+    // We didn't kill earlier because we didn't know the port
+    killPort(targetPort);
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  // Poll until ready
+  const deadline = start + timeout;
+
+  while (Date.now() < deadline) {
+    const tcpReady = await checkPort(targetPort);
+    if (tcpReady) {
+      // Also try HTTP to make sure it's actually serving
+      const httpReady = await checkHttp(targetPort);
+      if (httpReady) {
+        output({
+          url: `http://localhost:${targetPort}`,
+          pid: child.pid,
+          command: devCmd,
+          ready_ms: Date.now() - start,
+        });
+        process.exit(0);
+      }
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  // Timeout — kill the server
+  try { process.kill(-child.pid, 'SIGTERM'); } catch { /* already dead */ }
+  fail('timeout', `Server not ready after ${timeout / 1000}s on port ${targetPort}`, devCmd);
+}
+
+main();

@@ -1,0 +1,20 @@
+name: gates
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+{{SETUP_STEP}}
+      - name: typecheck
+        run: {{TYPECHECK_CMD}}
+      - name: lint
+        run: {{LINT_CMD}}
+      - name: test
+        run: {{TEST_CMD}}

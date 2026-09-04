@@ -1,0 +1,391 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { execSync, spawnSync } = require('node:child_process');
+
+// ─────────��───────────────────────────────────────────────────────────────────
+// CLI Args
+// ────────────���───────────────��────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+let baseBranch = '';
+let dryRun = false;
+let runAll = false;
+let jsonOnly = false;
+
+for (let i = 0; i < args.length; i++) {
+  switch (args[i]) {
+    case '--dry-run': dryRun = true; break;
+    case '--all':     runAll = true; break;
+    case '--json':    jsonOnly = true; break;
+    case '-h': case '--help':
+      process.stdout.write(`test-changed — run tests only for changed files
+
+Usage: test-changed [base-branch] [options]
+
+Arguments:
+  base-branch    Branch to diff against (default: main, fallback: master)
+
+Options:
+  --dry-run      Show which tests would run without running them
+  --all          Run full test suite instead of filtered
+  --json         JSON-only output (suppress test runner output)
+  -h, --help     Show this help
+
+Output (stdout): {"changed_files","test_files","test_cmd","exit_code","passed","duration_ms"}
+`);
+      process.exit(0);
+    default:
+      if (!args[i].startsWith('-') && !baseBranch) baseBranch = args[i];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ───────────────────��─────────────────────────────────────────────────────────
+
+function run(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  } catch { return ''; }
+}
+
+function exists(p) {
+  try { fs.accessSync(p); return true; } catch { return false; }
+}
+
+function output(obj) {
+  process.stdout.write(JSON.stringify(obj, null, jsonOnly ? undefined : 2) + '\n');
+}
+
+function isTestFile(file) {
+  return /\.(test|spec)\.[jt]sx?$/.test(file) ||
+         /\/__tests__\//.test(file) ||
+         /\/tests?\//.test(file) && /\.(test|spec|_test)\.[jt]sx?$/.test(file) ||
+         /test_[^/]+\.py$/.test(file) ||
+         /_test\.go$/.test(file) ||
+         /_test\.rs$/.test(file);
+}
+
+// ───────────────────────────────────────────────────────────���─────────────────
+// 1. Detect base branch
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectBaseBranch() {
+  if (baseBranch) return baseBranch;
+
+  // Check if main exists
+  const branches = run('git branch --list main master');
+  if (branches.includes('main')) return 'main';
+  if (branches.includes('master')) return 'master';
+  return 'main'; // default
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Get changed files
+// ──────────��───────────────────────────────���──────────────────────────────────
+
+function getChangedFiles(base) {
+  const files = new Set();
+
+  // Changes vs base branch
+  const branchDiff = run(`git diff --name-only ${base}...HEAD 2>/dev/null`);
+  if (branchDiff) branchDiff.split('\n').filter(Boolean).forEach(f => files.add(f));
+
+  // Unstaged changes
+  const unstaged = run('git diff --name-only');
+  if (unstaged) unstaged.split('\n').filter(Boolean).forEach(f => files.add(f));
+
+  // Staged changes
+  const staged = run('git diff --name-only --cached');
+  if (staged) staged.split('\n').filter(Boolean).forEach(f => files.add(f));
+
+  return [...files].filter(f => exists(f));
+}
+
+// ────────────────���────────────────────────────────────────────────────────────
+// 3. Map source files to test files
+// ─────────────────────────────────────────────────────────────────────────────
+
+function mapToTestFiles(changedFiles) {
+  const testFiles = new Set();
+
+  for (const file of changedFiles) {
+    // If it's already a test file, include it
+    if (isTestFile(file)) {
+      testFiles.add(file);
+      continue;
+    }
+
+    const ext = path.extname(file);
+    const base = file.replace(ext, '');
+    const dir = path.dirname(file);
+    const name = path.basename(file, ext);
+
+    // Convention mapping — JS/TS
+    if (/\.[jt]sx?$/.test(ext)) {
+      const candidates = [
+        `${base}.test${ext}`,
+        `${base}.spec${ext}`,
+        `${base}.test.tsx`,
+        `${base}.spec.tsx`,
+        path.join(dir, '__tests__', `${name}.test${ext}`),
+        path.join(dir, '__tests__', `${name}.spec${ext}`),
+        path.join(dir, '__tests__', `${name}.test.tsx`),
+        `tests/${name}.test${ext}`,
+        `test/${name}.test${ext}`,
+      ];
+      for (const c of candidates) {
+        if (exists(c)) testFiles.add(c);
+      }
+    }
+
+    // Convention mapping — Python
+    if (ext === '.py') {
+      const candidates = [
+        path.join(dir, `test_${name}.py`),
+        path.join(dir, 'tests', `test_${name}.py`),
+        path.join('tests', `test_${name}.py`),
+        `test_${name}.py`,
+      ];
+      for (const c of candidates) {
+        if (exists(c)) testFiles.add(c);
+      }
+    }
+
+    // Convention mapping — Go
+    if (ext === '.go' && !file.endsWith('_test.go')) {
+      const candidate = base + '_test.go';
+      if (exists(candidate)) testFiles.add(candidate);
+    }
+
+    // Convention mapping — Rust
+    if (ext === '.rs') {
+      // Rust tests are usually in the same file, but check for tests/ dir
+      const testsDir = path.join(path.dirname(dir), 'tests');
+      if (exists(testsDir)) {
+        try {
+          const entries = fs.readdirSync(testsDir);
+          for (const e of entries) {
+            if (e.endsWith('.rs')) testFiles.add(path.join(testsDir, e));
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  // Import scanning — find test files that import changed source files
+  const sourceFiles = changedFiles.filter(f => !isTestFile(f));
+  if (sourceFiles.length > 0 && sourceFiles.length <= 20) {
+    for (const src of sourceFiles) {
+      const name = path.basename(src, path.extname(src));
+      // Search for imports of this file in test files
+      try {
+        const grepResult = run(
+          `grep -rl --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=.sst --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --include='*.test.*' --include='*.spec.*' --include='*_test.*' --include='test_*' "${name}" . 2>/dev/null`
+        );
+        if (grepResult) {
+          grepResult.split('\n').filter(Boolean).forEach(f => {
+            const clean = f.startsWith('./') ? f.slice(2) : f;
+            if (exists(clean) && isTestFile(clean)) testFiles.add(clean);
+          });
+        }
+      } catch { /* grep found nothing */ }
+    }
+  }
+
+  // Filter out vendored/generated directories
+  const excludeDirs = ['node_modules/', '.venv/', '.sst/', 'dist/', 'build/', '.next/', '__pycache__/'];
+  return [...testFiles]
+    .filter(f => !excludeDirs.some(d => f.includes(d)))
+    .sort();
+}
+
+// ─��─────���─────────────────────────────────��─────────────────────────────���─────
+// 4. Detect test runner
+// ──────────────────────────────────────────────────��──────────────────────────
+
+function detectTestRunner() {
+  // Try detect-project script
+  const detectPaths = [
+    path.join(process.cwd(), '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+  ];
+
+  for (const dp of detectPaths) {
+    if (exists(dp)) {
+      try {
+        const result = spawnSync('node', [dp], { encoding: 'utf8', timeout: 5000 });
+        if (result.status === 0) {
+          const data = JSON.parse(result.stdout);
+          if (data.test_cmd) return { cmd: data.test_cmd, type: detectRunnerType(data.test_cmd) };
+        }
+      } catch { /* fall through */ }
+    }
+  }
+
+  // Check package.json
+  try {
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.test) {
+      const testScript = pkg.scripts.test;
+      // Detect package manager
+      const lockMap = [
+        ['bun.lockb', 'bun'], ['bun.lock', 'bun'],
+        ['pnpm-lock.yaml', 'pnpm'], ['yarn.lock', 'yarn'],
+        ['package-lock.json', 'npm'],
+      ];
+      let mgr = 'npx';
+      for (const [file, m] of lockMap) {
+        if (exists(file)) { mgr = m === 'npm' ? 'npx' : m; break; }
+      }
+
+      if (/vitest/.test(testScript)) return { cmd: `${mgr} vitest run`, type: 'vitest' };
+      if (/jest/.test(testScript)) return { cmd: `${mgr} jest`, type: 'jest' };
+
+      // Generic — use the package manager's test command
+      const runMgr = mgr === 'npx' ? 'npm' : mgr;
+      return { cmd: `${runMgr} run test`, type: 'generic-node' };
+    }
+  } catch { /* no package.json */ }
+
+  // Python
+  if (exists('pyproject.toml') || exists('pytest.ini') || exists('setup.cfg')) {
+    return { cmd: 'pytest', type: 'pytest' };
+  }
+
+  // Go
+  if (exists('go.mod')) return { cmd: 'go test', type: 'go' };
+
+  // Rust
+  if (exists('Cargo.toml')) return { cmd: 'cargo test', type: 'cargo' };
+
+  return { cmd: '', type: 'unknown' };
+}
+
+function detectRunnerType(cmd) {
+  if (/vitest/.test(cmd)) return 'vitest';
+  if (/jest/.test(cmd)) return 'jest';
+  if (/pytest/.test(cmd)) return 'pytest';
+  if (/go\s+test/.test(cmd)) return 'go';
+  if (/cargo\s+test/.test(cmd)) return 'cargo';
+  return 'generic-node';
+}
+
+// ───────────────────────────────��─────────────────────────────��───────────────
+// 5. Build test command with file filter
+// ───────────────────────��─────────────────────────────────────────────────────
+
+function buildTestCmd(runner, testFiles) {
+  if (runAll || testFiles.length === 0) return runner.cmd;
+
+  switch (runner.type) {
+    case 'vitest':
+      return `${runner.cmd} ${testFiles.join(' ')}`;
+    case 'jest':
+      return `${runner.cmd} ${testFiles.join(' ')}`;
+    case 'pytest':
+      return `${runner.cmd} ${testFiles.join(' ')}`;
+    case 'go': {
+      // Convert file paths to package paths
+      const pkgs = [...new Set(testFiles.map(f => './' + path.dirname(f)))];
+      return `go test ${pkgs.join(' ')}`;
+    }
+    case 'cargo':
+      // Cargo test doesn't easily filter by file, run all
+      return runner.cmd;
+    default:
+      // Try passing files as args — works for most runners
+      return `${runner.cmd} -- ${testFiles.join(' ')}`;
+  }
+}
+
+// ──────────���──────────────────────���───────────────────────────────────────────
+// Main
+// ────────────────────���────────────────────────────────���───────────────────────
+
+function main() {
+  const base = detectBaseBranch();
+  const changedFiles = getChangedFiles(base);
+
+  if (changedFiles.length === 0) {
+    output({
+      changed_files: [],
+      test_files: [],
+      test_cmd: '',
+      exit_code: 0,
+      passed: true,
+      duration_ms: 0,
+      message: 'No changed files found',
+    });
+    process.exit(0);
+  }
+
+  const testFiles = mapToTestFiles(changedFiles);
+  const runner = detectTestRunner();
+
+  if (!runner.cmd) {
+    output({
+      changed_files: changedFiles,
+      test_files: testFiles,
+      test_cmd: '',
+      exit_code: 1,
+      passed: false,
+      duration_ms: 0,
+      message: 'Could not detect test runner',
+    });
+    process.exit(1);
+  }
+
+  const fullCmd = buildTestCmd(runner, testFiles);
+
+  if (testFiles.length === 0 && !runAll) {
+    output({
+      changed_files: changedFiles,
+      test_files: [],
+      test_cmd: fullCmd,
+      exit_code: 0,
+      passed: true,
+      duration_ms: 0,
+      message: 'No test files found for changed sources',
+    });
+    process.exit(0);
+  }
+
+  if (dryRun) {
+    output({
+      changed_files: changedFiles,
+      test_files: testFiles,
+      test_cmd: fullCmd,
+      dry_run: true,
+    });
+    process.exit(0);
+  }
+
+  // Run tests
+  const start = Date.now();
+  const parts = fullCmd.split(' ');
+  const result = spawnSync(parts[0], parts.slice(1), {
+    stdio: jsonOnly ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'inherit', 'inherit'],
+    encoding: 'utf8',
+    timeout: 300000, // 5 minute timeout
+  });
+
+  const duration = Date.now() - start;
+  const exitCode = result.status ?? 1;
+
+  output({
+    changed_files: changedFiles,
+    test_files: testFiles,
+    test_cmd: fullCmd,
+    exit_code: exitCode,
+    passed: exitCode === 0,
+    duration_ms: duration,
+  });
+
+  process.exit(exitCode);
+}
+
+main();

@@ -1,0 +1,16 @@
+{
+  "name": "portfolio",
+  "version": "1.0.0",
+  "description": "Global 1-5yr conviction portfolio skill — data fetch and deterministic sizing scripts",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "preflight": "node scripts/preflight.js"
+  },
+  "dependencies": {
+    "yahoo-finance2": "^3.14.0"
+  }
+}

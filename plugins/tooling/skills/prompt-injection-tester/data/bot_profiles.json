@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "_comment": "Map a bot to its likely guardrails, recommended technique families (codes from references/techniques.md), and known weak spots. Used in GENERATE intake (SKILL.md step 1) to route channel + technique. Match on bot_type; fall back to general-chat.",
+  "profiles": [
+    {
+      "bot_type": "customer-support",
+      "description": "Customer-facing chatbot, usually topic-locked to a product/service domain.",
+      "likely_guardrails": ["topic-restriction classifier", "PII scrubber on output", "keyword blocklist", "refusal classifier"],
+      "recommended_technique_families": ["8A", "9A", "1B", "12A", "12B"],
+      "primary_channel": "direct",
+      "known_weak_spots": ["markdown/HTML in user input not sanitized", "ticket/email body injected as data without sanitization", "multi-turn memory not reset between sessions"]
+    },
+    {
+      "bot_type": "rag-doc-qa",
+      "description": "Answers questions over user-uploaded or retrieved documents.",
+      "likely_guardrails": ["confidentiality instruction in system prompt", "retrieval relevance filter", "output length cap"],
+      "recommended_technique_families": ["9A", "6A", "7A", "11A", "11B"],
+      "primary_channel": "indirect-document",
+      "known_weak_spots": ["retrieved document content treated as trusted instructions", "no delimiter escaping between context and instructions", "system prompt rarely forbids extraction explicitly"]
+    },
+    {
+      "bot_type": "coding-assistant",
+      "description": "Dev-facing code helper or agent that reads files / runs or evaluates code.",
+      "likely_guardrails": ["code execution sandbox", "harmful-code classifier", "tool schema validation"],
+      "recommended_technique_families": ["10A", "9B", "5A", "11A", "6C"],
+      "primary_channel": "indirect-tool-result",
+      "known_weak_spots": ["system prompt leaked in error/exception messages", "tool-call arguments built from user input (SSRF/SQLi/path traversal)", "code-comment instructions in read files executed"]
+    },
+    {
+      "bot_type": "internal-data",
+      "description": "Employee-facing bot with access to internal APIs/data; often weaker guardrails ('internal users are trusted').",
+      "likely_guardrails": ["SSO auth gate", "role-based access (RBAC) at app layer", "basic profanity filter"],
+      "recommended_technique_families": ["9B", "10A", "10B", "1C", "11A"],
+      "primary_channel": "indirect-tool-result",
+      "known_weak_spots": ["trusts authenticated internal users implicitly", "tool/API results injected verbatim", "no output filtering", "system prompt often omits confidentiality rules"]
+    },
+    {
+      "bot_type": "agentic-tool-caller",
+      "description": "Autonomous agent that calls tools/APIs, possibly multi-agent (orchestrator + subagents).",
+      "likely_guardrails": ["tool schema validation", "per-tool permission scoping", "human-in-the-loop on high-risk actions"],
+      "recommended_technique_families": ["9B", "10A", "10B", "9A", "1C"],
+      "primary_channel": "indirect-tool-result",
+      "known_weak_spots": ["tool results treated as high-trust by default", "subagents inherit orchestrator privileges (confused deputy)", "no inter-agent trust boundary", "argument-level injection below the keyword layer"]
+    },
+    {
+      "bot_type": "general-chat",
+      "description": "General-purpose assistant on a frontier model; broad attack surface, strong RLHF/Constitutional safety.",
+      "likely_guardrails": ["RLHF/RLAIF safety tuning", "refusal classifier", "harmlessness scorer"],
+      "recommended_technique_families": ["1C", "8A", "7A", "5E", "12D"],
+      "primary_channel": "direct",
+      "known_weak_spots": ["fiction/hypothetical framing lowers refusals", "low-resource languages bypass English-tuned classifiers", "persona persistence across long contexts", "multi-turn Crescendo bypasses strong single-turn refusals"]
+    }
+  ]
+}

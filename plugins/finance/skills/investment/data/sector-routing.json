@@ -1,0 +1,180 @@
+{
+  "_doc": "GICS sector + sub-industry → framework routing. Used by Stage 4 of the pipeline. Overrides take precedence over sector defaults.",
+  "default_framework": "standard",
+  "sector_routing": {
+    "Financials": {
+      "default": "bank_playbook",
+      "sub_industries": {
+        "Diversified Banks": "bank_playbook",
+        "Regional Banks": "bank_playbook",
+        "Insurance Brokers": "insurance_playbook",
+        "Life & Health Insurance": "insurance_playbook",
+        "Property & Casualty Insurance": "insurance_playbook",
+        "Reinsurance": "insurance_playbook",
+        "Multi-line Insurance": "insurance_playbook",
+        "Asset Management & Custody Banks": "asset_manager_playbook",
+        "Investment Banking & Brokerage": "asset_manager_playbook",
+        "Consumer Finance": "consumer_finance_playbook",
+        "Transaction & Payment Processing Services": "payment_network_playbook"
+      },
+      "overrides": {
+        "V": "payment_network_playbook",
+        "MA": "payment_network_playbook",
+        "PYPL": "payment_network_playbook",
+        "AXP": "consumer_finance_playbook"
+      }
+    },
+    "Real Estate": {
+      "default": "reit_playbook",
+      "sub_industries": {
+        "Office REITs": "reit_playbook",
+        "Industrial REITs": "reit_playbook",
+        "Residential REITs": "reit_playbook",
+        "Retail REITs": "reit_playbook",
+        "Healthcare REITs": "reit_playbook",
+        "Specialized REITs": "reit_playbook",
+        "Hotel & Resort REITs": "reit_playbook",
+        "Real Estate Management & Development": "standard"
+      }
+    },
+    "Health Care": {
+      "default": "standard",
+      "sub_industries": {
+        "Biotechnology": "biotech_rnpv_playbook",
+        "Pharmaceuticals": "pharma_patent_cliff_playbook",
+        "Life Sciences Tools & Services": "standard",
+        "Health Care Equipment": "standard",
+        "Health Care Distributors": "standard",
+        "Health Care Facilities": "standard",
+        "Health Care Services": "standard"
+      }
+    },
+    "Information Technology": {
+      "default": "standard",
+      "sub_industries": {
+        "Application Software": "saas_playbook",
+        "Systems Software": "saas_playbook",
+        "Internet Services & Infrastructure": "saas_playbook",
+        "Semiconductors": "cyclical_playbook",
+        "Semiconductor Materials & Equipment": "cyclical_playbook",
+        "Communications Equipment": "standard",
+        "Electronic Components": "cyclical_playbook",
+        "Electronic Equipment & Instruments": "standard",
+        "Electronic Manufacturing Services": "cyclical_playbook",
+        "IT Consulting & Other Services": "standard",
+        "Technology Hardware, Storage & Peripherals": "cyclical_playbook"
+      }
+    },
+    "Industrials": {
+      "default": "cyclical_playbook",
+      "sub_industries": {
+        "Aerospace & Defense": "defense_contract_playbook",
+        "Air Freight & Logistics": "cyclical_playbook",
+        "Airlines": "cyclical_playbook",
+        "Building Products": "cyclical_playbook",
+        "Construction & Engineering": "cyclical_playbook",
+        "Construction Machinery & Heavy Trucks": "cyclical_playbook",
+        "Diversified Support Services": "standard",
+        "Electrical Components & Equipment": "standard",
+        "Environmental & Facilities Services": "standard",
+        "Human Resource & Employment Services": "standard",
+        "Industrial Conglomerates": "cyclical_playbook",
+        "Industrial Machinery": "cyclical_playbook",
+        "Marine Transportation": "cyclical_playbook",
+        "Passenger Ground Transportation": "cyclical_playbook",
+        "Railroads": "standard",
+        "Research & Consulting Services": "standard",
+        "Trading Companies & Distributors": "cyclical_playbook",
+        "Trucking": "cyclical_playbook"
+      }
+    },
+    "Materials": {
+      "default": "cyclical_playbook",
+      "sub_industries": {
+        "Chemicals": "cyclical_playbook",
+        "Commodity Chemicals": "cyclical_playbook",
+        "Specialty Chemicals": "standard",
+        "Construction Materials": "cyclical_playbook",
+        "Containers & Packaging": "standard",
+        "Gold": "mining_playbook",
+        "Steel": "cyclical_playbook",
+        "Diversified Metals & Mining": "mining_playbook",
+        "Forest Products": "cyclical_playbook",
+        "Paper Products": "cyclical_playbook"
+      }
+    },
+    "Energy": {
+      "default": "energy_ep_playbook",
+      "sub_industries": {
+        "Integrated Oil & Gas": "energy_ep_playbook",
+        "Oil & Gas Exploration & Production": "energy_ep_playbook",
+        "Oil & Gas Drilling": "cyclical_playbook",
+        "Oil & Gas Equipment & Services": "cyclical_playbook",
+        "Oil & Gas Refining & Marketing": "cyclical_playbook",
+        "Oil & Gas Storage & Transportation": "midstream_playbook",
+        "Coal & Consumable Fuels": "cyclical_playbook"
+      }
+    },
+    "Consumer Discretionary": {
+      "default": "standard",
+      "sub_industries": {
+        "Automobile Manufacturers": "cyclical_playbook",
+        "Automotive Parts & Equipment": "cyclical_playbook",
+        "Casinos & Gaming": "cyclical_playbook",
+        "Apparel, Accessories & Luxury Goods": "consumer_brand_playbook",
+        "Footwear": "consumer_brand_playbook",
+        "Hotels, Resorts & Cruise Lines": "cyclical_playbook",
+        "Restaurants": "standard",
+        "Specialty Retail": "consumer_brand_playbook",
+        "Internet & Direct Marketing Retail": "standard",
+        "Household Appliances": "cyclical_playbook"
+      }
+    },
+    "Consumer Staples": {
+      "default": "consumer_brand_playbook",
+      "sub_industries": {
+        "Brewers": "consumer_brand_playbook",
+        "Distillers & Vintners": "consumer_brand_playbook",
+        "Soft Drinks": "consumer_brand_playbook",
+        "Packaged Foods & Meats": "consumer_brand_playbook",
+        "Household Products": "consumer_brand_playbook",
+        "Personal Care Products": "consumer_brand_playbook",
+        "Tobacco": "consumer_brand_playbook",
+        "Food Distributors": "standard",
+        "Food Retail": "standard",
+        "Drug Retail": "standard",
+        "Hypermarkets & Super Centers": "standard"
+      }
+    },
+    "Communication Services": {
+      "default": "standard",
+      "sub_industries": {
+        "Integrated Telecommunication Services": "telecom_playbook",
+        "Wireless Telecommunication Services": "telecom_playbook",
+        "Alternative Carriers": "telecom_playbook",
+        "Cable & Satellite": "telecom_playbook",
+        "Movies & Entertainment": "standard",
+        "Interactive Home Entertainment": "standard",
+        "Interactive Media & Services": "saas_playbook",
+        "Publishing": "standard",
+        "Advertising": "standard",
+        "Broadcasting": "standard"
+      }
+    },
+    "Utilities": {
+      "default": "regulated_utility_playbook",
+      "sub_industries": {
+        "Electric Utilities": "regulated_utility_playbook",
+        "Gas Utilities": "regulated_utility_playbook",
+        "Multi-Utilities": "regulated_utility_playbook",
+        "Water Utilities": "regulated_utility_playbook",
+        "Independent Power Producers": "merchant_power_playbook",
+        "Renewable Electricity": "cyclical_playbook"
+      }
+    }
+  },
+  "ai_data_center_overrides": {
+    "_note": "Utilities/power producers with material AI data center exposure get +5 sector adjustment override",
+    "tickers": ["VST", "CEG", "TLN", "NRG"]
+  }
+}

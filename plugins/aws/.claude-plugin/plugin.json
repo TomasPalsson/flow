@@ -1,0 +1,11 @@
+{
+  "name": "aws",
+  "version": "0.1.0",
+  "description": "AWS and Strands agent skills: exploration, Lambda microVMs, AgentCore, steering hooks, and SST.",
+  "author": {
+    "name": "TomasPalsson"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}

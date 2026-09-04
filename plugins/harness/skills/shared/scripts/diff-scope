@@ -1,0 +1,579 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { execSync } = require('node:child_process');
+
+const { stdout, stderr } = process;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tokyo Night Color Theme
+// ─────────────────────────────────────────────────────────────────────────────
+
+const C = {
+  primary:  '\u001b[38;2;122;162;247m',   // #7aa2f7 blue
+  accent:   '\u001b[38;2;187;154;247m',   // #bb9af7 purple
+  success:  '\u001b[38;2;158;206;106m',   // #9ece6a green
+  error:    '\u001b[38;2;247;118;142m',   // #f7768e red/pink
+  warning:  '\u001b[38;2;224;175;104m',   // #e0af68 yellow
+  text:     '\u001b[38;2;192;202;245m',   // #c0caf5 foreground
+  muted:    '\u001b[38;2;86;95;137m',     // #565f89 comments
+  border:   '\u001b[38;2;59;66;97m',      // #3b4261 borders
+  bold:     '\u001b[1m',
+  reset:    '\u001b[0m',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Git Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function git(args, opts = {}) {
+  try {
+    const result = execSync(`git ${args}`, {
+      encoding: 'utf8',
+      timeout: 30000,
+      maxBuffer: 20 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      ...opts,
+    });
+    return { ok: true, stdout: (result || '').trim() };
+  } catch (e) {
+    return { ok: false, stdout: (e.stdout || '').trim(), stderr: (e.stderr || '').trim() };
+  }
+}
+
+function isInsideWorkTree() {
+  return git('rev-parse --is-inside-work-tree').ok;
+}
+
+function getCurrentBranch() {
+  const r = git('rev-parse --abbrev-ref HEAD');
+  return r.ok ? r.stdout : 'HEAD';
+}
+
+function branchExists(branch) {
+  return git(`rev-parse --verify ${branch}`).ok;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resolve base branch
+// ─────────────────────────────────────────────────────────────────────────────
+
+function resolveBaseBranch(requested) {
+  if (requested) {
+    if (branchExists(requested)) return requested;
+    die(`Branch not found: ${requested}`);
+  }
+  if (branchExists('main')) return 'main';
+  if (branchExists('master')) return 'master';
+  die('No base branch found (tried main, master). Pass a branch name explicitly.');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse changed files from git diff --name-status
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getChangedFiles(base) {
+  const r = git(`diff --name-status ${base}...HEAD`);
+  if (!r.ok || !r.stdout) {
+    return { added: [], modified: [], deleted: [], renamed: [] };
+  }
+
+  const added = [];
+  const modified = [];
+  const deleted = [];
+  const renamed = [];
+
+  for (const line of r.stdout.split('\n')) {
+    if (!line.trim()) continue;
+    const parts = line.split('\t');
+    const status = parts[0];
+
+    if (status === 'A') {
+      added.push(parts[1]);
+    } else if (status === 'M') {
+      modified.push(parts[1]);
+    } else if (status === 'D') {
+      deleted.push(parts[1]);
+    } else if (status.startsWith('R')) {
+      renamed.push({ from: parts[1], to: parts[2] });
+    }
+  }
+
+  return { added, modified, deleted, renamed };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse diff stats
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getDiffStats(base) {
+  const r = git(`diff --shortstat ${base}...HEAD`);
+  if (!r.ok || !r.stdout) {
+    return { files_changed: 0, insertions: 0, deletions: 0 };
+  }
+
+  const text = r.stdout;
+  const filesMatch = text.match(/(\d+) file/);
+  const insertMatch = text.match(/(\d+) insertion/);
+  const deleteMatch = text.match(/(\d+) deletion/);
+
+  return {
+    files_changed: filesMatch ? parseInt(filesMatch[1], 10) : 0,
+    insertions: insertMatch ? parseInt(insertMatch[1], 10) : 0,
+    deletions: deleteMatch ? parseInt(deleteMatch[1], 10) : 0,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse exports from file content
+// ─────────────────────────────────────────────────────────────────────────────
+
+function parseExports(filePath, content) {
+  const ext = path.extname(filePath).toLowerCase();
+  const exports = new Set();
+
+  if (['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(ext)) {
+    // export function Foo / export async function Foo
+    for (const m of content.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export const Foo / export let Foo / export var Foo
+    for (const m of content.matchAll(/^export\s+(?:const|let|var)\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export type Foo
+    for (const m of content.matchAll(/^export\s+type\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export interface Foo
+    for (const m of content.matchAll(/^export\s+interface\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export class Foo
+    for (const m of content.matchAll(/^export\s+(?:abstract\s+)?class\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export enum Foo
+    for (const m of content.matchAll(/^export\s+(?:const\s+)?enum\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // export default (value or identifier)
+    if (/^export\s+default\b/m.test(content)) {
+      const defMatch = content.match(/^export\s+default\s+(?:function\s+)?(\w+)/m);
+      exports.add(defMatch ? defMatch[1] : 'default');
+    }
+    // Named re-exports: export { Foo, Bar }
+    for (const m of content.matchAll(/^export\s*\{([^}]+)\}/gm)) {
+      for (const name of m[1].split(',')) {
+        const trimmed = name.trim().split(/\s+as\s+/).pop().trim();
+        if (trimmed) exports.add(trimmed);
+      }
+    }
+  } else if (ext === '.py') {
+    // Top-level def and class (no leading whitespace)
+    for (const m of content.matchAll(/^def\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    for (const m of content.matchAll(/^class\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // Respect __all__ if present
+    const allMatch = content.match(/__all__\s*=\s*\[([^\]]+)\]/);
+    if (allMatch) {
+      exports.clear();
+      for (const m of allMatch[1].matchAll(/['"](\w+)['"]/g)) {
+        exports.add(m[1]);
+      }
+    }
+  } else if (ext === '.rs') {
+    // pub fn, pub async fn
+    for (const m of content.matchAll(/^pub(?:\([\w:, ]+\))?\s+(?:async\s+)?fn\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // pub struct
+    for (const m of content.matchAll(/^pub(?:\([\w:, ]+\))?\s+struct\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // pub enum
+    for (const m of content.matchAll(/^pub(?:\([\w:, ]+\))?\s+enum\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // pub type
+    for (const m of content.matchAll(/^pub(?:\([\w:, ]+\))?\s+type\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+    // pub trait
+    for (const m of content.matchAll(/^pub(?:\([\w:, ]+\))?\s+trait\s+(\w+)/gm)) {
+      exports.add(m[1]);
+    }
+  }
+
+  return [...exports];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Get new exports from added/modified files
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getNewExports(changedFiles) {
+  const result = [];
+  const allChanged = [...changedFiles.added, ...changedFiles.modified];
+
+  for (const filePath of allChanged) {
+    const ext = path.extname(filePath).toLowerCase();
+    const exportableExts = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.rs'];
+    if (!exportableExts.includes(ext)) continue;
+
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      // File may not exist locally (e.g. renamed source)
+      continue;
+    }
+
+    const exports = parseExports(filePath, content);
+    if (exports.length > 0) {
+      result.push({ file: filePath, exports });
+    }
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Classify files into categories
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isTestFile(f) {
+  return (
+    /\.(test|spec)\.[^.]+$/.test(f) ||
+    /__tests__\//.test(f) ||
+    /(?:^|\/)tests\//.test(f) ||
+    /(?:^|\/)test\//.test(f)
+  );
+}
+
+function isConfigFile(f) {
+  return (
+    /\.config\.[^.]+$/.test(f) ||
+    /(?:^|\/)\.env/.test(f) ||
+    /(?:^|\/)tsconfig/.test(f) ||
+    /(?:^|\/)package\.json$/.test(f) ||
+    /(?:^|\/)package-lock\.json$/.test(f) ||
+    /(?:^|\/)yarn\.lock$/.test(f) ||
+    /(?:^|\/)pnpm-lock\.yaml$/.test(f) ||
+    /(?:^|\/)\.eslintrc/.test(f) ||
+    /(?:^|\/)\.prettierrc/.test(f) ||
+    /(?:^|\/)\.babelrc/.test(f) ||
+    /(?:^|\/)Cargo\.toml$/.test(f) ||
+    /(?:^|\/)Makefile$/.test(f) ||
+    /(?:^|\/)Dockerfile/.test(f) ||
+    /(?:^|\/)docker-compose/.test(f) ||
+    /(?:^|\/)\.github\//.test(f) ||
+    /(?:^|\/)\.gitignore$/.test(f)
+  );
+}
+
+function isDocsFile(f) {
+  return /\.md$/i.test(f) || /(?:^|\/)docs\//.test(f) || /\.rst$/i.test(f) || /\.txt$/i.test(f);
+}
+
+function isStyleFile(f) {
+  return /\.(css|scss|sass|less|styl)$/i.test(f);
+}
+
+function categorizeFiles(changedFiles) {
+  const allFiles = [
+    ...changedFiles.added,
+    ...changedFiles.modified,
+    ...changedFiles.deleted,
+    ...changedFiles.renamed.map((r) => r.to),
+  ];
+
+  const categories = { src: [], test: [], config: [], docs: [], style: [] };
+
+  for (const f of allFiles) {
+    if (isTestFile(f)) {
+      categories.test.push(f);
+    } else if (isConfigFile(f)) {
+      categories.config.push(f);
+    } else if (isDocsFile(f)) {
+      categories.docs.push(f);
+    } else if (isStyleFile(f)) {
+      categories.style.push(f);
+    } else {
+      categories.src.push(f);
+    }
+  }
+
+  return categories;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Find test files that cover changed source files
+// ─────────────────────────────────────────────────────────────────────────────
+
+function findCoveringTests(changedFiles) {
+  const sourceFiles = [
+    ...changedFiles.added,
+    ...changedFiles.modified,
+  ].filter((f) => !isTestFile(f) && !isConfigFile(f) && !isDocsFile(f) && !isStyleFile(f));
+
+  if (sourceFiles.length === 0) return [];
+
+  const coveringSet = new Set();
+
+  for (const srcFile of sourceFiles) {
+    const baseName = path.basename(srcFile, path.extname(srcFile));
+    const dirName = path.dirname(srcFile);
+
+    // Build search patterns: base name without extension, and partial path segments
+    const patterns = [
+      baseName,
+      // path without extension (relative segments)
+      srcFile.replace(/\.[^.]+$/, ''),
+    ];
+
+    for (const pattern of patterns) {
+      // Escape special regex chars in the pattern
+      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try {
+        const result = execSync(
+          `git grep -rl "${escaped}" -- "*.test.*" "*.spec.*" "**/__tests__/**" "**/tests/**" "**/__test__/**" 2>/dev/null || true`,
+          { encoding: 'utf8', timeout: 15000, maxBuffer: 5 * 1024 * 1024 }
+        ).trim();
+
+        if (result) {
+          for (const f of result.split('\n')) {
+            if (f.trim() && isTestFile(f.trim())) coveringSet.add(f.trim());
+          }
+        }
+      } catch {
+        // git grep not finding anything is fine
+      }
+    }
+  }
+
+  return [...coveringSet];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse commits
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getCommits(base) {
+  const logResult = git(`log ${base}...HEAD --oneline`);
+  if (!logResult.ok || !logResult.stdout) return [];
+
+  const commits = [];
+  for (const line of logResult.stdout.split('\n')) {
+    if (!line.trim()) continue;
+    const spaceIdx = line.indexOf(' ');
+    const hash = line.slice(0, spaceIdx);
+    const message = line.slice(spaceIdx + 1).trim();
+
+    // Get file count for this commit
+    const filesResult = git(`diff-tree --no-commit-id -r --name-only ${hash}`);
+    const fileCount = filesResult.ok && filesResult.stdout
+      ? filesResult.stdout.split('\n').filter(Boolean).length
+      : 0;
+
+    commits.push({ hash, message, files: fileCount });
+  }
+
+  return commits;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pretty printing
+// ─────────────────────────────────────────────────────────────────────────────
+
+function printPretty(data) {
+  const line = (color, label, value) =>
+    stdout.write(`  ${color}${label}${C.reset}  ${C.text}${value}${C.reset}\n`);
+  const section = (label) =>
+    stdout.write(`\n${C.accent}${C.bold}${label}${C.reset}\n${C.border}${'─'.repeat(40)}${C.reset}\n`);
+  const item = (color, text) =>
+    stdout.write(`  ${color}•${C.reset} ${C.text}${text}${C.reset}\n`);
+
+  stdout.write(`\n${C.primary}${C.bold}diff-scope${C.reset}  ${C.muted}git change analysis${C.reset}\n`);
+  stdout.write(`${C.border}${'─'.repeat(44)}${C.reset}\n\n`);
+
+  line(C.muted, 'base branch  ', data.base_branch);
+  line(C.muted, 'current      ', data.current_branch);
+
+  section('Changed Files');
+  const cf = data.changed_files;
+  if (cf.added.length)    cf.added.forEach((f)    => item(C.success, `added     ${f}`));
+  if (cf.modified.length) cf.modified.forEach((f) => item(C.warning, `modified  ${f}`));
+  if (cf.deleted.length)  cf.deleted.forEach((f)  => item(C.error,   `deleted   ${f}`));
+  if (cf.renamed.length)  cf.renamed.forEach((r)  => item(C.primary, `renamed   ${r.from} → ${r.to}`));
+  if (!cf.added.length && !cf.modified.length && !cf.deleted.length && !cf.renamed.length) {
+    stdout.write(`  ${C.muted}(no changes)${C.reset}\n`);
+  }
+
+  section('Stats');
+  stdout.write(`  ${C.muted}files changed${C.reset}  ${C.text}${data.stats.files_changed}${C.reset}\n`);
+  stdout.write(`  ${C.success}insertions${C.reset}     ${C.text}+${data.stats.insertions}${C.reset}\n`);
+  stdout.write(`  ${C.error}deletions${C.reset}      ${C.text}-${data.stats.deletions}${C.reset}\n`);
+
+  if (data.new_exports.length > 0) {
+    section('New Exports');
+    for (const entry of data.new_exports) {
+      stdout.write(`  ${C.primary}${entry.file}${C.reset}\n`);
+      stdout.write(`    ${C.muted}${entry.exports.join(', ')}${C.reset}\n`);
+    }
+  }
+
+  section('Test Files');
+  const tf = data.test_files;
+  if (tf.changed.length > 0) {
+    stdout.write(`  ${C.warning}changed:${C.reset}\n`);
+    tf.changed.forEach((f) => item(C.muted, f));
+  }
+  if (tf.covering.length > 0) {
+    stdout.write(`  ${C.success}covering:${C.reset}\n`);
+    tf.covering.forEach((f) => item(C.muted, f));
+  }
+  if (!tf.changed.length && !tf.covering.length) {
+    stdout.write(`  ${C.muted}(none found)${C.reset}\n`);
+  }
+
+  section('Categories');
+  for (const [cat, files] of Object.entries(data.categories)) {
+    if (files.length > 0) {
+      stdout.write(`  ${C.accent}${cat}${C.reset}  ${C.muted}(${files.length})${C.reset}\n`);
+      files.forEach((f) => item(C.muted, f));
+    }
+  }
+
+  if (data.commits.length > 0) {
+    section('Commits');
+    for (const c of data.commits) {
+      stdout.write(`  ${C.primary}${c.hash}${C.reset}  ${C.text}${c.message}${C.reset}  ${C.muted}(${c.files} files)${C.reset}\n`);
+    }
+  }
+
+  stdout.write('\n');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error + Help
+// ─────────────────────────────────────────────────────────────────────────────
+
+function die(msg) {
+  stderr.write(`\u001b[38;2;247;118;142mERROR:\u001b[0m ${msg}\n`);
+  process.exit(1);
+}
+
+function printHelp() {
+  stdout.write(`
+${C.primary}${C.bold}diff-scope${C.reset} ${C.muted}— git change scope analyzer for quality agents & PR reviews${C.reset}
+
+${C.accent}Usage:${C.reset}
+  diff-scope [base-branch] [--format pretty] [-h|--help]
+
+${C.accent}Arguments:${C.reset}
+  base-branch     Branch to diff against (default: main, fallback: master)
+
+${C.accent}Flags:${C.reset}
+  --format pretty   Human-readable output instead of JSON
+  -h, --help        Show this help message
+
+${C.accent}Output (JSON):${C.reset}
+  base_branch       Branch used as diff base
+  current_branch    Current HEAD branch
+  changed_files     Files by status: added, modified, deleted, renamed
+  stats             files_changed, insertions, deletions
+  new_exports       Exports discovered in changed JS/TS/Python/Rust files
+  test_files        Test files changed + test files covering changed sources
+  categories        Files grouped by: src, test, config, docs, style
+  commits           Commits in range with hash, message, file count
+
+${C.accent}Examples:${C.reset}
+  diff-scope                        # Diff against main/master, JSON output
+  diff-scope develop                # Diff against develop branch
+  diff-scope --format pretty        # Human-readable output
+  diff-scope develop --format pretty
+`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
+
+function main() {
+  const args = process.argv.slice(2);
+
+  if (args.includes('-h') || args.includes('--help')) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const prettyIdx = args.indexOf('--format');
+  let pretty = false;
+  let remaining = [...args];
+
+  if (prettyIdx !== -1) {
+    const fmt = args[prettyIdx + 1];
+    if (fmt === 'pretty') pretty = true;
+    remaining = remaining.filter((_, i) => i !== prettyIdx && i !== prettyIdx + 1);
+  }
+
+  // Also allow --format=pretty
+  const fmtEqIdx = remaining.findIndex((a) => a.startsWith('--format='));
+  if (fmtEqIdx !== -1) {
+    const val = remaining[fmtEqIdx].split('=')[1];
+    if (val === 'pretty') pretty = true;
+    remaining.splice(fmtEqIdx, 1);
+  }
+
+  const requestedBase = remaining[0] || null;
+
+  // Validate git repo
+  if (!isInsideWorkTree()) {
+    die('Not inside a git repository');
+  }
+
+  const baseBranch = resolveBaseBranch(requestedBase);
+  const currentBranch = getCurrentBranch();
+
+  // Gather all data
+  const changedFiles = getChangedFiles(baseBranch);
+  const stats = getDiffStats(baseBranch);
+  const categories = categorizeFiles(changedFiles);
+  const newExports = getNewExports(changedFiles);
+  const commits = getCommits(baseBranch);
+
+  const changedTestFiles = [
+    ...changedFiles.added,
+    ...changedFiles.modified,
+  ].filter(isTestFile);
+
+  const coveringTests = findCoveringTests(changedFiles);
+
+  const output = {
+    base_branch: baseBranch,
+    current_branch: currentBranch,
+    changed_files: changedFiles,
+    stats,
+    new_exports: newExports,
+    test_files: {
+      changed: changedTestFiles,
+      covering: coveringTests,
+    },
+    categories,
+    commits,
+  };
+
+  if (pretty) {
+    printPretty(output);
+  } else {
+    stdout.write(JSON.stringify(output, null, 2) + '\n');
+  }
+}
+
+main();

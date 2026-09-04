@@ -1,0 +1,563 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI args
+// ─────────────────────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+let dir = process.cwd();
+let pretty = false;
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--dir' && args[i + 1]) {
+    dir = path.resolve(args[++i]);
+  } else if (args[i] === '--format' && args[i + 1] === 'pretty') {
+    pretty = true;
+    i++;
+  } else if (args[i] === '--help' || args[i] === '-h') {
+    process.stdout.write([
+      'Usage: detect-project [--dir <path>] [--format pretty]',
+      '',
+      'Detects a project\'s environment and outputs structured JSON.',
+      '',
+      'Options:',
+      '  --dir <path>      Directory to analyse (default: cwd)',
+      '  --format pretty   Human-readable indented output',
+      '  --help            Show this help',
+    ].join('\n') + '\n');
+    process.exit(0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Return file contents as a string, or null if it doesn't exist. */
+function readFile(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+/** Return true if a path exists (file or directory). */
+function exists(filePath) {
+  try {
+    fs.accessSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Return true if a path is an existing directory. */
+function isDir(filePath) {
+  try {
+    return fs.statSync(filePath).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** Parse package.json at the given root, returning the object or null. */
+function readPackageJson(root) {
+  const raw = readFile(path.join(root, 'package.json'));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Package manager detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectPackageManager(root) {
+  const lockFiles = [
+    ['bun.lockb',          'bun'],
+    ['bun.lock',           'bun'],
+    ['pnpm-lock.yaml',     'pnpm'],
+    ['yarn.lock',          'yarn'],
+    ['package-lock.json',  'npm'],
+    ['Cargo.lock',         'cargo'],
+    ['uv.lock',            'uv'],
+    ['go.sum',             'go'],
+  ];
+
+  for (const [file, mgr] of lockFiles) {
+    if (exists(path.join(root, file))) return mgr;
+  }
+
+  // Fallback: if package.json exists but no lock file, call it npm
+  if (exists(path.join(root, 'package.json'))) return 'npm';
+
+  return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Language detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectLanguage(root, pkgJson) {
+  // TypeScript wins over plain JS if tsconfig exists or ts dep present
+  if (exists(path.join(root, 'tsconfig.json'))) return 'typescript';
+  if (pkgJson) {
+    const deps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
+    if (deps['typescript']) return 'typescript';
+    if (pkgJson.name || pkgJson.scripts) return 'javascript';
+  }
+  if (exists(path.join(root, 'Cargo.toml'))) return 'rust';
+  if (exists(path.join(root, 'go.mod'))) return 'go';
+  if (
+    exists(path.join(root, 'pyproject.toml')) ||
+    exists(path.join(root, 'setup.py')) ||
+    exists(path.join(root, 'setup.cfg')) ||
+    exists(path.join(root, 'requirements.txt'))
+  ) return 'python';
+  return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Command detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Given a package manager and a script name, build the run command. */
+function pkgRun(mgr, script) {
+  switch (mgr) {
+    case 'npm':  return `npm run ${script}`;
+    case 'yarn': return `yarn ${script}`;
+    case 'pnpm': return `pnpm ${script}`;
+    case 'bun':  return `bun run ${script}`;
+    default:     return `npm run ${script}`;
+  }
+}
+
+/**
+ * From the scripts map, find the first matching script name and return the
+ * run command. Returns '' if none found.
+ */
+function findScript(scripts, candidates, mgr) {
+  if (!scripts) return '';
+  for (const name of candidates) {
+    if (name in scripts) return pkgRun(mgr, name);
+  }
+  return '';
+}
+
+function detectNodeCommands(root, pkgJson, mgr) {
+  const scripts = pkgJson ? pkgJson.scripts : null;
+
+  return {
+    test_cmd:      findScript(scripts, ['test'],                  mgr),
+    e2e_cmd:       findScript(scripts, ['test:e2e', 'e2e', 'cypress', 'playwright'], mgr),
+    lint_cmd:      findScript(scripts, ['lint', 'lint:fix'],      mgr),
+    format_cmd:    findScript(scripts, ['format', 'fmt'],         mgr),
+    typecheck_cmd: findScript(scripts, ['typecheck', 'tsc', 'type-check', 'types'], mgr),
+    dev_cmd:       findScript(scripts, ['dev', 'start', 'serve'], mgr),
+  };
+}
+
+/** Simple line-by-line pyproject.toml parser — returns the raw text sections. */
+function parsePyproject(root) {
+  const raw = readFile(path.join(root, 'pyproject.toml'));
+  if (!raw) return null;
+  return raw;
+}
+
+function detectPythonCommands(root) {
+  const toml = parsePyproject(root);
+
+  // Detect test runner
+  let test_cmd = '';
+  if (toml) {
+    if (/\[tool\.pytest/m.test(toml))  test_cmd = 'pytest';
+    else if (/\[tool\.unittest/m.test(toml)) test_cmd = 'python -m unittest';
+  }
+  if (!test_cmd && exists(path.join(root, 'pytest.ini')))  test_cmd = 'pytest';
+  if (!test_cmd && exists(path.join(root, 'setup.cfg'))) {
+    const cfg = readFile(path.join(root, 'setup.cfg')) || '';
+    if (/\[tool:pytest\]/m.test(cfg)) test_cmd = 'pytest';
+  }
+
+  // Detect linter/formatter
+  let lint_cmd = '';
+  let format_cmd = '';
+  if (toml) {
+    if (/\[tool\.ruff/m.test(toml))  { lint_cmd = 'ruff check .'; format_cmd = format_cmd || 'ruff format .'; }
+    if (/\[tool\.black/m.test(toml)) format_cmd = format_cmd || 'black .';
+    if (/\[tool\.flake8/m.test(toml)) lint_cmd = lint_cmd || 'flake8 .';
+  }
+  // Also check standalone config files
+  if (!lint_cmd && exists(path.join(root, 'ruff.toml')))  { lint_cmd = 'ruff check .'; format_cmd = format_cmd || 'ruff format .'; }
+  if (!format_cmd && exists(path.join(root, '.flake8')))  lint_cmd = lint_cmd || 'flake8 .';
+
+  // Typecheck
+  let typecheck_cmd = '';
+  if (toml && /\[tool\.mypy/m.test(toml)) typecheck_cmd = 'mypy .';
+  if (!typecheck_cmd && exists(path.join(root, 'mypy.ini'))) typecheck_cmd = 'mypy .';
+
+  // Dev server — look for manage.py (Django), or common patterns
+  let dev_cmd = '';
+  if (exists(path.join(root, 'manage.py'))) dev_cmd = 'python manage.py runserver';
+
+  return { test_cmd, e2e_cmd: '', lint_cmd, format_cmd, typecheck_cmd, dev_cmd };
+}
+
+function detectRustCommands() {
+  return {
+    test_cmd:      'cargo test',
+    e2e_cmd:       '',
+    lint_cmd:      'cargo clippy',
+    format_cmd:    'cargo fmt --check',
+    typecheck_cmd: '',
+    dev_cmd:       '',
+  };
+}
+
+function detectGoCommands(root) {
+  const lint_cmd = exists(path.join(root, '.golangci.yml')) ||
+                   exists(path.join(root, '.golangci.yaml')) ||
+                   exists(path.join(root, '.golangci.toml')) ||
+                   exists(path.join(root, '.golangci.json'))
+    ? 'golangci-lint run'
+    : 'go vet ./...';
+
+  return {
+    test_cmd:      'go test ./...',
+    e2e_cmd:       '',
+    lint_cmd,
+    format_cmd:    'gofmt -l .',
+    typecheck_cmd: '',
+    dev_cmd:       '',
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Framework detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectFramework(root, pkgJson) {
+  // Node/JS frameworks from dependencies
+  if (pkgJson) {
+    const deps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
+
+    if (deps['next'])              return 'nextjs';
+    if (deps['remix'] || deps['@remix-run/node'] || deps['@remix-run/react']) return 'remix';
+    if (deps['@sveltejs/kit'])     return 'sveltekit';
+    if (deps['astro'])             return 'astro';
+    if (deps['vite'] && !deps['next']) {
+      // Could be plain vite, react+vite, vue+vite, etc.
+      if (deps['react'])           return 'vite-react';
+      if (deps['vue'])             return 'vite-vue';
+      return 'vite';
+    }
+    if (deps['nuxt'])              return 'nuxt';
+    if (deps['gatsby'])            return 'gatsby';
+    if (deps['express'])           return 'express';
+    if (deps['fastify'])           return 'fastify';
+    if (deps['hono'])              return 'hono';
+    if (deps['nest'] || deps['@nestjs/core']) return 'nestjs';
+    if (deps['react'])             return 'react';
+    if (deps['vue'])               return 'vue';
+    if (deps['svelte'])            return 'svelte';
+    if (deps['angular'] || deps['@angular/core']) return 'angular';
+  }
+
+  // Python frameworks from pyproject.toml or requirements
+  const toml = readFile(path.join(root, 'pyproject.toml')) || '';
+  const req   = readFile(path.join(root, 'requirements.txt')) || '';
+  const combined = toml + req;
+
+  if (/fastapi/i.test(combined)) return 'fastapi';
+  if (/django/i.test(combined))  return 'django';
+  if (/flask/i.test(combined))   return 'flask';
+
+  // Config file signals
+  if (exists(path.join(root, 'next.config.js')) || exists(path.join(root, 'next.config.mjs')) || exists(path.join(root, 'next.config.ts'))) return 'nextjs';
+  if (exists(path.join(root, 'vite.config.js'))  || exists(path.join(root, 'vite.config.ts')))  return 'vite';
+  if (exists(path.join(root, 'svelte.config.js'))) return 'sveltekit';
+  if (exists(path.join(root, 'astro.config.mjs')) || exists(path.join(root, 'astro.config.ts'))) return 'astro';
+  if (exists(path.join(root, 'manage.py')))        return 'django';
+
+  return '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Monorepo + packages detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectMonorepo(root, pkgJson) {
+  // pnpm workspace
+  if (exists(path.join(root, 'pnpm-workspace.yaml'))) {
+    const raw = readFile(path.join(root, 'pnpm-workspace.yaml')) || '';
+    const dirs = listWorkspaceDirs(root, raw);
+    return { is_monorepo: true, packages: dirs };
+  }
+
+  // package.json workspaces
+  if (pkgJson && Array.isArray(pkgJson.workspaces)) {
+    const dirs = resolveGlobPatterns(root, pkgJson.workspaces);
+    return { is_monorepo: dirs.length > 0, packages: dirs };
+  }
+  if (pkgJson && pkgJson.workspaces && Array.isArray(pkgJson.workspaces.packages)) {
+    const dirs = resolveGlobPatterns(root, pkgJson.workspaces.packages);
+    return { is_monorepo: dirs.length > 0, packages: dirs };
+  }
+
+  // Cargo workspaces
+  const cargoToml = readFile(path.join(root, 'Cargo.toml'));
+  if (cargoToml && /\[workspace\]/m.test(cargoToml)) {
+    const cratesDirs = listSubDirs(root, ['crates', 'packages']);
+    return { is_monorepo: true, packages: cratesDirs };
+  }
+
+  // Heuristic: well-known monorepo directories exist
+  const monoDirs = [];
+  for (const d of ['packages', 'apps', 'crates']) {
+    if (isDir(path.join(root, d))) monoDirs.push(d);
+  }
+  if (monoDirs.length > 0) {
+    const all = [];
+    for (const d of monoDirs) all.push(...listSubDirs(root, [d]));
+    return { is_monorepo: true, packages: all };
+  }
+
+  return { is_monorepo: false, packages: [] };
+}
+
+/** List immediate subdirectories inside given parent dirs, relative to root. */
+function listSubDirs(root, parents) {
+  const result = [];
+  for (const parent of parents) {
+    const full = path.join(root, parent);
+    if (!isDir(full)) continue;
+    try {
+      const entries = fs.readdirSync(full, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isDirectory() && !e.name.startsWith('.')) {
+          result.push(`${parent}/${e.name}`);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return result;
+}
+
+/** Very small glob resolver — handles simple `packages/*` style patterns. */
+function resolveGlobPatterns(root, patterns) {
+  const result = [];
+  for (const pattern of patterns) {
+    if (pattern.endsWith('/*') || pattern.endsWith('/**')) {
+      const parent = pattern.replace(/\/\*+$/, '');
+      result.push(...listSubDirs(root, [parent]));
+    } else if (!pattern.includes('*')) {
+      if (isDir(path.join(root, pattern))) result.push(pattern);
+    }
+    // Skip complex globs for speed
+  }
+  return result;
+}
+
+/** Parse workspace dirs listed in pnpm-workspace.yaml (simple line-by-line). */
+function listWorkspaceDirs(root, yaml) {
+  const result = [];
+  let inPackages = false;
+  for (const line of yaml.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed === 'packages:') { inPackages = true; continue; }
+    if (inPackages) {
+      if (trimmed.startsWith('#')) continue;
+      if (trimmed.startsWith('-')) {
+        const pattern = trimmed.slice(1).trim().replace(/['"]/g, '');
+        result.push(...resolveGlobPatterns(root, [pattern]));
+      } else if (trimmed && !trimmed.startsWith(' ') && !trimmed.startsWith('\t')) {
+        inPackages = false; // New top-level key
+      }
+    }
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Project-local skills
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectProjectSkills(root) {
+  const skillsDir = path.join(root, '.claude', 'skills');
+  if (!isDir(skillsDir)) return [];
+  try {
+    return fs.readdirSync(skillsDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+      .map(e => e.name);
+  } catch {
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detect(root) {
+  const pkgJson  = readPackageJson(root);
+  let mgr        = detectPackageManager(root);
+  const language = detectLanguage(root, pkgJson);
+  const { is_monorepo, packages } = detectMonorepo(root, pkgJson);
+
+  // Monorepo fallback: if root has no lock file, check workspace packages
+  if (!mgr && is_monorepo) {
+    for (const pkg of packages) {
+      const pkgMgr = detectPackageManager(path.join(root, pkg));
+      if (pkgMgr) { mgr = pkgMgr; break; }
+    }
+  }
+
+  let cmds;
+  if (['bun', 'npm', 'yarn', 'pnpm'].includes(mgr) || pkgJson) {
+    cmds = detectNodeCommands(root, pkgJson, mgr);
+  } else if (mgr === 'cargo') {
+    cmds = detectRustCommands();
+  } else if (mgr === 'go') {
+    cmds = detectGoCommands(root);
+  } else if (mgr === 'uv' || language === 'python') {
+    cmds = detectPythonCommands(root);
+  } else {
+    // Unknown — try all
+    cmds = detectPythonCommands(root);
+    if (!cmds.test_cmd) cmds = { test_cmd: '', e2e_cmd: '', lint_cmd: '', format_cmd: '', typecheck_cmd: '', dev_cmd: '' };
+  }
+
+  // Monorepo fallback: if root has no scripts, scan workspace packages
+  const hasAnyCmds = cmds.test_cmd || cmds.lint_cmd || cmds.format_cmd || cmds.typecheck_cmd || cmds.dev_cmd;
+  let workspace_commands = {};
+
+  if (is_monorepo) {
+    for (const pkg of packages) {
+      const pkgDir = path.join(root, pkg);
+      const pkgPkgJson = readPackageJson(pkgDir);
+      const pkgLang = detectLanguage(pkgDir, pkgPkgJson);
+
+      let pkgCmds = null;
+
+      // Try Node.js detection first
+      if (pkgPkgJson && pkgPkgJson.scripts) {
+        const pkgMgr = mgr || detectPackageManager(pkgDir);
+        pkgCmds = detectNodeCommands(pkgDir, pkgPkgJson, pkgMgr);
+      }
+      // Try Python detection
+      else if (pkgLang === 'python' || exists(path.join(pkgDir, 'pyproject.toml'))) {
+        pkgCmds = detectPythonCommands(pkgDir);
+      }
+      // Try Rust detection
+      else if (exists(path.join(pkgDir, 'Cargo.toml'))) {
+        pkgCmds = detectRustCommands();
+      }
+      // Try Go detection
+      else if (exists(path.join(pkgDir, 'go.mod'))) {
+        pkgCmds = detectGoCommands(pkgDir);
+      }
+      // Scan one level deeper for nested sub-packages (e.g., packages/backend/lambdas/streaming/)
+      else if (isDir(pkgDir)) {
+        const subPkgs = [];
+        try {
+          const entries = fs.readdirSync(pkgDir, { withFileTypes: true });
+          for (const e of entries) {
+            if (!e.isDirectory() || e.name.startsWith('.')) continue;
+            const subDir = path.join(pkgDir, e.name);
+            // Check sub-subdirectories too (one more level)
+            const subEntries = fs.readdirSync(subDir, { withFileTypes: true }).filter(se => se.isDirectory() && !se.name.startsWith('.'));
+            for (const se of subEntries) {
+              const subSubDir = path.join(subDir, se.name);
+              const subLang = detectLanguage(subSubDir, readPackageJson(subSubDir));
+              let subCmds = null;
+              if (exists(path.join(subSubDir, 'pyproject.toml'))) subCmds = detectPythonCommands(subSubDir);
+              else if (exists(path.join(subSubDir, 'Cargo.toml'))) subCmds = detectRustCommands();
+              else if (exists(path.join(subSubDir, 'go.mod'))) subCmds = detectGoCommands(subSubDir);
+              else if (readPackageJson(subSubDir)) subCmds = detectNodeCommands(subSubDir, readPackageJson(subSubDir), mgr || detectPackageManager(subSubDir));
+              if (subCmds && (subCmds.test_cmd || subCmds.lint_cmd || subCmds.dev_cmd)) {
+                const relPath = `${pkg}/${e.name}/${se.name}`;
+                workspace_commands[relPath] = { ...subCmds };
+                if (subLang) workspace_commands[relPath].language = subLang;
+              }
+            }
+            // Also check the direct subdirectory
+            const dirLang = detectLanguage(subDir, readPackageJson(subDir));
+            let dirCmds = null;
+            if (exists(path.join(subDir, 'pyproject.toml'))) dirCmds = detectPythonCommands(subDir);
+            else if (exists(path.join(subDir, 'Cargo.toml'))) dirCmds = detectRustCommands();
+            else if (exists(path.join(subDir, 'go.mod'))) dirCmds = detectGoCommands(subDir);
+            else if (readPackageJson(subDir)?.scripts) dirCmds = detectNodeCommands(subDir, readPackageJson(subDir), mgr || detectPackageManager(subDir));
+            if (dirCmds && (dirCmds.test_cmd || dirCmds.lint_cmd || dirCmds.dev_cmd)) {
+              const relPath = `${pkg}/${e.name}`;
+              workspace_commands[relPath] = { ...dirCmds };
+              if (dirLang) workspace_commands[relPath].language = dirLang;
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (pkgCmds) {
+        const hasCmds = pkgCmds.test_cmd || pkgCmds.lint_cmd || pkgCmds.dev_cmd;
+        if (hasCmds) {
+          workspace_commands[pkg] = { ...pkgCmds };
+          const pkgFramework = detectFramework(pkgDir, pkgPkgJson);
+          if (pkgLang) workspace_commands[pkg].language = pkgLang;
+          if (pkgFramework) workspace_commands[pkg].framework = pkgFramework;
+        }
+      }
+    }
+
+    // If root has no commands, promote the workspace package with the most commands
+    if (!hasAnyCmds && Object.keys(workspace_commands).length > 0) {
+      const bestPkg = Object.keys(workspace_commands).reduce((best, pkg) => {
+        const c = workspace_commands[pkg];
+        const count = [c.test_cmd, c.e2e_cmd, c.lint_cmd, c.format_cmd, c.typecheck_cmd, c.dev_cmd].filter(Boolean).length;
+        const bestCount = best ? [workspace_commands[best].test_cmd, workspace_commands[best].e2e_cmd, workspace_commands[best].lint_cmd, workspace_commands[best].format_cmd, workspace_commands[best].typecheck_cmd, workspace_commands[best].dev_cmd].filter(Boolean).length : 0;
+        return count > bestCount ? pkg : best;
+      }, null);
+      const promoted = workspace_commands[bestPkg];
+      cmds.test_cmd      = cmds.test_cmd      || promoted.test_cmd      || '';
+      cmds.e2e_cmd       = cmds.e2e_cmd       || promoted.e2e_cmd       || '';
+      cmds.lint_cmd      = cmds.lint_cmd       || promoted.lint_cmd      || '';
+      cmds.format_cmd    = cmds.format_cmd     || promoted.format_cmd    || '';
+      cmds.typecheck_cmd = cmds.typecheck_cmd  || promoted.typecheck_cmd || '';
+      cmds.dev_cmd       = cmds.dev_cmd        || promoted.dev_cmd       || '';
+    }
+  }
+
+  const framework     = detectFramework(root, pkgJson);
+  const project_skills = detectProjectSkills(root);
+
+  const result = {
+    pkg_mgr:       mgr,
+    test_cmd:      cmds.test_cmd,
+    e2e_cmd:       cmds.e2e_cmd,
+    lint_cmd:      cmds.lint_cmd,
+    format_cmd:    cmds.format_cmd,
+    typecheck_cmd: cmds.typecheck_cmd,
+    dev_cmd:       cmds.dev_cmd,
+    is_monorepo,
+    packages,
+    framework,
+    project_skills,
+    language,
+  };
+
+  // Include per-package commands for monorepos
+  if (is_monorepo && Object.keys(workspace_commands).length > 0) {
+    result.workspace_commands = workspace_commands;
+  }
+
+  return result;
+}
+
+const result = detect(dir);
+process.stdout.write(JSON.stringify(result, null, pretty ? 2 : undefined) + '\n');

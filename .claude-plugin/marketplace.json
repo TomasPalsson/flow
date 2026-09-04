@@ -1,0 +1,43 @@
+{
+  "name": "harness",
+  "owner": { "name": "TomasPalsson" },
+  "description": "Personal Claude Code marketplace: the deterministic harness plugin plus per-domain skill bundles (design, finance, aws, web, tooling).",
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "Deterministic Claude Code harness: lifecycle hooks, scripts toolbox, saved workflows, and the flow/feature/qa/audit skill set.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "design",
+      "source": "./plugins/design",
+      "description": "Design and UI skills: visual design, UX critique, mobile design, polish passes, showcase pages, and UI animation.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "finance",
+      "source": "./plugins/finance",
+      "description": "Personal finance and trading skills: alpha research, portfolio tracking, investment analysis, and eToro integration.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "aws",
+      "source": "./plugins/aws",
+      "description": "AWS and Strands agent skills: exploration, Lambda microVMs, AgentCore, steering hooks, and SST.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "web",
+      "source": "./plugins/web",
+      "description": "Web tooling skills: SEO audits, Google Ads, Figma-to-Strapi, website cloning, API exploration, and browser automation.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "tooling",
+      "source": "./plugins/tooling",
+      "description": "General developer tooling skills: project scaffolding, CLI building, code style, GitHub CLI, agent architecture, RAG, and more.",
+      "version": "0.1.0"
+    }
+  ]
+}

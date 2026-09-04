@@ -1,0 +1,372 @@
+#!/usr/bin/env bash
+# skills-lint — check skill markdown files for dead path references (C8).
+set -u
+
+print_help() {
+  cat <<'EOF'
+Usage: skills-lint [<skills-dir>]
+       skills-lint --usage [<history.jsonl>]
+
+Scans every *.md file under <skills-dir> (default: $HOME/.claude/skills)
+for path references of the form:
+  .claude/skills/<...>
+  ~/.claude/<...>
+  $HOME/.claude/<...>
+  ${CLAUDE_PLUGIN_ROOT}/<...>
+  references/<...>  or  scripts/<...>  (relative to the containing skill)
+
+Relative references resolve against the containing skill's own
+directory. ".claude/skills/..." references resolve against $HOME and
+against the skills directory's parent. "~/.claude/..." and
+"$HOME/.claude/..." references resolve against $HOME.
+"${CLAUDE_PLUGIN_ROOT}/..." references resolve against the nearest
+ancestor directory of the scanned file that contains a
+.claude-plugin/plugin.json (that plugin's root); a reference with no
+such ancestor is reported MISSING. After a candidate path exists, its
+basename must also appear verbatim in a listing of its parent
+directory (guards against case-insensitive filesystems hiding a
+wrong-case reference).
+
+References containing "<", ">", "*", or the literal text "NNN" are
+treated as placeholders and ignored, as is any reference whose basename
+stem is a single character or the literal X, Y, foo, or bar (e.g.
+"references/a.md"), and any reference inside a ``` or ~~~ fence (C16).
+
+Prints "MISSING <file>:<line> <path>" for every reference that does
+not resolve; exit 1 if any. Also prints "TOOL <file>:<line> <cmd>"
+(does not affect the exit code) for "command -v <cmd>" or a
+backticked binary name, when <cmd> is one of the allowlisted tools
+(better-plan, rtk, gh, bun, uv) and is not installed on this machine.
+
+--usage [<history.jsonl>] (default: $HOME/.claude/history.jsonl):
+counts, per installed skill (a directory under $HOME/.claude/skills)
+and command ($HOME/.claude/commands/*.md), how many prompts in the
+history file contain "/<name>" as a whole token. Prints a header line
+with the total prompt count and date range, then one line per name:
+"<uses> <name> <kind:skill|command> <last-used:YYYY-MM-DD|never>",
+sorted ascending by uses (never-used first). Robust to varying record
+shapes: reads the first non-empty of "display", "prompt", "text" per
+JSONL record. Requires python3; prints a one-line notice and exits 0
+when python3 or the history file is unavailable. Always exits 0 and
+never runs together with the reference check above.
+EOF
+}
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# _skills_lint_usage <history-file>
+# C14/C15 W4: counts, per installed skill/command, how many history
+# prompts mention "/<name>" as a whole token. Always returns 0 (a
+# report, never a lint failure); degrades to a one-line notice when
+# python3 or the history file is unavailable.
+_skills_lint_usage() {
+  history_file=$1
+  usage_skills_dir="$HOME/.claude/skills"
+  usage_commands_dir="$HOME/.claude/commands"
+
+  if ! have python3; then
+    printf 'skills-lint --usage: python3 not found; skipping usage report\n'
+    return 0
+  fi
+
+  names_file=$(mktemp "${TMPDIR:-/tmp}/skills-lint-usage.XXXXXX")
+
+  if [ -d "$usage_skills_dir" ]; then
+    for d in "$usage_skills_dir"/*/; do
+      [ -d "$d" ] || continue
+      nm=${d%/}
+      nm=${nm##*/}
+      printf 'skill\t%s\n' "$nm" >>"$names_file"
+    done
+  fi
+
+  if [ -d "$usage_commands_dir" ]; then
+    for f in "$usage_commands_dir"/*.md; do
+      [ -e "$f" ] || continue
+      nm=${f##*/}
+      nm=${nm%.md}
+      printf 'command\t%s\n' "$nm" >>"$names_file"
+    done
+  fi
+
+  if [ ! -s "$names_file" ]; then
+    printf 'skills-lint --usage: no installed skills or commands under %s or %s\n' "$usage_skills_dir" "$usage_commands_dir"
+    rm -f "$names_file"
+    return 0
+  fi
+
+  if [ ! -f "$history_file" ]; then
+    printf 'skills-lint --usage: no history file at %s\n' "$history_file"
+    rm -f "$names_file"
+    return 0
+  fi
+
+  # Counting/date logic lives in skills-lint-usage.py (kept out of this
+  # file to stay under the size-guard file-length threshold). HERE is
+  # resolved here, not at top-of-script, so a PATH lacking dirname only
+  # matters on the --usage path that needs it.
+  usage_here=$(cd "$(dirname "$0")" && pwd -P)
+  python3 "$usage_here/skills-lint-usage.py" "$names_file" "$history_file"
+  rm -f "$names_file"
+  return 0
+}
+
+for a in "$@"; do
+  case "$a" in
+  --help | -h)
+    print_help
+    exit 0
+    ;;
+  esac
+done
+
+if [ "${1:-}" = "--usage" ]; then
+  shift
+  _skills_lint_usage "${1:-$HOME/.claude/history.jsonl}"
+  exit 0
+fi
+
+skills_dir=${1:-$HOME/.claude/skills}
+skills_dir=${skills_dir%/}
+
+had_missing=0
+BT='`'
+TOKEN_RE='[^[:space:]`"()]+'
+CV_RE='command -v [A-Za-z0-9_.-]+'
+TOOL_RE="$BT(better-plan|rtk|gh|bun|uv)[^A-Za-z0-9_-]"
+
+# check_and_report <raw-ref> <candidate-path>...
+# Prints MISSING and sets had_missing=1 unless one candidate both exists
+# and its basename appears verbatim in a (pure-bash, no-fork) listing of
+# its parent directory (guards a case-insensitive filesystem hiding a
+# wrong-case reference; on a case-sensitive filesystem -e already agrees).
+check_and_report() {
+  ref=$1
+  shift
+  for cand in "$@"; do
+    # normalise a directory-style trailing slash so basename/dirname below
+    # see the directory's own name, not an empty string
+    if [ "$cand" != "/" ]; then cand=${cand%/}; fi
+    if [ -e "$cand" ]; then
+      base=${cand##*/}
+      dirp=${cand%/*}
+      [ "$dirp" = "$cand" ] && dirp="."
+      match=0
+      for entry in "$dirp"/* "$dirp"/.*; do
+        [ -e "$entry" ] || continue
+        if [ "${entry##*/}" = "$base" ]; then
+          match=1
+          break
+        fi
+      done
+      [ "$match" -eq 1 ] && return 0
+    fi
+  done
+  case "$ref" in
+    "~"/.claude/CLAUDE.md|"\$HOME"/.claude/CLAUDE.md|"~"/.claude/settings.json|"\$HOME"/.claude/settings.json|"~"/.claude/settings.local.json|"~"/.claude/projects/*|"~"/.claude/plugins/*)
+      return 0 ;;  # user config / state: may legitimately not exist on a fresh machine
+  esac
+  printf 'MISSING %s:%s %s\n' "$file" "$lineno" "$ref"
+  had_missing=1
+  return 1
+}
+
+# _plugin_root_for <file> — nearest ancestor dir of <file> (walking up via
+# dirname, no readlink -f) that contains .claude-plugin/plugin.json; that
+# is where "${CLAUDE_PLUGIN_ROOT}/..." references resolve. Prints "" (rc 1)
+# when no such ancestor exists.
+_plugin_root_for() {
+  d=$(dirname "$1")
+  while :; do
+    if [ -f "$d/.claude-plugin/plugin.json" ]; then
+      printf '%s' "$d"
+      return 0
+    fi
+    case "$d" in / | .) return 1 ;; esac
+    p=$(dirname "$d")
+    [ "$p" = "$d" ] && return 1
+    d=$p
+  done
+}
+
+files=$(find -L "$skills_dir" -type f -name '*.md' 2>/dev/null | sort)
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  # Test fixtures deliberately contain dead references: skip them unless the
+  # scan was pointed at a fixtures directory on purpose (the lint's own tests).
+  case "$skills_dir" in */tests/fixtures*) ;; *) case "$file" in */tests/fixtures/*) continue ;; esac ;; esac
+  rel=${file#"$skills_dir"/}
+  first_seg=${rel%%/*}
+  skill_root="$skills_dir/$first_seg"
+  # Plugin layouts nest skills (<plugin>/skills/<name>/SKILL.md): the containing
+  # skill is the nearest ancestor directory of the file that holds a SKILL.md.
+  _sr=$(dirname "$file")
+  while [ "$_sr" != "/" ] && [ -n "$_sr" ]; do
+    if [ -f "$_sr/SKILL.md" ]; then skill_root="$_sr"; break; fi
+    _sr=$(dirname "$_sr")
+  done
+  # Lazy per-file cache: only walk for a plugin root when a
+  # "${CLAUDE_PLUGIN_ROOT}/..." reference is actually seen in this file.
+  plugin_root_computed=0
+  plugin_root=""
+
+  # One grep per file per pattern (not per line): keeps subprocess count
+  # at O(files) instead of O(lines).
+  # Reference matching (only) runs over a "defenced" copy: every line in a
+  # ```/~~~ fence is blanked, not dropped, so line numbers still line up
+  # (C16 — a fenced reference is never checked). TOOL detection below still
+  # scans the original file; fences do not exempt those.
+  tok_matches=$(awk '
+    BEGIN { infence = 0 }
+    {
+      line = $0
+      t = line
+      sub(/^[ \t]*/, "", t)
+      if (t ~ /^(```|~~~)/) { infence = !infence; print ""; next }
+      if (infence) { print ""; next }
+      print line
+    }
+  ' "$file" | grep -noE "$TOKEN_RE" 2>/dev/null || true)
+  if [ -n "$tok_matches" ]; then
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      lineno=${entry%%:*}
+      tok=${entry#*:}
+      # A reference written in prose (no backticks) absorbs trailing
+      # sentence punctuation into the token, since TOKEN_RE's boundary
+      # set is whitespace/backtick/quote/paren only. Strip a trailing
+      # '.', ',', ';', ':', '?' or '!' (repeatedly, for e.g. "file.md.")
+      # before resolving so "See references/a.md." matches references/a.md
+      # and "Have you seen references/a.md?" matches references/a.md.
+      while :; do
+        case "$tok" in
+        *[.,\;:\?\!]) tok=${tok%?} ;;
+        *) break ;;
+        esac
+      done
+      case "$tok" in
+      *'<'* | *'>'* | *'*'* | *NNN*) continue ;;
+      esac
+      # C16: a single-char or X/Y/foo/bar basename stem is a doc
+      # placeholder, not a real dead reference (e.g. "references/a.md").
+      stem_tok=${tok##*/}
+      case "$stem_tok" in
+      *.*) stem_tok=${stem_tok%.*} ;;
+      esac
+      if [ ${#stem_tok} -eq 1 ]; then continue; fi
+      case "$stem_tok" in
+      X | Y | foo | bar) continue ;;
+      esac
+      # A token that IS only the recognised prefix (nothing after it, e.g.
+      # a bare "references/" or ".claude/skills/" mentioned in prose) does
+      # not name a specific path; the C7/C8 "<...>" notation implies at
+      # least one more path segment follows.
+      case "$tok" in
+      '~/.claude/')
+        continue
+        ;;
+      '~/.claude/'*)
+        rest=${tok#'~/.claude/'}
+        [ -z "$rest" ] && continue
+        rest=${tok#'~/'}
+        check_and_report "$tok" "$HOME/$rest"
+        ;;
+      '$HOME/.claude/')
+        continue
+        ;;
+      '$HOME/.claude/'*)
+        rest=${tok#'$HOME/.claude/'}
+        [ -z "$rest" ] && continue
+        rest=${tok#'$HOME/'}
+        check_and_report "$tok" "$HOME/$rest"
+        ;;
+      '.claude/skills/')
+        continue
+        ;;
+      '.claude/skills/'*)
+        rest=${tok#'.claude/skills/'}
+        [ -z "$rest" ] && continue
+        # Second candidate: resolve against the skills dir actually being
+        # scanned (stands in for ".../.claude/skills" when this dir is
+        # not deployed at $HOME/.claude/skills, e.g. a repo checkout or a
+        # test fixture). Joining the full token onto dirname(skills_dir)
+        # would double the ".claude/skills" segment and never resolve.
+        check_and_report "$tok" "$HOME/$tok" "$skills_dir/$rest"
+        ;;
+      '${CLAUDE_PLUGIN_ROOT}/')
+        continue
+        ;;
+      '${CLAUDE_PLUGIN_ROOT}/'*)
+        rest=${tok#'${CLAUDE_PLUGIN_ROOT}/'}
+        [ -z "$rest" ] && continue
+        # Resolves against the nearest ancestor of THIS file that owns a
+        # .claude-plugin/plugin.json (that plugin's root) — not $skills_dir,
+        # since the plugin root is one level above skills/.
+        if [ "$plugin_root_computed" -eq 0 ]; then
+          plugin_root=$(_plugin_root_for "$file")
+          plugin_root_computed=1
+        fi
+        if [ -n "$plugin_root" ]; then
+          check_and_report "$tok" "$plugin_root/$rest"
+        else
+          printf 'MISSING %s:%s %s\n' "$file" "$lineno" "$tok"
+          had_missing=1
+        fi
+        ;;
+      'references/' | 'scripts/')
+        continue
+        ;;
+      'references/'* | 'scripts/'*)
+        check_and_report "$tok" "$skill_root/$tok"
+        ;;
+      esac
+    done <<TOKEOF
+$tok_matches
+TOKEOF
+  fi
+
+  cv_matches=$(grep -noE "$CV_RE" "$file" 2>/dev/null || true)
+  if [ -n "$cv_matches" ]; then
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      lineno=${entry%%:*}
+      cvm=${entry#*:}
+      cmd=${cvm#command -v }
+      # Only the allowlisted tools are reported (C8); a "command -v"
+      # guard for an unrelated tool is normal defensive shell, not a
+      # deployment gap worth flagging.
+      case "$cmd" in
+      better-plan | rtk | gh | bun | uv)
+        have "$cmd" || printf 'TOOL %s:%s %s\n' "$file" "$lineno" "$cmd"
+        ;;
+      esac
+    done <<CVEOF
+$cv_matches
+CVEOF
+  fi
+
+  tool_matches=$(grep -noE "$TOOL_RE" "$file" 2>/dev/null || true)
+  if [ -n "$tool_matches" ]; then
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      lineno=${entry%%:*}
+      matched=${entry#*:}
+      # matched = <backtick><word><one boundary char>; drop both ends.
+      rest=${matched#"$BT"}
+      w=${rest%?}
+      have "$w" || printf 'TOOL %s:%s %s\n' "$file" "$lineno" "$w"
+    done <<TOOLEOF
+$tool_matches
+TOOLEOF
+  fi
+done <<FILEOF
+$files
+FILEOF
+
+[ "$had_missing" -eq 1 ] && exit 1
+exit 0

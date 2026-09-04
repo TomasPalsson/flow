@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+# tests/test_workflows.sh — U6 saved workflows (build-slices, review-diff,
+# research-sweep, plan-review) and scripts/workflow-lint.
+# Sourced by run.sh; HERE and SCAN_DIR come from there. Test names: t_wf_*.
+
+WF_LINT="$SCAN_DIR/workflow-lint"
+WF_DIR="$SCAN_DIR/../workflows"
+WF_FIXTURES="$HERE/fixtures/workflows"
+
+t_wf_build_slices_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js lints clean"
+	assert_contains "$OUT" "OK " "wf: build-slices.js prints OK"
+}
+
+t_wf_review_diff_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR/review-diff.js"
+	assert_rc 0 "wf: review-diff.js lints clean"
+	assert_contains "$OUT" "OK " "wf: review-diff.js prints OK"
+}
+
+t_wf_research_sweep_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR/research-sweep.js"
+	assert_rc 0 "wf: research-sweep.js lints clean"
+	assert_contains "$OUT" "OK " "wf: research-sweep.js prints OK"
+}
+
+t_wf_plan_review_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR/plan-review.js"
+	assert_rc 0 "wf: plan-review.js lints clean"
+	assert_contains "$OUT" "OK " "wf: plan-review.js prints OK"
+}
+
+t_wf_directory_scan_all_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR"
+	assert_rc 0 "wf: directory scan of all four workflows is rc 0"
+	local ok_count
+	ok_count=$(printf '%s\n' "$OUT" | grep -c '^OK ')
+	assert_eq "$ok_count" "4" "wf: directory scan prints 4 OK lines"
+}
+
+t_wf_help() {
+	run_cmd bash "$WF_LINT" --help
+	assert_rc 0 "wf: --help exits 0"
+	assert_contains "$OUT" "Usage" "wf: --help prints usage"
+}
+
+t_wf_fixture_bad_name() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/bad-name.js"
+	assert_rc 1 "wf fixture: bad-name.js fails lint"
+	assert_contains "$OUT" "meta-name" "wf fixture: bad-name.js reports meta-name"
+}
+
+t_wf_fixture_interpolated_meta() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/interpolated-meta.js"
+	assert_rc 1 "wf fixture: interpolated-meta.js fails lint"
+	assert_contains "$OUT" "meta-pure" "wf fixture: interpolated-meta.js reports meta-pure"
+}
+
+t_wf_fixture_phase_mismatch() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/phase-mismatch.js"
+	assert_rc 1 "wf fixture: phase-mismatch.js fails lint"
+	assert_contains "$OUT" "phase-title" "wf fixture: phase-mismatch.js reports phase-title"
+}
+
+t_wf_fixture_date_now() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/date-now.js"
+	assert_rc 1 "wf fixture: date-now.js fails lint"
+	assert_contains "$OUT" "no-nondeterminism" "wf fixture: date-now.js reports no-nondeterminism"
+}
+
+t_wf_fixture_typescript() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/typescript.js"
+	assert_rc 1 "wf fixture: typescript.js fails lint"
+	assert_contains "$OUT" "typescript" "wf fixture: typescript.js reports typescript"
+}
+
+t_wf_fixture_agent_no_model() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/agent-no-model.js"
+	assert_rc 1 "wf fixture: agent-no-model.js fails lint"
+	assert_contains "$OUT" "agent-model" "wf fixture: agent-no-model.js reports agent-model"
+}
+
+t_wf_fixture_missing_description() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/missing-description.js"
+	assert_rc 1 "wf fixture: missing-description.js fails lint"
+	assert_contains "$OUT" "meta-description" "wf fixture: missing-description.js reports meta-description"
+}
+
+t_wf_fixture_syntax_error() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/syntax-error.js"
+	assert_rc 1 "wf fixture: syntax-error.js fails lint"
+	assert_contains "$OUT" "parse" "wf fixture: syntax-error.js reports parse"
+}
+
+# Comment-bypass regression coverage: a decoy value/brace placed inside a
+# comment must never satisfy (or evade) a text-matching rule while the real,
+# non-compliant code ships. Each fixture is the compliant twin of an existing
+# rule fixture above, plus one commented-out decoy engineered to fool a
+# comment-unaware substring/regex match.
+
+t_wf_fixture_comment_bypass_agent_model() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/comment-bypass-agent-model.js"
+	assert_rc 1 "wf fixture: comment-bypass-agent-model.js fails lint"
+	assert_contains "$OUT" "agent-model" "wf fixture: comment-bypass-agent-model.js reports agent-model"
+}
+
+t_wf_fixture_comment_bypass_name() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/comment-bypass-name.js"
+	assert_rc 1 "wf fixture: comment-bypass-name.js fails lint"
+	assert_contains "$OUT" "meta-name" "wf fixture: comment-bypass-name.js reports meta-name"
+}
+
+t_wf_fixture_comment_bypass_phase_title() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/comment-bypass-phase-title.js"
+	assert_rc 1 "wf fixture: comment-bypass-phase-title.js fails lint"
+	assert_contains "$OUT" "phase-title" "wf fixture: comment-bypass-phase-title.js reports phase-title"
+}
+
+t_wf_fixture_comment_bypass_description() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/comment-bypass-description.js"
+	assert_rc 1 "wf fixture: comment-bypass-description.js fails lint"
+	assert_contains "$OUT" "meta-description" "wf fixture: comment-bypass-description.js reports meta-description"
+}
+
+# Nested-decoy-key regression coverage: rules 1 and 7 must scan only the
+# literal's OWN top-level (depth-1) keys, never a same-named key buried
+# inside a nested object/array (a schema property, a phases[].detail field).
+
+t_wf_fixture_nested_key_agent_model() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/nested-key-agent-model.js"
+	assert_rc 1 "wf fixture: nested-key-agent-model.js fails lint"
+	assert_contains "$OUT" "agent-model" "wf fixture: nested-key-agent-model.js reports agent-model"
+}
+
+t_wf_fixture_nested_key_description() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/nested-key-description.js"
+	assert_rc 1 "wf fixture: nested-key-description.js fails lint"
+	assert_contains "$OUT" "meta-description" "wf fixture: nested-key-description.js reports meta-description"
+}
+
+# Backtick phase-title regression coverage: rule 4 must not silently skip a
+# phase() call whose title is written as a template literal.
+
+t_wf_fixture_phase_backtick_title() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/phase-backtick-title.js"
+	assert_rc 1 "wf fixture: phase-backtick-title.js fails lint"
+	assert_contains "$OUT" "phase-title" "wf fixture: phase-backtick-title.js reports phase-title"
+}
+
+# C13 wave-scheduling regression coverage: build-slices.js must actually use
+# parallel() to run independent slices concurrently, and workflow-lint (rule
+# 9) must catch a build-slices.js that doesn't.
+
+t_wf_fixture_no_parallelism() {
+	run_cmd bash "$WF_LINT" "$WF_FIXTURES/build-slices.js"
+	assert_rc 1 "wf fixture: build-slices.js (no parallel call) fails lint"
+	assert_contains "$OUT" "no-parallelism" "wf fixture: build-slices.js reports no-parallelism"
+}
+
+t_wf_build_slices_uses_parallel_for_waves() {
+	# The shipped build-slices.js must contain more than the two known
+	# per-slice adversary-pair parallel() call sites — it must also use
+	# parallel() to run independent slices' full chains concurrently in waves.
+	run_cmd grep -c 'parallel(' "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 2 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: build-slices.js uses parallel() for wave scheduling beyond the two adversary-pair sites (found $count call sites)"
+}
+
+t_wf_build_slices_returns_waves() {
+	run_cmd grep -c 'waves:' "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: build-slices.js returns { waves: number[][] } per C13"
+}
+
+# C13/C17 stage 0: when the caller does not already know deps/files, one
+# haiku general-purpose agent discovers them from the plan before scheduling.
+
+t_wf_build_slices_stage0_absent_check() {
+	run_cmd grep -c 'depsMap === undefined || filesMap === undefined' "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js checks args.deps/args.files absence"
+	assert_eq "$OUT" "1" "wf: exactly one stage-0 absence check"
+}
+
+t_wf_build_slices_stage0_model_haiku() {
+	run_cmd grep -c "model: 'haiku'" "$WF_DIR/build-slices.js"
+	local count
+	count="$OUT"
+	assert_rc 0 "wf: build-slices.js contains model:'haiku' agent calls"
+	if [ "$count" -lt 1 ]; then
+		assert_eq "found" "at least one model:'haiku' call" "wf: at least one model:'haiku' call present"
+	fi
+}
+
+t_wf_build_slices_stage0_agent_type_general_purpose() {
+	run_cmd grep -c "agentType: 'general-purpose'" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js contains an agentType:'general-purpose' stage-0 agent"
+	assert_eq "$OUT" "1" "wf: exactly one agentType:'general-purpose' call (stage 0)"
+}
+
+t_wf_build_slices_stage0_reads_plan_and_design() {
+	run_cmd grep -c "args.design" "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: stage-0 agent reads args.design when given"
+}
+
+t_wf_build_slices_stage0_schema_deps_files() {
+	run_cmd grep -c 'STAGE0_SCHEMA' "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: a schema constant is used for the stage-0 deps/files return"
+	run_cmd grep -c "required: \['deps', 'files'\]" "$WF_DIR/build-slices.js"
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: stage-0 schema requires deps and files"
+}
+
+t_wf_build_slices_log_format_string() {
+	run_cmd grep -c "'wave ' + (i + 1) + ': ' + wave.map" "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: wave log format string present"
+	run_cmd grep -c "'Slice ' + id" "$WF_DIR/build-slices.js"
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: wave log format uses 'Slice <id>' per slice"
+}
+
+t_wf_build_slices_logs_waves_before_starting() {
+	# The computeAllWaves()+log() block (before the exec loop) must appear
+	# before the first parallel(ready.map(...)) execution call in the file.
+	run_cmd grep -n 'computeAllWaves(sliceNumbers' "$WF_DIR/build-slices.js"
+	local log_line exec_line
+	log_line=$(printf '%s\n' "$OUT" | head -1 | cut -d: -f1)
+	run_cmd grep -n 'for (let w = 0; w < waves.length; w++)' "$WF_DIR/build-slices.js"
+	exec_line=$(printf '%s\n' "$OUT" | head -1 | cut -d: -f1)
+	local before="no"
+	if [ "$log_line" -lt "$exec_line" ]; then before="yes"; fi
+	assert_eq "$before" "yes" "wf: waves are computed (and logged) before the execution loop starts"
+}
+
+t_wf_build_slices_returns_discovered() {
+	run_cmd grep -c 'discovered:' "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: build-slices.js return includes discovered"
+	run_cmd grep -c 'const discovered = \[\]' "$WF_DIR/build-slices.js"
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: discovered starts as an array populated from slice results"
+}
+
+t_wf_build_slices_still_lints_ok() {
+	run_cmd bash "$WF_LINT" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js with stage 0 still lints clean"
+	assert_contains "$OUT" "OK " "wf: build-slices.js with stage 0 prints OK"
+}
+
+# Behavioral regression coverage: computeWave()/computeAllWaves() must
+# actually be exercised against sample deps/files input, not merely grepped
+# for as source text. Extracts the three scheduling functions verbatim from
+# the shipped file (brace-matching, no rewrite of the source) and runs them
+# under node. Covers two things: (1) a real parallel wave when files are
+# disjoint and there are no deps (control case: the scheduler CAN produce
+# concurrency); (2) stage 0 may return Depends-on ids as strings (JSON
+# object keys are always strings, and models mirror that in adjacent array
+# values, e.g. {"deps":{"2":["1"]}}) — a string dependency id must still be
+# recognised once the depended-on slice is done, so an otherwise-independent
+# slice joins the wave with its unrelated siblings instead of being forced
+# into a fully serialized wave of its own by the cycle-detection safety
+# valve (C13; this is the exact defect class this unit's stage 0 must not
+# reintroduce).
+t_wf_build_slices_wave_computation_behavior() {
+	local d script
+	d=$(tmp_dir)
+	script="$d/wave-behavior-check.js"
+	cat >"$script" <<'NODEEOF'
+const fs = require('fs')
+const src = fs.readFileSync(process.argv[2], 'utf8')
+
+function extractFn(name) {
+  const marker = 'function ' + name + '('
+  const start = src.indexOf(marker)
+  if (start === -1) { throw new Error('extractFn: not found ' + name) }
+  const openBrace = src.indexOf('{', start)
+  let depth = 0
+  let j = openBrace
+  for (; j < src.length; j++) {
+    if (src[j] === '{') { depth++ }
+    else if (src[j] === '}') { depth--; if (depth === 0) { j++; break } }
+  }
+  return src.slice(start, j)
+}
+
+const combined = extractFn('filesOverlap') + '\n' + extractFn('computeWave') + '\n' + extractFn('computeAllWaves') + '\n'
+const logs = []
+function log(m) { logs.push(m) }
+eval(combined)
+
+// Control: two slices, no deps, disjoint files -> one real parallel wave.
+const controlWaves = computeAllWaves([1, 2], {}, { 1: ['a.js'], 2: ['b.js'] })
+
+// Stage-0-shaped: slice 2 depends on slice 1 via a STRING id ("1"); slice 3
+// has no deps but shares slice 1's file so it cannot join wave 1 either.
+// Once slice 1 is done, both slice 2 (dependency satisfied) and slice 3
+// (file no longer contended) belong in wave 2 TOGETHER. A buggy scheduler
+// that never matches the string dependency id against the numeric `done`
+// set instead produces three waves ([[1],[3],[2]]) — slice 3 alone in wave 2
+// because slice 2 wrongly stays unready, then slice 2 forced into its own
+// wave 3 by the cycle-detection safety valve, with a misleading warning.
+const depWaves = computeAllWaves(
+  [1, 2, 3],
+  { 1: [], 2: ['1'], 3: [] },
+  { 1: ['a.js'], 2: ['b.js'], 3: ['a.js'] }
+)
+
+console.log(JSON.stringify({ control: controlWaves, dep: depWaves, logs: logs }))
+NODEEOF
+	run_cmd node "$script" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: wave-computation behavioral extraction runs cleanly"
+	assert_contains "$OUT" '"control":[[1,2]]' "wf: disjoint-file slices with no deps form one real parallel wave"
+	assert_contains "$OUT" '"dep":[[1],[2,3]]' "wf: string-typed Depends-on id (\"1\") is normalized so slice 2 joins wave 2 with slice 3 instead of being forced into its own wave 3"
+	assert_not_contains "$OUT" 'no slice became ready' "wf: no cycle-detection safety-valve warning fires when the string dependency id resolves correctly"
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Berkshire Hathaway",
+    "cik": "0001067983",
+    "principal": "Warren Buffett",
+    "style": "Quality value compounding",
+    "tickerVariants": []
+  },
+  {
+    "name": "Pershing Square Capital Management",
+    "cik": "0001336528",
+    "principal": "Bill Ackman",
+    "style": "Activist concentrated",
+    "tickerVariants": []
+  },
+  {
+    "name": "Greenlight Capital",
+    "cik": "0001079114",
+    "principal": "David Einhorn",
+    "style": "Long/short value",
+    "tickerVariants": []
+  },
+  {
+    "name": "Baupost Group",
+    "cik": "0001061165",
+    "principal": "Seth Klarman",
+    "style": "Deep value, special situations",
+    "tickerVariants": []
+  },
+  {
+    "name": "Third Point",
+    "cik": "0001040273",
+    "principal": "Dan Loeb",
+    "style": "Activist event-driven",
+    "tickerVariants": []
+  },
+  {
+    "name": "ValueAct Capital",
+    "cik": "0001418814",
+    "principal": "Mason Morfit",
+    "style": "Friendly activist",
+    "tickerVariants": []
+  },
+  {
+    "name": "Trian Fund Management",
+    "cik": "0001345471",
+    "principal": "Nelson Peltz",
+    "style": "Operational activist",
+    "tickerVariants": []
+  },
+  {
+    "name": "Elliott Investment Management",
+    "cik": "0001791786",
+    "principal": "Paul Singer",
+    "style": "Activist multi-strategy",
+    "tickerVariants": []
+  },
+  {
+    "name": "Starboard Value",
+    "cik": "0001525421",
+    "principal": "Jeffrey Smith",
+    "style": "Activist value",
+    "tickerVariants": []
+  },
+  {
+    "name": "Markel Corporation",
+    "cik": "0001096343",
+    "principal": "Markel insurance equities team",
+    "style": "Buffett-style quality",
+    "tickerVariants": []
+  }
+]

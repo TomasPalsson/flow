@@ -1,0 +1,11 @@
+{
+  "name": "finance",
+  "version": "0.1.0",
+  "description": "Personal finance and trading skills: alpha research, portfolio tracking, investment analysis, and eToro integration.",
+  "author": {
+    "name": "TomasPalsson"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}

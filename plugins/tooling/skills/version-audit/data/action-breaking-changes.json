@@ -1,0 +1,14 @@
+{
+  "_comment": "Breaking-change notes for popular GitHub Actions, keyed by owner/repo. Used by version-audit.mjs to annotate REVIEW_MAJOR findings. NOT a source of 'latest' — latest is always queried live from the releases API. Update as new majors ship.",
+  "actions/checkout": { "note": "v2 made shallow clone the default (fetch-depth:1) — set fetch-depth:0 if you need full history/git-describe. v7 restricts fork-PR checkout under pull_request_target/workflow_run." },
+  "actions/setup-node": { "note": "Mostly runtime bumps across majors; low input-breakage risk, but still read the changelog." },
+  "actions/setup-python": { "note": "v4+ requires python-version or python-version-file — step fails if neither is set." },
+  "actions/setup-java": { "note": "v2+ requires the 'distribution' input (temurin/corretto/zulu); v1 silently defaulted." },
+  "actions/setup-go": { "note": "v4+ enables module caching by default — conflicts with a manual actions/cache for Go modules (set cache:false)." },
+  "actions/cache": { "note": "cache-hit is 'true' only on an EXACT key match; a restore-keys partial hit reports cache-hit:false." },
+  "actions/upload-artifact": { "note": "v3 SHUT DOWN on github.com (2024-11-30). v4 artifacts are immutable — cannot upload the same name twice in one run (use unique names or overwrite:true); v3<->v4 wire-incompatible, must match download-artifact major." },
+  "actions/download-artifact": { "note": "v3 SHUT DOWN (2024-11-30). v4 backend is incompatible with v3 uploads — upload/download majors must match." },
+  "github/codeql-action": { "note": "Monorepo (init/analyze/autobuild are subdirs); releases/latest returns a codeql-bundle tag, not the action version — resolve via semver tags. v1/v2 deprecated." },
+  "docker/build-push-action": { "note": "v6 switched default provenance/SBOM attestations on; can change image digests and break strict registries." },
+  "actions/deploy-pages": { "note": "Track alongside actions/upload-pages-artifact — version skew between them breaks Pages deploys." }
+}

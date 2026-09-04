@@ -1,0 +1,502 @@
+#!/usr/bin/env bash
+# workflow-lint — validate saved Workflow-tool scripts against C11.
+#
+# Checks per *.js file: (1) starts with `export const meta = {` after comments/
+# blank lines and the literal has top-level name:/description: keys; (2)
+# meta.name equals the filename stem; (3) the meta object is a pure literal
+# (no ${, no function calls, no bare identifier values); (4) every phase('X')
+# or phase(`X`) call's title is present in meta.phases when phases is
+# declared (a title this linter cannot statically read — an unrecognised
+# expression, or a backtick title that interpolates — fails closed instead of
+# being skipped); (5) no Date.now(), Math.random(), new Date(); (6) no
+# TypeScript syntax; (7) every agent() call's options object sets a top-level
+# agentType: or model: (a same-named key nested inside a nested object/array,
+# e.g. a schema property, never counts); (8) the file parses — a stubbed .mjs
+# copy passes `node --check`; (9) build-slices.js specifically must contain at
+# least one parallel( call (C13 wave scheduling).
+#
+# Prints "OK <file>" or "<file>: <rule>: <problem>" lines; exit 1 on any problem.
+set -u
+
+usage() {
+  cat <<'USAGE'
+Usage: workflow-lint [<file-or-dir>...]
+
+Validates each saved Workflow-tool script (*.js) against the C11/C13 rules:
+meta purity/name (top-level keys only), phase() titles (quoted or backtick,
+failing closed on anything else), no Date.now/Math.random/new Date, no
+TypeScript syntax, every agent() call pins a top-level agentType or model,
+the file parses, and build-slices.js schedules slices via parallel().
+
+With no arguments, scans $HOME/.claude/workflows. A directory argument
+scans its top-level *.js files; a file argument is checked directly.
+
+Prints "OK <file>" or "<file>: <rule>: <problem>" lines; exit 1 on any
+problem found in any file.
+USAGE
+}
+
+case "${1:-}" in
+--help | -h)
+  usage
+  exit 0
+  ;;
+esac
+
+DEFAULT_DIR="$HOME/.claude/workflows"
+
+if [ "$#" -eq 0 ]; then
+  set -- "$DEFAULT_DIR"
+fi
+
+status=0
+files=()
+for t in "$@"; do
+  if [ -d "$t" ]; then
+    for f in "$t"/*.js; do
+      [ -e "$f" ] || continue
+      files+=("$f")
+    done
+  elif [ -f "$t" ]; then
+    files+=("$t")
+  else
+    printf '%s: not found\n' "$t" >&2
+    status=1
+  fi
+done
+
+if [ "${#files[@]}" -eq 0 ]; then
+  printf 'no workflow files found\n' >&2
+  exit "$status"
+fi
+
+# The linter itself is a normal Node program (not a saved workflow script), so
+# it may use any Node API. It is fed one file path per invocation via argv.
+run_one() {
+  node - "$1" <<'NODE_EOF'
+'use strict';
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+
+const file = process.argv[2];
+const problems = [];
+function fail(rule, msg) { problems.push(rule + ': ' + msg); }
+
+let src;
+try {
+  src = fs.readFileSync(file, 'utf8');
+} catch (e) {
+  console.log(file + ': read: cannot read file: ' + e.message);
+  process.exit(1);
+}
+
+// Balanced-scan helper: returns the index of the char matching s[startIdx]
+// (openCh), respecting string/template literals with backslash escapes.
+function scanBalanced(s, startIdx, openCh, closeCh) {
+  let depth = 0;
+  let inStr = null;
+  for (let i = startIdx; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\') { i++; continue; }
+      if (c === inStr) { inStr = null; }
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
+    if (c === openCh) { depth++; }
+    else if (c === closeCh) {
+      depth--;
+      if (depth === 0) { return i; }
+    }
+  }
+  return -1;
+}
+
+// stripStrings replaces the interior of every quoted literal with spaces
+// (quote delimiters kept) so code-shape regexes never match text that is
+// only present inside a string value.
+function stripStrings(s) {
+  let out = '';
+  let inStr = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\') { out += '  '; i++; continue; }
+      if (c === inStr) { inStr = null; out += c; continue; }
+      out += ' ';
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; out += c; continue; }
+    out += c;
+  }
+  return out;
+}
+
+// stripNested blanks out everything at brace/bracket depth 2+ relative to the
+// start of s (s must begin with the opening '{' or '[' of the literal being
+// scanned), keeping only the literal's OWN top-level (depth-1) text — keys,
+// operators, and depth-1 primitive values — visible. This stops a decoy key
+// nested inside a nested object/array literal (e.g. a schema property named
+// "model", or a phases[].detail property named "description") from being
+// picked up by a key-presence regex meant to check only the object's own
+// fields. String/template literal interiors are respected while scanning so
+// a brace or bracket character inside a string never perturbs depth.
+function stripNested(s) {
+  let out = '';
+  let depth = 0;
+  let inStr = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\') { out += (depth <= 1 ? c + (s[i + 1] || '') : '  '); i++; continue; }
+      if (c === inStr) { inStr = null; out += (depth <= 1 ? c : ' '); continue; }
+      out += (depth <= 1 ? c : ' ');
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; out += (depth <= 1 ? c : ' '); continue; }
+    if (c === '{' || c === '[') {
+      depth++;
+      out += (depth <= 1 ? c : ' ');
+      continue;
+    }
+    if (c === '}' || c === ']') {
+      out += (depth <= 1 ? c : ' ');
+      depth--;
+      continue;
+    }
+    out += (depth <= 1 ? c : ' ');
+  }
+  return out;
+}
+
+// stripNonCode blanks out the interior of every quoted literal and every
+// comment (// and /* */), keeping length and newlines so regex match indices
+// still line up with the original source. Used to find genuine call sites
+// (e.g. "agent(", "phase(") without matching text that only appears inside a
+// string value or a comment.
+function stripNonCode(s) {
+  let out = '';
+  let inStr = null;
+  let inLineComment = false;
+  let inBlockComment = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const c2 = i + 1 < s.length ? s[i + 1] : '';
+    if (inLineComment) {
+      if (c === '\n') { inLineComment = false; out += c; } else { out += ' '; }
+      continue;
+    }
+    if (inBlockComment) {
+      if (c === '*' && c2 === '/') { inBlockComment = false; out += '  '; i++; }
+      else { out += (c === '\n' ? '\n' : ' '); }
+      continue;
+    }
+    if (inStr) {
+      if (c === '\\') { out += '  '; i++; continue; }
+      if (c === inStr) { inStr = null; out += c; continue; }
+      out += (c === '\n' ? '\n' : ' ');
+      continue;
+    }
+    if (c === '/' && c2 === '/') { inLineComment = true; out += '  '; i++; continue; }
+    if (c === '/' && c2 === '*') { inBlockComment = true; out += '  '; i++; continue; }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; out += c; continue; }
+    out += c;
+  }
+  return out;
+}
+
+// stripComments blanks out // and /* */ comments (replacing with spaces,
+// preserving newlines and length) but leaves quoted string literals verbatim
+// — unlike stripNonCode, which also blanks string interiors. Used wherever a
+// check needs to see real string values (meta.name, meta.description, phase
+// titles, agentType/model keys) while being immune to decoy text placed in a
+// comment (a commented-out field, or a block comment containing fake
+// object-literal braces).
+function stripComments(s) {
+  let out = '';
+  let inStr = null;
+  let inLineComment = false;
+  let inBlockComment = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const c2 = i + 1 < s.length ? s[i + 1] : '';
+    if (inLineComment) {
+      if (c === '\n') { inLineComment = false; out += c; } else { out += ' '; }
+      continue;
+    }
+    if (inBlockComment) {
+      if (c === '*' && c2 === '/') { inBlockComment = false; out += '  '; i++; }
+      else { out += (c === '\n' ? '\n' : ' '); }
+      continue;
+    }
+    if (inStr) {
+      if (c === '\\') { out += c + (c2 || ''); i++; continue; }
+      if (c === inStr) { inStr = null; out += c; continue; }
+      out += c;
+      continue;
+    }
+    if (c === '/' && c2 === '/') { inLineComment = true; out += '  '; i++; continue; }
+    if (c === '/' && c2 === '*') { inBlockComment = true; out += '  '; i++; continue; }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; out += c; continue; }
+    out += c;
+  }
+  return out;
+}
+
+function findFirstObjectLiteral(s) {
+  let inStr = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\') { i++; continue; }
+      if (c === inStr) { inStr = null; }
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
+    if (c === '{') {
+      const closeIdx = scanBalanced(s, i, '{', '}');
+      if (closeIdx === -1) { return null; }
+      return s.slice(i, closeIdx + 1);
+    }
+  }
+  return null;
+}
+
+// findCallArgs finds genuine calls to fnName( — genuine meaning the call text
+// is not inside a string literal or a comment — by matching against
+// codeOnly (same length/positions as s), then extracts the real argument
+// text (balanced parens) from s itself.
+function findCallArgs(s, codeOnly, fnName) {
+  const calls = [];
+  const re = new RegExp('(^|[^.\\w$])' + fnName + '\\s*\\(', 'g');
+  let m;
+  while ((m = re.exec(codeOnly))) {
+    const openIdx = m.index + m[0].length - 1;
+    const closeIdx = scanBalanced(s, openIdx, '(', ')');
+    if (closeIdx === -1) { re.lastIndex = openIdx + 1; continue; }
+    calls.push(s.slice(openIdx + 1, closeIdx));
+    re.lastIndex = closeIdx + 1;
+  }
+  return calls;
+}
+
+const codeOnly = stripNonCode(src);
+// srcNoComments: comments blanked, strings kept verbatim, same length/lines
+// as src — used for every structural extraction below (meta object bounds,
+// call-argument text) so a decoy value or a decoy brace/paren placed inside
+// a comment can never be picked up as real code.
+const srcNoComments = stripComments(src);
+
+// ---- rule 1/2: export const meta = { ... } is first statement, name/description present
+const lines = src.split('\n');
+let idx = 0;
+let inBlockComment = false;
+while (idx < lines.length) {
+  const line = lines[idx].trim();
+  if (inBlockComment) {
+    if (line.indexOf('*/') !== -1) { inBlockComment = false; }
+    idx++; continue;
+  }
+  if (line === '') { idx++; continue; }
+  if (line.indexOf('//') === 0) { idx++; continue; }
+  if (line.indexOf('/*') === 0) {
+    if (line.indexOf('*/') === -1) { inBlockComment = true; }
+    idx++; continue;
+  }
+  break;
+}
+const firstCode = lines.slice(idx).join('\n');
+if (firstCode.indexOf('export const meta = {') !== 0) {
+  fail('meta-start', 'file must start (after comments/blank lines) with "export const meta = {"');
+}
+
+const metaDeclRe = /export\s+const\s+meta\s*=\s*\{/;
+const metaDeclMatch = srcNoComments.match(metaDeclRe);
+let metaObj = null;
+let metaDeclStart = -1;
+let metaObjEnd = -1;
+if (metaDeclMatch) {
+  metaDeclStart = metaDeclMatch.index;
+  const openIdx = metaDeclStart + metaDeclMatch[0].length - 1;
+  const closeIdx = scanBalanced(srcNoComments, openIdx, '{', '}');
+  if (closeIdx !== -1) {
+    metaObjEnd = closeIdx;
+    // Comment-free (strings kept verbatim): a commented-out name:/
+    // description:/phases title/decoy brace is invisible to every regex
+    // check below, and a real (uncommented) field is never shadowed by one.
+    metaObj = srcNoComments.slice(openIdx, closeIdx + 1);
+  }
+}
+if (!metaObj) {
+  fail('meta-missing', 'no export const meta = { ... } object literal found');
+}
+
+let stem = path.basename(file);
+if (stem.slice(-3) === '.js') { stem = stem.slice(0, -3); }
+
+if (metaObj) {
+  // Depth-1 only: a decoy key nested inside a nested object/array (e.g. a
+  // phases[].detail property literally named "name" or "description") must
+  // never satisfy a check meant for meta's OWN top-level fields.
+  const metaObjTop = stripNested(metaObj);
+  const nameMatch = metaObjTop.match(/name\s*:\s*(['"])([^'"]*)\1/);
+  if (!nameMatch) {
+    fail('meta-name', 'meta.name not found as a top-level quoted string literal');
+  } else if (nameMatch[2] !== stem) {
+    fail('meta-name', 'meta.name "' + nameMatch[2] + '" does not equal filename stem "' + stem + '"');
+  }
+  const metaObjTopNoStrings = stripStrings(metaObjTop);
+  if (!/(^|[^A-Za-z0-9_$])description\s*:/.test(metaObjTopNoStrings)) {
+    fail('meta-description', 'meta.description is missing at the top level');
+  }
+
+  // ---- rule 3: meta is a pure literal
+  if (metaObj.indexOf('${') !== -1) {
+    fail('meta-pure', 'meta contains template interpolation ${...}');
+  } else {
+    const strippedMeta = stripStrings(metaObj);
+    const callRe = /[A-Za-z_$][A-Za-z0-9_$]*\s*\(/;
+    const callMatch = strippedMeta.match(callRe);
+    if (callMatch) {
+      fail('meta-pure', 'meta contains a function call: ' + callMatch[0].trim());
+    } else {
+      const valRe = /:\s*([A-Za-z_$][A-Za-z0-9_$]*)\b/g;
+      let vm;
+      let badIdent = null;
+      while ((vm = valRe.exec(strippedMeta))) {
+        const v = vm[1];
+        if (['true', 'false', 'null', 'undefined'].indexOf(v) === -1) { badIdent = v; break; }
+      }
+      if (badIdent) {
+        fail('meta-pure', 'meta contains a bare identifier value: ' + badIdent);
+      }
+    }
+  }
+}
+
+// ---- rule 4: phase('X') calls match a declared meta.phases title
+const phaseTitles = [];
+let phasesDeclared = false;
+if (metaObj) {
+  const phasesMatch = metaObj.match(/phases\s*:\s*\[/);
+  if (phasesMatch) {
+    phasesDeclared = true;
+    const openIdx = phasesMatch.index + phasesMatch[0].length - 1;
+    const closeIdx = scanBalanced(metaObj, openIdx, '[', ']');
+    const phasesBody = closeIdx !== -1 ? metaObj.slice(openIdx, closeIdx + 1) : metaObj.slice(openIdx);
+    const titleRe = /title\s*:\s*(['"])([^'"]*)\1/g;
+    let tm;
+    while ((tm = titleRe.exec(phasesBody))) { phaseTitles.push(tm[2]); }
+  }
+}
+const phaseSiteRe = /(^|[^.\w$])phase\(/g;
+let pm;
+while ((pm = phaseSiteRe.exec(codeOnly))) {
+  const openIdx = pm.index + pm[0].length - 1;
+  // Accept a plain quoted string OR a backtick template with no ${...}
+  // interpolation (its literal text is then checked like any other title).
+  // Anything else — an unrecognised expression, or a backtick title that DOES
+  // interpolate — fails closed instead of being silently skipped: a title
+  // this linter cannot statically verify must not be waved through as OK.
+  const detail = src.slice(openIdx).match(/^\(\s*(['"`])([\s\S]*?)\1/);
+  if (!phasesDeclared) { continue; }
+  if (!detail) {
+    fail('phase-title', 'phase(...) title is not a literal string; cannot verify against meta.phases');
+    continue;
+  }
+  const quoteChar = detail[1];
+  const title = detail[2];
+  if (quoteChar === '`' && title.indexOf('${') !== -1) {
+    fail('phase-title', 'phase(`' + title + '`) uses template interpolation; cannot verify against meta.phases');
+    continue;
+  }
+  if (phaseTitles.indexOf(title) === -1) {
+    fail('phase-title', 'phase(' + quoteChar + title + quoteChar + ') is not present in meta.phases');
+  }
+}
+
+// ---- rule 5: no Date.now(), Math.random(), new Date()
+['Date.now(', 'Math.random(', 'new Date('].forEach(function (tok) {
+  if (src.indexOf(tok) !== -1) { fail('no-nondeterminism', 'contains ' + tok); }
+});
+
+// ---- rule 6: no TypeScript syntax
+if (/\binterface\s+[A-Za-z_$]/.test(src)) { fail('typescript', 'contains an "interface " declaration'); }
+if (/:\s*string\b/.test(src)) { fail('typescript', 'contains a ": string" type annotation'); }
+if (/:\s*number\b/.test(src)) { fail('typescript', 'contains a ": number" type annotation'); }
+if (/\bas const\b/.test(src)) { fail('typescript', 'contains "as const"'); }
+if (/[A-Za-z_$][A-Za-z0-9_$]*<[A-Za-z_$][A-Za-z0-9_$]*>\s*\(/.test(src)) { fail('typescript', 'contains a generic type parameter on a function'); }
+
+// ---- rule 7: every agent() call sets agentType: or model:
+// Argument text is pulled from srcNoComments (not raw src) so a block
+// comment placed inside the call's argument list — e.g.
+// agent('x', /* { agentType: 'developer' } */ { label: 'no-model' }) —
+// can never be picked up by findFirstObjectLiteral as "the options object"
+// in place of the real (non-compliant) one that follows it.
+findCallArgs(srcNoComments, codeOnly, 'agent').forEach(function (callArgs) {
+  const optsObj = findFirstObjectLiteral(callArgs);
+  if (!optsObj) {
+    fail('agent-model', 'agent(...) call has no options object with agentType: or model:');
+    return;
+  }
+  // Depth-1 only: a nested property named agentType/model (e.g. inside a
+  // schema object passed as the options' schema:) must never satisfy this
+  // check — only the options object's OWN top-level keys count.
+  const optsObjTop = stripNested(optsObj);
+  if (!/agentType\s*:/.test(optsObjTop) && !/model\s*:/.test(optsObjTop)) {
+    fail('agent-model', 'agent(...) call options object sets neither agentType: nor model: at the top level');
+  }
+});
+
+// ---- rule 9: build-slices.js must schedule independent slices via parallel()
+// (C13). Applies only to a file whose name is build-slices.js — the
+// per-slice wave scheduler that rule requires is specific to that workflow.
+if (stem === 'build-slices') {
+  const parallelSiteRe = /(^|[^.\w$])parallel\s*\(/;
+  if (!parallelSiteRe.test(codeOnly)) {
+    fail('no-parallelism', 'build-slices.js must schedule independent slices in waves via parallel(); no parallel( call found');
+  }
+}
+
+// ---- rule 8: parse check — stubbed .mjs copy passes `node --check`
+if (metaDeclStart !== -1 && metaObjEnd !== -1) {
+  let afterIdx = metaObjEnd + 1;
+  if (src[afterIdx] === ';') { afterIdx++; }
+  const bodySrc = src.slice(afterIdx);
+  const metaDeclText = src.slice(metaDeclStart, metaObjEnd + 1) + ';';
+  const stub = "const agent=async()=>null,parallel=async()=>[],pipeline=async()=>[],phase=()=>{},log=()=>{},workflow=async()=>null,args=undefined,budget={total:null,spent:()=>0,remaining:()=>Infinity};\n";
+  const wrapped = stub + metaDeclText + '\nexport default async function run(){\n' + bodySrc + '\n}\n';
+  let tmpDir;
+  try {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wflint-'));
+    const tmpFile = path.join(tmpDir, 'check.mjs');
+    fs.writeFileSync(tmpFile, wrapped);
+    execFileSync(process.execPath, ['--check', tmpFile], { stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (e) {
+    const detail = e.stderr ? e.stderr.toString().split('\n').filter(Boolean)[0] : e.message;
+    fail('parse', 'node --check failed: ' + detail);
+  } finally {
+    if (tmpDir) {
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e2) { /* best effort cleanup */ }
+    }
+  }
+}
+
+if (problems.length === 0) {
+  console.log('OK ' + file);
+  process.exit(0);
+}
+problems.forEach(function (p) { console.log(file + ': ' + p); });
+process.exit(1);
+NODE_EOF
+}
+
+for f in "${files[@]}"; do
+  if ! run_one "$f"; then
+    status=1
+  fi
+done
+
+exit "$status"

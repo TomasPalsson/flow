@@ -1,0 +1,21 @@
+{
+  "_comment": "Curated 13F clone list for alpha-hunt. CIKs are reused verbatim from the investment skill's data/superinvestor-ciks.json (already verified). Research finding: clone LOW-turnover concentrated funds — the 45-day 13F filing lag is nearly free for a 3-year holding but fatal for fast-turnover funds. 'cloneability' tags which funds survive the lag. Only clone NEW high-conviction positions (>=7.5% of the fund's disclosed portfolio). This is a SLOW confirming signal, low weight — never a primary trigger.",
+  "clone_rule": {
+    "position_min_pct_of_portfolio": 7.5,
+    "prefer": "new positions vs prior quarter",
+    "signal_weight": "low (confirming, 45-day stale)",
+    "avoid": "fast-turnover funds — lag destroys their edge"
+  },
+  "funds": [
+    { "name": "Berkshire Hathaway", "cik": "0001067983", "cloneability": "HIGH", "reason": "Multi-year holds; 45-day lag ~irrelevant" },
+    { "name": "Baupost Group", "cik": "0001061165", "cloneability": "HIGH", "reason": "Deep value, patient special situations" },
+    { "name": "Markel Corporation", "cik": "0001096343", "cloneability": "HIGH", "reason": "Buffett-style quality, low turnover" },
+    { "name": "ValueAct Capital", "cik": "0001418814", "cloneability": "MEDIUM", "reason": "Friendly activist, multi-quarter engagements" },
+    { "name": "Trian Fund Management", "cik": "0001345471", "cloneability": "MEDIUM", "reason": "Operational activist, long hold horizon" },
+    { "name": "Pershing Square Capital Management", "cik": "0001336528", "cloneability": "MEDIUM", "reason": "Concentrated activist; watch for fast exits" },
+    { "name": "Third Point", "cik": "0001040273", "cloneability": "LOW", "reason": "Event-driven, faster turnover — lag hurts" },
+    { "name": "Starboard Value", "cik": "0001525421", "cloneability": "LOW", "reason": "Activist value, campaign-timed turnover" },
+    { "name": "Elliott Investment Management", "cik": "0001791786", "cloneability": "LOW", "reason": "Multi-strategy, fast-moving — lag fatal" },
+    { "name": "Greenlight Capital", "cik": "0001079114", "cloneability": "LOW", "reason": "Long/short, positions turn — 45-day snapshot unreliable" }
+  ]
+}

@@ -5,17 +5,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/session-context.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-context.sh",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/codebase-map.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/codebase-map.sh",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -26,12 +26,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/turn-stamp.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/turn-stamp.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -43,13 +43,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/rtk-rewrite.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/tool-stamp.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/rtk-rewrite.sh",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/git-guard.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/git-guard.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/spec-gate.sh",
+            "timeout": 15
           }
         ]
       },
@@ -57,7 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -69,18 +84,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/format-lint.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/format-lint.sh",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/size-guard.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/size-guard.sh",
             "timeout": 20
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/tamper-notice.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/tamper-notice.sh",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-bash-write.sh",
+            "timeout": 90
           }
         ]
       },
@@ -88,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -99,12 +124,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/stop-gate.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop-gate.sh",
             "timeout": 600
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -115,13 +140,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/subagent-log.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/subagent-log.sh",
             "timeout": 10,
             "async": true
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -132,7 +157,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/pre-compact-backup.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-compact-backup.sh",
             "timeout": 20
           }
         ]
@@ -143,7 +168,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/postcompact-context.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/postcompact-context.sh",
             "timeout": 10
           }
         ]
@@ -155,7 +180,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/notify.sh",
             "timeout": 10
           }
         ]
@@ -166,13 +191,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/worklog-hook.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
       }
     ]
-  },
-  "outputStyle": "Concise",
-  "skillListingBudgetFraction": 0.02
+  }
 }

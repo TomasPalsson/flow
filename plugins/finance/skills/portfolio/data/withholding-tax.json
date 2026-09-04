@@ -1,0 +1,93 @@
+{
+  "_meta": {
+    "generated_at": "GENERATED_AT_PLACEHOLDER — fill with the actual build/verification timestamp when this file is next regenerated or spot-checked",
+    "source": "Derived from the build-time global data-normalization research, Section 5 (\"Dividend withholding tax and the long-horizon total-return drag\") plus its Concrete Rules #6-7, Open Questions, and Confidence Ratings sections.",
+    "investor_context": "Rates below are the source's stated approximation for a US-based portfolio/non-controlling investor (<10% ownership treaty tier). This skill's account is EUR-base, not USD-base — the source explicitly did not model a EUR-base investor's treaty network, which can differ from the US treaty network per jurisdiction. Treat every treaty rate here as needing a SEPARATE re-check against the actual account-holder's/broker's treaty position, not just a currency-context translation.",
+    "settled_fact_warning": "NOTHING in this file is a settled fact. The source document itself states current-year (2026) exact statutory/treaty rates for France, Taiwan, and Korea specifically need re-verification against current treaty text or PwC-style tax summaries at skill-build/run time, and flags treaties generally as periodically renegotiated. Every entry below carries verify_before_use: true for this reason — this file records a directional prior, not a number to hard-code into a return model without re-checking.",
+    "not_covered_by_source": "The source's approximate rate table only covers UK, Germany, France, Switzerland, Japan, Australia, Canada, China, Taiwan, and South Korea. Any other jurisdiction (e.g. Ireland, Netherlands, Spain, Italy, Sweden, Norway, Denmark, Finland, Singapore, Hong Kong — several of which appear in exchange-currency-map.json) has NO withholding-rate entry here because the source never established one; do not infer a rate for those markets from this file, and do not assume 0% or any other default — verify directly before modeling after-tax yield for a candidate in one of those markets."
+  },
+  "jurisdictions": {
+    "UK": {
+      "jurisdiction": "United Kingdom",
+      "statutory_rate": "0%",
+      "treaty_note": "UK is a structural outlier: 0% statutory withholding on ordinary dividends for foreign holders, with no treaty needed because there is nothing to relieve.",
+      "reclaim_difficulty": "none — no withholding is applied at source, so there is nothing to reclaim",
+      "confidence": "High — well-established, widely-cited fact per the source's Confidence Ratings section",
+      "verify_before_use": true
+    },
+    "Germany": {
+      "jurisdiction": "Germany",
+      "statutory_rate": "~26.375% (25% Kapitalertragsteuer + solidarity surcharge)",
+      "treaty_note": "US treaty reduces statutory to ~15% for portfolio (non-controlling) holdings, ~5% for qualifying corporate holdings ≥10%. The reduced rate is not automatic — it depends on a treaty existing (it does, for a US investor), the investor's account structure supporting relief-at-source or after-the-fact reclaim, and correct paperwork.",
+      "reclaim_difficulty": "moderate — reclaiming the ~11-point gap between statutory and treaty rate requires an active Steuerbescheinigung certificate process; free if using a German broker with relief-at-source, costly/cumbersome otherwise",
+      "confidence": "Medium — directionally solid, corroborated by tax-summary-style sources, but exact current-year rate should be re-verified before being hard-coded (per source's Confidence Ratings)",
+      "verify_before_use": true
+    },
+    "France": {
+      "jurisdiction": "France",
+      "statutory_rate": "25% (post various reforms — source explicitly flags this as needing re-verification of the current-year PFU rate)",
+      "treaty_note": "US treaty reduces statutory to ~15% for portfolio holders. Reclaim requires country-specific forms (historically styled e.g. \"5000/5001\" or \"2777\") filed via the paying agent/custodian bank.",
+      "reclaim_difficulty": "moderate-to-high — real cost and friction reported by practitioners for the reclaim process",
+      "confidence": "Low on the exact current statutory PFU rate (explicitly listed in the source's Open Questions as needing re-verification); Medium on the general shape (statutory ~25%, treaty ~15%)",
+      "verify_before_use": true
+    },
+    "Switzerland": {
+      "jurisdiction": "Switzerland",
+      "statutory_rate": "35% — one of the highest in the developed world",
+      "treaty_note": "US treaty reduces statutory to as low as 15% (portfolio holdings) or 5% (qualifying ≥10% corporate holdings). The ~20-point gap between statutory and treaty rate must be ACTIVELY reclaimed if relief-at-source is not available through the custodian.",
+      "reclaim_difficulty": "high — document-heavy (apostille/certification requirements, multi-language forms), widely reported as one of the more onerous reclaim processes in Europe; Switzerland is the textbook 'notoriously bad' jurisdiction for withholding drag absent relief-at-source",
+      "confidence": "High on the 35% statutory rate and the high-friction reclaim process (corroborated by multiple sources including Swiss-specific tax-focused sites, per the source's Confidence Ratings); Medium on the exact treaty-reduced rates",
+      "verify_before_use": true
+    },
+    "Japan": {
+      "jurisdiction": "Japan",
+      "statutory_rate": "~15.315% (national + local)",
+      "treaty_note": "US treaty reduces to 10% (portfolio holdings) / 5% (≥10% holdings) — a moderate drag relative to Switzerland/Germany/France.",
+      "reclaim_difficulty": "low-to-moderate — relief-at-source is reasonably well supported by major global custodians",
+      "confidence": "Medium — directionally solid but exact current-year rate should be re-verified before being hard-coded",
+      "verify_before_use": true
+    },
+    "Australia": {
+      "jurisdiction": "Australia",
+      "statutory_rate": "~30% statutory on UNFRANKED dividends only; franked dividends carry NO withholding tax at all",
+      "treaty_note": "Australia's dividend imputation (\"franking credit\") system means many Australian dividends are partly or fully 'franked' — statutory withholding does not apply to the franked portion of a dividend at all. Franking credits themselves are largely NOT usable by non-resident/foreign investors (they are a domestic Australian tax offset). US treaty reduces the unfranked-dividend rate to ~15% for portfolio holders.",
+      "reclaim_difficulty": "low for franked dividends (nothing withheld to reclaim); standard treaty-relief process for the unfranked portion",
+      "confidence": "High on the franking mechanism itself and its exemption of the franked portion from further withholding, and on franking credits not being usable by foreign holders (standard, well-documented feature of Australian tax law per the source's Confidence Ratings); Medium on the exact unfranked statutory/treaty percentages",
+      "franking_warning": "CRITICAL, non-obvious trap explicitly flagged by the source: headline 'dividend yield' is NOT a reliable proxy for after-withholding-tax yield in Australia the way it might be elsewhere, because the same company can pay partially franked dividends that vary by payment. A screen must know whether a given ASX distribution is franked/unfranked to correctly model after-tax yield; a conservative default (assume partial/no franking) is a reasonable simplification absent per-distribution data.",
+      "verify_before_use": true
+    },
+    "Canada": {
+      "jurisdiction": "Canada",
+      "statutory_rate": "25%",
+      "treaty_note": "US treaty reduces statutory to 15% for portfolio US holders.",
+      "reclaim_difficulty": "low-to-moderate — relief-at-source reasonably well supported",
+      "confidence": "Medium — directionally solid but exact current-year rate should be re-verified before being hard-coded",
+      "verify_before_use": true
+    },
+    "China": {
+      "jurisdiction": "China (mainland — A-shares/H-shares context varies)",
+      "statutory_rate": "not resolved to a single figure by the source — varies by access route",
+      "treaty_note": "Treaty rate with the US is 10% under the 1984 treaty, but actual withholding practice varies significantly by share class AND access route (QFII, Stock Connect, direct H-share, ADR) — the 'effective' rate paid by a foreign investor depends heavily on the specific access mechanism, not just the treaty text.",
+      "reclaim_difficulty": "unresolved — genuinely complex and access-route-dependent per the source; flagged for deeper, instrument-specific research if a China-domiciled name enters the candidate set, rather than a single blended assumption",
+      "confidence": "Low on the effective rate for any specific access route (explicitly flagged in the source's Open Questions as unresolved); Medium on the 10% treaty-text figure itself",
+      "verify_before_use": true
+    },
+    "Taiwan": {
+      "jurisdiction": "Taiwan",
+      "statutory_rate": "~21% for non-resident individuals on dividends (historical figure — source explicitly flags this exact percentage as needing current-rate verification)",
+      "treaty_note": "STRUCTURAL TRAP: the US has NO income tax treaty with Taiwan at all (a diplomatic-status-driven structural gap). A US investor holding Taiwanese equities directly is exposed to the FULL statutory Taiwanese withholding rate with NO treaty relief available whatsoever — a meaningfully worse outcome than most other major APAC markets. Taiwan is often lumped in with 'developed APAC' in coverage terms but sits in a structurally worse withholding-tax position than Japan, Korea, or Australia purely because of a treaty-network gap, not tax policy per se.",
+      "reclaim_difficulty": "not applicable — there is no treaty to reclaim against; the full statutory rate is the final, unrelievable outcome",
+      "no_us_treaty": true,
+      "confidence": "High on the absence of a US-Taiwan tax treaty (durable, well-established structural/diplomatic fact per the source's Confidence Ratings); Medium on the exact ~21% statutory percentage (explicitly flagged as needing re-verification)",
+      "verify_before_use": true
+    },
+    "South Korea": {
+      "jurisdiction": "South Korea",
+      "statutory_rate": "higher than treaty rate absent relief (exact statutory figure not given by the source)",
+      "treaty_note": "US treaty rate is around 10-15% depending on holding/instrument details.",
+      "reclaim_difficulty": "not detailed by the source beyond the treaty rate range",
+      "confidence": "Low-Medium — the source gives only an approximate treaty range and flags Korea's precise treaty tier as something to re-verify (per the source's Open Questions)",
+      "verify_before_use": true
+    }
+  }
+}

@@ -1,0 +1,319 @@
+#!/usr/bin/env bash
+# slice-overlap — report plan files owned by 2+ slices (per the plan
+# grammar's "- **Files**:" bullet), and compute dependency waves.
+# Bash 3.2 compatible; see --help.
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: slice-overlap <plan-file> [--json] [--waves]
+
+Parses every slice's "- **Files**:" list (fence-aware per the plan
+grammar — a line inside a ``` or ~~~ fence is never a heading, and never
+contributes to a slice's file list). Prints one line per file owned by
+2 or more slices as:
+  <file>: Slice A, Slice B
+
+Exit 1 if any overlap is found, 0 otherwise.
+--json prints {"overlaps":[{"file":"..","slices":["Slice A","Slice B"]}]}.
+
+--waves computes dependency waves per "- **Depends-on**:" (a slice is
+ready when every Depends-on slice is done): prints one line per wave
+  wave <k>: Slice A, Slice B
+Overlap detection runs first and is unchanged: when an overlap exists,
+--waves prints the same overlap output (plain or --json) described
+above and exits 1 without computing waves. Otherwise, --waves --json
+prints {"waves":[[1],[2,3]]} (raw slice numbers, one array per wave).
+A dependency cycle prints "INVALID: dependency cycle among Slice A,
+Slice B" and exits 1.
+EOF
+}
+
+PLAN=""
+JSON=0
+WAVES=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --json)
+    JSON=1
+    shift
+    ;;
+  --waves)
+    WAVES=1
+    shift
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'slice-overlap: unknown option: %s\n' "$1" >&2
+    exit 1
+    ;;
+  *)
+    if [ -z "$PLAN" ]; then
+      PLAN=$1
+    else
+      printf 'slice-overlap: unexpected argument: %s\n' "$1" >&2
+      exit 1
+    fi
+    shift
+    ;;
+  esac
+done
+
+if [ -z "$PLAN" ]; then
+  usage >&2
+  exit 1
+fi
+if [ ! -f "$PLAN" ]; then
+  printf 'slice-overlap: no such file: %s\n' "$PLAN" >&2
+  exit 1
+fi
+
+# Shared, fence-aware overlap-detection awk program. Identical logic in
+# both code paths below so --waves's overlap gate is byte-for-byte the
+# same check as the plain path ("exit 1 on overlap (unchanged)").
+OVERLAP_AWK='
+BEGIN { infence = 0; cur = ""; cnt = 0 }
+{
+  line = $0
+  t = line
+  sub(/^[ \t]*/, "", t)
+  if (t ~ /^(```|~~~)/) { infence = !infence; next }
+  if (infence) { next }
+  if (line ~ /^## Slice [0-9]+ /) {
+    rest = line
+    sub(/^## Slice /, "", rest)
+    split(rest, parts, " ")
+    cur = parts[1]
+    next
+  }
+  if (line ~ /^## /) { cur = ""; next }
+  if (cur != "" && line ~ /^- \*\*Files\*\*:/) {
+    fl = line
+    sub(/^- \*\*Files\*\*:[ \t]*/, "", fl)
+    n = split(fl, files, ",")
+    for (i = 1; i <= n; i++) {
+      f = files[i]
+      gsub(/^[ \t]+/, "", f)
+      gsub(/[ \t]+$/, "", f)
+      if (f == "") continue
+      seenkey = f SUBSEP cur
+      if (f in slicesOf) {
+        if (!(seenkey in seen)) {
+          slicesOf[f] = slicesOf[f] "," cur
+          seen[seenkey] = 1
+        }
+      } else {
+        slicesOf[f] = cur
+        seen[seenkey] = 1
+        cnt++
+        order[cnt] = f
+      }
+    }
+  }
+}
+END {
+  overlap = 0
+  if (json == 1) {
+    printf "{\"overlaps\":["
+    first = 1
+    for (i = 1; i <= cnt; i++) {
+      key = order[i]
+      m = split(slicesOf[key], sl, ",")
+      if (m >= 2) {
+        overlap = 1
+        if (first == 0) printf ","
+        first = 0
+        printf "{\"file\":\"%s\",\"slices\":[", key
+        for (j = 1; j <= m; j++) {
+          if (j > 1) printf ","
+          printf "\"Slice %s\"", sl[j]
+        }
+        printf "]}"
+      }
+    }
+    printf "]}\n"
+  } else {
+    for (i = 1; i <= cnt; i++) {
+      key = order[i]
+      m = split(slicesOf[key], sl, ",")
+      if (m >= 2) {
+        overlap = 1
+        out = "Slice " sl[1]
+        for (j = 2; j <= m; j++) out = out ", Slice " sl[j]
+        print key ": " out
+      }
+    }
+  }
+  exit (overlap ? 1 : 0)
+}
+'
+
+if [ "$WAVES" -eq 0 ]; then
+  awk -v json="$JSON" "$OVERLAP_AWK" "$PLAN"
+  exit $?
+fi
+
+# --waves: run the overlap gate first, unchanged.
+overlap_output=$(awk -v json="$JSON" "$OVERLAP_AWK" "$PLAN")
+overlap_rc=$?
+if [ "$overlap_rc" -ne 0 ]; then
+  if [ -n "$overlap_output" ]; then
+    printf '%s\n' "$overlap_output"
+  fi
+  exit 1
+fi
+
+# No overlap: extract each slice's number and Depends-on list, fence-aware,
+# one "n<TAB>deps" line per slice in file order.
+META_AWK='
+BEGIN { infence = 0; cur = ""; cnt = 0 }
+{
+  line = $0
+  t = line
+  sub(/^[ \t]*/, "", t)
+  if (t ~ /^(```|~~~)/) { infence = !infence; next }
+  if (infence) { next }
+  if (line ~ /^## Slice [0-9]+ /) {
+    rest = line
+    sub(/^## Slice /, "", rest)
+    split(rest, parts, " ")
+    cur = parts[1]
+    if (!(cur in seen)) { seen[cur] = 1; cnt++; order[cnt] = cur }
+    next
+  }
+  if (line ~ /^## /) { cur = ""; next }
+  if (cur != "" && line ~ /^- \*\*Depends-on\*\*:/) {
+    dl = line
+    sub(/^- \*\*Depends-on\*\*:[ \t]*/, "", dl)
+    depsOf[cur] = dl
+  }
+}
+END {
+  for (i = 1; i <= cnt; i++) {
+    n = order[i]
+    d = depsOf[n]
+    if (d == "") d = "-"
+    printf "%s\t%s\n", n, d
+  }
+}
+'
+meta_output=$(awk "$META_AWK" "$PLAN")
+
+DEPENDS_ITEM_RE='^[[:space:]]*Slice[[:space:]]+([0-9]+)[[:space:]]*$'
+
+slice_ids=""
+while IFS=$(printf '\t') read -r sn draw; do
+  [ -z "$sn" ] && continue
+  slice_ids="$slice_ids $sn"
+  draw_clean=$draw
+  [ "$draw_clean" = "-" ] && draw_clean=""
+  deps=""
+  if [ -n "$draw_clean" ]; then
+    IFS=',' read -ra dparts <<<"$draw_clean"
+    for part in "${dparts[@]}"; do
+      if [[ $part =~ $DEPENDS_ITEM_RE ]]; then
+        deps="$deps ${BASH_REMATCH[1]}"
+      fi
+    done
+  fi
+  eval "deps_of_$sn=\"\$deps\""
+done <<META
+$meta_output
+META
+
+# numeric-sort the slice ids for a deterministic pending order
+sorted_ids=$(printf '%s\n' $slice_ids | sort -n)
+
+pending=""
+for s in $sorted_ids; do pending="$pending $s"; done
+pending=${pending# }
+
+done_list=" "
+waves_list=""
+cycle=0
+
+while [ -n "$pending" ]; do
+  ready=""
+  still=""
+  for s in $pending; do
+    eval "d=\"\${deps_of_$s:-}\""
+    ok=1
+    for dd in $d; do
+      case "$done_list" in
+      *" $dd "*) : ;;
+      *) ok=0 ;;
+      esac
+    done
+    if [ "$ok" -eq 1 ]; then
+      ready="$ready $s"
+    else
+      still="$still $s"
+    fi
+  done
+  ready=${ready# }
+  still=${still# }
+  if [ -z "$ready" ]; then
+    cycle=1
+    break
+  fi
+  for s in $ready; do
+    done_list="$done_list$s "
+  done
+  wave_ids=$(printf '%s' "$ready" | tr ' ' ',')
+  if [ -z "$waves_list" ]; then
+    waves_list="$wave_ids"
+  else
+    waves_list="$waves_list;$wave_ids"
+  fi
+  pending=$still
+done
+
+if [ "$cycle" -eq 1 ]; then
+  stuck=$(printf '%s\n' $pending | sort -n)
+  msg="INVALID: dependency cycle among"
+  first=1
+  for s in $stuck; do
+    if [ "$first" -eq 1 ]; then
+      msg="$msg Slice $s"
+      first=0
+    else
+      msg="$msg, Slice $s"
+    fi
+  done
+  printf '%s\n' "$msg"
+  exit 1
+fi
+
+if [ "$JSON" -eq 1 ]; then
+  out='{"waves":['
+  wfirst=1
+  IFS=';' read -ra wave_arr <<<"$waves_list"
+  for w in "${wave_arr[@]}"; do
+    if [ "$wfirst" -eq 0 ]; then out="$out,"; fi
+    wfirst=0
+    out="$out[$w]"
+  done
+  out="$out]}"
+  printf '%s\n' "$out"
+else
+  k=0
+  IFS=';' read -ra wave_arr <<<"$waves_list"
+  for w in "${wave_arr[@]}"; do
+    k=$((k + 1))
+    names=""
+    IFS=',' read -ra ids <<<"$w"
+    for id in "${ids[@]}"; do
+      if [ -z "$names" ]; then names="Slice $id"; else names="$names, Slice $id"; fi
+    done
+    printf 'wave %d: %s\n' "$k" "$names"
+  done
+fi
+exit 0

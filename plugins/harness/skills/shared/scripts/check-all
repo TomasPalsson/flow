@@ -1,0 +1,452 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const { stdout, stderr } = process;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tokyo Night Color Theme
+// ─────────────────────────────────────────────────────────────────────────────
+
+const C = {
+  primary:  '\u001b[38;2;122;162;247m',   // #7aa2f7 blue
+  accent:   '\u001b[38;2;187;154;247m',   // #bb9af7 purple
+  success:  '\u001b[38;2;158;206;106m',   // #9ece6a green
+  error:    '\u001b[38;2;247;118;142m',   // #f7768e red/pink
+  warning:  '\u001b[38;2;224;175;104m',   // #e0af68 yellow
+  text:     '\u001b[38;2;192;202;245m',   // #c0caf5 foreground
+  muted:    '\u001b[38;2;86;95;137m',     // #565f89 comments
+  border:   '\u001b[38;2;59;66;97m',      // #3b4261 borders
+  bold:     '\u001b[1m',
+  reset:    '\u001b[0m',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI Args
+// ─────────────────────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+const FLAG_CONTINUE = args.includes('--continue');
+const FLAG_FIX = args.includes('--fix');
+const FLAG_JSON = args.includes('--json');
+const FLAG_HELP = args.includes('--help') || args.includes('-h');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Help
+// ─────────────────────────────────────────────────────────────────────────────
+
+function printHelp() {
+  stdout.write(`
+${C.primary}${C.bold}check-all${C.reset} ${C.muted}— run project quality gates in sequence${C.reset}
+
+${C.accent}Usage:${C.reset}
+  check-all [options]
+
+${C.accent}Options:${C.reset}
+  --fix       Apply auto-fixes for lint and format
+  --continue  Run all gates even if some fail
+  --json      Output JSON only (no human-readable output)
+  -h, --help  Show this help message
+
+${C.accent}Gates (in order):${C.reset}
+  typecheck → lint → format → test
+
+${C.accent}Supported ecosystems:${C.reset}
+  ${C.muted}•${C.reset} Node.js (package.json)
+  ${C.muted}•${C.reset} Python (pyproject.toml)
+  ${C.muted}•${C.reset} Rust (Cargo.toml)
+  ${C.muted}•${C.reset} Go (go.mod / go.sum)
+
+${C.accent}Exit codes:${C.reset}
+  0  All gates passed or skipped
+  1  One or more gates failed
+`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Project Detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function findFile(names) {
+  for (const name of names) {
+    if (fs.existsSync(path.join(process.cwd(), name))) return name;
+  }
+  return null;
+}
+
+function readJSON(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command Builders — returns null if gate should be skipped
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Node.js: read package.json scripts
+function buildNodeGates(pkgPath) {
+  const pkg = readJSON(pkgPath);
+  if (!pkg) return null;
+
+  const scripts = pkg.scripts || {};
+  const gates = {};
+
+  // typecheck: prefer "typecheck", fall back to "tsc"
+  if (scripts.typecheck) {
+    gates.typecheck = ['npm', 'run', 'typecheck'];
+  } else if (scripts.tsc) {
+    gates.typecheck = ['npm', 'run', 'tsc'];
+  } else if (fs.existsSync(path.join(process.cwd(), 'tsconfig.json'))) {
+    // Has tsconfig but no explicit script — try npx tsc
+    const tscResult = spawnSync('npx', ['tsc', '--version'], { encoding: 'utf8' });
+    if (tscResult.status === 0) {
+      gates.typecheck = ['npx', 'tsc', '--noEmit'];
+    }
+  }
+
+  // lint: prefer "lint", accept "lint:fix" base
+  if (scripts.lint) {
+    if (FLAG_FIX && scripts['lint:fix']) {
+      gates.lint = ['npm', 'run', 'lint:fix'];
+    } else if (FLAG_FIX) {
+      // Try adding --fix to the lint command
+      gates.lint = ['npm', 'run', 'lint', '--', '--fix'];
+    } else {
+      gates.lint = ['npm', 'run', 'lint'];
+    }
+  }
+
+  // format: prefer "format", accept "prettier"
+  if (scripts.format) {
+    if (FLAG_FIX) {
+      // format scripts typically write in-place already
+      gates.format = ['npm', 'run', 'format'];
+    } else {
+      // check-only mode: try format:check, then format --check
+      if (scripts['format:check']) {
+        gates.format = ['npm', 'run', 'format:check'];
+      } else {
+        gates.format = ['npm', 'run', 'format', '--', '--check'];
+      }
+    }
+  } else if (scripts.prettier) {
+    gates.format = FLAG_FIX
+      ? ['npm', 'run', 'prettier']
+      : ['npm', 'run', 'prettier', '--', '--check'];
+  }
+
+  // test: prefer "test", skip if only "test:watch"
+  if (scripts.test && !scripts.test.includes('watch')) {
+    const testScript = scripts.test;
+    // Only pass --passWithNoTests for jest/vitest, not generic scripts
+    const isJestOrVitest = /\b(jest|vitest)\b/.test(testScript);
+    gates.test = isJestOrVitest
+      ? ['npm', 'run', 'test', '--', '--passWithNoTests']
+      : ['npm', 'run', 'test'];
+  } else if (scripts.test) {
+    gates.test = ['npm', 'run', 'test'];
+  }
+
+  return gates;
+}
+
+// Python: pyproject.toml / setup.cfg — check tool presence
+function buildPythonGates() {
+  const gates = {};
+
+  // typecheck: mypy
+  const mypyResult = spawnSync('which', ['mypy'], { encoding: 'utf8' });
+  if (mypyResult.status === 0) {
+    gates.typecheck = ['mypy', '.'];
+  }
+
+  // lint: ruff
+  const ruffResult = spawnSync('which', ['ruff'], { encoding: 'utf8' });
+  if (ruffResult.status === 0) {
+    gates.lint = FLAG_FIX ? ['ruff', 'check', '--fix', '.'] : ['ruff', 'check', '.'];
+  }
+
+  // format: black (or ruff format)
+  const blackResult = spawnSync('which', ['black'], { encoding: 'utf8' });
+  if (blackResult.status === 0) {
+    gates.format = FLAG_FIX ? ['black', '.'] : ['black', '--check', '.'];
+  } else if (ruffResult.status === 0) {
+    gates.format = FLAG_FIX ? ['ruff', 'format', '.'] : ['ruff', 'format', '--check', '.'];
+  }
+
+  // test: pytest
+  const pytestResult = spawnSync('which', ['pytest'], { encoding: 'utf8' });
+  if (pytestResult.status === 0) {
+    gates.test = ['pytest'];
+  }
+
+  return gates;
+}
+
+// Rust: Cargo.toml
+function buildRustGates() {
+  const gates = {};
+
+  // typecheck: cargo check
+  gates.typecheck = ['cargo', 'check'];
+
+  // lint: cargo clippy
+  gates.lint = FLAG_FIX
+    ? ['cargo', 'clippy', '--fix', '--allow-dirty', '--allow-staged']
+    : ['cargo', 'clippy'];
+
+  // format: cargo fmt
+  gates.format = FLAG_FIX ? ['cargo', 'fmt'] : ['cargo', 'fmt', '--', '--check'];
+
+  // test: cargo test
+  gates.test = ['cargo', 'test'];
+
+  return gates;
+}
+
+// Go: go.mod
+function buildGoGates() {
+  const gates = {};
+
+  // typecheck: go build ./...
+  gates.typecheck = ['go', 'build', './...'];
+
+  // lint: golangci-lint (if installed)
+  const lintResult = spawnSync('which', ['golangci-lint'], { encoding: 'utf8' });
+  if (lintResult.status === 0) {
+    gates.lint = FLAG_FIX ? ['golangci-lint', 'run', '--fix'] : ['golangci-lint', 'run'];
+  }
+
+  // format: gofmt
+  gates.format = FLAG_FIX ? ['gofmt', '-w', '.'] : ['gofmt', '-l', '.'];
+
+  // test: go test ./...
+  gates.test = ['go', 'test', './...'];
+
+  return gates;
+}
+
+function buildDetectProjectGates(data) {
+  const gates = {};
+  if (data.typecheck_cmd) gates.typecheck = data.typecheck_cmd.split(' ');
+  if (data.lint_cmd) {
+    const parts = data.lint_cmd.split(' ');
+    if (FLAG_FIX && !parts.includes('--fix')) parts.push('--fix');
+    gates.lint = parts;
+  }
+  if (data.format_cmd) gates.format = data.format_cmd.split(' ');
+  if (data.test_cmd) gates.test = data.test_cmd.split(' ');
+  return gates;
+}
+
+function tryDetectProject() {
+  const detectPaths = [
+    path.join(process.cwd(), '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+  ];
+  for (const dp of detectPaths) {
+    if (fs.existsSync(dp)) {
+      try {
+        const result = spawnSync('node', [dp], { encoding: 'utf8', timeout: 5000 });
+        if (result.status === 0) {
+          const data = JSON.parse(result.stdout);
+          if (data.test_cmd || data.lint_cmd || data.typecheck_cmd) {
+            return { ecosystem: data.language || 'detected', gates: buildDetectProjectGates(data) };
+          }
+        }
+      } catch { /* fall through */ }
+    }
+  }
+  return null;
+}
+
+function detectGates() {
+  if (findFile(['package.json'])) {
+    const pkgPath = path.join(process.cwd(), 'package.json');
+    const gates = buildNodeGates(pkgPath);
+    if (gates && Object.keys(gates).length > 0) return { ecosystem: 'node', gates };
+  }
+  if (findFile(['pyproject.toml', 'setup.cfg', 'setup.py'])) {
+    return { ecosystem: 'python', gates: buildPythonGates() };
+  }
+  if (findFile(['Cargo.toml'])) {
+    return { ecosystem: 'rust', gates: buildRustGates() };
+  }
+  if (findFile(['go.mod', 'go.sum'])) {
+    return { ecosystem: 'go', gates: buildGoGates() };
+  }
+  // Fallback: use detect-project script (handles monorepos without root config)
+  const detected = tryDetectProject();
+  if (detected) return detected;
+  return { ecosystem: null, gates: {} };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gate Runner
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GATE_ORDER = ['typecheck', 'lint', 'format', 'test'];
+const MAX_OUTPUT_LINES = 20;
+
+function truncateOutput(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  if (lines.length <= MAX_OUTPUT_LINES) return text.trim();
+  return lines.slice(0, MAX_OUTPUT_LINES).join('\n') + `\n... (${lines.length - MAX_OUTPUT_LINES} more lines)`;
+}
+
+function runGate(name, cmd) {
+  const start = Date.now();
+
+  const result = spawnSync(cmd[0], cmd.slice(1), {
+    encoding: 'utf8',
+    stdio: 'pipe',
+    cwd: process.cwd(),
+    env: { ...process.env },
+    timeout: 120000,
+  });
+
+  const time_ms = Date.now() - start;
+  const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
+
+  // Go fmt -l outputs filenames of badly formatted files (non-empty = fail)
+  let failed = result.status !== 0;
+  if (name === 'format' && cmd[0] === 'gofmt' && !FLAG_FIX) {
+    failed = combined.trim().length > 0;
+  }
+
+  return {
+    name,
+    status: failed ? 'fail' : 'pass',
+    time_ms,
+    output: failed ? truncateOutput(combined) : '',
+    cmd: cmd.join(' '),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Human-readable Output
+// ─────────────────────────────────────────────────────────────────────────────
+
+function statusIcon(status) {
+  if (status === 'pass')    return `${C.success}✓${C.reset}`;
+  if (status === 'fail')    return `${C.error}✗${C.reset}`;
+  if (status === 'skipped') return `${C.muted}–${C.reset}`;
+  return ' ';
+}
+
+function statusColor(status) {
+  if (status === 'pass')    return C.success;
+  if (status === 'fail')    return C.error;
+  if (status === 'skipped') return C.muted;
+  return C.text;
+}
+
+function printHeader(ecosystem) {
+  stderr.write(`\n${C.primary}${C.bold}check-all${C.reset} ${C.muted}(${ecosystem})${C.reset}\n`);
+  stderr.write(`${C.border}${'─'.repeat(40)}${C.reset}\n`);
+}
+
+function printGateResult(gate) {
+  const icon = statusIcon(gate.status);
+  const col = statusColor(gate.status);
+  const timeStr = gate.status !== 'skipped' ? `${C.muted} ${gate.time_ms}ms${C.reset}` : '';
+  stderr.write(`  ${icon} ${col}${gate.name.padEnd(12)}${C.reset}${timeStr}\n`);
+  if (gate.status === 'fail' && gate.output) {
+    const lines = gate.output.split('\n');
+    for (const line of lines) {
+      stderr.write(`     ${C.muted}${line}${C.reset}\n`);
+    }
+  }
+}
+
+function printSummary(summary) {
+  stderr.write(`${C.border}${'─'.repeat(40)}${C.reset}\n`);
+  const parts = [];
+  if (summary.passed > 0)  parts.push(`${C.success}${summary.passed} passed${C.reset}`);
+  if (summary.failed > 0)  parts.push(`${C.error}${summary.failed} failed${C.reset}`);
+  if (summary.skipped > 0) parts.push(`${C.muted}${summary.skipped} skipped${C.reset}`);
+  stderr.write(`  ${parts.join(`${C.border} · ${C.reset}`)}\n\n`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────────────────────────────────────
+
+function main() {
+  if (FLAG_HELP) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const { ecosystem, gates } = detectGates();
+
+  if (!ecosystem) {
+    stderr.write(`${C.error}✗ No supported project file found (package.json, pyproject.toml, Cargo.toml, go.mod)${C.reset}\n`);
+    process.exit(1);
+  }
+
+  if (!FLAG_JSON) printHeader(ecosystem);
+
+  const results = [];
+  let anyFailed = false;
+
+  for (const gateName of GATE_ORDER) {
+    const cmd = gates[gateName];
+
+    if (!cmd) {
+      const gate = { name: gateName, status: 'skipped', time_ms: 0, output: '' };
+      results.push(gate);
+      if (!FLAG_JSON) printGateResult(gate);
+      continue;
+    }
+
+    if (!FLAG_JSON) {
+      stderr.write(`  ${C.muted}⋯ ${gateName}...${C.reset}\r`);
+    }
+
+    const gate = runGate(gateName, cmd);
+    results.push(gate);
+
+    if (!FLAG_JSON) printGateResult(gate);
+
+    if (gate.status === 'fail') {
+      anyFailed = true;
+      if (!FLAG_CONTINUE) break;
+    }
+  }
+
+  // Fill remaining gates as skipped if we stopped early
+  if (!FLAG_CONTINUE && anyFailed) {
+    const ran = new Set(results.map(r => r.name));
+    for (const gateName of GATE_ORDER) {
+      if (!ran.has(gateName)) {
+        const gate = { name: gateName, status: 'skipped', time_ms: 0, output: '' };
+        results.push(gate);
+        if (!FLAG_JSON) printGateResult(gate);
+      }
+    }
+  }
+
+  const summary = {
+    passed:  results.filter(r => r.status === 'pass').length,
+    failed:  results.filter(r => r.status === 'fail').length,
+    skipped: results.filter(r => r.status === 'skipped').length,
+  };
+
+  if (!FLAG_JSON) printSummary(summary);
+
+  // Always write JSON to stdout
+  const output = { gates: results, summary };
+  stdout.write(JSON.stringify(output, null, 2) + '\n');
+
+  process.exit(anyFailed ? 1 : 0);
+}
+
+main();

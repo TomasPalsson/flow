@@ -1,0 +1,185 @@
+{
+  "_doc": "Catalyst category metadata for scoring. Probability/magnitude/time are TYPICAL values; the skill should adjust per-case based on Stage 5 evidence.",
+  "categories": [
+    {
+      "id": "earnings_margin_expansion",
+      "name": "Margin expansion realized",
+      "type": "Earnings",
+      "typical_probability": 0.55,
+      "typical_magnitude_pct": 0.18,
+      "typical_time_months": 6,
+      "evidence_required": "Management guided margin path, quarterly evidence of progress, or input cost relief documented"
+    },
+    {
+      "id": "earnings_guidance_reset_up",
+      "name": "Upward guidance reset",
+      "type": "Earnings",
+      "typical_probability": 0.40,
+      "typical_magnitude_pct": 0.10,
+      "typical_time_months": 3,
+      "evidence_required": "Analyst day, pre-announcement, mid-quarter operating data"
+    },
+    {
+      "id": "pead_first_beat_after_misses",
+      "name": "First beat after multiple misses (PEAD)",
+      "type": "Earnings",
+      "typical_probability": 0.65,
+      "typical_magnitude_pct": 0.10,
+      "typical_time_months": 2,
+      "evidence_required": "2+ consecutive prior misses, latest quarter beats EPS+revenue with guidance raise",
+      "surprising_note": "Strongest PEAD signal is the SECOND beat after credibility nadir, not the first"
+    },
+    {
+      "id": "capital_allocation_buyback_initiated",
+      "name": "Buyback initiated or accelerated",
+      "type": "Capital Allocation",
+      "typical_probability": 0.50,
+      "typical_magnitude_pct": 0.10,
+      "typical_time_months": 12,
+      "evidence_required": "Buyback authorization size > 5% of market cap, history of executing on prior authorizations"
+    },
+    {
+      "id": "capital_allocation_spinoff",
+      "name": "Spinoff announced (Greenblatt-quality filter)",
+      "type": "Capital Allocation",
+      "typical_probability": 0.90,
+      "typical_magnitude_pct": 0.15,
+      "typical_time_months": 12,
+      "evidence_required": "Form 10 filed + 5 Greenblatt criteria (mgmt alignment, small relative size, clean balance sheet, sector orphan, Days 10-45 entry)",
+      "conviction_multiplier": 1.15
+    },
+    {
+      "id": "management_new_ceo_with_track_record",
+      "name": "New CEO with relevant track record",
+      "type": "Management",
+      "typical_probability": 0.45,
+      "typical_magnitude_pct": 0.20,
+      "typical_time_months": 18,
+      "evidence_required": "Prior CEO record at peer company, alignment package, articulated 100-day plan"
+    },
+    {
+      "id": "management_new_cfo",
+      "name": "New CFO (especially from higher-quality peer)",
+      "type": "Management",
+      "typical_probability": 0.35,
+      "typical_magnitude_pct": 0.08,
+      "typical_time_months": 12,
+      "evidence_required": "8-K announcement, prior employer quality, no concurrent restatement",
+      "surprising_note": "Often underweighted by markets — CFO has highest informational granularity"
+    },
+    {
+      "id": "activist_13d_top_tier",
+      "name": "13D from top-tier activist + thesis confirmed",
+      "type": "Activist",
+      "typical_probability": 0.55,
+      "typical_magnitude_pct": 0.10,
+      "typical_time_months": 15,
+      "evidence_required": "Filer in {Pershing Square, Elliott, Trian, Starboard, ValueAct, Engaged Capital, JANA}, public letter or board pursuit, independent analysis confirms",
+      "conviction_multiplier": 1.15
+    },
+    {
+      "id": "strategic_alternatives_exploration",
+      "name": "'Exploring strategic alternatives' announced",
+      "type": "Strategic Alternatives",
+      "typical_probability": 0.80,
+      "typical_magnitude_pct": 0.30,
+      "typical_time_months": 9,
+      "evidence_required": "8-K with exact 'exploring strategic alternatives' language, banker hired, no anti-shareholder defenses (poison pill, dual-class entrenchment)"
+    },
+    {
+      "id": "regulatory_drug_approval",
+      "name": "FDA approval (binary)",
+      "type": "Regulatory",
+      "typical_probability": 0.58,
+      "typical_magnitude_pct": 0.40,
+      "typical_time_months": 6,
+      "evidence_required": "Phase III data, PDUFA date in 6 months, no FDA red flags"
+    },
+    {
+      "id": "regulatory_patent_settlement_win",
+      "name": "Patent litigation favorable settlement / win",
+      "type": "Regulatory",
+      "typical_probability": 0.40,
+      "typical_magnitude_pct": 0.20,
+      "typical_time_months": 12,
+      "evidence_required": "Strong IP position, comparable case outcomes"
+    },
+    {
+      "id": "operational_new_product_launch",
+      "name": "New product launch with significant revenue ramp",
+      "type": "Operational",
+      "typical_probability": 0.50,
+      "typical_magnitude_pct": 0.15,
+      "typical_time_months": 9,
+      "evidence_required": "Launch date set, pre-order or pipeline data, comparable past launches successful"
+    },
+    {
+      "id": "operational_capacity_online",
+      "name": "Major capacity coming online (e.g. new fab, plant, AI data center)",
+      "type": "Operational",
+      "typical_probability": 0.70,
+      "typical_magnitude_pct": 0.18,
+      "typical_time_months": 15,
+      "evidence_required": "Capex schedule, customer commitments, no major delays in last 12 months"
+    },
+    {
+      "id": "insider_opportunistic_cluster",
+      "name": "Cohen-Malloy-Pomorski opportunistic insider cluster buying",
+      "type": "Insider",
+      "typical_probability": 0.55,
+      "typical_magnitude_pct": 0.09,
+      "typical_time_months": 12,
+      "evidence_required": "3+ unique insiders, Code P only, outside historical pattern, rolling 90-day window, CEO/CFO weighted highest",
+      "conviction_multiplier": 1.15
+    },
+    {
+      "id": "index_deletion_with_intact_fundamentals",
+      "name": "S&P 500 deletion (fundamentals intact)",
+      "type": "Index Event",
+      "typical_probability": 0.65,
+      "typical_magnitude_pct": 0.12,
+      "typical_time_months": 4,
+      "evidence_required": "Deletion announced/effective in last 30 days, business operations unimpaired, liquidity not permanently damaged",
+      "conviction_multiplier": 1.15,
+      "surprising_note": "Index INCLUSION as buy signal is DEAD (Greenwood-Sammon-Thesmar 2022). Only DELETION creates opportunity."
+    },
+    {
+      "id": "macro_rate_cut_beneficiary",
+      "name": "Rate cut cycle beneficiary (long duration / leveraged)",
+      "type": "Macro",
+      "typical_probability": 0.40,
+      "typical_magnitude_pct": 0.15,
+      "typical_time_months": 12,
+      "evidence_required": "Rate cuts priced in / underway, sector mechanically benefits (REITs, utilities, high-leverage)"
+    },
+    {
+      "id": "macro_commodity_recovery",
+      "name": "Commodity cycle recovery (energy/materials)",
+      "type": "Macro",
+      "typical_probability": 0.35,
+      "typical_magnitude_pct": 0.25,
+      "typical_time_months": 18,
+      "evidence_required": "Inventory drawdown observable, capex cuts widespread industry, demand stable"
+    }
+  ],
+  "scoring_rubric": {
+    "probability_max": 50,
+    "magnitude_max": 50,
+    "time_max": 25,
+    "composite_max": 125
+  },
+  "position_size_multiplier_table": [
+    { "composite_range": "100-125", "multiplier": 2.0 },
+    { "composite_range": "80-99",   "multiplier": 1.5 },
+    { "composite_range": "60-79",   "multiplier": 1.2 },
+    { "composite_range": "40-59",   "multiplier": 1.0 },
+    { "composite_range": "20-39",   "multiplier": 0.5 },
+    { "composite_range": "<20",     "multiplier": "DROP" }
+  ],
+  "anti_patterns": [
+    "Catalyst with no named event AND no date range = hopium",
+    "'The story will play out' without quantifiable trigger = reject",
+    "'Twitter / forum hype' is NOT a catalyst",
+    "Double-counting: buyback + dividend + earnings beat from same earnings report = ONE catalyst, not three"
+  ]
+}

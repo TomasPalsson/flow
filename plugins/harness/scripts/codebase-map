@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+# codebase-map — write a lightweight, regenerable markdown map of the
+# current git repo: entry points, top-level layout, "seam" files (routes,
+# schemas, config, auth, middleware, ...) and a few fixed grep recipes.
+#
+# No tree-sitter, no ctags: git ls-files plus awk/sed/grep/cksum only.
+# This is a set of leads for an agent to verify, never ground truth.
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: codebase-map [--out .claude/codebase-map.md] [--max-lines 150] [--force]
+
+Writes a markdown map of the current git repo to --out (default
+.claude/codebase-map.md, resolved relative to the current directory).
+Line 1 is a stamp comment:
+
+  <!-- codebase-map: head=<short sha> dirty=<8-char hash> generated=<date> -->
+
+Sections:
+  ## Entry points   from package.json (main/bin/scripts.dev|start),
+                     pyproject.toml [project.scripts], Cargo.toml
+                     [[bin]]/src/main.rs, go.mod + main.go, and the
+                     first line of README.md
+  ## Layout         git ls-files directories to depth 3, with file
+                     counts, top 40 by count
+  ## Seams          files matching route/router/schema/migration/
+                     config/auth/middleware, at most 25
+  ## Recipes        3 fixed grep recipes (find a route, find a schema,
+                     find where an env var is read)
+
+--max-lines caps total output (default 150); an overflowing map is
+truncated with a final "<!-- truncated -->" line.
+
+If the file at --out already exists and its stamp's head+dirty match
+the current repo state, prints "unchanged" and exits 0 without writing
+anything, unless --force is given.
+
+No dependency beyond git, awk, sed, cksum (python3 is never required).
+Exit 1 when not run inside a git repository.
+EOF
+}
+
+OUT=".claude/codebase-map.md"
+MAX_LINES=150
+FORCE=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --out)
+    OUT=$2
+    shift 2
+    ;;
+  --max-lines)
+    MAX_LINES=$2
+    shift 2
+    ;;
+  --force)
+    FORCE=1
+    shift
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'codebase-map: unknown option: %s\n' "$1" >&2
+    exit 1
+    ;;
+  *)
+    printf 'codebase-map: unexpected argument: %s\n' "$1" >&2
+    exit 1
+    ;;
+  esac
+done
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  printf 'codebase-map: not inside a git repository\n' >&2
+  exit 1
+fi
+
+head_sha=$(git rev-parse --short HEAD 2>/dev/null)
+[ -z "$head_sha" ] && head_sha="0000000"
+
+# The dirty hash is the 8-char hex cksum of `git status --porcelain`.
+# cksum's CRC never exceeds 32 bits, so %08x always yields 8 chars; an
+# empty porcelain (clean tree) always cksums to the same fixed value.
+# --untracked-files=all expands untracked directories to individual
+# files so the map's own (untracked) output path can be excluded below
+# by exact match; without it, an untracked .claude/ dir collapses to a
+# single "?? .claude/" line and the map would never settle on
+# "unchanged" — its own presence would perpetually look like a change.
+_out_cmp=$OUT
+case "$_out_cmp" in
+./*) _out_cmp=${_out_cmp#./} ;;
+esac
+porcelain=$(git status --porcelain --untracked-files=all 2>/dev/null | awk -v out="$_out_cmp" '{
+  path = substr($0, 4)
+  if (path == out) next
+  print
+}')
+dirty_num=$(printf '%s' "$porcelain" | cksum | awk '{print $1}')
+dirty_hash=$(printf '%08x' "$dirty_num")
+
+gen_date=$(date +%Y-%m-%d)
+
+stamp="<!-- codebase-map: head=$head_sha dirty=$dirty_hash generated=$gen_date -->"
+
+# ---- short-circuit: unchanged since the last generation ----
+if [ "$FORCE" -ne 1 ] && [ -f "$OUT" ]; then
+  existing_first=$(head -1 "$OUT" 2>/dev/null)
+  existing_head=$(printf '%s' "$existing_first" | sed -n 's/.*head=\([^ ]*\) dirty=.*/\1/p')
+  existing_dirty=$(printf '%s' "$existing_first" | sed -n 's/.*dirty=\([^ ]*\) generated=.*/\1/p')
+  if [ "$existing_head" = "$head_sha" ] && [ "$existing_dirty" = "$dirty_hash" ]; then
+    printf 'unchanged\n'
+    exit 0
+  fi
+fi
+
+# ---- Entry points ----
+entry_items=()
+
+if [ -f package.json ]; then
+  v=$(sed -n 's/.*"main"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)
+  [ -n "$v" ] && entry_items+=("package.json main: $v")
+  v=$(sed -n 's/.*"bin"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)
+  [ -n "$v" ] && entry_items+=("package.json bin: $v")
+  v=$(sed -n 's/.*"dev"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)
+  [ -n "$v" ] && entry_items+=("package.json scripts.dev: $v")
+  v=$(sed -n 's/.*"start"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)
+  [ -n "$v" ] && entry_items+=("package.json scripts.start: $v")
+fi
+
+if [ -f pyproject.toml ]; then
+  in_section=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    '[project.scripts]')
+      in_section=1
+      continue
+      ;;
+    '['*)
+      in_section=0
+      ;;
+    esac
+    if [ "$in_section" -eq 1 ]; then
+      case "$line" in
+      *=*)
+        key=$(printf '%s' "$line" | sed -n 's/^\([A-Za-z0-9_.-]*\)[[:space:]]*=.*/\1/p')
+        [ -n "$key" ] && entry_items+=("pyproject.toml [project.scripts]: $key")
+        ;;
+      esac
+    fi
+  done <pyproject.toml
+fi
+
+if [ -f Cargo.toml ]; then
+  if grep -q '^\[\[bin\]\]' Cargo.toml 2>/dev/null; then
+    entry_items+=("Cargo.toml: [[bin]] defined")
+  fi
+  [ -f src/main.rs ] && entry_items+=("Cargo.toml: src/main.rs")
+fi
+
+if [ -f go.mod ] && [ -f main.go ]; then
+  entry_items+=("go.mod: main.go")
+fi
+
+if [ -f README.md ]; then
+  v=$(head -1 README.md)
+  [ -n "$v" ] && entry_items+=("README.md: $v")
+fi
+
+# ---- Layout: git ls-files directories to depth 3, top 40 by file count ----
+layout_items=()
+layout_raw=$(git ls-files 2>/dev/null | awk -F/ '
+{
+  n = NF - 1
+  if (n > 3) n = 3
+  if (n == 0) { d = "." } else {
+    d = $1
+    for (i = 2; i <= n; i++) d = d "/" $i
+  }
+  count[d]++
+}
+END {
+  for (d in count) printf "%d %s\n", count[d], d
+}' | sort -rn | head -40)
+
+if [ -n "$layout_raw" ]; then
+  while IFS= read -r ln; do
+    [ -z "$ln" ] && continue
+    cnt=${ln%% *}
+    dname=${ln#* }
+    layout_items+=("$dname/ ($cnt files)")
+  done <<EOF
+$layout_raw
+EOF
+fi
+
+# ---- Seams: route/router/schema/migration/config/auth/middleware, <=25 ----
+seams_items=()
+seams_raw=$(git ls-files 2>/dev/null | grep -iE 'route|router|schema|migration|config|auth|middleware' | head -25)
+if [ -n "$seams_raw" ]; then
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    seams_items+=("$f")
+  done <<EOF
+$seams_raw
+EOF
+fi
+
+# ---- Recipes: 3 fixed grep recipes ----
+recipe_items=(
+  "Find a route: grep -rniE 'route|router' ."
+  "Find a schema: grep -rniE 'schema' ."
+  "Find where an env var is read: grep -rniE 'process\.env\.|os\.environ|os\.getenv' ."
+)
+
+_print_section() {
+  # $1 = heading; remaining args (may be none) = one item each.
+  printf '## %s\n\n' "$1"
+  shift
+  if [ $# -eq 0 ]; then
+    printf '(none found)\n'
+  else
+    local it
+    for it in "$@"; do
+      printf -- '- %s\n' "$it"
+    done
+  fi
+}
+
+outdir=$(dirname "$OUT")
+[ "$outdir" != "." ] && mkdir -p "$outdir"
+
+tmpfile=$(mktemp "${TMPDIR:-/tmp}/codebase-map.XXXXXX")
+
+{
+  printf '%s\n' "$stamp"
+  printf '\n'
+  if [ "${#entry_items[@]}" -gt 0 ]; then
+    _print_section "Entry points" "${entry_items[@]}"
+  else
+    _print_section "Entry points"
+  fi
+  printf '\n'
+  if [ "${#layout_items[@]}" -gt 0 ]; then
+    _print_section "Layout" "${layout_items[@]}"
+  else
+    _print_section "Layout"
+  fi
+  printf '\n'
+  if [ "${#seams_items[@]}" -gt 0 ]; then
+    _print_section "Seams" "${seams_items[@]}"
+  else
+    _print_section "Seams"
+  fi
+  printf '\n'
+  _print_section "Recipes" "${recipe_items[@]}"
+} >"$tmpfile"
+
+total=$(wc -l <"$tmpfile" | tr -d ' ')
+
+if [ "$total" -gt "$MAX_LINES" ]; then
+  keep=$((MAX_LINES - 1))
+  [ "$keep" -lt 1 ] && keep=1
+  head -n "$keep" "$tmpfile" >"$OUT"
+  printf '<!-- truncated -->\n' >>"$OUT"
+  n=$MAX_LINES
+else
+  cp "$tmpfile" "$OUT"
+  n=$total
+fi
+rm -f "$tmpfile"
+
+printf 'written %s %s lines\n' "$OUT" "$n"

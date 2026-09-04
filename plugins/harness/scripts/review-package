@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# review-package — write a review diff package for base..head. Never prints
+# the diff itself to stdout. Bash 3.2 compatible; see --help.
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: review-package <base> [<head>] [--out <path>]
+
+<head> defaults to HEAD. Verifies both refs with `git rev-parse --verify`.
+Writes to --out (default .claude/review/<base-short>..<head-short>.diff):
+  git log --oneline base..head
+  (blank line)
+  git diff --stat base..head
+  (blank line)
+  git diff -U10 base..head
+
+Prints the output path, then the line count of the written file.
+Exit 1 if a ref does not resolve. The diff is never printed to stdout.
+EOF
+}
+
+BASE=""
+HEAD_REF=""
+OUT=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --out)
+    OUT=$2
+    shift 2
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'review-package: unknown option: %s\n' "$1" >&2
+    exit 1
+    ;;
+  *)
+    if [ -z "$BASE" ]; then
+      BASE=$1
+    elif [ -z "$HEAD_REF" ]; then
+      HEAD_REF=$1
+    else
+      printf 'review-package: unexpected argument: %s\n' "$1" >&2
+      exit 1
+    fi
+    shift
+    ;;
+  esac
+done
+
+if [ -z "$BASE" ]; then
+  usage >&2
+  exit 1
+fi
+[ -z "$HEAD_REF" ] && HEAD_REF="HEAD"
+
+if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
+  printf 'review-package: ref does not resolve: %s\n' "$BASE" >&2
+  exit 1
+fi
+if ! git rev-parse --verify "$HEAD_REF" >/dev/null 2>&1; then
+  printf 'review-package: ref does not resolve: %s\n' "$HEAD_REF" >&2
+  exit 1
+fi
+
+BASE_SHORT=$(git rev-parse --short "$BASE")
+HEAD_SHORT=$(git rev-parse --short "$HEAD_REF")
+
+if [ -z "$OUT" ]; then
+  OUT=".claude/review/${BASE_SHORT}..${HEAD_SHORT}.diff"
+fi
+
+OUT_DIR=$(dirname "$OUT")
+mkdir -p "$OUT_DIR"
+
+{
+  git log --oneline "$BASE..$HEAD_REF"
+  printf '\n'
+  git diff --stat "$BASE..$HEAD_REF"
+  printf '\n'
+  git diff -U10 "$BASE..$HEAD_REF"
+} >"$OUT"
+
+LINES=$(wc -l <"$OUT" | tr -d ' ')
+printf '%s\n' "$OUT"
+printf '%s lines\n' "$LINES"

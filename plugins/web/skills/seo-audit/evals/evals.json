@@ -1,0 +1,234 @@
+{
+  "skill_name": "seo-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you do an SEO audit of our SaaS website? We're getting about 2,000 organic visits/month but feel like we should be getting more. URL: https://example.com",
+      "expected_output": "Should check for product-marketing-context.md first. Should establish ground truth before auditing: what access exists (Search Console, analytics, logs), what changed recently, and which pages/queries carry revenue. Should gather evidence with scripts/seo-check.mjs rather than reasoning from assumption. Should follow the dependency order: crawlability/indexation, then technical soundness, then targeting, then content quality. Should NOT report schema markup as missing based on raw HTML or WebFetch alone. Should run a suppression pass before finalizing. Findings should carry Issue, Evidence (with tier), Impact, Confidence, Fix. Should prioritize by impact and confidence over effort, never by tool severity label.",
+      "assertions": [
+        "Checks for product-marketing-context.md",
+        "Establishes access and recent-changes timeline before auditing",
+        "Runs or references scripts/seo-check.mjs to gather evidence",
+        "Follows dependency order: crawl/index first, then technical, targeting, content",
+        "Does NOT claim 'no schema found' from raw HTML or WebFetch alone",
+        "Labels evidence tier on findings (direct observation vs inference)",
+        "States confidence on causal claims",
+        "Prioritizes by impact and confidence, not by tool severity",
+        "Produces Fix-now / Fix-next / Fix-later grouping",
+        "Names evidence gaps rather than papering over them"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Why am I not ranking for 'project management software'? We have a page targeting that keyword but it's stuck on page 3.",
+      "expected_output": "Should trigger on the casual phrasing and route to single-query investigation rather than a full site audit. Should check intent match FIRST by reading what the SERP actually returns for that query (content type, format, angle) since intent mismatch is unfixable by on-page work. Should then check cannibalization using the rigorous test (URLs trading positions, measurable harm) rather than merely overlapping keywords. Should assess competitiveness honestly given it is a high-volume commercial head term. Should check title/H1/URL alignment and indexability. Should not promise ranking gains from minor on-page tweaks on a term of this difficulty.",
+      "assertions": [
+        "Routes to single-query investigation, not a generic full audit",
+        "Checks search intent by examining what the SERP actually returns",
+        "Notes that intent mismatch cannot be fixed by on-page optimization",
+        "Applies rigorous cannibalization test requiring measurable harm",
+        "Checks title, H1, URL alignment with the target",
+        "Assesses competitive difficulty honestly for a commercial head term",
+        "Does not overpromise results from minor on-page changes"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We just migrated from WordPress to Next.js and our organic traffic dropped 40% in the last month. Help!",
+      "expected_output": "Should route to migration forensics, a distinct procedure, and diagnose before recommending anything. Should first confirm the drop is real and not a measurement artifact or property-scope change. Should check redirect map completeness, URL structure diff, internal link preservation, canonical/hreflang drift, and whether a staging robots.txt or noindex shipped to production. Should specifically consider whether the Next.js app is client-rendering content that was previously server-rendered. Should check whether an algorithm update landed in the same window, since coincident timing is the classic attribution trap. Should give realistic recovery expectations in months, not weeks.",
+      "assertions": [
+        "Routes to migration forensics rather than a generic checklist",
+        "Confirms the drop is real before diagnosing causes",
+        "Checks redirect mapping completeness",
+        "Checks for accidental noindex or staging robots.txt in production",
+        "Considers client-side rendering as a regression from the previous stack",
+        "Checks whether an algorithm update coincided, and warns about attribution",
+        "Gives realistic recovery timeline in months",
+        "Segments losses by page type to identify the pattern"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Review the technical SEO of our e-commerce site. We have about 50,000 products and use faceted navigation.",
+      "expected_output": "Should recognize that at 50,000 URLs with faceted navigation, crawl budget and index bloat are genuinely relevant, unlike on small sites. Should check faceted URL combinatorics, parameter handling, canonical strategy across variants, and whether facets create infinite crawl spaces. Should check for soft 404s and out-of-stock handling. Should not recommend blocking crawlers reflexively, and should distinguish between blocking crawl and controlling indexation. Should note the robots.txt-blocks-noindex-from-being-seen trap if deindexing facets is the goal.",
+      "assertions": [
+        "Recognizes crawl budget is genuinely relevant at this scale",
+        "Analyzes faceted navigation combinatorics and infinite crawl spaces",
+        "Checks canonical strategy across product and facet variants",
+        "Distinguishes controlling crawl from controlling indexation",
+        "Surfaces the robots.txt plus noindex contradiction where relevant",
+        "Addresses out-of-stock and soft-404 handling",
+        "Does not reflexively recommend blocking crawlers"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can you check our blog posts for on-page SEO issues? We publish 4 posts per week but traffic has been flat for a year.",
+      "expected_output": "Should question the premise: flat traffic despite high publishing volume suggests the problem is not on-page issues on individual posts. Should consider content decay, cannibalization from high-volume publishing, site-wide quality drag from thin posts, and intent mismatch. Should separate Page Quality assessment (query-independent) from Needs Met assessment (query-dependent). Should raise prune/improve/consolidate decisions and warn against deleting pages without checking traffic, conversions, and backlinks first. Should warn that changing dates without substantive edits is a risk, not a refresh tactic.",
+      "assertions": [
+        "Questions whether on-page issues are the real bottleneck given the symptom",
+        "Raises cannibalization as a consequence of high publishing volume",
+        "Raises site-wide quality drag from thin content",
+        "Separates Page Quality from Needs Met as distinct assessments",
+        "Offers prune vs improve vs consolidate decision logic",
+        "Warns against deleting pages without checking conversions and backlinks",
+        "Warns that cosmetic date changes are a risk, not a refresh"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I run a local plumbing business with 3 locations. My website barely shows up when people search for plumbers in my area.",
+      "expected_output": "Should recognize local search is a distinct surface where the Google Business Profile, proximity, and reviews dominate, and that website SEO is only part of the picture. Should check NAP consistency, location pages, and local schema. Should be honest that proximity is a major factor the business cannot control. Should not deliver a generic technical audit as the primary answer.",
+      "assertions": [
+        "Recognizes local search as a distinct surface from classic organic",
+        "Addresses Google Business Profile, not only the website",
+        "Checks NAP consistency and location pages",
+        "Is honest that proximity is a strong factor outside the owner's control",
+        "Does not deliver a generic technical checklist as the main answer"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our site loads really slowly, especially on mobile. Pages take 5-6 seconds to load. Is this hurting our rankings?",
+      "expected_output": "Should answer honestly that Core Web Vitals is a real but small ranking input, and should not sell a performance project as a ranking fix. Should insist on field data (CrUX) rather than a Lighthouse score, and explain that a poor lab score alongside healthy field data is not a finding. Should reference LCP, INP, CLS and note INP replaced FID in March 2024. Should note the user experience and conversion case for speed is often stronger than the ranking case.",
+      "assertions": [
+        "States that Core Web Vitals is a real but small ranking input",
+        "Distinguishes field data (CrUX) from lab data (Lighthouse/PSI)",
+        "Notes a poor lab score with good field data is not a finding",
+        "References LCP, INP, CLS correctly and that INP replaced FID",
+        "Does not overstate ranking impact of speed improvements",
+        "Raises the conversion and UX case as the stronger argument"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I want to add FAQ schema to my product pages. Can you help me set that up?",
+      "expected_output": "CRITICAL FRESHNESS TEST. Google has narrowed and deprecated several rich result types, including FAQ. The skill must NOT simply implement FAQ schema as requested. It must trigger the freshness protocol: fetch Google's current structured data search gallery to verify whether FAQ still produces a visible rich result before recommending implementation. Should explain that schema is not a ranking factor and its value is rich-result eligibility plus machine-readable data. Should warn about markup that does not match visible content. If it cannot fetch the source, it should say the status is unverified rather than asserting either way.",
+      "assertions": [
+        "Does NOT implement FAQ schema uncritically as requested",
+        "Triggers freshness verification against Google's current documentation",
+        "References the structured data search gallery as the source of truth",
+        "States that schema is not a direct ranking factor",
+        "Warns that markup must match visible page content",
+        "Says the status is unverified if the source cannot be fetched, rather than guessing"
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Why doesn't ChatGPT know about our company? We rank #1 on Google for our main terms.",
+      "expected_output": "Should immediately separate retrievability from citability. Should explain that ranking #1 on Google no longer predicts being cited in AI answers, since the overlap between classic top-10 and AI citations has fallen substantially. On retrievability: should check whether the site is client-side rendered (most AI crawlers do not execute JavaScript, unlike Googlebot), and whether an index/search crawler is blocked in robots.txt, at the CDN/WAF, or by a security plugin. Should distinguish training crawlers from index/citation crawlers by name. On citability: should raise off-site corroboration across independent sources. Should be honest that measurement here is unreliable.",
+      "assertions": [
+        "Separates retrievability from citability as distinct problems",
+        "States that ranking #1 does not imply being cited in AI answers",
+        "Checks whether content is client-side rendered and notes AI crawlers do not execute JS",
+        "Distinguishes training crawlers from index/citation crawlers by name",
+        "Checks for blocking at CDN/WAF/plugin level, not just robots.txt",
+        "Raises off-site corroboration as a citability lever",
+        "Is honest about AI-visibility measurement being unreliable"
+      ],
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Should we block AI crawlers? Our legal team is worried about our content being used for training.",
+      "expected_output": "CRITICAL BOT-ROLE TEST. Must not give a blanket yes or no. Must establish that operators ship functionally distinct bots for training, live retrieval, and search-index building, and that these are independent switches. Must state clearly that blocking a training crawler does not affect citations, while blocking the index/search crawler removes the site from that platform's answers entirely. Should name the specific tokens (GPTBot vs OAI-SearchBot, ClaudeBot vs Claude-SearchBot). Should note the roster is volatile and must be verified against operator documentation. Should note that some retrieval fetchers do not honor robots.txt, so robots.txt is not enforcement for those. Should surface the business tradeoff explicitly.",
+      "assertions": [
+        "Does NOT give a blanket block/allow recommendation",
+        "Distinguishes training vs live-retrieval vs index/search bot roles",
+        "States blocking training bots does not affect citations",
+        "States blocking index/search bots removes the site from that platform's answers",
+        "Names specific user-agent tokens for at least OpenAI and Anthropic",
+        "Notes the roster is volatile and points to operator documentation to verify",
+        "Notes some retrieval fetchers do not honor robots.txt",
+        "Frames the decision as a business tradeoff, not a technical default"
+      ],
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Should we add an llms.txt file to improve our AI search visibility?",
+      "expected_output": "Should state that there is no credible evidence AI search crawlers use llms.txt, that Google has publicly rejected it, and that large-scale log studies show near-zero fetches. Should note its genuine use is as a context-loading convenience for developer tools, not search citation. Should be clear it is cheap enough to be defensible as a hedge but must not be presented as a meaningful visibility lever or placed high in a priority list. Should redirect the user toward the levers that actually matter: being retrievable at all, and off-site corroboration.",
+      "assertions": [
+        "States there is no credible evidence AI search crawlers use llms.txt",
+        "Notes Google has publicly rejected it",
+        "References near-zero observed crawler fetches",
+        "Distinguishes its real use for developer tooling from search citation",
+        "Does not place it high in a priority list",
+        "Redirects to higher-leverage levers such as retrievability and off-site corroboration"
+      ],
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "Here's our Screaming Frog export. It found 1,847 issues: 412 duplicate meta descriptions, 890 images missing alt text, 156 pages with multiple H1s, 203 URLs over 100 characters, and 186 self-referencing canonicals flagged. Where do we start?",
+      "expected_output": "CRITICAL SUPPRESSION TEST. Must NOT treat these as 1,847 real issues. Must run a false-positive suppression pass. Self-referencing canonicals are correct practice and not an issue. Multiple H1s are valid in HTML5 and not a ranking problem. URL length is not a ranking factor. Duplicate meta descriptions on paginated or faceted URLs are expected. Missing alt on decorative images is correct, and alt='' differs from a missing attribute; alt text matters for Image Search and accessibility rather than as a general web ranking lever. Should ask which findings affect revenue-bearing templates, and should note that tool severity labels are not a prioritization axis. Should reduce the list dramatically and explain why.",
+      "assertions": [
+        "Does NOT treat all 1,847 findings as real issues",
+        "Identifies self-referencing canonicals as correct practice, not an issue",
+        "Identifies multiple H1s as valid in HTML5 and not a ranking problem",
+        "Identifies URL length as not a ranking factor",
+        "Qualifies duplicate meta descriptions as expected on paginated/faceted URLs",
+        "Distinguishes decorative alt='' from a genuinely missing alt attribute",
+        "Notes alt text matters for Image Search and accessibility, not general web ranking",
+        "Rejects tool severity labels as a prioritization axis",
+        "Dramatically reduces the actionable list and explains the reasoning"
+      ],
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "Our organic traffic dropped 30% starting last Tuesday. What happened?",
+      "expected_output": "CRITICAL DIAGNOSIS-FIRST TEST. Must NOT jump to causes or launch a generic audit. Must work the decision tree in order, cheapest checks first. Should first confirm the drop is real rather than noise, preliminary data (the most recent days are unstable), or a known reporting anomaly. Should check tracking/measurement breakage. Should check manual actions and security issues, a cheap binary check that invalidates everything downstream. Should check seasonality and demand. Should distinguish the impressions-flat-clicks-down signature (SERP feature or CTR compression) from impressions-and-position-down (reranking). Should ask what changed and when. Should state what evidence would rule each hypothesis out.",
+      "assertions": [
+        "Does NOT jump to a cause or a generic audit",
+        "Confirms the drop is real before diagnosing",
+        "Notes recent days of data are preliminary and unstable",
+        "Checks for measurement or tracking breakage",
+        "Checks manual actions and security issues early as a cheap binary check",
+        "Checks seasonality and demand",
+        "Distinguishes CTR compression from ranking loss using the impressions signature",
+        "Asks for a timeline of what changed and when",
+        "States rule-out evidence for hypotheses rather than asserting a cause"
+      ],
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "Audit https://our-app.example.com — it's a React single-page app. I ran a crawler and it says we have no title tags, no meta descriptions, and no structured data on any page.",
+      "expected_output": "CRITICAL FALSE-NEGATIVE TEST. Must NOT accept the crawler's findings at face value. Must recognize that a client-rendered React app serves near-empty raw HTML, so a non-rendering crawler reporting missing tags is very likely a false negative, not a finding. Must escalate to a rendering method (headless browser, Rich Results Test, URL Inspection live test, or a crawler with JS rendering enabled) before concluding anything. Should separately note that even if Googlebot renders the page, most non-Google AI crawlers do not execute JavaScript, so CSR content is genuinely invisible to them, which IS a real finding. Should recommend SSR/SSG as the structural fix.",
+      "assertions": [
+        "Does NOT accept the crawler's 'missing tags' findings at face value",
+        "Identifies the likely false negative caused by client-side rendering",
+        "Escalates to a JavaScript-rendering verification method before concluding",
+        "Names a concrete escalation tool or technique",
+        "Notes Googlebot does render JavaScript, unlike the crawler that was used",
+        "Notes most non-Google AI crawlers do not execute JavaScript, which is a real finding",
+        "Recommends server-side rendering or static generation as the structural fix"
+      ],
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "Our Domain Authority dropped from 45 to 38 and we have 200 toxic backlinks according to our SEO tool. Should we disavow them?",
+      "expected_output": "Must explain that Domain Authority is a third-party metric from Moz, not a signal Google consumes, and the same applies to Ahrefs' Domain Rating. Should handle the nuance correctly: the myth is that Google reads a vendor score, not that site-level authority is meaningless, since a site-level authority signal of Google's own is understood to exist. Should explain that 'toxic backlinks' is a vendor-defined heuristic rather than a Google classification, that Google's systems already discount most low-quality links automatically, and that reflexive disavow can remove links passing real value. Should reserve disavow for cleanup after genuine large-scale manipulative link building or a manual action.",
+      "assertions": [
+        "States Domain Authority is a third-party metric Google does not consume",
+        "Correctly distinguishes vendor scores from Google's own internal site-level authority signal",
+        "States 'toxic' is a vendor-defined heuristic, not a Google classification",
+        "Notes Google already discounts most low-quality links automatically",
+        "Warns that reflexive disavow can remove links passing real value",
+        "Reserves disavow for genuine manipulative link building or a manual action",
+        "Does not recommend disavowing based on the tool score alone"
+      ],
+      "files": []
+    }
+  ]
+}

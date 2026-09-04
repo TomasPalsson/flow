@@ -1,0 +1,109 @@
+{
+  "_doc": "Mauboussin / Counterpoint Global base rates for sanity checking forecast assumptions. Source: Mauboussin & Callahan 'The Base Rate Book' (Morgan Stanley, multiple updates). Use these to evaluate whether assumed growth rates are realistic.",
+  "sales_growth_5y_cagr": {
+    "_units": "Percent (e.g. 10 = 10% CAGR)",
+    "_universe": "US public companies $5B+ market cap",
+    "by_size": {
+      "large_cap_>50B": {
+        "p10": -1.0, "p25": 2.0, "p50": 5.5, "p75": 9.0, "p90": 13.5, "p99": 24.0,
+        "prob_>10": 0.18, "prob_>15": 0.07, "prob_>20": 0.025
+      },
+      "mid_cap_5B_to_50B": {
+        "p10": -2.5, "p25": 2.0, "p50": 6.5, "p75": 11.5, "p90": 18.5, "p99": 35.0,
+        "prob_>10": 0.28, "prob_>15": 0.14, "prob_>20": 0.07
+      }
+    }
+  },
+  "operating_margin_persistence": {
+    "_units": "Probability that top-quintile margin company stays in top quintile",
+    "5_year": 0.45,
+    "10_year": 0.35,
+    "_note": "~65% of top-decile margin businesses lose that position within 10 years"
+  },
+  "roic_mean_reversion": {
+    "_units": "Median ROIC by starting quintile after N years",
+    "starting_q1_top": {
+      "year_1_median": 23.0, "year_5_median": 18.0, "year_10_median": 14.5,
+      "half_life_years_normal": 4.5, "half_life_years_wide_moat": 9.5
+    },
+    "starting_q5_bottom": {
+      "year_1_median": 0.5, "year_5_median": 6.0, "year_10_median": 9.0,
+      "_note": "Bottom quintile reverts UPWARD nearly as reliably as top reverts DOWN — value investing premise"
+    }
+  },
+  "eps_growth_consensus_vs_actual": {
+    "_note": "Sell-side 5y consensus EPS growth vs actual",
+    "median_consensus_5y_cagr": 12.5,
+    "median_actual_5y_cagr": 6.5,
+    "consensus_optimism_pp": 6.0,
+    "frac_consensus_overshoots_actual": 0.625
+  },
+  "p_e_implied_assumptions": {
+    "_note": "Justified P/E (Mauboussin decomposition: P/E = (1 - g/ROIC) / (r - g))",
+    "_assumes": "ROIC=20%, r=9%, g=variable",
+    "examples": [
+      {"pe": 10, "implied_growth": -2.0, "interpretation": "Decline priced in"},
+      {"pe": 15, "implied_growth": 3.5, "interpretation": "Sub-GDP growth"},
+      {"pe": 20, "implied_growth": 5.5, "interpretation": "Modest growth"},
+      {"pe": 30, "implied_growth": 7.5, "interpretation": "Solid growth"},
+      {"pe": 50, "implied_growth": 8.5, "interpretation": "Optimistic — top 5% of large-caps"},
+      {"pe": 100, "implied_growth": 8.9, "interpretation": "Near-impossible for non-tech large-cap"}
+    ]
+  },
+  "fund_manager_persistence": {
+    "_note": "Probability of staying in top quartile",
+    "3_year_top_q_persistence": 0.55,
+    "5_year_top_q_persistence": 0.42,
+    "10_year_top_q_persistence": 0.31,
+    "years_track_record_for_95pct_confidence_in_skill": 25
+  },
+  "moat_durability": {
+    "_note": "Probability a company with ROIC > 15% maintains it for N years",
+    "5_year": 0.55,
+    "10_year": 0.32,
+    "15_year": 0.18,
+    "20_year": 0.10,
+    "frac_morningstar_wide_moat_erosion_15y": 0.30
+  },
+  "patent_cliff_branded_pharma": {
+    "_note": "Revenue decline post-generic entry",
+    "year_1": -0.40,
+    "year_2": -0.70,
+    "year_3": -0.85,
+    "year_5": -0.90
+  },
+  "phase_transition_biotech": {
+    "_units": "Probability of advancing to next phase / approval",
+    "all_indications": {
+      "phase_1_to_2": 0.63,
+      "phase_2_to_3": 0.31,
+      "phase_3_to_approval": 0.58,
+      "overall_phase_1_to_approval": 0.115
+    },
+    "oncology": { "overall_phase_1_to_approval": 0.055 },
+    "rare_disease": { "overall_phase_1_to_approval": 0.17 },
+    "cns": { "overall_phase_1_to_approval": 0.06 },
+    "infectious_disease": { "overall_phase_1_to_approval": 0.10 }
+  },
+  "concentration_outcomes": {
+    "_note": "Bessembinder 2018 — fraction of net US market gains 1926-2016 from each cohort",
+    "frac_market_gains_from_top_4pct_stocks": 0.96,
+    "frac_stocks_with_negative_long_run_returns": 0.42,
+    "_implication": "Stock picking has lottery-like tail dependence"
+  },
+  "yfinance_reliability_2026": {
+    "_note": "Cross-validate yfinance income statement values vs SEC EDGAR. Bug #2584 active.",
+    "issue_2584_active": true,
+    "affected_endpoints": ["income_stmt", "balance_sheet", "cashflow"],
+    "shift_direction": "typically backward by 1 year for certain line items",
+    "mitigation": "Use fundamentalsTimeSeries + SEC EDGAR XBRL cross-check"
+  },
+  "regime_baseline_may_2026": {
+    "shiller_cape": 42,
+    "fed_funds": 3.625,
+    "ten_year": 4.38,
+    "yield_curve_inverted_recently": true,
+    "yield_curve_re_normalized": true,
+    "implication": "late-cycle / pre-recession; apply -5 macro tilt by default"
+  }
+}

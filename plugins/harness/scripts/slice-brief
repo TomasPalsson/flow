@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# slice-brief — extract one slice's brief (and matching design contract, if
+# any) from a plan file. Bash 3.2 compatible; see --help for the contract.
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: slice-brief <plan-file> <N> [--design <code-design.md>] [--out <path>]
+
+Extracts the "## Slice N — ..." section from <plan-file> (through the
+line before the next top-level "## " heading; fence-aware per the plan
+grammar — a line inside a ``` or ~~~ fence is never a heading).
+
+When --design is given and contains a matching
+"## Contract for this slice — Slice N" block, appends that block.
+
+Writes the result to --out (default .claude/slices/<N>-brief.md,
+directory created) and prints the output path.
+
+Exit 1 if the slice heading is not found in <plan-file>.
+EOF
+}
+
+PLAN=""
+N=""
+DESIGN=""
+OUT=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --design)
+    DESIGN=$2
+    shift 2
+    ;;
+  --out)
+    OUT=$2
+    shift 2
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'slice-brief: unknown option: %s\n' "$1" >&2
+    exit 1
+    ;;
+  *)
+    if [ -z "$PLAN" ]; then
+      PLAN=$1
+    elif [ -z "$N" ]; then
+      N=$1
+    else
+      printf 'slice-brief: unexpected argument: %s\n' "$1" >&2
+      exit 1
+    fi
+    shift
+    ;;
+  esac
+done
+
+if [ -z "$PLAN" ] || [ -z "$N" ]; then
+  usage >&2
+  exit 1
+fi
+
+if [ ! -f "$PLAN" ]; then
+  printf 'slice-brief: no such file: %s\n' "$PLAN" >&2
+  exit 1
+fi
+
+SLICE_TEXT=$(awk -v n="$N" '
+  BEGIN { infence = 0; capturing = 0; found = 0 }
+  {
+    line = $0
+    t = line
+    sub(/^[ \t]*/, "", t)
+    if (t ~ /^(```|~~~)/) {
+      infence = !infence
+      if (capturing) print line
+      next
+    }
+    if (infence) {
+      if (capturing) print line
+      next
+    }
+    if (line ~ /^## /) {
+      rest = line
+      sub(/^## /, "", rest)
+      if (rest ~ ("^Slice " n " ")) {
+        capturing = 1
+        found = 1
+        print line
+        next
+      } else {
+        capturing = 0
+        next
+      }
+    }
+    if (capturing) print line
+  }
+  END { exit (found ? 0 : 1) }
+' "$PLAN")
+SLICE_RC=$?
+
+if [ "$SLICE_RC" -ne 0 ]; then
+  printf 'slice-brief: slice %s not found in %s\n' "$N" "$PLAN" >&2
+  exit 1
+fi
+
+CONTRACT_TEXT=""
+if [ -n "$DESIGN" ] && [ -f "$DESIGN" ]; then
+  CONTRACT_TEXT=$(awk -v n="$N" '
+    BEGIN { infence = 0; capturing = 0 }
+    {
+      line = $0
+      t = line
+      sub(/^[ \t]*/, "", t)
+      if (t ~ /^(```|~~~)/) {
+        infence = !infence
+        if (capturing) print line
+        next
+      }
+      if (infence) {
+        if (capturing) print line
+        next
+      }
+      if (line ~ /^## /) {
+        rest = line
+        sub(/^## /, "", rest)
+        if (rest ~ ("^Contract for this slice — Slice " n "$")) {
+          capturing = 1
+          print line
+          next
+        } else {
+          capturing = 0
+          next
+        }
+      }
+      if (capturing) print line
+    }
+  ' "$DESIGN")
+fi
+
+if [ -z "$OUT" ]; then
+  OUT=".claude/slices/${N}-brief.md"
+fi
+
+OUT_DIR=$(dirname "$OUT")
+mkdir -p "$OUT_DIR"
+
+{
+  printf '%s\n' "$SLICE_TEXT"
+  if [ -n "$CONTRACT_TEXT" ]; then
+    printf '\n%s\n' "$CONTRACT_TEXT"
+  fi
+} >"$OUT"
+
+printf '%s\n' "$OUT"

@@ -1,0 +1,23 @@
+{
+  "_comment": "Known-deprecated / superseded npm packages -> recommended successor. The npm registry's own 'deprecated' field is authoritative and checked first; this list catches packages that are abandoned-in-practice but not formally flagged, plus well-known migrations. Value is the successor. Curated — keep small and high-confidence.",
+  "request": "got / undici / native fetch",
+  "request-promise": "got / undici",
+  "node-uuid": "uuid",
+  "uuid-v4": "uuid",
+  "babel-eslint": "@babel/eslint-parser",
+  "tslint": "@typescript-eslint/eslint-plugin + eslint",
+  "left-pad": "String.prototype.padStart (native)",
+  "querystring": "URLSearchParams (native)",
+  "core-js@2": "core-js@3",
+  "gulp-util": "individual gulp-* modules",
+  "istanbul": "nyc / c8",
+  "node-sass": "sass (dart-sass)",
+  "tar.gz": "tar",
+  "mkdirp@<1": "fs.mkdir({recursive:true}) (native)",
+  "rimraf@<4": "fs.rm({recursive:true}) (native)",
+  "har-validator": "(removed transitive of old request)",
+  "@hapi/joi": "joi",
+  "eslint-loader": "eslint-webpack-plugin",
+  "tslint-config-prettier": "eslint-config-prettier",
+  "protractor": "@playwright/test / cypress"
+}

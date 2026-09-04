@@ -16,26 +16,25 @@ Three facts about the setup this replaced, measured on the day:
 
 The research consensus (vendor docs, independent measurements, thirteen framework codebases read at source level) reduces to one line: **give the agent a check it can run, and make the check impossible to skip.** Everything here is a way of doing that.
 
-## What is in the harness
+## What is in this repo
+
+This repo is a Claude Code **plugin marketplace**. `harness` is the core plugin; the others bundle domain skills so they load only where enabled.
 
 ```
-~/.claude/
-├── CLAUDE.md                 25 lines: voice, four behavioural rules, delegation, workflows, harness pointer, compact instructions
-├── settings.json             hooks block, outputStyle Concise, skillListingBudgetFraction 0.02
-├── hooks/                    session-context · turn-stamp · git-guard · format-lint · size-guard · tamper-notice
-│                             stop-gate · pre-compact-backup · postcompact-context · notify · subagent-log
-│                             codebase-map (opt-in) · worklog-hook (Mac) · lib/hookout.sh · tests/
-├── scripts/                  new-spec · slice-brief · review-package · slice-overlap · plan-lint
-│                             skills-lint (+ --usage) · workflow-lint · codebase-map · tests/
-├── workflows/                build-slices · review-diff · research-sweep · plan-review   (Workflow tool, by name)
-├── agents/                   adversary · developer · claim-check · triage · explorer
-├── commands/                 /btw · /wrap · /ship · /memory-audit
-├── harness-templates/        REVIEW.md · PROGRESS.md · CLAUDE.project.md · gates.yml.tmpl
-└── skills/flow/              router + steps/00-06 + planning.md + review.md + orchestration/{subagents,team,workflow}.md
-~/.local/bin/harness          doctor · init · check · skills-lint
+.claude-plugin/marketplace.json
+plugins/
+├── harness/           hooks/ (+ hooks.json) · scripts/ · workflows/ · harness-templates/ · bin/harness · skills/ (flow suite, qa, audit, fix, ultracode, …)
+├── design/            design, impeccable, ui-ux-pro-max, mobile-design, polish, showcase, ui-animation, explainer
+├── finance/           alpha-hunt, portfolio, investment, etoro
+├── aws/               aws-explore, aws-lambda-microvms, strands-agentcore, strands-steering-hooks, agui-strands, sst
+├── web/               seo-audit, google-ads, figma-to-strapi, website-cloner, api-explorer, agent-browser
+└── tooling/           new-project, node-cli-builder, python-code-style, clean-code, gh-cli, version-audit, …
+docs/                  research, SPEC, decisions, generated reference
 ```
 
-Generated reference for each: [`docs/reference/`](docs/reference/).
+User-level config stays in the dotfiles: `~/.claude/{CLAUDE.md, settings.json, agents/, commands/}`. Hooks register from the plugin's `hooks.json`, so `settings.json` carries no hooks block (the doctor reports a double registration if it does).
+
+Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to `plugins/`, so each plugin auto-loads in place as `<name>@skills-dir` and edits are live (`git pull` is the sync). `~/.claude/{hooks,scripts,harness-templates}` link into `plugins/harness/`. Workflows register as `harness:<name>`.
 
 ## The spine (always on)
 
@@ -62,18 +61,19 @@ Per-project knobs in `.claude/harness.json`: `maxFileLines`, `maxFuncLines`, `st
 
 Full version with justifications: [`docs/research/01-harness-engineering-2026.md`](docs/research/01-harness-engineering-2026.md) §4.
 
-## Install (both machines)
+## Install (each machine)
 
 ```bash
-cd ~/.dotfiles
-stow bin                      # ~/.local/bin/harness
-# the claude package is symlinked piecewise into ~/.claude (skills, agents, commands, scripts,
-# settings.json, CLAUDE.md, hooks, workflows, harness-templates)
-harness doctor                # verifies symlinks, hooks wiring, tools, skill-index cost, dead references
-cd <any project> && harness init   # REVIEW.md, PROGRESS.md, .claude/harness.json, CI gate, lint thresholds
+git clone git@github.com:TomasPalsson/harness.git ~/Desktop/Projects/harness   # or set HARNESS_REPO
+git clone <dotfiles> ~/.dotfiles
+node ~/Desktop/Projects/harness/plugins/harness/bin/harness install   # links ~/.claude/* and ~/.local/bin/harness, then runs doctor
+harness doctor
+cd <any project> && harness init && git add REVIEW.md PROGRESS.md .claude/harness.json
 ```
 
-Tests: `bash ~/.claude/hooks/tests/run.sh` and `bash ~/.claude/scripts/tests/run.sh` (zero dependencies; portability grep for bash 3.2 / BSD; shellcheck when installed).
+Without a checkout: `claude plugin marketplace add TomasPalsson/harness && claude plugin install harness@harness` (copy mode; `claude plugin update` to refresh).
+
+Tests: `bash plugins/harness/hooks/tests/run.sh` and `bash plugins/harness/scripts/tests/run.sh` (zero dependencies; portability grep for bash 3.2 / BSD; shellcheck when installed).
 
 ## Research
 

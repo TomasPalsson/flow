@@ -1,6 +1,6 @@
 # Scripts
 
-Deterministic helpers in `~/.claude/scripts/`. Output is what the model sees; the source never enters context.
+Deterministic helpers in `plugins/harness/scripts/` (`~/.claude/scripts` links here). Output is what the model sees; the source never enters context.
 
 ## new-spec
 
@@ -127,28 +127,28 @@ for path references of the form:
   .claude/skills/<...>
   ~/.claude/<...>
   $HOME/.claude/<...>
+  ${CLAUDE_PLUGIN_ROOT}/<...>
   references/<...>  or  scripts/<...>  (relative to the containing skill)
 
 Relative references resolve against the containing skill's own
 directory. ".claude/skills/..." references resolve against $HOME and
 against the skills directory's parent. "~/.claude/..." and
-"$HOME/.claude/..." references resolve against $HOME. After a
-candidate path exists, its basename must also appear verbatim in a
-listing of its parent directory (guards against case-insensitive
-filesystems hiding a wrong-case reference).
+"$HOME/.claude/..." references resolve against $HOME.
+"${CLAUDE_PLUGIN_ROOT}/..." references resolve against the nearest
+ancestor directory of the scanned file that contains a
+.claude-plugin/plugin.json (that plugin's root); a reference with no
+such ancestor is reported MISSING. After a candidate path exists, its
+basename must also appear verbatim in a listing of its parent
+directory (guards against case-insensitive filesystems hiding a
+wrong-case reference).
 
 References containing "<", ">", "*", or the literal text "NNN" are
-treated as placeholders and ignored.
+treated as placeholders and ignored, as is any reference whose basename
+stem is a single character or the literal X, Y, foo, or bar (e.g.
+"references/a.md"), and any reference inside a ``` or ~~~ fence (C16).
 
 Prints "MISSING <file>:<line> <path>" for every reference that does
 not resolve; exit 1 if any. Also prints "TOOL <file>:<line> <cmd>"
-(does not affect the exit code) for "command -v <cmd>" or a
-backticked binary name, when <cmd> is one of the allowlisted tools
-(better-plan, rtk, gh, bun, uv) and is not installed on this machine.
-
---usage [<history.jsonl>] (default: $HOME/.claude/history.jsonl):
-counts, per installed skill (a directory under $HOME/.claude/skills)
-and command ($HOME/.claude/commands/*.md), how many prompts in the
 ```
 
 ## workflow-lint
