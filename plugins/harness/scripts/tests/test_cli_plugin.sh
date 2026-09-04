@@ -584,3 +584,21 @@ t_clip_install_plugin_mode_seeds_missing_settings() {
 	assert_not_contains "$OUT" "seeded" "existing settings: not re-seeded"
 	rm -rf "$home" "$dotfiles" "$mkt"
 }
+
+# The same plugin enabled from the GitHub marketplace (copy) AND linked as a
+# skills-dir checkout loads every skill/hook/workflow twice.
+t_clip_doctor_double_load_warns_when_marketplace_copy_also_enabled() {
+	local home block
+	home=$(tmp_dir)
+	_clip_write_plugin_harness "$home" 1
+	printf '{ "enabledPlugins": { "harness@harness": true } }\n' >"$home/.claude/settings.json"
+	_clip_cli_in "$home" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "plugin-double-load"')
+	assert_contains "$block" '"status": "WARN"' "double-load: WARN when harness@harness is enabled alongside skills-dir"
+	assert_contains "$OUT" "loads twice" "double-load: says what goes wrong"
+	printf '{ "enabledPlugins": { "harness@harness": false } }\n' >"$home/.claude/settings.json"
+	_clip_cli_in "$home" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "plugin-double-load"')
+	assert_contains "$block" '"status": "PASS"' "double-load: PASS once the marketplace copy is disabled"
+	rm -rf "$home"
+}

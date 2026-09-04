@@ -858,6 +858,34 @@ function doctorPluginDoubleRegistrationCheck(push) {
   }
 }
 
+// WARN when the same plugin is loaded twice: ~/.claude/skills/harness (the
+// live checkout, loaded as harness@skills-dir) AND enabledPlugins
+// "harness@harness" (the copied marketplace install). Both register every
+// skill, hook and workflow; disable the marketplace copy when the checkout
+// is linked (edits then apply without `claude plugin update`).
+function doctorPluginDoubleLoadCheck(push) {
+  const skillsHarness = path.join(HOME, '.claude', 'skills', 'harness');
+  if (!fs.existsSync(skillsHarness)) return; // no skills-dir load; nothing to double
+  const settingsPath = path.join(HOME, '.claude', 'settings.json');
+  let enabled = false;
+  try {
+    const parsed = JSON.parse(safeRead(settingsPath) || 'null');
+    enabled = !!(parsed && parsed.enabledPlugins && parsed.enabledPlugins['harness@harness'] === true);
+  } catch {
+    enabled = false;
+  }
+  if (enabled) {
+    push(
+      'plugin-double-load',
+      'WARN',
+      `${settingsPath} enables "harness@harness" (marketplace copy) while ${skillsHarness} is linked (harness@skills-dir)` +
+        ` — every skill, hook and workflow loads twice; set "harness@harness": false or run \`claude plugin uninstall harness@harness\``
+    );
+  } else {
+    push('plugin-double-load', 'PASS', `harness loads once (skills-dir; "harness@harness" not enabled)`);
+  }
+}
+
 function doctorLocalBinHarnessCheck(push) {
   const p = path.join(HOME, '.local', 'bin', 'harness');
   let lst;
@@ -930,6 +958,7 @@ function buildDoctorChecks(dotfilesRoot) {
   doctorPluginSkillsHarnessCheck(push);
   doctorPluginHooksJsonCheck(push);
   doctorPluginDoubleRegistrationCheck(push);
+  doctorPluginDoubleLoadCheck(push);
   doctorLocalBinHarnessCheck(push);
   doctorPluginListCheck(push);
   return checks;
