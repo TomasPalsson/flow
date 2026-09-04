@@ -203,3 +203,43 @@ No dependency beyond git, awk, sed, cksum (python3 is never required).
 Exit 1 when not run inside a git repository.
 ```
 
+## lesson-sites
+
+```
+Usage: lesson-sites [--dir <path>] [--json]
+
+Inspects <path> (default: the current directory's git toplevel, else cwd)
+and prints, per rung of the /lesson ladder, the site a guardrail would use:
+
+  test      the project's test runner and directory, or the harness suites
+            when <path> is the harness plugin itself
+  hook      .claude/settings.json (project hooks) or the plugin hooks dir
+  lint      .claude/harness.json thresholds / .harness/ threshold files
+  script    the plugin scripts dir (harness) or the project's bin dir
+  skill     the plugin skills dir the current session loads
+  claude-md ./CLAUDE.md and ~/.claude/CLAUDE.md with their line counts and
+            budget (100 project / 40 global)
+  progress  PROGRESS.md (present or not; line count)
+
+Text form: "<rung> <status> <detail>", status is one of present|absent.
+--json prints the same as a JSON object keyed by rung.
+```
+
+## lesson-record
+
+```
+Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>]
+
+Appends
+  - Ruling: <what> — <mechanism> — <cost>
+under "## Rulings" in <PROGRESS.md> (default ./PROGRESS.md), after the
+last ruling of that section (fenced ``` blocks are never headings). Creates
+the section at the end when it is missing, and the file from the minimal
+template when it does not exist. Refuses an exact duplicate line (exit 3,
+nothing written); a ruling with the same <what> but a new mechanism or cost
+is written and noted on stderr as superseding. Every write is checked and
+serialised through <PROGRESS.md>.lock. Prints the line written and, when
+the file is now over 60 lines, a warning to stderr (exit stays 0).
+
+Exit codes: 0 written · 2 usage · 3 exact duplicate · 4 cannot write
+```

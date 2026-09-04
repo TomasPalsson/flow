@@ -14,6 +14,8 @@
 #   hook_deny <reason>    PreToolUse: print deny JSON, exit 0
 #   hook_block <reason>   Stop: print {"decision":"block","reason":...}, exit 0
 #   hook_feedback <text>  PostToolUse: print <text> to stderr, exit 2
+#   (deny/block/feedback append a "run /lesson" line from the second
+#    identical reason in a session — see _lesson_nudge)
 #   hook_ok               exit 0
 #   hook_log <text>       append a line to ${CLAUDE_HOOK_LOG:-/dev/null}
 #
@@ -84,18 +86,45 @@ _json_str() {
   printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk 'BEGIN{ORS="\\n"} {print}' | sed -e 's/\\n$//')"
 }
 
+# _lesson_nudge <reason> → <reason>, plus a "/lesson" line when the same
+# hook has produced the same first line of reason before in this session.
+# The second identical deny/block/feedback is the deterministic "same
+# mistake twice" signal: the fix is a guardrail, not another retry. Counter
+# lives in ${TMPDIR:-/tmp}/claude-lesson-<session>; failures fall through
+# to the unchanged reason. Reasons that already mention /lesson are left
+# alone (stop-gate adds its own wording).
+_lesson_nudge() {
+  local reason=$1 sid tmp f sig n
+  case "$reason" in *"/lesson"*) printf '%s' "$reason"; return 0 ;; esac
+  sid=$(hook_field .session_id)
+  [ -z "$sid" ] && sid="nosession"
+  sid=$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')
+  tmp="${TMPDIR:-/tmp}"; tmp="${tmp%/}"
+  f="$tmp/claude-lesson-$sid"
+  sig=$(printf '%s %s' "${0##*/}" "${reason%%
+*}" | cksum | cut -d' ' -f1)
+  printf '%s\n' "$sig" >>"$f" 2>/dev/null || { printf '%s' "$reason"; return 0; }
+  n=$(grep -c -x "$sig" "$f" 2>/dev/null || printf '1')
+  case "$n" in '' | *[!0-9]*) n=1 ;; esac
+  if [ "$n" -ge 2 ]; then
+    printf '%s\n\nthe same thing was blocked %s times this session (%s): run /lesson to turn it into a test, hook or script before retrying.' "$reason" "$n" "${0##*/}"
+  else
+    printf '%s' "$reason"
+  fi
+}
+
 hook_deny() {
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":%s}}\n' "$(_json_str "$1")"
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":%s}}\n' "$(_json_str "$(_lesson_nudge "$1")")"
   exit 0
 }
 
 hook_block() {
-  printf '{"decision":"block","reason":%s}\n' "$(_json_str "$1")"
+  printf '{"decision":"block","reason":%s}\n' "$(_json_str "$(_lesson_nudge "$1")")"
   exit 0
 }
 
 hook_feedback() {
-  printf '%s\n' "$1" >&2
+  printf '%s\n' "$(_lesson_nudge "$1")" >&2
   exit 2
 }
 

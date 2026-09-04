@@ -531,6 +531,16 @@ _sig_count=$(awk -v want="$_sig" '
 ' "$_gatesig_stamp")
 case "$_sig_count" in '' | *[!0-9]*) _sig_count=1 ;; esac
 
+# Second identical block in a session: the same mistake twice is a /lesson
+# trigger (a guardrail, not another retry), so say so in the block reason.
+# This is the only counter for stop-gate: hookout's generic _lesson_nudge
+# skips reasons that already mention /lesson, so the number is never wrong.
+if [ "$_sig_count" -ge 2 ]; then
+	_reason="$_reason
+
+the same gate blocked this session $_sig_count times: run /lesson to turn it into a test, hook or script before retrying."
+fi
+
 if [ "$_sig_count" -ge 4 ]; then
 	hook_feedback "$_reason
 

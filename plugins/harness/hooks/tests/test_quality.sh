@@ -385,10 +385,18 @@ t_quality_stop_gate_wedge_valve_fourth_failure_rc2() {
       assert_rc 0 "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 block-$i-rc"
       assert_contains "$OUT" '"decision":"block"' "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 block-$i-json"
     fi
+    # /lesson nudge: absent on the first block, present from the second.
+    if [ "$i" -eq 1 ]; then
+      assert_not_contains "$OUT" "run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 no-lesson-nudge-first"
+    elif [ "$i" -lt 4 ]; then
+      assert_contains "$OUT" "run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 lesson-nudge-$i"
+    fi
     i=$((i + 1))
   done
   assert_rc 2 "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-rc"
   assert_contains "$ERR" "already failing before this turn" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-message"
+  assert_contains "$ERR" "blocked this session 4 times: run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-lesson-count-is-4"
+  assert_eq "$(printf '%s' "$ERR" | grep -c 'run /lesson')" "1" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-single-nudge"
   rm -f "${TMPDIR:-/tmp}/claude-gatesig-$sid"
   rm -rf "$repo"
 }

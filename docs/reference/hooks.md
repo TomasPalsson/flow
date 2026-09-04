@@ -20,6 +20,14 @@ format-lint.sh — PostToolUse/Edit|Write|NotebookEdit hook.
 git-guard.sh — PreToolUse/Bash hook.
 ```
 
+## lesson-nudge.sh
+
+```
+lesson-nudge.sh — UserPromptSubmit hook.
+```
+
+When the prompt reads as a correction of something the agent just did ("you deleted the wrong file", "don't do that again", "why did you…"), prints one context line telling the agent to run `/lesson` after the current step. Phrase match only; silent otherwise; `CC_NO_LESSON_NUDGE=1` disables it. Related: `hook_deny`, `hook_block` and `hook_feedback` in `lib/hookout.sh` append a "run /lesson" line from the second identical reason in a session, so a repeated deny or block carries the trigger itself.
+
 ## notify.sh
 
 ```
@@ -142,6 +150,11 @@ worklog-hook.sh — forwards PreToolUse, PostToolUse, SessionStart,
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/turn-stamp.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lesson-nudge.sh",
             "timeout": 5
           },
           {
