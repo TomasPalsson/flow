@@ -8,10 +8,15 @@ usage() {
   cat <<'HELP'
 Usage: lesson-stats [--dir <project>] [--file <PROGRESS.md>] [--log <lesson-fires.log>] [--now <YYYY-MM-DD>] [--prune-days <days, default 30>] [--json]
 
-Reads the "## Rulings" section of <dir>/<file> (default ./PROGRESS.md) and
-<dir>/<log> (default lesson-fires.log) and prints one row per ruling, in
-file order, then one row per orphan fire (a fire whose "what" matches no
-ruling), grouped by date and what, in first-seen order:
+<project> defaults to the current directory's git toplevel, else the
+current directory (pwd -P). <PROGRESS.md> defaults to PROGRESS.md and
+<lesson-fires.log> to .claude/lesson-fires.log, both under <project>
+unless given as an absolute path.
+
+Reads the "## Rulings" section of <file> and <log> and prints one row per
+ruling, in file order, then one row per orphan fire (a fire whose
+(date, what) pair matches no ruling), grouped by date and what, in
+first-seen order:
 
   date  rung  caught  last  escaped  verdict  what
 
@@ -29,9 +34,9 @@ Exit codes: 0 printed · 2 usage, a malformed --now, or no PROGRESS.md
 HELP
 }
 
-DIR="."
+DIR=""
 FILE="PROGRESS.md"
-LOG="lesson-fires.log"
+LOG=".claude/lesson-fires.log"
 NOW=""
 PRUNE_DAYS="30"
 AS_JSON=0
@@ -49,7 +54,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ -n "$NOW" ] || NOW=$(date +%Y-%m-%d)
+[ -n "$DIR" ] || DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
+
+[ -n "$NOW" ] || NOW=$(date -u +%Y-%m-%d)
 case "$NOW" in
 [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) : ;;
 *) printf 'lesson-stats: --now must be YYYY-MM-DD\n' >&2; usage >&2; exit 2 ;;
@@ -58,8 +65,14 @@ case "$PRUNE_DAYS" in
 '' | *[!0-9]*) printf 'lesson-stats: --prune-days must be a non-negative integer\n' >&2; usage >&2; exit 2 ;;
 esac
 
-PROGRESS_PATH="$DIR/$FILE"
-FIRE_PATH="$DIR/$LOG"
+case "$FILE" in
+/*) PROGRESS_PATH="$FILE" ;;
+*) PROGRESS_PATH="$DIR/$FILE" ;;
+esac
+case "$LOG" in
+/*) FIRE_PATH="$LOG" ;;
+*) FIRE_PATH="$DIR/$LOG" ;;
+esac
 [ -f "$PROGRESS_PATH" ] || { printf 'lesson-stats: no PROGRESS.md in %s\n' "$DIR" >&2; exit 2; }
 
 AWK_FILES=("$PROGRESS_PATH")
@@ -135,13 +148,14 @@ END {
     escape_count = 0
     for (j = i + 1; j <= ruling_count; j++) if (r_what[j] == r_what[i]) escape_count++
     r_escaped[i] = escape_count
-    is_ruling_what[r_what[i]] = 1
   }
   for (i = 1; i <= ruling_count; i++) {
     match_count = 0; latest_fire_date = ""
     for (k = 1; k <= fire_count; k++) {
       if (fi_what[k] != r_what[i]) continue
+      if (fi_date[k] != r_date[i]) continue
       match_count++
+      fi_matched[k] = 1
       if (latest_fire_date == "" || jdn_of_date(fi_tsdate[k]) > jdn_of_date(latest_fire_date)) latest_fire_date = fi_tsdate[k]
     }
     r_caught[i] = match_count
@@ -149,7 +163,7 @@ END {
   }
   orphan_group_count = 0
   for (k = 1; k <= fire_count; k++) {
-    if (is_ruling_what[fi_what[k]]) continue
+    if (fi_matched[k]) continue
     key = fi_date[k] SUBSEP fi_what[k]
     if (!(key in group_index)) {
       orphan_group_count++

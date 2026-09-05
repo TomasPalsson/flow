@@ -20,7 +20,7 @@ _fixture_copy() {
 t_lesson_stats_B9_golden_tsv() {
 	local d out_file
 	d=$(_fixture_copy)
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "B9: exit 0 on the fixture pair"
 	out_file="$d/out.tsv"
 	printf '%s\n' "$OUT" >"$out_file"
@@ -33,7 +33,7 @@ t_lesson_stats_B9_golden_tsv() {
 t_lesson_stats_B10_golden_json() {
 	local d out_file exp_file
 	d=$(_fixture_copy)
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15 --json
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15 --json
 	assert_rc 0 "B10: --json exit 0 on the fixture pair"
 	out_file="$d/out.json"
 	exp_file="$FIXTURE_DIR/stats.expected.json"
@@ -60,7 +60,7 @@ sys.exit(0 if a == b else 1)
 t_lesson_stats_B11_escaped() {
 	local d expected
 	d=$(_fixture_copy)
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "B11: exit 0 on the fixture pair"
 	expected=$(printf '2026-09-03\thook\t0\t-\t1\tescaped\tformat-lint reran prettier on generated files')
 	assert_contains "$OUT" "$expected" "B11: earlier duplicate-what ruling shows escaped 1 and verdict escaped"
@@ -73,15 +73,15 @@ t_lesson_stats_B12_now_drives_age() {
 	expected_prune=$(printf '2026-08-20\thook\t0\t-\t0\tprune?\tsize-guard flagged generated protobuf files')
 	expected_young=$(printf '2026-08-20\thook\t0\t-\t0\tyoung\tsize-guard flagged generated protobuf files')
 
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "B12: exit 0 with --now 2026-10-15"
 	assert_contains "$OUT" "$expected_prune" "B12: --now 2026-10-15 makes the 2026-08-20 hook ruling prune?"
 
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-09-10
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-09-10
 	assert_rc 0 "B12: exit 0 with --now 2026-09-10"
 	assert_contains "$OUT" "$expected_young" "B12: --now 2026-09-10 makes the same ruling young"
 
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15 --prune-days 60
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15 --prune-days 60
 	assert_rc 0 "B12: exit 0 with --now 2026-10-15 --prune-days 60"
 	assert_contains "$OUT" "$expected_young" "B12: --prune-days 60 keeps the same ruling young at --now 2026-10-15"
 
@@ -100,7 +100,7 @@ t_lesson_stats_B13_missing_progress() {
 t_lesson_stats_B14_malformed_skipped() {
 	local d
 	d=$(_fixture_copy)
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "B14: exit 0 despite one malformed lesson-fires.log line"
 	assert_eq "$ERR" "lesson-stats: skipped 1 malformed line(s)" "B14: reports exactly one skipped malformed line on stderr"
 	rm -rf "$d"
@@ -141,7 +141,7 @@ t_lesson_stats_fire_join_requires_date_and_what() {
 	# a fire dated 2026-09-03 with the duplicate "what" matches only the
 	# 2026-09-03 ruling, not the 2026-09-05 ruling with the same "what".
 	printf '2026-09-03\tformat-lint reran prettier on generated files\t2026-09-10T09:00:00Z\tformat-lint.sh\n' >>"$fires_log"
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "fire-join: exit 0 after appending a matching fire"
 	matched_row=$(printf '2026-09-03\thook\t1\t35\t1\tescaped\tformat-lint reran prettier on generated files')
 	assert_contains "$OUT" "$matched_row" "fire-join: 2026-09-03 ruling shows caught 1"
@@ -151,7 +151,7 @@ t_lesson_stats_fire_join_requires_date_and_what() {
 	# a fire with the same "what" but a date that matches no ruling becomes
 	# an orphan row, not a match on either ruling above.
 	printf '2026-01-05\tformat-lint reran prettier on generated files\t2026-01-05T09:00:00Z\tformat-lint.sh\n' >>"$fires_log"
-	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	run_cmd "$LESSON_STATS" --dir "$d" --log lesson-fires.log --now 2026-10-15
 	assert_rc 0 "fire-join: exit 0 after appending a date-mismatched fire"
 	orphan_row=$(printf '2026-01-05\t-\t1\t283\t0\torphan\tformat-lint reran prettier on generated files')
 	assert_contains "$OUT" "$orphan_row" "fire-join: fire whose what matches a ruling but whose date matches none is an orphan row"
