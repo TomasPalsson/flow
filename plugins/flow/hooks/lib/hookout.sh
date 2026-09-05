@@ -110,7 +110,69 @@ hook_git_managed() {
 	return 0
 }
 
+# _pd_first_existing_dir <path> — the nearest existing directory: <path>
+# itself when it already is one, else dirname(<path>) and then dirname of
+# that repeatedly (max 8 levels) until something exists. Prints nothing when
+# nothing is found within that many steps. <path> need not exist yet — a
+# PreToolUse hook fires before Write/Edit creates the file.
+_pd_first_existing_dir() {
+	local p=$1 i=0
+	[ -z "$p" ] && return 0
+	[ -d "$p" ] || p=$(dirname "$p")
+	while [ "$i" -lt 8 ]; do
+		[ -d "$p" ] && {
+			printf '%s' "$p"
+			return 0
+		}
+		case "$p" in "/" | ".") return 0 ;; esac
+		p=$(dirname "$p")
+		i=$((i + 1))
+	done
+}
+
+# _pd_git_toplevel <path> — the git worktree toplevel containing <path> (or
+# the nearest existing ancestor of it), or nothing when git is absent, the
+# path can't be resolved to an existing ancestor, or it is not inside a
+# work tree.
+_pd_git_toplevel() {
+	local d top
+	d=$(_pd_first_existing_dir "$1")
+	[ -z "$d" ] && return 0
+	have git || return 0
+	top=$(git -C "$d" rev-parse --show-toplevel 2>/dev/null) || return 0
+	printf '%s' "$top"
+}
+
+# hook_project_dir — the project directory a hook should judge against:
+#   1. the git worktree that owns tool_input.file_path (Edit/Write/
+#      NotebookEdit calls carry this) — so a session started in one checkout
+#      that edits files inside a different git worktree is judged by the
+#      file's own repo, not the session's start directory;
+#   2. else the git worktree that owns .cwd (Bash tool calls carry no
+#      file_path, but do carry cwd);
+#   3. else the old behaviour: $CLAUDE_PROJECT_DIR, else $PWD.
+# Any failure along the way (no git, not a repo, jq and python3 both absent)
+# falls through to the next rule; this never prints an empty string and
+# never writes to stderr.
+# lesson(2026-09-05): hooks resolved the project from the session start dir, not the edited file
 hook_project_dir() {
+	local f c top
+	f=$(hook_field '.tool_input.file_path')
+	if [ -n "$f" ]; then
+		top=$(_pd_git_toplevel "$f")
+		[ -n "$top" ] && {
+			printf '%s' "$top"
+			return 0
+		}
+	fi
+	c=$(hook_field '.cwd')
+	if [ -n "$c" ]; then
+		top=$(_pd_git_toplevel "$c")
+		[ -n "$top" ] && {
+			printf '%s' "$top"
+			return 0
+		}
+	fi
 	if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then printf '%s' "$CLAUDE_PROJECT_DIR"; else printf '%s' "$PWD"; fi
 }
 
