@@ -1,0 +1,10 @@
+[
+  {"date": "2026-08-01", "rung": "hook", "caught": 2, "last": 1, "escaped": 0, "verdict": "held", "what": "multi-line push --force slipped past the guard"},
+  {"date": "2026-09-03", "rung": "hook", "caught": 0, "last": null, "escaped": 1, "verdict": "escaped", "what": "format-lint reran prettier on generated files"},
+  {"date": "2026-08-20", "rung": "hook", "caught": 0, "last": null, "escaped": 0, "verdict": "prune?", "what": "size-guard flagged generated protobuf files"},
+  {"date": "2026-09-04", "rung": "claude.md", "caught": 0, "last": null, "escaped": 1, "verdict": "unmeasured", "what": "never edit a test to go green"},
+  {"date": null, "rung": "hook", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "legacy undated ruling"},
+  {"date": "2026-09-05", "rung": "script", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "format-lint reran prettier on generated files"},
+  {"date": "2026-09-06", "rung": "claude.md", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "never edit a test to go green"},
+  {"date": "2026-01-01", "rung": null, "caught": 1, "last": 14, "escaped": 0, "verdict": "orphan", "what": "some deleted ruling"}
+]

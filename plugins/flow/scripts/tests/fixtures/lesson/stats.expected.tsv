@@ -1,0 +1,9 @@
+date	rung	caught	last	escaped	verdict	what
+2026-08-01	hook	2	1	0	held	multi-line push --force slipped past the guard
+2026-09-03	hook	0	-	1	escaped	format-lint reran prettier on generated files
+2026-08-20	hook	0	-	0	prune?	size-guard flagged generated protobuf files
+2026-09-04	claude.md	0	-	1	unmeasured	never edit a test to go green
+-	hook	0	-	0	unmeasured	legacy undated ruling
+2026-09-05	script	0	-	0	unmeasured	format-lint reran prettier on generated files
+2026-09-06	claude.md	0	-	0	unmeasured	never edit a test to go green
+2026-01-01	-	1	14	0	orphan	some deleted ruling
