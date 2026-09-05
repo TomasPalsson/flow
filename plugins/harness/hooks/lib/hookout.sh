@@ -14,9 +14,14 @@
 #   hook_deny <reason>    PreToolUse: print deny JSON, exit 0
 #   hook_block <reason>   Stop: print {"decision":"block","reason":...}, exit 0
 #   hook_feedback <text>  PostToolUse: print <text> to stderr, exit 2
-#   (deny/block/feedback append a "run /lesson" line from the second
+#   (deny/block/feedback append a "/lesson" suggestion from the second
 #    identical reason in a session — see _lesson_nudge)
 #   hook_ok               exit 0
+#   hook_git_managed <f>  true when <f> sits inside a git work tree and is
+#                         not git-ignored; per-file enforcement hooks skip
+#                         anything else (scratch files, /tmp, ignored build
+#                         output) — git is the boundary of what is enforced.
+#                         CC_HOOKS_ALL_FILES=1 makes it always true.
 #   hook_log <text>       append a line to ${CLAUDE_HOOK_LOG:-/dev/null}
 #
 # Contract: when neither jq nor python3 exists, hook_field prints "" and a hook
@@ -58,6 +63,24 @@ else:
   else
     printf ''
   fi
+}
+
+hook_git_managed() {
+  [ "${CC_HOOKS_ALL_FILES:-}" = "1" ] && return 0
+  local f=$1 d
+  have git || return 1
+  d=$(dirname "$f")
+  git -C "$d" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
+  if git -C "$d" -c core.quotePath=false check-ignore -q -- "$f" 2>/dev/null; then
+    # Ignored — unless an ignore file is itself uncommitted this turn: adding
+    # a path to .gitignore in the same command as editing it would otherwise
+    # dodge every hook. Only a committed ignore rule exempts a file.
+    if git -C "$d" status --porcelain --untracked-files=all 2>/dev/null | awk '{print $NF}' | grep -qE '(^|/)\.gitignore$|^\.git/info/exclude$'; then
+      return 0
+    fi
+    return 1
+  fi
+  return 0
 }
 
 hook_project_dir() {
@@ -107,7 +130,7 @@ _lesson_nudge() {
   n=$(grep -c -x "$sig" "$f" 2>/dev/null || printf '1')
   case "$n" in '' | *[!0-9]*) n=1 ;; esac
   if [ "$n" -ge 2 ]; then
-    printf '%s\n\nthe same thing was blocked %s times this session (%s): run /lesson to turn it into a test, hook or script before retrying.' "$reason" "$n" "${0##*/}"
+    printf '%s\n\nthe same thing was blocked %s times this session (%s). If this is a recurring mistake rather than a one-off, suggest /lesson to the user in one line; do not run it unasked.' "$reason" "$n" "${0##*/}"
   else
     printf '%s' "$reason"
   fi

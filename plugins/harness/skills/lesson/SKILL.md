@@ -8,7 +8,7 @@ argument-hint: "[what went wrong]"
 
 Anytime an agent makes a mistake, engineer it out so the mistake cannot recur. A sentence in CLAUDE.md is a request; a test, hook or script is enforcement. This skill exists so the enforcement gets written every time, not just remembered.
 
-Finish the interrupted task's current step first if one is mid-flight, then run this. Never leave the guardrail half-written.
+Finish the interrupted task's current step first if one is mid-flight. **This skill proposes; the user decides.** When a hook or a correction suggested it (rather than the user typing `/lesson`), do Steps 1–3 only, present the proposal in three lines (mistake, rung, what would be written), and wait for a yes. A normal prompt that merely sounded like a correction gets no lesson. Once started, never leave the guardrail half-written.
 
 ## Step 1 — Pin the mistake
 

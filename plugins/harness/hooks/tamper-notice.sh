@@ -42,6 +42,9 @@ have git || hook_ok
 
 _filedir=$(dirname "$file_path")
 git -C "$_filedir" rev-parse --is-inside-work-tree >/dev/null 2>&1 || hook_ok
+# git-ignored test files are out of scope; gate config (often under a
+# gitignored .claude/) is always in scope — weakening it is the whole point.
+if [ "$_is_gate_config" -eq 0 ]; then hook_git_managed "$file_path" || hook_ok; fi
 
 _tn_tracked=1
 git -C "$_filedir" ls-files --error-unmatch "$file_path" >/dev/null 2>&1 || _tn_tracked=0

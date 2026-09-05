@@ -3,9 +3,10 @@
 #
 # When the prompt reads as a correction of something the agent just did
 # ("you deleted the wrong file", "don't do that again", "why did you push…"),
-# print one context line telling the agent to run /lesson after the current
-# step. Deterministic phrase match, no judgement; advisory only, exit 0
-# always, no stdout when nothing matches. CC_NO_LESSON_NUDGE=1 disables it.
+# print one context line suggesting /lesson be OFFERED after the current
+# step. Deterministic phrase match, no judgement; advisory only — the model
+# proposes, the user decides — exit 0 always, no stdout when nothing
+# matches. CC_NO_LESSON_NUDGE=1 disables it.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
@@ -34,6 +35,6 @@ if printf '%s' "$p" | grep -qE \
   -e "(don'?t|do not|stop) (do|doing) (that|this|it)( again)?" \
   -e "why did you (delete|remove|change|edit|push|commit|touch|revert|skip|ignore|overwrite|break|modify|add|run) " \
   -e "(not what i asked|i told you|i said not|that was wrong|that'?s wrong|wrong (file|branch|directory|repo)|you got it wrong|same mistake|not again|once again|that'?s not what)"; then
-  printf 'harness: this prompt reads as a correction. Finish the current step, then run the lesson skill (/lesson) so the mistake cannot recur: a test, hook or script beats a promise. Skip only if nothing actually went wrong.\n'
+  printf 'harness: this prompt may be a correction. If Claude got something wrong, finish the current step and then offer /lesson in one line (a test, hook or script beats a promise); run it only if the user agrees. Say nothing if this was not a mistake.\n'
 fi
 hook_ok

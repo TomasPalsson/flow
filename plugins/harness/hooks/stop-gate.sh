@@ -538,7 +538,7 @@ case "$_sig_count" in '' | *[!0-9]*) _sig_count=1 ;; esac
 if [ "$_sig_count" -ge 2 ]; then
 	_reason="$_reason
 
-the same gate blocked this session $_sig_count times: run /lesson to turn it into a test, hook or script before retrying."
+the same gate blocked this session $_sig_count times. If this is a recurring mistake rather than a one-off, suggest /lesson to the user in one line; do not run it unasked."
 fi
 
 if [ "$_sig_count" -ge 4 ]; then

@@ -26,7 +26,11 @@ git-guard.sh — PreToolUse/Bash hook.
 lesson-nudge.sh — UserPromptSubmit hook.
 ```
 
-When the prompt reads as a correction of something the agent just did ("you deleted the wrong file", "don't do that again", "why did you…"), prints one context line telling the agent to run `/lesson` after the current step. Phrase match only; silent otherwise; `CC_NO_LESSON_NUDGE=1` disables it. Related: `hook_deny`, `hook_block` and `hook_feedback` in `lib/hookout.sh` append a "run /lesson" line from the second identical reason in a session, so a repeated deny or block carries the trigger itself.
+When the prompt reads as a correction of something the agent just did ("you deleted the wrong file", "don't do that again", "why did you push…"), prints one context line asking the agent to *offer* `/lesson` after the current step, and to run it only if the user agrees. Phrase match only; silent otherwise; `CC_NO_LESSON_NUDGE=1` disables it. Related: `hook_deny`, `hook_block` and `hook_feedback` in `lib/hookout.sh` append the same suggestion from the second identical reason in a session.
+
+### Git is the enforcement boundary
+
+`hook_git_managed <file>` in `lib/hookout.sh`: true when the file sits inside a git work tree and is not git-ignored by a *committed* ignore rule. `format-lint`, `size-guard`, `spec-gate` and `tamper-notice` (except for gate-config files, which are always in scope) skip anything else, so scratch scripts, files under `/tmp`, and ignored build output are never formatted, measured or gated. An ignore rule that is itself uncommitted does not exempt anything (adding a path to `.gitignore` in the same command as editing it would otherwise dodge every hook). `CC_HOOKS_ALL_FILES=1` enforces everywhere for a session.
 
 ## notify.sh
 

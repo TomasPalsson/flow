@@ -42,7 +42,7 @@ t_quality_format_lint_py_syntax_error_rc2() {
     printf '  skip t_quality_format_lint_py_syntax_error_rc2 (ruff not installed)\n'
     return 0
   fi
-  d=$(tmp_dir)
+  d=$(tmp_repo)
   printf 'def foo(:\n    pass\n' >"$d/bad.py"
   run_hook "$SCAN_DIR/format-lint.sh" "{\"tool_input\":{\"file_path\":\"$d/bad.py\"}}"
   assert_rc 2 "t_quality_format_lint_py_syntax_error_rc2 rc"
@@ -57,7 +57,7 @@ t_quality_format_lint_py_clean_format_rc0() {
     printf '  skip t_quality_format_lint_py_clean_format_rc0 (ruff not installed)\n'
     return 0
   fi
-  d=$(tmp_dir)
+  d=$(tmp_repo)
   printf 'def   foo( ):\n  return   1\n' >"$d/ok.py"
   run_hook "$SCAN_DIR/format-lint.sh" "{\"tool_input\":{\"file_path\":\"$d/ok.py\"}}"
   assert_rc 0 "t_quality_format_lint_py_clean_format_rc0 rc"
@@ -150,7 +150,7 @@ t_quality_size_guard_sh_test_file_skip_rc0() {
 
 t_quality_size_guard_sh_triggers_on_real_invocation_rc2() {
   local d
-  d=$(tmp_dir)
+  d=$(tmp_repo)
   cp "$_FIXTURES/long-function.py" "$d/big.py"
   run_hook "$SCAN_DIR/size-guard.sh" "{\"tool_input\":{\"file_path\":\"$d/big.py\"}}"
   assert_rc 2 "t_quality_size_guard_sh_triggers_on_real_invocation_rc2 rc"
@@ -160,7 +160,7 @@ t_quality_size_guard_sh_triggers_on_real_invocation_rc2() {
 
 t_quality_size_guard_sh_env_threshold_override_rc2() {
   local d
-  d=$(tmp_dir)
+  d=$(tmp_repo)
   printf 'line one\nline two\nline three\n' >"$d/small.txt"
   run_hook "$SCAN_DIR/size-guard.sh" "{\"tool_input\":{\"file_path\":\"$d/small.txt\"}}" CC_MAX_FILE_LINES=2
   assert_rc 2 "t_quality_size_guard_sh_env_threshold_override_rc2 rc"
@@ -170,7 +170,7 @@ t_quality_size_guard_sh_env_threshold_override_rc2() {
 
 t_quality_size_guard_sh_config_threshold_override_rc2() {
   local d
-  d=$(tmp_dir)
+  d=$(tmp_repo)
   mkdir -p "$d/.claude"
   printf '{"maxFuncLines": 5}\n' >"$d/.claude/harness.json"
   printf 'def tiny():\n    a = 1\n    b = 2\n    c = 3\n    d = 4\n    e = 5\n    return a + b + c + d + e\n' >"$d/tiny.py"
@@ -387,16 +387,16 @@ t_quality_stop_gate_wedge_valve_fourth_failure_rc2() {
     fi
     # /lesson nudge: absent on the first block, present from the second.
     if [ "$i" -eq 1 ]; then
-      assert_not_contains "$OUT" "run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 no-lesson-nudge-first"
+      assert_not_contains "$OUT" "/lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 no-lesson-nudge-first"
     elif [ "$i" -lt 4 ]; then
-      assert_contains "$OUT" "run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 lesson-nudge-$i"
+      assert_contains "$OUT" "suggest /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 lesson-nudge-$i"
     fi
     i=$((i + 1))
   done
   assert_rc 2 "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-rc"
   assert_contains "$ERR" "already failing before this turn" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-message"
-  assert_contains "$ERR" "blocked this session 4 times: run /lesson" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-lesson-count-is-4"
-  assert_eq "$(printf '%s' "$ERR" | grep -c 'run /lesson')" "1" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-single-nudge"
+  assert_contains "$ERR" "blocked this session 4 times. If this is a recurring mistake" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-lesson-count-is-4"
+  assert_eq "$(printf '%s' "$ERR" | grep -c 'suggest /lesson')" "1" "t_quality_stop_gate_wedge_valve_fourth_failure_rc2 fourth-single-nudge"
   rm -f "${TMPDIR:-/tmp}/claude-gatesig-$sid"
   rm -rf "$repo"
 }

@@ -17,6 +17,8 @@ file_path=$(hook_field '.tool_input.file_path')
 have python3 || hook_ok
 
 [ "${CC_NO_SIZE_GUARD:-}" = "1" ] && hook_ok
+# Git is the enforcement boundary: files outside a repo or git-ignored are not measured.
+hook_git_managed "$file_path" || hook_ok
 
 dir=$(hook_project_dir)
 cfg="$dir/.claude/harness.json"

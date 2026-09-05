@@ -54,6 +54,9 @@ EOF
   return 1
 }
 _fl_ignored "$file_path" && hook_ok
+# Git is the enforcement boundary: a scratch file outside any repo, or an
+# ignored path (build output, .env), is not formatted or linted.
+hook_git_managed "$file_path" || hook_ok
 
 # cd to the git toplevel of the file's own directory, falling back to the
 # file's directory when it is not inside a repo at all. Config presence

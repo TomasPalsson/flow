@@ -154,6 +154,7 @@ esac
 
 _file=$(hook_field '.tool_input.file_path')
 [ -z "$_file" ] && hook_ok
+hook_git_managed "$_file" || hook_ok   # ignored paths (scratch, build output) are never gated
 
 _rel=$_file
 case "$_rel" in
