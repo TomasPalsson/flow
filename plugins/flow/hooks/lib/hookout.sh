@@ -148,8 +148,8 @@ _lesson_fire() {
 	marker_what=${marker_what%%]*}
 	marker_what=$(printf '%s' "$marker_what" | tr -d '\t\n')
 	target_dir="$(hook_project_dir)/.claude"
-	mkdir -p "$target_dir" 2>/dev/null || return 0
-	printf '%s\t%s\t%s\t%s\n' "$marker_date" "$marker_what" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${0##*/}" >>"$target_dir/lesson-fires.log" 2>/dev/null || return 0
+	{ mkdir -p "$target_dir"; } 2>/dev/null || return 0
+	{ printf '%s\t%s\t%s\t%s\n' "$marker_date" "$marker_what" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${0##*/}" >>"$target_dir/lesson-fires.log"; } 2>/dev/null || return 0
 }
 
 # _lesson_nudge <reason> → <reason>, plus a "/lesson" line when the same
