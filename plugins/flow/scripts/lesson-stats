@@ -67,16 +67,16 @@ AWK_FILES=("$PROGRESS_PATH")
 
 awk -v now="$NOW" -v prune="$PRUNE_DAYS" -v as_json="$AS_JSON" \
   -v progress_path="$PROGRESS_PATH" -v fire_path="$FIRE_PATH" -F'\t' '
-# Julian day number of a Gregorian y/m/d (Fliegel & Van Flandern), integer-only.
-function jdn(y, m, d,    a, yy, mm) {
-  a = int((14 - m) / 12)
-  yy = y + 4800 - a
-  mm = m + 12 * a - 3
-  return d + int((153 * mm + 2) / 5) + 365 * yy + int(yy / 4) - int(yy / 100) + int(yy / 400) - 32045
+# Julian day number of a Gregorian year/month/day (Fliegel & Van Flandern), integer-only.
+function jdn(year, month, day,    century_adjustment, adjusted_year, adjusted_month) {
+  century_adjustment = int((14 - month) / 12)
+  adjusted_year = year + 4800 - century_adjustment
+  adjusted_month = month + 12 * century_adjustment - 3
+  return day + int((153 * adjusted_month + 2) / 5) + 365 * adjusted_year + int(adjusted_year / 4) - int(adjusted_year / 100) + int(adjusted_year / 400) - 32045
 }
-function jdn_of_date(s,    p) {
-  split(s, p, "-")
-  return jdn(p[1] + 0, p[2] + 0, p[3] + 0)
+function jdn_of_date(s,    date_parts) {
+  split(s, date_parts, "-")
+  return jdn(date_parts[1] + 0, date_parts[2] + 0, date_parts[3] + 0)
 }
 function days_since(s) {
   return jdn_of_date(now) - jdn_of_date(s)
@@ -91,79 +91,79 @@ function json_string(s) {
 }
 FILENAME == progress_path {
   raw = $0
-  t = raw
-  sub(/^[ \t]*/, "", t)
-  if (t ~ /^(```|~~~)/) { fence = !fence; next }
+  trimmed = raw
+  sub(/^[ \t]*/, "", trimmed)
+  if (trimmed ~ /^(```|~~~)/) { fence = !fence; next }
   if (fence) { next }
-  if (t ~ /^## Rulings/) { inr = 1; next }
-  if (inr && t ~ /^## /) { inr = 0; next }
-  if (inr && t ~ /^- Ruling: /) {
+  if (trimmed ~ /^## Rulings/) { in_rulings = 1; next }
+  if (in_rulings && trimmed ~ /^## /) { in_rulings = 0; next }
+  if (in_rulings && trimmed ~ /^- Ruling: /) {
     line = raw
     sub(/^[ \t]*- Ruling: /, "", line)
-    n = split(line, parts, " — ")
-    if (n < 3) next
+    field_count = split(line, parts, " — ")
+    if (field_count < 3) next
     what = parts[1]
-    cost = parts[n]
-    mech = parts[2]
-    for (k = 3; k < n; k++) mech = mech " — " parts[k]
-    rdate = ""
+    cost = parts[field_count]
+    mechanism = parts[2]
+    for (field_idx = 3; field_idx < field_count; field_idx++) mechanism = mechanism " — " parts[field_idx]
+    ruling_date = ""
     if (match(cost, / \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\)$/)) {
-      rdate = substr(cost, RSTART + 2, RLENGTH - 3)
+      ruling_date = substr(cost, RSTART + 2, RLENGTH - 3)
     }
-    split(mech, mtok, " ")
-    nrul++
-    r_what[nrul] = what
-    r_date[nrul] = rdate
-    r_rung[nrul] = tolower(mtok[1])
+    split(mechanism, mechanism_tokens, " ")
+    ruling_count++
+    r_what[ruling_count] = what
+    r_date[ruling_count] = ruling_date
+    r_rung[ruling_count] = tolower(mechanism_tokens[1])
   }
   next
 }
 FILENAME == fire_path {
-  n = split($0, ff, "\t")
-  if (n != 4 || ff[1] !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ || ff[2] == "" || ff[3] == "" || ff[4] == "") {
+  field_count = split($0, fire_fields, "\t")
+  if (field_count != 4 || fire_fields[1] !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ || fire_fields[2] == "" || fire_fields[3] == "" || fire_fields[4] == "") {
     malformed++
     next
   }
-  nfire++
-  fi_date[nfire] = ff[1]
-  fi_what[nfire] = ff[2]
-  fi_tsdate[nfire] = substr(ff[3], 1, 10)
+  fire_count++
+  fi_date[fire_count] = fire_fields[1]
+  fi_what[fire_count] = fire_fields[2]
+  fi_tsdate[fire_count] = substr(fire_fields[3], 1, 10)
   next
 }
 END {
-  for (i = 1; i <= nrul; i++) {
-    esc = 0
-    for (j = i + 1; j <= nrul; j++) if (r_what[j] == r_what[i]) esc++
-    r_escaped[i] = esc
+  for (i = 1; i <= ruling_count; i++) {
+    escape_count = 0
+    for (j = i + 1; j <= ruling_count; j++) if (r_what[j] == r_what[i]) escape_count++
+    r_escaped[i] = escape_count
     is_ruling_what[r_what[i]] = 1
   }
-  for (i = 1; i <= nrul; i++) {
-    cnt = 0; best = ""
-    for (k = 1; k <= nfire; k++) {
+  for (i = 1; i <= ruling_count; i++) {
+    match_count = 0; latest_fire_date = ""
+    for (k = 1; k <= fire_count; k++) {
       if (fi_what[k] != r_what[i]) continue
-      cnt++
-      if (best == "" || jdn_of_date(fi_tsdate[k]) > jdn_of_date(best)) best = fi_tsdate[k]
+      match_count++
+      if (latest_fire_date == "" || jdn_of_date(fi_tsdate[k]) > jdn_of_date(latest_fire_date)) latest_fire_date = fi_tsdate[k]
     }
-    r_caught[i] = cnt
-    if (cnt > 0) r_last[i] = days_since(best)
+    r_caught[i] = match_count
+    if (match_count > 0) r_last[i] = days_since(latest_fire_date)
   }
-  ngroup = 0
-  for (k = 1; k <= nfire; k++) {
+  orphan_group_count = 0
+  for (k = 1; k <= fire_count; k++) {
     if (is_ruling_what[fi_what[k]]) continue
     key = fi_date[k] SUBSEP fi_what[k]
     if (!(key in group_index)) {
-      ngroup++
-      group_index[key] = ngroup
-      g_date[ngroup] = fi_date[k]
-      g_what[ngroup] = fi_what[k]
-      g_count[ngroup] = 0
-      g_best[ngroup] = ""
+      orphan_group_count++
+      group_index[key] = orphan_group_count
+      g_date[orphan_group_count] = fi_date[k]
+      g_what[orphan_group_count] = fi_what[k]
+      g_count[orphan_group_count] = 0
+      g_best[orphan_group_count] = ""
     }
-    gi = group_index[key]
-    g_count[gi]++
-    if (g_best[gi] == "" || jdn_of_date(fi_tsdate[k]) > jdn_of_date(g_best[gi])) g_best[gi] = fi_tsdate[k]
+    group_idx = group_index[key]
+    g_count[group_idx]++
+    if (g_best[group_idx] == "" || jdn_of_date(fi_tsdate[k]) > jdn_of_date(g_best[group_idx])) g_best[group_idx] = fi_tsdate[k]
   }
-  for (i = 1; i <= nrul; i++) {
+  for (i = 1; i <= ruling_count; i++) {
     if (r_date[i] == "" || (r_rung[i] != "hook" && r_rung[i] != "lint")) {
       r_verdict[i] = "unmeasured"
     } else if (r_escaped[i] > 0) {
@@ -176,33 +176,33 @@ END {
       r_verdict[i] = "young"
     }
   }
-  total = nrul + ngroup
+  total_rows = ruling_count + orphan_group_count
   if (as_json == 1) {
     printf "[\n"
-    idx = 0
-    for (i = 1; i <= nrul; i++) {
-      idx++
+    row_index = 0
+    for (i = 1; i <= ruling_count; i++) {
+      row_index++
       last_field = (r_caught[i] > 0) ? r_last[i] : "null"
       printf "  {\"date\": %s, \"rung\": \"%s\", \"caught\": %d, \"last\": %s, \"escaped\": %d, \"verdict\": \"%s\", \"what\": \"%s\"}%s\n", \
-        json_string(r_date[i]), r_rung[i], r_caught[i], last_field, r_escaped[i], r_verdict[i], json_escape(r_what[i]), (idx < total ? "," : "")
+        json_string(r_date[i]), r_rung[i], r_caught[i], last_field, r_escaped[i], r_verdict[i], json_escape(r_what[i]), (row_index < total_rows ? "," : "")
     }
-    for (g = 1; g <= ngroup; g++) {
-      idx++
-      last_field = (g_count[g] > 0) ? days_since(g_best[g]) : "null"
+    for (group_num = 1; group_num <= orphan_group_count; group_num++) {
+      row_index++
+      last_field = (g_count[group_num] > 0) ? days_since(g_best[group_num]) : "null"
       printf "  {\"date\": \"%s\", \"rung\": null, \"caught\": %d, \"last\": %s, \"escaped\": 0, \"verdict\": \"orphan\", \"what\": \"%s\"}%s\n", \
-        g_date[g], g_count[g], last_field, json_escape(g_what[g]), (idx < total ? "," : "")
+        g_date[group_num], g_count[group_num], last_field, json_escape(g_what[group_num]), (row_index < total_rows ? "," : "")
     }
     printf "]\n"
   } else {
     printf "date\trung\tcaught\tlast\tescaped\tverdict\twhat\n"
-    for (i = 1; i <= nrul; i++) {
+    for (i = 1; i <= ruling_count; i++) {
       date_field = (r_date[i] == "") ? "-" : r_date[i]
       last_field = (r_caught[i] > 0) ? r_last[i] : "-"
       printf "%s\t%s\t%d\t%s\t%d\t%s\t%s\n", date_field, r_rung[i], r_caught[i], last_field, r_escaped[i], r_verdict[i], r_what[i]
     }
-    for (g = 1; g <= ngroup; g++) {
-      last_field = (g_count[g] > 0) ? days_since(g_best[g]) : "-"
-      printf "%s\t-\t%d\t%s\t0\torphan\t%s\n", g_date[g], g_count[g], last_field, g_what[g]
+    for (group_num = 1; group_num <= orphan_group_count; group_num++) {
+      last_field = (g_count[group_num] > 0) ? days_since(g_best[group_num]) : "-"
+      printf "%s\t-\t%d\t%s\t0\torphan\t%s\n", g_date[group_num], g_count[group_num], last_field, g_what[group_num]
     }
   }
   if (malformed > 0) print "lesson-stats: skipped " malformed " malformed line(s)" > "/dev/stderr"
