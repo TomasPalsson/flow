@@ -5,24 +5,27 @@ set -u
 
 usage() {
   cat <<'HELP'
-Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>]
+Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
 
 Appends
-  - Ruling: <what> — <mechanism> — <cost>
+  - Ruling: <what> — <mechanism> — <cost> (<YYYY-MM-DD>)
 under "## Rulings" in <PROGRESS.md> (default ./PROGRESS.md), after the
-last ruling of that section (fenced ``` blocks are never headings). Creates
-the section at the end when it is missing, and the file from the minimal
-template when it does not exist. Refuses an exact duplicate line (exit 3,
-nothing written); a ruling with the same <what> but a new mechanism or cost
-is written and noted on stderr as superseding. Every write is checked and
-serialised through <PROGRESS.md>.lock. Prints the line written and, when
-the file is now over 60 lines, a warning to stderr (exit stays 0).
+last ruling of that section (fenced ``` blocks are never headings). The
+date defaults to today (UTC) and may be pinned with --date; an existing
+undated legacy ruling is never rewritten. Creates the section at the end
+when it is missing, and the file from the minimal template when it does
+not exist. Refuses an exact duplicate line (exit 3, nothing written); a
+ruling with the same <what> but a new mechanism or cost is written and
+noted on stderr as superseding. Every write is checked and serialised
+through <PROGRESS.md>.lock. Prints the line written, then a second line
+`marker: lesson(<YYYY-MM-DD>): <what>` to paste on the rung; when the
+file is now over 60 lines, a warning to stderr (exit stays 0).
 
-Exit codes: 0 written · 2 usage · 3 exact duplicate · 4 cannot write
+Exit codes: 0 written · 2 usage or malformed --date · 3 exact duplicate · 4 cannot write
 HELP
 }
 
-WHAT=""; MECH=""; COST=""; FILE="PROGRESS.md"
+WHAT=""; MECH=""; COST=""; FILE="PROGRESS.md"; DATE=""
 while [ $# -gt 0 ]; do
   case "$1" in
   --help | -h) usage; exit 0 ;;
@@ -30,6 +33,7 @@ while [ $# -gt 0 ]; do
   --mechanism) MECH=${2:-}; shift 2 ;;
   --cost) COST=${2:-}; shift 2 ;;
   --file) FILE=${2:-}; shift 2 ;;
+  --date) DATE=${2:-}; shift 2 ;;
   *) printf 'lesson-record: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
@@ -40,7 +44,16 @@ fi
 case "$WHAT$MECH$COST" in *"
 "*) printf 'lesson-record: arguments must be single-line\n' >&2; exit 2 ;; esac
 
-LINE="- Ruling: $WHAT — $MECH — $COST"
+if [ -z "$DATE" ]; then
+  DATE=$(date -u +%Y-%m-%d)
+else
+  case "$DATE" in
+  [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) : ;;
+  *) printf 'lesson-record: --date must be YYYY-MM-DD\n' >&2; exit 2 ;;
+  esac
+fi
+
+LINE="- Ruling: $WHAT — $MECH — $COST ($DATE)"
 
 die() { printf 'lesson-record: %s\n' "$1" >&2; exit 4; }
 
@@ -114,6 +127,7 @@ grep -F -x -q -- "$LINE" "$tmp" || { rm -f "$tmp"; die "ruling did not land in $
 mv "$tmp" "$FILE" || { rm -f "$tmp"; die "cannot replace $FILE"; }
 
 printf '%s\n' "$LINE"
+printf 'marker: lesson(%s): %s\n' "$DATE" "$WHAT"
 n=$(wc -l <"$FILE" | tr -d ' ')
 if [ "$n" -gt 60 ]; then
   printf 'lesson-record: %s is now %s lines (budget 60) — collapse ## Done or ## Next\n' "$FILE" "$n" >&2
