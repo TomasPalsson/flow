@@ -52,3 +52,4 @@ Every component that was considered, with the verdict and the downside that was 
 4. `harness doctor` probe for the PATH a hook subprocess actually sees (macOS GUI launch).
 5. Frozen-intent hash over the approved Behavior Inventory.
 6. Measure: `/insights` monthly, `/usage` weekly, `skills-lint --usage` monthly; nobody has measured this for a solo developer.
+| post-bash-write on gitignored runtime state | Drop `git check-ignore`d files from the changed list, except `.claude/`; skip the filter when the command touched an ignore file; `core.quotePath=false` | Container logs blocked every read-only command with size-guard noise; the fail-closed clause keeps a same-command `.gitignore` append from hiding a write |

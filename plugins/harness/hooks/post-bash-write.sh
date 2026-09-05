@@ -64,6 +64,42 @@ _pbw_all=$(cd "$dir" && find . \( \
 
 [ -z "$_pbw_all" ] && hook_ok
 
+# Drop gitignored files: they are runtime state (container logs, caches,
+# databases) that background processes keep rewriting, not something the
+# command authored — a live *arr stack blocked every read-only command with
+# "logs/x.txt is 8000 lines" until this filter existed. .claude/ is exempt
+# because it is commonly gitignored yet holds the gate config tamper-notice.sh
+# must keep seeing (C19).
+#
+# Fail closed when the command also touched an ignore file: `echo x >>
+# .gitignore; cat > x` would otherwise hide x from every gate with one extra
+# token (adversary finding, 2026-09-05). core.quotePath=false so check-ignore
+# echoes non-ASCII names verbatim and the exact-line match below still holds.
+_pbw_ignored=""
+if ! printf '%s\n' "$_pbw_all" | grep -Eq '(^|/)\.gitignore$|^\./\.git/info/exclude$'; then
+	_pbw_ignored=$(printf '%s\n' "$_pbw_all" | git -C "$dir" -c core.quotePath=false check-ignore --stdin 2>/dev/null)
+fi
+if [ -n "$_pbw_ignored" ]; then
+	_pbw_keep=""
+	while IFS= read -r f; do
+		[ -z "$f" ] && continue
+		case "$f" in
+		./.claude/*) _pbw_keep="$_pbw_keep
+$f" ;;
+		*)
+			if ! printf '%s\n' "$_pbw_ignored" | grep -Fxq -- "$f"; then
+				_pbw_keep="$_pbw_keep
+$f"
+			fi
+			;;
+		esac
+	done <<EOF
+$_pbw_all
+EOF
+	_pbw_all=$(printf '%s\n' "$_pbw_keep" | grep .)
+	[ -z "$_pbw_all" ] && hook_ok
+fi
+
 _pbw_total=$(printf '%s\n' "$_pbw_all" | grep -c .)
 _pbw_list="$_pbw_all"
 if [ "$_pbw_total" -gt 50 ]; then

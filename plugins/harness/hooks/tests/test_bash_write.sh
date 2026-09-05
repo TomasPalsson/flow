@@ -280,3 +280,103 @@ t_bw_no_indicator_command_rc0() {
 	assert_eq "$OUT" "" "t_bw_no_indicator_command_rc0 no-stdout"
 	rm -rf "$repo"
 }
+
+t_bw_gitignored_runtime_churn_rc0() {
+	# Lesson 2026-09-05: a running container kept appending to a gitignored
+	# services/*/logs/*.txt while read-only Bash commands ran, and every one of
+	# them was blocked with "file is 8000 lines (max 400)". Gitignored files are
+	# runtime state the command did not author; they are not the command's output.
+	local repo sid content cmdjson
+	repo=$(tmp_repo)
+	mkdir -p "$repo/services/app/logs"
+	printf '/services/app/*\n' >"$repo/.gitignore"
+	sid="bwgitign1"
+	run_hook "$SCAN_DIR/tool-stamp.sh" "{\"session_id\":\"$sid\"}"
+	sleep 1
+	content=$(
+		printf 'def big_function():\n'
+		_bw_wide_body 68
+	)
+	printf '%s\n' "$content" >"$repo/services/app/logs/app.debug.py"
+	cmdjson=$(_bw_json_str "grep -n foo README.md | python3 -c 'import sys; print(len(sys.stdin.read()))'")
+	run_hook "$SCAN_DIR/post-bash-write.sh" \
+		"{\"session_id\":\"$sid\",\"tool_input\":{\"command\":$cmdjson}}" \
+		CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_bw_gitignored_runtime_churn_rc0 rc"
+	assert_not_contains "$ERR" "app.debug.py" "t_bw_gitignored_runtime_churn_rc0 not named"
+	rm -rf "$repo"
+}
+
+t_bw_gitignored_gate_config_still_rc2() {
+	# The gitignore filter must not reopen the C19 hole: .claude/ is commonly
+	# gitignored, and a heredoc weakening .claude/harness.json is still tamper.
+	local repo sid content cmdtext cmdjson
+	repo=$(tmp_repo)
+	mkdir -p "$repo/.claude"
+	printf '.claude/\n' >"$repo/.gitignore"
+	sid="bwgitign2"
+	run_hook "$SCAN_DIR/tool-stamp.sh" "{\"session_id\":\"$sid\"}"
+	sleep 1
+	content='{"stopGate": false}'
+	printf '%s\n' "$content" >"$repo/.claude/harness.json"
+	cmdtext="cat > .claude/harness.json <<'JSONEOF'
+$content
+JSONEOF"
+	cmdjson=$(_bw_json_str "$cmdtext")
+	run_hook "$SCAN_DIR/post-bash-write.sh" \
+		"{\"session_id\":\"$sid\",\"tool_input\":{\"command\":$cmdjson}}" \
+		CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 2 "t_bw_gitignored_gate_config_still_rc2 rc"
+	assert_contains "$ERR" "harness.json" "t_bw_gitignored_gate_config_still_rc2 filename"
+	rm -rf "$repo"
+}
+
+t_bw_same_command_gitignore_edit_rc2() {
+	# Adversary 2026-09-05: appending an ignore rule for the file just written
+	# must not hide it. Any ignore-file change in the same command disables the
+	# gitignore filter for that command.
+	local repo sid content cmdtext cmdjson
+	repo=$(tmp_repo)
+	sid="bwgitign3"
+	run_hook "$SCAN_DIR/tool-stamp.sh" "{\"session_id\":\"$sid\"}"
+	sleep 1
+	content=$(
+		printf 'def big_function():\n'
+		_bw_wide_body 68
+	)
+	printf '/evil.py\n' >>"$repo/.gitignore"
+	printf '%s\n' "$content" >"$repo/evil.py"
+	cmdtext="printf '/evil.py\\n' >> .gitignore; cat > evil.py <<'PYEOF'
+$content
+PYEOF"
+	cmdjson=$(_bw_json_str "$cmdtext")
+	run_hook "$SCAN_DIR/post-bash-write.sh" \
+		"{\"session_id\":\"$sid\",\"tool_input\":{\"command\":$cmdjson}}" \
+		CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 2 "t_bw_same_command_gitignore_edit_rc2 rc"
+	assert_contains "$ERR" "big_function" "t_bw_same_command_gitignore_edit_rc2 function name"
+	rm -rf "$repo"
+}
+
+t_bw_gitignored_unicode_name_rc0() {
+	# Adversary 2026-09-05: git check-ignore C-quotes non-ASCII paths by
+	# default, so "café.py" never matched find's output and was linted anyway.
+	local repo sid content cmdjson
+	repo=$(tmp_repo)
+	mkdir -p "$repo/logs"
+	printf '/logs/\n' >"$repo/.gitignore"
+	sid="bwgitign4"
+	run_hook "$SCAN_DIR/tool-stamp.sh" "{\"session_id\":\"$sid\"}"
+	sleep 1
+	content=$(
+		printf 'def big_function():\n'
+		_bw_wide_body 68
+	)
+	printf '%s\n' "$content" >"$repo/logs/café separação.py"
+	cmdjson=$(_bw_json_str "grep -n foo README.md | python3 -c 'import sys; print(len(sys.stdin.read()))'")
+	run_hook "$SCAN_DIR/post-bash-write.sh" \
+		"{\"session_id\":\"$sid\",\"tool_input\":{\"command\":$cmdjson}}" \
+		CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_bw_gitignored_unicode_name_rc0 rc"
+	rm -rf "$repo"
+}
