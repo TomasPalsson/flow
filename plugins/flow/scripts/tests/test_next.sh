@@ -438,3 +438,68 @@ t_next_flow_off_on_marker() {
 	assert_contains "$OUT" "off [<dir>]" "top help lists off"
 	rm -rf "$repo"
 }
+
+# ---------------------------------------------------------------------------
+# state 4b — no flow.json, no plan (run state cleaned up after the PR), but
+# the branch is flow/<slug> and .specs/NNN-<slug> is committed: the flow
+# shipped, so the answer is never "start a spec".
+# ---------------------------------------------------------------------------
+
+nx_shipped_repo() {
+	# echoes a tmp repo on branch flow/thing with .specs/001-thing/spec.md committed
+	local proj
+	proj=$(tmp_repo)
+	(
+		cd "$proj" || exit 1
+		git checkout -q -b flow/thing
+		mkdir -p .specs/001-thing
+		printf '# spec\n' >.specs/001-thing/spec.md
+		git add .specs
+		git commit -q -m "spec"
+	) >/dev/null 2>&1
+	printf '%s' "$proj"
+}
+
+t_next_flow_branch_spec_committed_not_pushed() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(nx_shipped_repo)
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: /ship
+Why: .specs/001-thing is committed on flow/thing but not pushed" "t_next_flow_branch_spec_committed_not_pushed exact"
+
+	rm -rf "$home" "$proj"
+}
+
+t_next_flow_branch_spec_committed_and_pushed() {
+	local home proj remote
+	home=$(tmp_dir)
+	proj=$(nx_shipped_repo)
+	remote=$(tmp_dir)
+	(
+		git init -q --bare "$remote"
+		cd "$proj" || exit 1
+		git remote add origin "$remote"
+		git push -q -u origin flow/thing
+	) >/dev/null 2>&1
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: gh pr view --web
+Why: flow/thing is shipped (.specs/001-thing committed and pushed); merge the PR, then agents main" "t_next_flow_branch_spec_committed_and_pushed exact"
+
+	rm -rf "$home" "$proj" "$remote"
+}
+
+t_next_flow_branch_spec_committed_dirty() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(nx_shipped_repo)
+	printf 'x\n' >"$proj/scratch.txt"
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: /wrap then /ship
+Why: .specs/001-thing is committed on flow/thing; tree is dirty" "t_next_flow_branch_spec_committed_dirty exact"
+
+	rm -rf "$home" "$proj"
+}
