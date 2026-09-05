@@ -11,6 +11,7 @@
 - Ruling: legacy undated ruling — hook stop-gate.sh — unknown
 - Ruling: format-lint reran prettier on generated files — script fmt-skip + 1 test — noisy but harmless (2026-09-05)
 - Ruling: never edit a test to go green — CLAUDE.md line + hook tamper-notice.sh — a wrong ruling costs one manual rewrite (2026-09-06)
+- Ruling: stop-gate ran the full sweep twice in one turn — hook stop-gate.sh + 1 test — a missed sweep costs one manual run (2026-10-01)
 
 ## Blocked / open questions
 - (none)

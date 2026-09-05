@@ -6,5 +6,6 @@
   {"date": null, "rung": "hook", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "legacy undated ruling"},
   {"date": "2026-09-05", "rung": "script", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "format-lint reran prettier on generated files"},
   {"date": "2026-09-06", "rung": "claude.md", "caught": 0, "last": null, "escaped": 0, "verdict": "unmeasured", "what": "never edit a test to go green"},
+  {"date": "2026-10-01", "rung": "hook", "caught": 0, "last": null, "escaped": 0, "verdict": "young", "what": "stop-gate ran the full sweep twice in one turn"},
   {"date": "2026-01-01", "rung": null, "caught": 1, "last": 14, "escaped": 0, "verdict": "orphan", "what": "some deleted ruling"}
 ]

@@ -6,4 +6,5 @@ date	rung	caught	last	escaped	verdict	what
 -	hook	0	-	0	unmeasured	legacy undated ruling
 2026-09-05	script	0	-	0	unmeasured	format-lint reran prettier on generated files
 2026-09-06	claude.md	0	-	0	unmeasured	never edit a test to go green
+2026-10-01	hook	0	-	0	young	stop-gate ran the full sweep twice in one turn
 2026-01-01	-	1	14	0	orphan	some deleted ruling
