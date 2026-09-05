@@ -166,12 +166,11 @@ _lesson_fire() {
 # the reason unchanged — no nudge text, no signature file write.
 _lesson_nudge() {
 	local reason=$1 sid tmp f sig n
-	case "$reason" in *"/lesson"*)
+	case "$reason" in
+	*"/lesson"*)
 		printf '%s' "$reason"
 		return 0
 		;;
-	esac
-	case "$reason" in
 	*"[lesson("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"): "*"]"*)
 		_lesson_fire "$reason"
 		printf '%s' "$reason"
