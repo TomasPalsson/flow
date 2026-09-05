@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# lesson-claude-md — append one line to CLAUDE.md within a line budget.
+# Bash 3.2 compatible; see --help.
+set -u
+
+usage() {
+  cat <<'HELP'
+Usage: lesson-claude-md --file <CLAUDE.md> --line "<text>" [--what <what> --date <YYYY-MM-DD>] [--cut "<exact existing line>"] [--budget <lines>]
+
+Appends <text> to <CLAUDE.md>, followed by " <!-- lesson(<date>): <what> -->"
+when --what is given (date defaults to today, UTC). Refuses an exact
+duplicate (normalised: strip any HTML comment, lowercase, keep only
+a-z0-9 and space, collapse spaces) with exit 3, naming the matching line.
+At or over the line budget (100 lines for a project file, 40 for
+$HOME/.claude/CLAUDE.md, or the --budget override) the line is refused
+with exit 5 unless --cut names an existing line to remove first, in
+which case that line is removed and the new one appended in the same
+locked write. Advisory: any existing line sharing at least half of the
+new line's distinct 4-letter-or-longer words is printed to stdout as
+"similar: <n>: <line>" (exit stays 0). Creates a missing project file;
+refuses to create a missing $HOME/.claude/CLAUDE.md (exit 4).
+
+Exit codes: 0 written · 2 usage · 3 duplicate or --cut target missing · 4 cannot write · 5 at budget
+HELP
+}
+
+FILE=""
+NEW_LINE=""
+WHAT=""
+DATE=""
+CUT=""
+BUDGET=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --file)
+    FILE=${2:-}
+    shift 2
+    ;;
+  --line)
+    NEW_LINE=${2:-}
+    shift 2
+    ;;
+  --what)
+    WHAT=${2:-}
+    shift 2
+    ;;
+  --date)
+    DATE=${2:-}
+    shift 2
+    ;;
+  --cut)
+    CUT=${2:-}
+    shift 2
+    ;;
+  --budget)
+    BUDGET=${2:-}
+    shift 2
+    ;;
+  *)
+    printf 'lesson-claude-md: unknown argument %s\n' "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+done
+
+if [ -z "$FILE" ] || [ -z "$NEW_LINE" ]; then
+  printf 'lesson-claude-md: --file and --line are both required\n' >&2
+  exit 2
+fi
+
+if [ -n "$DATE" ]; then
+  case "$DATE" in
+  [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+  *)
+    printf 'lesson-claude-md: malformed --date %s (want YYYY-MM-DD)\n' "$DATE" >&2
+    exit 2
+    ;;
+  esac
+fi
+
+# RED stub: signature and argument validation only, no budgeted-write logic yet.
+printf 'lesson-claude-md: not implemented\n' >&2
+exit 99
