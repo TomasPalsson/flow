@@ -9,7 +9,7 @@ set -u
 export LC_ALL=C
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
-. "$HERE/lib/hookout.sh"
+. "$HERE/lib/hookout.sh"; hook_skip_if_off # `flow off` marker: no judging hooks
 cmd=$(hook_field '.tool_input.command')
 [ -z "$cmd" ] && hook_ok
 

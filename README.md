@@ -73,6 +73,7 @@ node ~/Desktop/Projects/flow/plugins/flow/bin/flow install   # links ~/.claude/*
 flow doctor
 cd <any project> && flow init && git add REVIEW.md PROGRESS.md .claude/flow.config.json
 flow next   # prints the next command to run (PROGRESS.md resume line, flow state, dirty tree)
+flow off    # in a scratch or throwaway directory: no judging hooks here or below; `flow on` re-enables
 ```
 
 Without a checkout: `claude plugin marketplace add TomasPalsson/flow && claude plugin install flow@flow` (copy mode; `claude plugin update` to refresh).

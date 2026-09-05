@@ -11,6 +11,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
 . "$HERE/lib/hookout.sh"
+hook_skip_if_off   # `flow off` wrote .claude/flow.off here: no judging hooks
 
 [ "${CC_NO_LESSON_NUDGE:-}" = "1" ] && hook_ok
 

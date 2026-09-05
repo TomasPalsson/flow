@@ -11,6 +11,11 @@ HERE=$(cd "$(dirname "$0")" && pwd -P)
 
 dir=$(hook_project_dir)
 
+if hook_off_here; then
+  printf 'flow: hooks are OFF in this directory (.claude/flow.off, from `flow off`) — no format, size, tamper, spec, stop or git guards; `flow on` re-enables them.\n'
+  hook_ok
+fi
+
 if ! git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   hook_ok
 fi

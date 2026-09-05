@@ -77,6 +77,9 @@ Commands:
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json]                                     Print the next command to run, from
                                                      deterministic repo state only
+  off [<dir>]                                       Turn the judging hooks off for <dir>
+                                                     (default: cwd) and everything under it
+  on [<dir>]                                        Turn them back on
 
 Options:
   -h, --help   Show this help message

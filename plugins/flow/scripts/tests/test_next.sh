@@ -416,3 +416,25 @@ t_next_help_exits_0() {
 
 	rm -rf "$home" "$proj"
 }
+
+# flow off / flow on write and remove the .claude/flow.off marker.
+t_next_flow_off_on_marker() {
+	local repo
+	repo=$(tmp_repo)
+	run_cmd bash -c 'cd "$1" && node "$2" off' _ "$repo" "$SCAN_DIR/../bin/flow"
+	assert_rc 0 "flow off exits 0"
+	assert_file_exists "$repo/.claude/flow.off" "flow off writes the marker"
+	assert_contains "$OUT" "hooks OFF" "flow off says so"
+	assert_contains "$(cat "$repo/.git/info/exclude")" ".claude/flow.off" "flow off excludes the marker locally, never in a tracked file"
+	run_cmd bash -c 'cd "$1" && node "$2" off' _ "$repo" "$SCAN_DIR/../bin/flow"
+	assert_contains "$OUT" "already off" "flow off is idempotent"
+	assert_eq "$(grep -c 'flow.off' "$repo/.git/info/exclude")" "1" "exclude line not duplicated"
+	run_cmd bash -c 'cd "$1" && node "$2" on' _ "$repo" "$SCAN_DIR/../bin/flow"
+	assert_rc 0 "flow on exits 0"
+	assert_file_missing "$repo/.claude/flow.off" "flow on removes the marker"
+	run_cmd node "$SCAN_DIR/../bin/flow" off "$repo/sub-does-not-exist"
+	assert_rc 2 "flow off on a missing dir exits 2"
+	run_cmd node "$SCAN_DIR/../bin/flow" --help
+	assert_contains "$OUT" "off [<dir>]" "top help lists off"
+	rm -rf "$repo"
+}

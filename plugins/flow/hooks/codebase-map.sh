@@ -10,6 +10,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
 . "$HERE/lib/hookout.sh"
+hook_skip_if_off   # `flow off` wrote .claude/flow.off here: no judging hooks
 
 dir=$(hook_project_dir)
 cfg="$dir/.claude/flow.config.json"

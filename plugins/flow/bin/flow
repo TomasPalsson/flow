@@ -147,6 +147,9 @@ ${C.accent}Commands:${C.reset}
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json]                                     Print the next command to run, from
                                                      deterministic repo state only
+  off [<dir>]                                       Turn the judging hooks off for <dir>
+                                                     (default: cwd) and everything under it
+  on [<dir>]                                        Turn them back on
 
 ${C.accent}Options:${C.reset}
   -h, --help   Show this help message
@@ -2095,6 +2098,37 @@ function computeNext(cwd) {
   };
 }
 
+// flow off / flow on — a .claude/flow.off marker in <dir>. Every judging hook
+// (format, size, tamper, spec, stop, git guard, lesson nudge, codebase map)
+// exits 0 when the marker sits in the project dir or any ancestor; the
+// session-start hook says so on the first line. The marker is kept out of
+// git via .git/info/exclude (a local choice, never a tracked file).
+function cmdOffOn(cmd, argv) {
+  const dirArg = argv.find((a) => !a.startsWith('--'));
+  const dir = path.resolve(dirArg || process.cwd());
+  if (!isDir(dir)) { stderr.write(`${C.error}flow ${cmd}: no such directory ${dir}${C.reset}\n`); return 2; }
+  const marker = path.join(dir, '.claude', 'flow.off');
+  if (cmd === 'off') {
+    if (fs.existsSync(marker)) { stdout.write(`flow: already off in ${dir}\n`); return 0; }
+    fs.mkdirSync(path.dirname(marker), { recursive: true });
+    fs.writeFileSync(marker, `flow off — judging hooks disabled for this directory and everything under it.\nRun \`flow on\` here to re-enable. Written ${new Date().toISOString()}.\n`);
+    const top = spawnSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+    if (top.status === 0) {
+      const exclude = path.join(top.stdout.trim(), '.git', 'info', 'exclude');
+      try {
+        const cur = safeRead(exclude) || '';
+        if (cur.indexOf('.claude/flow.off') === -1) fs.appendFileSync(exclude, `${cur.endsWith('\n') || cur === '' ? '' : '\n'}.claude/flow.off\n`);
+      } catch { /* not fatal */ }
+    }
+    stdout.write(`flow: hooks OFF in ${dir} (marker ${marker}; \`flow on\` re-enables)\n`);
+    return 0;
+  }
+  if (!fs.existsSync(marker)) { stdout.write(`flow: already on in ${dir}\n`); return 0; }
+  fs.unlinkSync(marker);
+  stdout.write(`flow: hooks ON in ${dir}\n`);
+  return 0;
+}
+
 function cmdNext(argv) {
   const jsonMode = argv.includes('--json');
   const result = computeNext(process.cwd());
@@ -2141,6 +2175,7 @@ function main() {
   else if (cmd === 'check') process.exit(cmdCheck(rest));
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
   else if (cmd === 'next') process.exit(cmdNext(rest));
+  else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
   else {
     stderr.write(`${C.error}flow: unknown command '${cmd}'${C.reset}\n`);
     printTopHelp();

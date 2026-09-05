@@ -17,6 +17,12 @@
 #   (deny/block/feedback append a "/lesson" suggestion from the second
 #    identical reason in a session — see _lesson_nudge)
 #   hook_ok               exit 0
+#   hook_off_here         true when this directory (or an ancestor) carries a
+#                         .claude/flow.off marker — `flow off` wrote it; every
+#                         judging hook calls hook_skip_if_off right after
+#                         sourcing and exits 0. Bookkeeping hooks (stamps,
+#                         logs, session notice, worklog, rtk) keep running.
+#   hook_skip_if_off      exit 0 when hook_off_here
 #   hook_git_managed <f>  true when <f> sits inside a git work tree and is
 #                         not git-ignored; per-file enforcement hooks skip
 #                         anything else (scratch files, /tmp, ignored build
@@ -64,6 +70,16 @@ else:
     printf ''
   fi
 }
+
+hook_off_here() {
+  local d
+  d=$(hook_project_dir)
+  while :; do
+    [ -f "$d/.claude/flow.off" ] && return 0
+    case "$d" in */*) [ "$d" = "/" ] && return 1; d=${d%/*}; [ -z "$d" ] && d="/" ;; *) return 1 ;; esac
+  done
+}
+hook_skip_if_off() { hook_off_here && exit 0; return 0; }
 
 hook_git_managed() {
   [ "${CC_HOOKS_ALL_FILES:-}" = "1" ] && return 0
