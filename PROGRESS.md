@@ -1,7 +1,7 @@
 # Progress
 
 ## Now
-- resume: `git add plugins/design/skills/vary && git commit` — the `vary` design skill is installed (plugins/design/skills/vary, 11 files) but uncommitted; decide whether `.skill-forge/` (1.7 MB research workspace) is gitignored or kept
+- resume: `flow next` — `vary` design skill committed (617990d) and merged with origin/main; decide whether `.skill-forge/` (1.7 MB research workspace) is gitignored or kept
 
 ## Next
 - Dogfood `/design:vary` on one real surface (a persuade page and an operate page); tune roll.mjs tunables (GLOBAL_WINDOW 8 / PROJECT_WINDOW 3 / ticket weights) from what repeats
@@ -11,7 +11,7 @@
 - Optional: description-triggering optimisation for `vary` via skill-creator `run_loop.py` if available
 
 ## Done
-- 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); installed to plugins/design/skills/vary — uncommitted
+- 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); plugins/design/skills/vary — 617990d
 - 2026-09-05: fix(tutorial) --sandbox path resolution — 7580745
 - 2026-09-05: feat(tutorial) Slice 2 runner, lessons 1-3 — 7df4be7
 - 2026-09-05: `flow off` / `flow on` — fae30ab
@@ -24,4 +24,4 @@
 - Ruling: `.vary/recent.json` (per-project roll memory) is gitignored by roll.mjs, never committed — ephemeral session state, not a design decision — if wrong, teams lose shared anti-repeat memory (reversible)
 
 ## Blocked / open questions
-- (none)
+- new-spec: `.claude/flow.json`, `feature-plan.local.md`, `workflow-state.local.md` and `slices/` are written into the main checkout even under `--worktree`, so two parallel flows clobber each other (seen 2026-09-05); write them into the worktree instead and teach `flow next` / the `agents` alias to look there

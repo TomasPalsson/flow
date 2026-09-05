@@ -1976,6 +1976,28 @@ function gitToplevel(dir) {
   return (r.stdout || '').trim();
 }
 
+// gitPushed: true when the branch has an upstream and no commits ahead of
+// it. Reads the local remote-tracking ref only — no fetch, no network.
+function gitPushed(dir) {
+  const r = spawnSync('git', ['-C', dir, 'rev-list', '--count', '@{u}..HEAD'], { encoding: 'utf8' });
+  return r.status === 0 && (r.stdout || '').trim() === '0';
+}
+
+// findSpecDirForBranch: for a `flow/<slug>` branch, the `.specs/NNN-<slug>`
+// entry that new-spec created for it (relative path), or null.
+function findSpecDirForBranch(cwd, branch) {
+  const slug = branch.replace(/^flow\//, '');
+  const specsDir = path.join(cwd, '.specs');
+  let entries;
+  try {
+    entries = fs.readdirSync(specsDir);
+  } catch {
+    return null;
+  }
+  const hit = entries.find((e) => /^\d{3}-/.test(e) && e.slice(4) === slug);
+  return hit ? path.join('.specs', hit) : null;
+}
+
 // gitDefaultBranch: reads the LOCAL refs/remotes/origin/HEAD symref only
 // (no fetch, no network per C23's "no network" requirement); null when it
 // is not set, in which case the caller falls back to a main/master guess.
@@ -2076,6 +2098,32 @@ function computeNext(cwd) {
   }
 
   if (!flow && /^flow\//.test(branch) && !planExists) {
+    // A committed .specs/NNN-<slug> for this branch means the flow already
+    // ran and its run state was cleaned up after the PR (step 6) — never
+    // send the user back to "write a spec" for a shipped flow.
+    const specDir = findSpecDirForBranch(cwd, branch);
+    if (specDir && dirty) {
+      return {
+        next: '/wrap then /ship',
+        why: `${specDir} is committed on ${branch}; tree is dirty`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped-dirty', specDir },
+      };
+    }
+    if (specDir && gitPushed(cwd)) {
+      const defaultBranch = gitDefaultBranch(cwd) || 'main';
+      return {
+        next: 'gh pr view --web',
+        why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped', specDir },
+      };
+    }
+    if (specDir) {
+      return {
+        next: '/ship',
+        why: `${specDir} is committed on ${branch} but not pushed`,
+        state: { gitRepo: true, branch, dirty, source: 'flow-branch-unpushed', specDir },
+      };
+    }
     return {
       next: '/flow <describe the feature>',
       why: 'spec gate is active on this branch',
