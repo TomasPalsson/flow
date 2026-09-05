@@ -10,6 +10,10 @@ Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--workt
 Computes the next 3-digit spec number from existing <dir>/NNN-* entries
 (001 when none exist), slugifies <title> to lowercase ASCII [a-z0-9-]
 (max 40 chars, computed under LC_ALL=C), and creates <dir>/NNN-slug/.
+The number is the max over the current dir, every git worktree's <dir>,
+and every local/remote branch's committed <dir>. Inside zellij
+(ZELLIJ_PANE_ID set), the pane is renamed to NNN-slug; failures are
+ignored.
 
 Unless --no-branch is given, creates and checks out branch
 <prefix><slug> from the current HEAD. With --worktree, instead creates
@@ -39,23 +43,80 @@ slugify() {
     LC_ALL=C sed -e 's/-*$//'
 }
 
-next_number() {
-  # $1 = dir -> next 3-digit number as a string, "001" when dir is
+bump_max() {
+  # $1 = basename (NNN-*), $2 = current max -> new max, printed.
+  local base="$1" max="$2" n
+  n=${base%%-*}
+  case "$n" in
+  [0-9][0-9][0-9])
+    n=$((10#$n))
+    if [ "$n" -gt "$max" ]; then max=$n; fi
+    ;;
+  esac
+  printf '%s' "$max"
+}
+
+scan_dir_for_max() {
+  # $1 = dir, $2 = current max -> new max, printed. No-op when dir is
   # absent or has no NNN-* entries.
-  local dir="$1" max cand base n
-  max=0
+  local dir="$1" max="$2" cand base
   if [ -d "$dir" ]; then
     for cand in "$dir"/[0-9][0-9][0-9]-*; do
       [ -e "$cand" ] || continue
       base=$(basename "$cand")
-      n=${base%%-*}
-      case "$n" in
-      [0-9][0-9][0-9])
-        n=$((10#$n))
-        if [ "$n" -gt "$max" ]; then max=$n; fi
-        ;;
-      esac
+      max=$(bump_max "$base" "$max")
     done
+  fi
+  printf '%s' "$max"
+}
+
+scan_worktrees_for_max() {
+  # $1 = dir, $2 = current max -> new max, printed. Scans <worktree>/<dir>
+  # for every worktree registered with the current repo, uncommitted
+  # entries included.
+  local dir="$1" max="$2" wt_path worktrees
+  worktrees=$(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+  while IFS= read -r wt_path; do
+    [ -n "$wt_path" ] || continue
+    max=$(scan_dir_for_max "$wt_path/$dir" "$max")
+  done <<WORKTREES
+$worktrees
+WORKTREES
+  printf '%s' "$max"
+}
+
+scan_refs_for_max() {
+  # $1 = dir, $2 = current max -> new max, printed. Scans every local and
+  # remote branch's committed <dir>/NNN-* entries, so a number claimed on
+  # a branch not checked out here is still honored.
+  local dir="$1" max="$2" ref name refs names
+  refs=$(git for-each-ref --format='%(refname)' refs/heads refs/remotes 2>/dev/null)
+  while IFS= read -r ref; do
+    [ -n "$ref" ] || continue
+    names=$(git ls-tree --name-only "$ref" -- "$dir/" 2>/dev/null)
+    while IFS= read -r name; do
+      [ -n "$name" ] || continue
+      max=$(bump_max "$(basename "$name")" "$max")
+    done <<NAMES
+$names
+NAMES
+  done <<REFS
+$refs
+REFS
+  printf '%s' "$max"
+}
+
+next_number() {
+  # $1 = dir -> next 3-digit number as a string, "001" when dir is
+  # absent or has no NNN-* entries anywhere scanned. Scans the current
+  # dir, every git worktree's <dir>, and every local/remote branch's
+  # committed <dir>, so the number stays unique across worktrees and
+  # unmerged branches.
+  local dir="$1" max n
+  max=$(scan_dir_for_max "$dir" 0)
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    max=$(scan_worktrees_for_max "$dir" "$max")
+    max=$(scan_refs_for_max "$dir" "$max")
   fi
   n=$((max + 1))
   printf '%03d' "$n"
@@ -131,6 +192,10 @@ SPEC_DIR="$DIR/$NUMBER-$SLUG"
 if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
   printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
   exit 1
+fi
+
+if [ -n "${ZELLIJ_PANE_ID:-}" ] && command -v zellij >/dev/null 2>&1; then
+  zellij action rename-pane "$NUMBER-$SLUG" >/dev/null 2>&1 || true
 fi
 
 BRANCH=""
