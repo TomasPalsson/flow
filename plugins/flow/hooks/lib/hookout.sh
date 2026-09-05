@@ -9,7 +9,9 @@
 #   HOOK_INPUT            raw JSON from stdin ("" when stdin is a TTY/empty)
 #   hook_field <jqpath>   print a field ("" if absent/false/null); jq, then python3, else ""
 #   have <cmd>            true when <cmd> is on PATH
-#   hook_project_dir      print $CLAUDE_PROJECT_DIR or $PWD
+#   hook_project_dir      print the project dir: CLAUDE_PROJECT_DIR when the
+#                         edited file/cwd is inside it or shares its repo,
+#                         else the file/cwd's own git toplevel, else PWD
 #   hook_stamp_path       print "${TMPDIR:-/tmp}/claude-turn-<session_id>"
 #   hook_deny <reason>    PreToolUse: print deny JSON, exit 0
 #   hook_block <reason>   Stop: print {"decision":"block","reason":...}, exit 0
@@ -143,37 +145,90 @@ _pd_git_toplevel() {
 	printf '%s' "$top"
 }
 
-# hook_project_dir — the project directory a hook should judge against:
-#   1. the git worktree that owns tool_input.file_path (Edit/Write/
-#      NotebookEdit calls carry this) — so a session started in one checkout
-#      that edits files inside a different git worktree is judged by the
-#      file's own repo, not the session's start directory;
-#   2. else the git worktree that owns .cwd (Bash tool calls carry no
-#      file_path, but do carry cwd);
-#   3. else the old behaviour: $CLAUDE_PROJECT_DIR, else $PWD.
-# Any failure along the way (no git, not a repo, jq and python3 both absent)
+# _pd_common_dir <dir> — <dir>'s `git rev-parse --git-common-dir`, normalised
+# to an absolute, symlink-resolved path (git prints it relative to <dir>
+# when the common dir sits inside it, e.g. plain ".git"). Prints nothing on
+# any failure (not a repo, git absent, dir missing).
+_pd_common_dir() {
+	local dir=$1 cd_out
+	cd_out=$(git -C "$dir" rev-parse --git-common-dir 2>/dev/null) || return 0
+	[ -z "$cd_out" ] && return 0
+	case "$cd_out" in
+	/*) : ;;
+	*) cd_out="$dir/$cd_out" ;;
+	esac
+	(cd "$cd_out" 2>/dev/null && pwd -P)
+}
+
+# hook_project_dir — the project directory a hook should judge against.
+# Candidate = tool_input.file_path (Edit/Write/NotebookEdit), else cwd (Bash
+# calls carry no file_path); a relative candidate is resolved against the
+# .cwd field when present, else $PWD — never against ".". When
+# CLAUDE_PROJECT_DIR (base) is set and the candidate is base or under it, or
+# when the candidate's git toplevel shares base's repo (same
+# --git-common-dir, e.g. a worktree of it), base wins — one repo, no matter
+# which worktree/subpath a hook happened to touch. A candidate outside
+# base's repo (unrelated repo, or base unset) resolves to its own toplevel;
+# no toplevel at all falls back to base, else $PWD. Memoised into
+# $_PD_RESULT for the life of the process: later calls just print it. Any
+# failure along the way (no git, not a repo, jq and python3 both absent)
 # falls through to the next rule; this never prints an empty string and
 # never writes to stderr.
 # lesson(2026-09-05): hooks resolved the project from the session start dir, not the edited file
+# lesson(2026-09-05): a nested repo, or an unrelated one, could hijack the project dir
 hook_project_dir() {
-	local f c top
-	f=$(hook_field '.tool_input.file_path')
-	if [ -n "$f" ]; then
-		top=$(_pd_git_toplevel "$f")
-		[ -n "$top" ] && {
-			printf '%s' "$top"
-			return 0
-		}
+	if [ "${_PD_DONE:-0}" = "1" ]; then
+		printf '%s' "$_PD_RESULT"
+		return 0
 	fi
-	c=$(hook_field '.cwd')
-	if [ -n "$c" ]; then
-		top=$(_pd_git_toplevel "$c")
-		[ -n "$top" ] && {
-			printf '%s' "$top"
-			return 0
-		}
+	local base cand cwd_field top common_t common_b
+	base=${CLAUDE_PROJECT_DIR:-}
+	cand=$(hook_field '.tool_input.file_path')
+	[ -z "$cand" ] && cand=$(hook_field '.cwd')
+	if [ -n "$cand" ]; then
+		case "$cand" in
+		/*) : ;;
+		*)
+			cwd_field=$(hook_field '.cwd')
+			if [ -n "$cwd_field" ]; then
+				cand="$cwd_field/$cand"
+			else
+				cand="$PWD/$cand"
+			fi
+			;;
+		esac
 	fi
-	if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then printf '%s' "$CLAUDE_PROJECT_DIR"; else printf '%s' "$PWD"; fi
+
+	if [ -n "$base" ] && [ -n "$cand" ]; then
+		case "$cand" in
+		"$base" | "$base"/*)
+			_PD_RESULT=$base
+			_PD_DONE=1
+			printf '%s' "$_PD_RESULT"
+			return 0
+			;;
+		esac
+	fi
+
+	top=""
+	[ -n "$cand" ] && top=$(_pd_git_toplevel "$cand")
+
+	if [ -z "$top" ]; then
+		if [ -n "$base" ]; then _PD_RESULT=$base; else _PD_RESULT=$PWD; fi
+	elif [ -z "$base" ]; then
+		_PD_RESULT=$top
+	else
+		common_t=$(_pd_common_dir "$top")
+		common_b=$(_pd_common_dir "$base")
+		if [ -n "$common_t" ] && [ "$common_t" = "$common_b" ]; then
+			_PD_RESULT=$top
+		else
+			_PD_RESULT=$base
+		fi
+	fi
+
+	_PD_DONE=1
+	printf '%s' "$_PD_RESULT"
 }
 
 hook_stamp_path() {
