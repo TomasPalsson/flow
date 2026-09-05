@@ -9,7 +9,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
 . "$HERE/lib/hookout.sh"
-hook_skip_if_off   # `flow off` wrote .claude/flow.off here: no judging hooks
+hook_skip_if_off # `flow off` wrote .claude/flow.off here: no judging hooks
 
 file_path=$(hook_field '.tool_input.file_path')
 [ -z "$file_path" ] && hook_ok
@@ -35,14 +35,14 @@ _size_guard_enabled="true"
 _max_file=""
 _max_func=""
 if have jq && [ -f "$cfg" ]; then
-  v=$(jq -r 'if has("sizeGuard") then (.sizeGuard | tostring) else empty end' "$cfg" 2>/dev/null)
-  [ -n "$v" ] && _size_guard_enabled="$v"
-  v=$(jq -r 'if has("ignore") then ((.ignore // [])[]) else empty end' "$cfg" 2>/dev/null)
-  [ -n "$v" ] && _ignore_list="$v"
-  v=$(jq -r 'if has("maxFileLines") then (.maxFileLines | tostring) else empty end' "$cfg" 2>/dev/null)
-  [ -n "$v" ] && _max_file="$v"
-  v=$(jq -r 'if has("maxFuncLines") then (.maxFuncLines | tostring) else empty end' "$cfg" 2>/dev/null)
-  [ -n "$v" ] && _max_func="$v"
+	v=$(jq -r 'if has("sizeGuard") then (.sizeGuard | tostring) else empty end' "$cfg" 2>/dev/null)
+	[ -n "$v" ] && _size_guard_enabled="$v"
+	v=$(jq -r 'if has("ignore") then ((.ignore // [])[]) else empty end' "$cfg" 2>/dev/null)
+	[ -n "$v" ] && _ignore_list="$v"
+	v=$(jq -r 'if has("maxFileLines") then (.maxFileLines | tostring) else empty end' "$cfg" 2>/dev/null)
+	[ -n "$v" ] && _max_file="$v"
+	v=$(jq -r 'if has("maxFuncLines") then (.maxFuncLines | tostring) else empty end' "$cfg" 2>/dev/null)
+	[ -n "$v" ] && _max_func="$v"
 fi
 
 [ "$_size_guard_enabled" = "false" ] && hook_ok
@@ -63,14 +63,14 @@ case "$file_path" in
 *_test.* | *.test.* | *.spec.* | */tests/* | */__tests__/* | tests/* | __tests__/*) hook_ok ;;
 esac
 case "$file_path" in
-*.json | *.md | *.lock | *.svg | *.snap | *.csv | *.yml | *.yaml) hook_ok ;;
+*.json | *.md | *.lock | *.svg | *.snap | *.csv | *.yml | *.yaml | *.log) hook_ok ;;
 esac
 
 while IFS= read -r pat; do
-  [ -z "$pat" ] && continue
-  case "$file_path" in
-  *"$pat"*) hook_ok ;;
-  esac
+	[ -z "$pat" ] && continue
+	case "$file_path" in
+	*"$pat"*) hook_ok ;;
+	esac
 done <<EOF
 $_ignore_list
 EOF
