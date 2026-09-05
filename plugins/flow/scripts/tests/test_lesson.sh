@@ -22,7 +22,9 @@ t_lesson_sites_plain_project_reports_every_rung() {
 	done
 	assert_contains "$OUT" "test present package.json test script" "lesson-sites detects the npm test script"
 	assert_contains "$OUT" "hook absent" "lesson-sites reports no project hooks"
-	printf '{"name":"x","scripts":{"build":"x"}}\n' >"$d/package.json"; mkdir -p "$d/tests"; : >"$d/tests/a.test.js"
+	printf '{"name":"x","scripts":{"build":"x"}}\n' >"$d/package.json"
+	mkdir -p "$d/tests"
+	: >"$d/tests/a.test.js"
 	run_cmd env HOME="$d/nohome" "$SITES" --dir "$d"
 	assert_contains "$OUT" "test absent package.json has no test script" "Node project without a test script is not reported as pytest"
 	run_cmd env -u HOME "$SITES" --dir "$d"
@@ -54,7 +56,11 @@ t_lesson_sites_flags_claude_md_at_budget() {
 	local d i
 	d=$(tmp_dir)
 	: >"$d/CLAUDE.md"
-	i=0; while [ $i -lt 100 ]; do printf 'line\n' >>"$d/CLAUDE.md"; i=$((i + 1)); done
+	i=0
+	while [ $i -lt 100 ]; do
+		printf 'line\n' >>"$d/CLAUDE.md"
+		i=$((i + 1))
+	done
 	run_cmd env HOME="$d/nohome" "$SITES" --dir "$d"
 	assert_contains "$OUT" "AT BUDGET" "lesson-sites flags a 100-line project CLAUDE.md"
 	rm -rf "$d"
@@ -68,8 +74,9 @@ t_lesson_record_help_and_usage() {
 }
 
 t_lesson_record_appends_under_rulings() {
-	local d
+	local d today
 	d=$(tmp_dir)
+	today=$(date -u +%Y-%m-%d)
 	cat >"$d/PROGRESS.md" <<'P'
 # Progress
 
@@ -84,23 +91,68 @@ t_lesson_record_appends_under_rulings() {
 P
 	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "pushed with --force" --mechanism "hook git-guard.sh + 2 tests" --cost "one manual retry"
 	assert_rc 0 "lesson-record exits 0"
-	assert_contains "$OUT" "- Ruling: pushed with --force — hook git-guard.sh + 2 tests — one manual retry" "lesson-record prints the line"
+	assert_contains "$OUT" "- Ruling: pushed with --force — hook git-guard.sh + 2 tests — one manual retry ($today)" "lesson-record prints the dated line"
 	assert_eq "$(sed -n '/^## Rulings/,/^## Blocked/p' "$d/PROGRESS.md" | grep -c '^- Ruling:')" "2" "lesson-record keeps the old ruling and adds the new one inside the section"
 	assert_eq "$(grep -n 'pushed with --force' "$d/PROGRESS.md" | cut -d: -f1)" "8" "lesson-record inserts after the last ruling, before the next heading"
 	rm -rf "$d"
 }
 
 t_lesson_record_creates_file_and_section() {
-	local d
+	local d today
 	d=$(tmp_dir)
+	today=$(date -u +%Y-%m-%d)
 	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "a" --mechanism "b" --cost "c"
 	assert_rc 0 "lesson-record creates PROGRESS.md"
 	assert_contains "$(cat "$d/PROGRESS.md")" "## Rulings" "created file has a Rulings section"
-	assert_contains "$(cat "$d/PROGRESS.md")" "- Ruling: a — b — c" "created file holds the ruling"
+	assert_contains "$(cat "$d/PROGRESS.md")" "- Ruling: a — b — c ($today)" "created file holds the dated ruling"
 	printf '# P\n\n## Now\n- x\n' >"$d/other.md"
 	run_cmd "$RECORD" --file "$d/other.md" --what "a" --mechanism "b" --cost "c"
 	assert_rc 0 "lesson-record adds a missing Rulings section"
 	assert_eq "$(tail -2 "$d/other.md" | head -1)" "## Rulings" "section appended at the end"
+	rm -rf "$d"
+}
+
+t_lesson_record_B1_dates_new_ruling_and_prints_marker() {
+	local d today
+	d=$(tmp_dir)
+	today=$(date -u +%Y-%m-%d)
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "dated" --mechanism "m" --cost "c"
+	assert_rc 0 "B1: lesson-record exits 0"
+	assert_contains "$OUT" "- Ruling: dated — m — c ($today)" "B1: appended line ends with today's date"
+	assert_eq "$(printf '%s' "$OUT" | sed -n '2p')" "marker: lesson($today): dated" "B1: second stdout line is the marker"
+	assert_contains "$(cat "$d/PROGRESS.md")" "- Ruling: dated — m — c ($today)" "B1: PROGRESS.md holds the dated ruling"
+	rm -rf "$d"
+}
+
+t_lesson_record_B2_leaves_existing_undated_ruling_unchanged() {
+	local d
+	d=$(tmp_dir)
+	printf '# P\n\n## Rulings\n- Ruling: legacy undated ruling — hook stop-gate.sh — unknown\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "new one" --mechanism "m" --cost "c" --date 2026-01-02
+	assert_rc 0 "B2: lesson-record exits 0"
+	assert_eq "$(grep -F -x -c -- "- Ruling: legacy undated ruling — hook stop-gate.sh — unknown" "$d/PROGRESS.md")" "1" "B2: the undated ruling line is unchanged byte for byte"
+	rm -rf "$d"
+}
+
+t_lesson_record_B3_date_flag_overrides_today() {
+	local d
+	d=$(tmp_dir)
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "picked" --mechanism "m" --cost "c" --date 2026-01-02
+	assert_rc 0 "B3: lesson-record exits 0"
+	assert_contains "$OUT" "- Ruling: picked — m — c (2026-01-02)" "B3: --date overrides today's date"
+	assert_eq "$(printf '%s' "$OUT" | sed -n '2p')" "marker: lesson(2026-01-02): picked" "B3: marker uses the passed date"
+	rm -rf "$d"
+}
+
+t_lesson_record_B4_malformed_date_exits_2_nothing_written() {
+	local d
+	d=$(tmp_dir)
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "bad" --mechanism "m" --cost "c" --date 20260102
+	assert_rc 2 "B4: malformed --date exits 2"
+	assert_eq "$(grep -c '^- Ruling: bad' "$d/PROGRESS.md")" "0" "B4: nothing written on malformed --date"
 	rm -rf "$d"
 }
 
@@ -164,7 +216,11 @@ t_lesson_record_warns_over_budget() {
 	local d i
 	d=$(tmp_dir)
 	printf '# P\n\n## Rulings\n' >"$d/PROGRESS.md"
-	i=0; while [ $i -lt 60 ]; do printf -- '- filler %s\n' "$i" >>"$d/PROGRESS.md"; i=$((i + 1)); done
+	i=0
+	while [ $i -lt 60 ]; do
+		printf -- '- filler %s\n' "$i" >>"$d/PROGRESS.md"
+		i=$((i + 1))
+	done
 	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "w" --mechanism "m" --cost "c"
 	assert_rc 0 "over-budget file still exits 0"
 	assert_contains "$ERR" "budget 60" "lesson-record warns when PROGRESS.md exceeds 60 lines"
