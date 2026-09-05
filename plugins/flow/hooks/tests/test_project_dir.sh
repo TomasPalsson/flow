@@ -67,13 +67,15 @@ t_project_dir_prefers_the_edited_files_repo() {
 	local scriptdir a b s json expected
 	scriptdir=$(tmp_dir)
 	a=$(tmp_repo)
-	b=$(tmp_repo)
+	b=$(tmp_dir)
+	rm -rf "$b"
+	git -C "$a" worktree add "$b" -b wt-prefers >/dev/null 2>&1
 	s=$(_pd_probe_script "$scriptdir")
 	json=$(printf '{"session_id":"s","cwd":"%s","tool_input":{"file_path":"%s/src/new/file.sh"}}' "$a" "$b")
 	run_hook "$s" "$json" CLAUDE_PROJECT_DIR="$a"
 	expected=$(cd "$b" && pwd -P)
 	assert_rc 0 "prefers-edited-repo: rc 0"
-	assert_eq "$OUT" "$expected" "prefers-edited-repo: resolves to B, not A (session start dir)"
+	assert_eq "$OUT" "$expected" "prefers-edited-repo: resolves to B's worktree, not A (session start dir)"
 	rm -rf "$scriptdir" "$a" "$b"
 }
 
@@ -120,7 +122,9 @@ t_project_dir_falls_back_to_session_dir() {
 t_spec_gate_reads_the_plan_from_the_files_repo() {
 	local a b scripts json
 	a=$(tmp_repo)
-	b=$(tmp_repo)
+	b=$(tmp_dir)
+	rm -rf "$b"
+	git -C "$a" worktree add "$b" -b wt-spec >/dev/null 2>&1
 	scripts=$(_pd_scripts_dir)
 
 	# B: requireSpec true, approved lint-clean plan; A: requireSpec true, no plan.
@@ -145,4 +149,116 @@ t_spec_gate_reads_the_plan_from_the_files_repo() {
 	assert_contains "$OUT" '"deny"' "spec-gate-reads-files-repo inverse: B has no plan, A's plan is not consulted"
 
 	rm -rf "$a" "$b"
+}
+
+# A nested git repo inside the project (e.g. a scratch checkout under the
+# tree) must never make hook_project_dir report the nested repo's toplevel:
+# the fast base-prefix path wins before any git lookup runs.
+t_project_dir_nested_repo_inside_project_stays_project() {
+	local scriptdir a scripts s json expected
+	scriptdir=$(tmp_dir)
+	a=$(tmp_repo)
+	scripts=$(_pd_scripts_dir)
+	mkdir -p "$a/.claude" "$a/scratch/src"
+	printf '{"requireSpec": true}\n' >"$a/.claude/flow.config.json"
+	(
+		cd "$a/scratch" || exit 1
+		git init -q
+		git config user.email "test@example.com"
+		git config user.name "harness-test"
+		git config commit.gpgsign false
+	) >/dev/null 2>&1
+
+	json=$(printf '{"session_id":"s","tool_input":{"file_path":"%s/scratch/src/x.ts"}}' "$a")
+	run_hook "$SCAN_DIR/spec-gate.sh" "$json" CLAUDE_PROJECT_DIR="$a" CC_SCRIPTS_DIR="$scripts"
+	assert_rc 0 "nested-repo-inside-project: spec-gate rc 0"
+	assert_contains "$OUT" '"deny"' "nested-repo-inside-project: nested scratch repo does not switch spec-gate off for the project"
+
+	s=$(_pd_probe_script "$scriptdir")
+	run_hook "$s" "$json" CLAUDE_PROJECT_DIR="$a"
+	expected=$(cd "$a" && pwd -P)
+	assert_rc 0 "nested-repo-inside-project: probe rc 0"
+	assert_eq "$OUT" "$expected" "nested-repo-inside-project: hook_project_dir resolves to A, not the nested scratch repo"
+
+	rm -rf "$scriptdir" "$a"
+}
+
+# A worktree of the session's own repo legitimately wins over
+# CLAUDE_PROJECT_DIR — same repository, different checkout.
+t_project_dir_worktree_of_same_repo_is_accepted() {
+	local scriptdir a b s json expected
+	scriptdir=$(tmp_dir)
+	a=$(tmp_repo)
+	b=$(tmp_dir)
+	rm -rf "$b"
+	git -C "$a" worktree add "$b" -b wt-accepted >/dev/null 2>&1
+	s=$(_pd_probe_script "$scriptdir")
+	json=$(printf '{"session_id":"s","tool_input":{"file_path":"%s/src/new/file.sh"}}' "$b")
+	run_hook "$s" "$json" CLAUDE_PROJECT_DIR="$a"
+	expected=$(cd "$b" && pwd -P)
+	assert_rc 0 "worktree-of-same-repo: rc 0"
+	assert_eq "$OUT" "$expected" "worktree-of-same-repo: same-repo worktree B wins over session's CLAUDE_PROJECT_DIR A"
+	rm -rf "$scriptdir" "$a" "$b"
+}
+
+# An unrelated repo (not a worktree of the session's repo) must not hijack
+# the project dir: falls back to CLAUDE_PROJECT_DIR.
+t_project_dir_unrelated_repo_falls_back_to_session_dir() {
+	local scriptdir a b s json
+	scriptdir=$(tmp_dir)
+	a=$(tmp_repo)
+	b=$(tmp_repo)
+	s=$(_pd_probe_script "$scriptdir")
+	json=$(printf '{"session_id":"s","tool_input":{"file_path":"%s/src/new/file.sh"}}' "$b")
+	run_hook "$s" "$json" CLAUDE_PROJECT_DIR="$a"
+	assert_rc 0 "unrelated-repo-falls-back: rc 0"
+	assert_eq "$OUT" "$a" "unrelated-repo-falls-back: an unrelated repo does not override the session's project dir"
+	rm -rf "$scriptdir" "$a" "$b"
+}
+
+# A relative file_path must resolve against the .cwd field, not the hook
+# process's own $PWD (which is the session's start directory, not
+# necessarily where the tool call actually ran).
+t_project_dir_relative_path_resolves_against_cwd_field() {
+	local scriptdir a b s json errf expected
+	scriptdir=$(tmp_dir)
+	a=$(tmp_repo)
+	b=$(tmp_dir)
+	rm -rf "$b"
+	git -C "$a" worktree add "$b" -b wt-relative >/dev/null 2>&1
+	s=$(_pd_probe_script "$scriptdir")
+	json=$(printf '{"session_id":"s","cwd":"%s","tool_input":{"file_path":"src/new/file.sh"}}' "$b")
+	errf=$(mktemp "${TMPDIR:-/tmp}/flow-err.XXXXXX")
+	OUT=$(cd "$a" && printf '%s' "$json" | bash "$s" 2>"$errf")
+	RC=$?
+	ERR=$(cat "$errf")
+	rm -f "$errf"
+	expected=$(cd "$b" && pwd -P)
+	assert_rc 0 "relative-path-resolves-against-cwd: rc 0"
+	assert_eq "$OUT" "$expected" "relative-path-resolves-against-cwd: relative file_path resolves against the .cwd field (B), not the hook's own \$PWD (A)"
+	rm -rf "$scriptdir" "$a" "$b"
+}
+
+# The fast base-prefix path never spawns git: shim PATH with a `git` that
+# marks itself as having run and fails, and prove the marker never appears.
+t_project_dir_fast_path_needs_no_git() {
+	local scriptdir a s json fakebin marker
+	scriptdir=$(tmp_dir)
+	a=$(tmp_dir)
+	mkdir -p "$a/src"
+	s=$(_pd_probe_script "$scriptdir")
+	fakebin=$(tmp_dir)
+	marker="$fakebin/called"
+	cat >"$fakebin/git" <<EOF
+#!/usr/bin/env bash
+touch "$marker"
+exit 1
+EOF
+	chmod +x "$fakebin/git"
+	json=$(printf '{"session_id":"s","tool_input":{"file_path":"%s/src/new/file.sh"}}' "$a")
+	run_hook "$s" "$json" CLAUDE_PROJECT_DIR="$a" PATH="$fakebin:$PATH"
+	assert_rc 0 "fast-path-no-git: rc 0"
+	assert_eq "$OUT" "$a" "fast-path-no-git: candidate under base resolves without a git lookup"
+	assert_file_missing "$marker" "fast-path-no-git: git was never spawned"
+	rm -rf "$scriptdir" "$a" "$fakebin"
 }
