@@ -236,6 +236,45 @@ t_lesson_fires_B7_unwritable_is_swallowed() {
 	rm -rf "$scriptdir" "$projA" "$projB"
 }
 
+t_lesson_fires_B7b_readonly_log_is_silent() {
+	local scriptdir proj s sid reason log
+	if [ "$(id -u)" = "0" ]; then
+		_pass "B7b: read-only fire log silent (skipped: running as root)"
+		return
+	fi
+	scriptdir=$(tmp_dir)
+	s=$(_fires_deny_script "$scriptdir")
+	reason="blocked [lesson(2026-09-05): readonly log case]"
+
+	# Sub-case 1: .claude/lesson-fires.log pre-exists, chmod 444
+	proj=$(tmp_dir)
+	sid="fires-b7b1-$$"
+	mkdir -p "$proj/.claude"
+	log="$proj/.claude/lesson-fires.log"
+	: >"$log"
+	chmod 444 "$log"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "B7b readonly log: deny rc 0"
+	assert_eq "$ERR" "" "B7b readonly log: nothing on stderr"
+	assert_eq "$(printf '%s' "$OUT" | jq -r '.hookSpecificOutput.permissionDecisionReason')" "$reason" "B7b readonly log: reason printed verbatim"
+	assert_eq "$(cat "$log")" "" "B7b readonly log: log still empty"
+	chmod 644 "$log"
+	rm -rf "$proj"
+
+	# Sub-case 2: .claude directory chmod 555, log absent
+	proj=$(tmp_dir)
+	sid="fires-b7b2-$$"
+	mkdir -p "$proj/.claude"
+	chmod 555 "$proj/.claude"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "B7b unwritable .claude dir: deny rc 0"
+	assert_eq "$ERR" "" "B7b unwritable .claude dir: nothing on stderr"
+	assert_eq "$(printf '%s' "$OUT" | jq -r '.hookSpecificOutput.permissionDecisionReason')" "$reason" "B7b unwritable .claude dir: reason printed verbatim"
+	assert_file_missing "$proj/.claude/lesson-fires.log" "B7b unwritable .claude dir: no log written"
+	chmod 755 "$proj/.claude"
+	rm -rf "$scriptdir" "$proj"
+}
+
 t_lesson_fires_B8_tab_stripped() {
 	local scriptdir proj s sid reason log line fields what date
 	scriptdir=$(tmp_dir)
