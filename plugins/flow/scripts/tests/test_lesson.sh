@@ -259,6 +259,21 @@ t_lesson_record_rejects_control_characters() {
 	rm -rf "$d"
 }
 
+t_lesson_record_writes_backslashes_and_quotes_verbatim() {
+	local d today what expected marker
+	d=$(tmp_dir)
+	today="2026-09-05"
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	what='quote " and back \ slash'
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "$what" --mechanism "hook x.sh" --cost "c" --date "$today"
+	assert_rc 0 "verbatim: backslashes, quotes and a stray space exit 0"
+	expected=$(printf -- '- Ruling: %s — %s — %s (%s)' "$what" "hook x.sh" "c" "$today")
+	assert_eq "$(grep -F -x -c -- "$expected" "$d/PROGRESS.md")" "1" "verbatim: exact ruling line present in PROGRESS.md"
+	marker=$(printf 'marker: lesson(%s): %s' "$today" "$what")
+	assert_eq "$(printf '%s' "$OUT" | sed -n '2p')" "$marker" "verbatim: marker line matches byte-for-byte"
+	rm -rf "$d"
+}
+
 t_lesson_skill_frontmatter_and_references() {
 	local skill
 	skill="$SCAN_DIR/../skills/lesson/SKILL.md"
