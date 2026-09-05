@@ -83,6 +83,133 @@ if [ -n "$DATE" ]; then
   esac
 fi
 
-# RED stub: signature and argument validation only, no budgeted-write logic yet.
-printf 'lesson-claude-md: not implemented\n' >&2
-exit 99
+if [ -n "$WHAT" ] && [ -z "$DATE" ]; then
+  DATE=$(date -u +%Y-%m-%d)
+fi
+
+die() {
+  printf 'lesson-claude-md: %s\n' "$1" >&2
+  exit 4
+}
+
+HOME_CLAUDE_MD="${HOME:-}/.claude/CLAUDE.md"
+if [ -z "$BUDGET" ]; then
+  if [ -n "${HOME:-}" ] && [ "$FILE" = "$HOME_CLAUDE_MD" ]; then
+    BUDGET=40
+  else
+    BUDGET=100
+  fi
+fi
+
+if [ ! -f "$FILE" ] && [ -n "${HOME:-}" ] && [ "$FILE" = "$HOME_CLAUDE_MD" ]; then
+  die "$FILE does not exist"
+fi
+
+WRITE_LINE=$NEW_LINE
+if [ -n "$WHAT" ]; then
+  WRITE_LINE="$NEW_LINE <!-- lesson($DATE): $WHAT -->"
+fi
+
+# normalise <line> → strip any HTML comment, lowercase, keep only a-z0-9 and
+# space, collapse spaces, trim (used for the duplicate and similar checks).
+normalise() {
+  printf '%s' "$1" |
+    sed -e 's/<!--.*-->//g' |
+    tr 'A-Z' 'a-z' |
+    tr -cd 'a-z0-9 \n' |
+    tr -s ' ' |
+    sed -e 's/^ *//' -e 's/ *$//'
+}
+
+NEW_NORMALISED=$(normalise "$NEW_LINE")
+
+# Serialise concurrent runs (mkdir is atomic on every POSIX filesystem);
+# copied from lesson-record, not shared (design section 6).
+LOCK="${FILE}.lock"
+_tries=0
+until mkdir "$LOCK" 2>/dev/null; do
+  _tries=$((_tries + 1))
+  [ "$_tries" -ge 40 ] && die "could not take $LOCK after 4s (stale? rmdir it)"
+  sleep 0.1
+done
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+
+[ -f "$FILE" ] || : >"$FILE" || die "cannot create $FILE"
+[ -r "$FILE" ] || die "cannot read $FILE"
+
+CUT_LINE_NUMBER=""
+if [ -n "$CUT" ]; then
+  CUT_LINE_NUMBER=$(grep -F -x -n -- "$CUT" "$FILE" | head -1 | cut -d: -f1)
+  if [ -z "$CUT_LINE_NUMBER" ]; then
+    printf 'lesson-claude-md: --cut target not found: %s\n' "$CUT" >&2
+    exit 3
+  fi
+fi
+
+# distinct words of 4+ letters in the new line, for the similar check.
+NEW_WORDS=$(printf '%s\n' "$NEW_NORMALISED" | tr ' ' '\n' | awk 'length($0) >= 4' | sort -u)
+NEW_WORD_COUNT=$(printf '%s\n' "$NEW_WORDS" | grep -c '.')
+
+SIMILAR_LINES=""
+DUPLICATE_LINE_NUMBER=""
+DUPLICATE_TEXT=""
+line_number=0
+while IFS= read -r existing_line || [ -n "$existing_line" ]; do
+  line_number=$((line_number + 1))
+  [ "$line_number" = "$CUT_LINE_NUMBER" ] && continue
+  existing_normalised=$(normalise "$existing_line")
+  if [ -z "$DUPLICATE_LINE_NUMBER" ] && [ "$existing_normalised" = "$NEW_NORMALISED" ]; then
+    DUPLICATE_LINE_NUMBER=$line_number
+    DUPLICATE_TEXT=$existing_line
+    continue
+  fi
+  if [ "$NEW_WORD_COUNT" -gt 0 ]; then
+    shared=0
+    for word in $NEW_WORDS; do
+      case " $existing_normalised " in
+      *" $word "*) shared=$((shared + 1)) ;;
+      esac
+    done
+    if [ "$shared" -gt 0 ] && [ $((shared * 2)) -ge "$NEW_WORD_COUNT" ]; then
+      SIMILAR_LINES="${SIMILAR_LINES}similar: $line_number: $existing_line
+"
+    fi
+  fi
+done <"$FILE"
+
+if [ -n "$DUPLICATE_LINE_NUMBER" ]; then
+  printf 'lesson-claude-md: duplicate of line %s: %s\n' "$DUPLICATE_LINE_NUMBER" "$DUPLICATE_TEXT" >&2
+  exit 3
+fi
+
+lines_before=$line_number
+[ -n "$CUT_LINE_NUMBER" ] && lines_before=$((lines_before - 1))
+lines_after=$((lines_before + 1))
+
+if [ -z "$CUT" ] && [ "$lines_before" -ge "$BUDGET" ]; then
+  printf 'lesson-claude-md: at budget (%s/%s): pass --cut "<exact existing line>" to swap\n' "$lines_before" "$BUDGET" >&2
+  exit 5
+fi
+
+tmp="${FILE}.lesson.$$"
+if [ -n "$CUT_LINE_NUMBER" ]; then
+  awk -v skip="$CUT_LINE_NUMBER" 'NR != skip' "$FILE" >"$tmp" || {
+    rm -f "$tmp"
+    die "cannot write $tmp"
+  }
+else
+  cp "$FILE" "$tmp" || die "cannot write $tmp"
+fi
+printf '%s\n' "$WRITE_LINE" >>"$tmp" || {
+  rm -f "$tmp"
+  die "cannot write $tmp"
+}
+mv "$tmp" "$FILE" || {
+  rm -f "$tmp"
+  die "cannot replace $FILE"
+}
+
+printf '%s\n' "$WRITE_LINE"
+printf '%s' "$SIMILAR_LINES"
+printf 'lines: %s/%s\n' "$lines_after" "$BUDGET"
+exit 0
