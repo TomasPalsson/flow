@@ -72,15 +72,16 @@ fi
 
 # deny
 settings_file="$DIR/.claude/settings.json"
+global_deny_hint="~/.claude/settings.json for a machine-wide rule"
 if [ -f "$settings_file" ] && grep -q '"deny"' "$settings_file"; then
   deny_status=present
   deny_detail="$settings_file already has a permissions.deny block"
 elif [ -f "$settings_file" ]; then
   deny_status=absent
-  deny_detail="$settings_file exists; add a permissions.deny block to it; ~/.claude/settings.json for a machine-wide rule"
+  deny_detail="$settings_file exists; add a permissions.deny block to it; $global_deny_hint"
 else
   deny_status=absent
-  deny_detail="$settings_file does not exist; create it with a permissions.deny block; ~/.claude/settings.json for a machine-wide rule"
+  deny_detail="$settings_file does not exist; create it with a permissions.deny block; $global_deny_hint"
 fi
 
 # hook
