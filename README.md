@@ -1,4 +1,4 @@
-# harness
+# flow
 
 A deterministic harness for Claude Code: lifecycle hooks that enforce what prose only requests, a script toolbox that owns numbering, briefs and gates, saved workflows for fan-out with independent review, a small set of agents and commands that usage data actually justifies, and a rewritten `flow` pipeline that reads one step at a time.
 
@@ -18,12 +18,12 @@ The research consensus (vendor docs, independent measurements, thirteen framewor
 
 ## What is in this repo
 
-This repo is a Claude Code **plugin marketplace**. `harness` is the core plugin; the others bundle domain skills so they load only where enabled.
+This repo is a Claude Code **plugin marketplace**. `flow` is the core plugin; the others bundle domain skills so they load only where enabled.
 
 ```
 .claude-plugin/marketplace.json
 plugins/
-├── harness/           hooks/ (+ hooks.json) · scripts/ · workflows/ · harness-templates/ · bin/harness · skills/ (flow suite, qa, audit, fix, ultracode, …)
+├── flow/              hooks/ (+ hooks.json) · scripts/ · workflows/ · flow-templates/ · bin/flow · skills/ (flow suite, qa, audit, fix, ultracode, …)
 ├── design/            design, impeccable, ui-ux-pro-max, mobile-design, polish, showcase, ui-animation, explainer
 ├── finance/           alpha-hunt, portfolio, investment, etoro
 ├── aws/               aws-explore, aws-lambda-microvms, strands-agentcore, strands-steering-hooks, agui-strands, sst
@@ -34,7 +34,7 @@ docs/                  research, SPEC, decisions, generated reference
 
 User-level config stays in the dotfiles: `~/.claude/{CLAUDE.md, settings.json, agents/, commands/}`. Hooks register from the plugin's `hooks.json`, so `settings.json` carries no hooks block (the doctor reports a double registration if it does).
 
-Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to `plugins/`, so each plugin auto-loads in place as `<name>@skills-dir` and edits are live (`git pull` is the sync). `~/.claude/{hooks,scripts,harness-templates}` link into `plugins/harness/`. Workflows register as `harness:<name>`.
+Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to `plugins/`, so each plugin auto-loads in place as `<name>@skills-dir` and edits are live (`git pull` is the sync). `~/.claude/{hooks,scripts,flow-templates}` link into `plugins/flow/`. Workflows register as `flow:<name>`.
 
 ## The spine (always on)
 
@@ -49,7 +49,7 @@ Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to
 | Subagent end | `subagent-log.sh` | logs the final message so a lost report is recoverable |
 | Permission / idle | `notify.sh` | desktop notification (notify-send / osascript) |
 
-Per-project knobs in `.claude/harness.json`: `maxFileLines`, `maxFuncLines`, `stopGate` (`scoped` | `true` | `false`), `stopGateFullEverySec`, `sizeGuard`, `formatOnEdit`, `ignore`, `codebaseMap`.
+Per-project knobs in `.claude/flow.config.json`: `maxFileLines`, `maxFuncLines`, `stopGate` (`scoped` | `true` | `false`), `stopGateFullEverySec`, `sizeGuard`, `formatOnEdit`, `ignore`, `codebaseMap`.
 
 ## The loop (instead of "throw a goal at /flow")
 
@@ -65,19 +65,19 @@ Full version with justifications: [`docs/research/01-harness-engineering-2026.md
 ## Install (each machine)
 
 ```bash
-git clone git@github.com:TomasPalsson/harness.git ~/Desktop/Projects/harness   # or set HARNESS_REPO
+git clone git@github.com:TomasPalsson/flow.git ~/Desktop/Projects/flow   # or set FLOW_REPO
 git clone git@github.com:TomasPalsson/dotfiles.git ~/.dotfiles   # or set DOTFILES=<path>; install refuses to run without one
-node ~/Desktop/Projects/harness/plugins/harness/bin/harness install   # links ~/.claude/* and ~/.local/bin/harness, then runs doctor
+node ~/Desktop/Projects/flow/plugins/flow/bin/flow install   # links ~/.claude/* and ~/.local/bin/flow, then runs doctor
 # An existing real ~/.claude/agents or /commands is merged (your files stay); a real settings.json is kept;
 # a real CLAUDE.md is linked when identical, otherwise kept and reported (--force replaces it, backup kept).
-harness doctor
-cd <any project> && harness init && git add REVIEW.md PROGRESS.md .claude/harness.json
-harness next   # prints the next command to run (PROGRESS.md resume line, flow state, dirty tree)
+flow doctor
+cd <any project> && flow init && git add REVIEW.md PROGRESS.md .claude/flow.config.json
+flow next   # prints the next command to run (PROGRESS.md resume line, flow state, dirty tree)
 ```
 
-Without a checkout: `claude plugin marketplace add TomasPalsson/harness && claude plugin install harness@harness` (copy mode; `claude plugin update` to refresh).
+Without a checkout: `claude plugin marketplace add TomasPalsson/flow && claude plugin install flow@flow` (copy mode; `claude plugin update` to refresh).
 
-Tests: `bash plugins/harness/hooks/tests/run.sh` and `bash plugins/harness/scripts/tests/run.sh` (zero dependencies; portability grep for bash 3.2 / BSD; shellcheck when installed).
+Tests: `bash plugins/flow/hooks/tests/run.sh` and `bash plugins/flow/scripts/tests/run.sh` (zero dependencies; portability grep for bash 3.2 / BSD; shellcheck when installed).
 
 ## Research
 

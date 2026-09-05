@@ -1,12 +1,12 @@
 {
-  "name": "harness",
+  "name": "flow",
   "owner": { "name": "TomasPalsson" },
   "description": "Personal Claude Code marketplace: the deterministic harness plugin plus per-domain skill bundles (design, finance, aws, web, tooling).",
   "plugins": [
     {
-      "name": "harness",
-      "source": "./plugins/harness",
-      "description": "Deterministic Claude Code harness: lifecycle hooks, scripts toolbox, saved workflows, and the flow/feature/qa/audit skill set.",
+      "name": "flow",
+      "source": "./plugins/flow",
+      "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, and the flow/feature/qa/audit skill set.",
       "version": "0.1.0"
     },
     {

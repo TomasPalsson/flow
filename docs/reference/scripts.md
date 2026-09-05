@@ -1,6 +1,6 @@
 # Scripts
 
-Deterministic helpers in `plugins/harness/scripts/` (`~/.claude/scripts` links here). Output is what the model sees; the source never enters context.
+Deterministic helpers in `plugins/flow/scripts/` (`~/.claude/scripts` links here). Output is what the model sees; the source never enters context.
 
 ## new-spec
 
@@ -214,7 +214,7 @@ and prints, per rung of the /lesson ladder, the site a guardrail would use:
   test      the project's test runner and directory, or the harness suites
             when <path> is the harness plugin itself
   hook      .claude/settings.json (project hooks) or the plugin hooks dir
-  lint      .claude/harness.json thresholds / .harness/ threshold files
+  lint      .claude/flow.config.json thresholds / .flow/ threshold files
   script    the plugin scripts dir (harness) or the project's bin dir
   skill     the plugin skills dir the current session loads
   claude-md ./CLAUDE.md and ~/.claude/CLAUDE.md with their line counts and

@@ -18,7 +18,7 @@ Every component that was considered, with the verdict and the downside that was 
 | `outputStyle: Concise` | Built-in styles get a tailored per-turn reminder; custom ones do not | Trained-in closing behaviour survives triple-stacked steering | Two-line persona, one style, no third layer |
 | `skillListingBudgetFraction: 0.02` | 39 of 66 descriptions were being dropped | Keeps paying ~12K tokens per session | Real fix (per-project marketplace for domain skills) still open |
 | Codebase map (opt-in, `codebaseMap: true`) | Cheap regenerated map as leads for explorers | Anthropic's `/doctor` trims exactly this from CLAUDE.md; stale mid-refactor | dirty-tree hash in the stamp; one-week measurement decides |
-| Marketplace packaging (this repo): core plugin + domain bundles, loaded in place via `~/.claude/skills -> plugins/` | The developer asked for a marketplace; skills-dir plugins keep edits live while `plugin marketplace add` serves other machines | Cross-references had to move to `${CLAUDE_PLUGIN_ROOT}`; installs from the marketplace are copies, not links | `skills-lint` understands plugin roots; `harness install` links; the doctor flags double-registered hooks |
+| Marketplace packaging (this repo): core plugin + domain bundles, loaded in place via `~/.claude/skills -> plugins/` | The developer asked for a marketplace; skills-dir plugins keep edits live while `plugin marketplace add` serves other machines | Cross-references had to move to `${CLAUDE_PLUGIN_ROOT}`; installs from the marketplace are copies, not links | `skills-lint` understands plugin roots; `flow install` links; the doctor flags double-registered hooks |
 | Beads ideas only: `## Discovered` section, `slice-overlap --waves`, `/wrap` drain and decay, doctor checks on PROGRESS.md | The one gap Beads exposed: "log follow-ups" had no destination | — | — |
 
 ## Not adopted
@@ -43,13 +43,13 @@ Every component that was considered, with the verdict and the downside that was 
 
 ## Open items, in priority order
 
-0. Guard against command names that collide with Claude Code built-ins (`/btw` did; renamed to `/aside`). A deterministic check needs the built-in list, which the CLI does not expose; until then `harness doctor` cannot catch it.
-0. Split `plugins/harness/bin/harness` (1,500+ lines; `cmdInit`/`cmdInstall` ~95 lines each) into modules — the harness's own size guard flags it on every edit.
+0. Guard against command names that collide with Claude Code built-ins (`/btw` did; renamed to `/aside`). A deterministic check needs the built-in list, which the CLI does not expose; until then `flow doctor` cannot catch it.
+0. Split `plugins/flow/bin/flow` (1,500+ lines; `cmdInit`/`cmdInstall` ~95 lines each) into modules — the harness's own size guard flags it on every edit.
 
 1. Move ~20 domain skills into a private local marketplace enabled per project (the largest remaining context win).
 2. Re-run `size_guard.py` over the changed set at Stop (closes the heredoc bypass) once the false-positive fixes prove out.
 3. Baseline-aware gating: a per-repo record of pre-existing failures so a known-red repo blocks on regressions only.
-4. `harness doctor` probe for the PATH a hook subprocess actually sees (macOS GUI launch).
+4. `flow doctor` probe for the PATH a hook subprocess actually sees (macOS GUI launch).
 5. Frozen-intent hash over the approved Behavior Inventory.
 6. Measure: `/insights` monthly, `/usage` weekly, `skills-lint --usage` monthly; nobody has measured this for a solo developer.
 | post-bash-write on gitignored runtime state | Drop `git check-ignore`d files from the changed list, except `.claude/`; skip the filter when the command touched an ignore file; `core.quotePath=false` | Container logs blocked every read-only command with size-guard noise; the fail-closed clause keeps a same-command `.gitignore` append from hiding a write |

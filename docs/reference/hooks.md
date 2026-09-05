@@ -1,6 +1,6 @@
 # Hooks
 
-Lifecycle hooks in `plugins/harness/hooks/`, registered by the plugin's `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}` paths). Every hook sources `lib/hookout.sh`, runs with `set -u`, degrades to exit 0 when a tool is missing, and is bash 3.2 / BSD-coreutils safe.
+Lifecycle hooks in `plugins/flow/hooks/`, registered by the plugin's `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}` paths). Every hook sources `lib/hookout.sh`, runs with `set -u`, degrades to exit 0 when a tool is missing, and is bash 3.2 / BSD-coreutils safe.
 
 ## codebase-map.sh
 

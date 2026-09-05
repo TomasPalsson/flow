@@ -7,7 +7,7 @@ import path from 'node:path';
 
 // Hidden directories are skipped wholesale during recursion (below), which
 // covers .git / .next / .nuxt / .svelte-kit / .turbo / .vercel and — the
-// issue #303 class — every vendored AI-harness install (.claude, .cursor,
+// issue #303 class — every vendored AI-flow install (.claude, .cursor,
 // .codex, .agents, .impeccable, ...) whose bundled detector source would
 // otherwise be reported as findings on a root scan. Only the non-hidden
 // build/dependency dirs need naming. An explicitly passed hidden target

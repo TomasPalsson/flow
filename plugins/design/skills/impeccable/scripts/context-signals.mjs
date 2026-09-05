@@ -245,7 +245,7 @@ const SCANNABLE_EXT = new Set([
 const SOURCE_DIRS = ['src', 'app', 'components', 'pages', 'public'];
 
 // A changed file under a hidden or dependency/build directory is not app
-// source — it's a vendored AI-harness install (.claude/skills/..., .cursor/,
+// source — it's a vendored AI-flow install (.claude/skills/..., .cursor/,
 // .impeccable/, issue #303), a build artifact, or a dependency. Mirrors the
 // engine walkDir's skip rule so git-changes targeting can't resurface paths
 // the walker would never visit.

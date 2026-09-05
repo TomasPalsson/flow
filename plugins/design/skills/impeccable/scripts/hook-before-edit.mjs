@@ -422,7 +422,7 @@ async function main() {
   // was launched from a non-project umbrella directory (issue #305).
   const cwd = resolveCacheCwd(filePath, sessionCwd);
   const audit = {
-    harness: 'cursor',
+    flow: 'cursor',
     cwd,
     tool: event.tool_name || null,
     file: filePath || null,

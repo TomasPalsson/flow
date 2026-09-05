@@ -1,8 +1,8 @@
 # Saved workflows
 
-Discovered from the plugin's `workflows/` at session start and registered as `harness:<name>`; invoked with `Workflow({ name: 'harness:<name>' })`.
+Discovered from the plugin's `workflows/` at session start and registered as `flow:<name>`; invoked with `Workflow({ name: 'flow:<name>' })`.
 
-## harness:build-slices
+## flow:build-slices
 
 export const meta = {
   name: 'build-slices',
@@ -16,7 +16,7 @@ export const meta = {
   ],
 }
 
-## harness:plan-review
+## flow:plan-review
 
 export const meta = {
   name: 'plan-review',
@@ -28,7 +28,7 @@ export const meta = {
   ],
 }
 
-## harness:research-sweep
+## flow:research-sweep
 
 export const meta = {
   name: 'research-sweep',
@@ -42,7 +42,7 @@ export const meta = {
   ],
 }
 
-## harness:review-diff
+## flow:review-diff
 
 export const meta = {
   name: 'review-diff',
@@ -55,14 +55,14 @@ export const meta = {
   ],
 }
 
-# harness CLI
+# flow CLI
 
 ```
 
-harness — deterministic project harness CLI
+flow — deterministic project harness CLI
 
 Usage:
-  harness <command> [options]
+  flow <command> [options]
 
 Commands:
   doctor [--json] [--verbose]                      Diagnose the ~/.claude deployment
