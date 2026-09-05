@@ -123,6 +123,23 @@ normalise() {
 
 NEW_NORMALISED=$(normalise "$NEW_LINE")
 
+# distinct words of 4+ letters in a normalised line, one per output line.
+distinct_long_words() {
+  printf '%s\n' "$1" | tr ' ' '\n' | awk 'length($0) >= 4' | sort -u
+}
+
+# how many of $1 (newline-separated words) occur as whole words in $2.
+count_shared_words() {
+  local words=$1 haystack=$2 word count
+  count=0
+  for word in $words; do
+    case " $haystack " in
+    *" $word "*) count=$((count + 1)) ;;
+    esac
+  done
+  printf '%s' "$count"
+}
+
 # Serialise concurrent runs (mkdir is atomic on every POSIX filesystem);
 # copied from lesson-record, not shared (design section 6).
 LOCK="${FILE}.lock"
@@ -147,7 +164,7 @@ if [ -n "$CUT" ]; then
 fi
 
 # distinct words of 4+ letters in the new line, for the similar check.
-NEW_WORDS=$(printf '%s\n' "$NEW_NORMALISED" | tr ' ' '\n' | awk 'length($0) >= 4' | sort -u)
+NEW_WORDS=$(distinct_long_words "$NEW_NORMALISED")
 NEW_WORD_COUNT=$(printf '%s\n' "$NEW_WORDS" | grep -c '.')
 
 SIMILAR_LINES=""
@@ -164,13 +181,8 @@ while IFS= read -r existing_line || [ -n "$existing_line" ]; do
     continue
   fi
   if [ "$NEW_WORD_COUNT" -gt 0 ]; then
-    shared=0
-    for word in $NEW_WORDS; do
-      case " $existing_normalised " in
-      *" $word "*) shared=$((shared + 1)) ;;
-      esac
-    done
-    if [ "$shared" -gt 0 ] && [ $((shared * 2)) -ge "$NEW_WORD_COUNT" ]; then
+    shared_count=$(count_shared_words "$NEW_WORDS" "$existing_normalised")
+    if [ "$shared_count" -gt 0 ] && [ $((shared_count * 2)) -ge "$NEW_WORD_COUNT" ]; then
       SIMILAR_LINES="${SIMILAR_LINES}similar: $line_number: $existing_line
 "
     fi
