@@ -77,7 +77,7 @@ Config keys: none. Nobody adds a dependency; `jq`/`python3` are guarded with `co
 
 ---
 
-## Contract for this slice — Slice 1: Dated ruling with printed marker
+## Contract for this slice — Slice 1
 CONTRACT   plugins/flow/scripts/tests/fixtures/lesson/PROGRESS.md — the dated line grammar; read it, never edit it.
 NAMES      ruling · what · marker `lesson(<YYYY-MM-DD>): <what>` · banned: lesson entry, id, tag
 MODULE     plugins/flow/scripts/lesson-record · standalone · may import: nothing · exports: CLI · seam: ruling writer
@@ -85,7 +85,7 @@ CALLS      `lesson-record --what <what> --mechanism <mechanism> --cost <cost> [-
 DUPLICATE  keep the existing lock, template and awk insertion; copy nothing out
 THE FIVE   (1) NEVER invent an error type, field name or result shape that already exists in the contract — copy the literal declaration. (2) NEVER type a boundary function's parameter as the narrow type; the narrow type appears only as the RETURN of a fallible function. (3) NEVER add a mode, flag, boolean or extra required parameter to a shared abstraction the design handed you — duplicate it inside your slice and say so in your completion note; and before extracting anything, write the signature first, because a flag needed at birth disproves the extraction. (4) NEVER refactor, rename or restructure outside your slice — a change to an unlisted file is a defect. (5) NEVER abbreviate inside an identifier. Spell the word.
 
-## Contract for this slice — Slice 2: Silent fire count for marker reasons
+## Contract for this slice — Slice 2
 CONTRACT   plugins/flow/scripts/tests/fixtures/lesson/lesson-fires.log — the fire line grammar `<date>\t<what>\t<UTC Z>\t<hook basename>`.
 NAMES      fire · marker in a reason is bracketed `[lesson(<YYYY-MM-DD>): <what>]`, first one counts · banned: hit, event
 MODULE     plugins/flow/hooks/lib/hookout.sh · may import: nothing · may not call scripts · seam: fire recorder
@@ -93,7 +93,7 @@ CALLS      inside `_lesson_nudge`: when the reason contains a marker → append 
 DUPLICATE  date pattern `[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]` written inline; strip tab and newline from what with `tr -d '\t\n'`
 THE FIVE   (1) NEVER invent an error type, field name or result shape that already exists in the contract — copy the literal declaration. (2) NEVER type a boundary function's parameter as the narrow type; the narrow type appears only as the RETURN of a fallible function. (3) NEVER add a mode, flag, boolean or extra required parameter to a shared abstraction the design handed you — duplicate it inside your slice and say so in your completion note; and before extracting anything, write the signature first, because a flag needed at birth disproves the extraction. (4) NEVER refactor, rename or restructure outside your slice — a change to an unlisted file is a defect. (5) NEVER abbreviate inside an identifier. Spell the word.
 
-## Contract for this slice — Slice 3: lesson-stats
+## Contract for this slice — Slice 3
 CONTRACT   plugins/flow/scripts/tests/fixtures/lesson/{PROGRESS.md, lesson-fires.log, stats.expected.tsv, stats.expected.json} — `lesson-stats --dir <fixture copy> --now 2026-10-15` must reproduce both expected files byte for byte (TSV: header row then one row per ruling in file order, orphans last; JSON: array, keys in the shown order, `null` for missing).
 NAMES      caught · escaped · rung · verdict (`unmeasured` → `escaped` → `held` → `prune?` → `young`; `orphan` for unmatched fires) · banned: hits, recurrences, status
 MODULE     plugins/flow/scripts/lesson-stats · standalone · seam: ruling reader
@@ -101,7 +101,7 @@ CALLS      `lesson-stats [--dir <project>] [--file <PROGRESS.md>] [--log <lesson
 DUPLICATE  Julian-day awk function inline; ruling parser inline (split on ` — `, first field what, last field cost, trailing ` (D)` optional)
 THE FIVE   (1) NEVER invent an error type, field name or result shape that already exists in the contract — copy the literal declaration. (2) NEVER type a boundary function's parameter as the narrow type; the narrow type appears only as the RETURN of a fallible function. (3) NEVER add a mode, flag, boolean or extra required parameter to a shared abstraction the design handed you — duplicate it inside your slice and say so in your completion note; and before extracting anything, write the signature first, because a flag needed at birth disproves the extraction. (4) NEVER refactor, rename or restructure outside your slice — a change to an unlisted file is a defect. (5) NEVER abbreviate inside an identifier. Spell the word.
 
-## Contract for this slice — Slice 4: lesson-claude-md
+## Contract for this slice — Slice 4
 CONTRACT   marker in markdown is ` <!-- lesson(<YYYY-MM-DD>): <what> -->` appended to the same line; budget 100 (project) / 40 (`$HOME/.claude/CLAUDE.md`).
 NAMES      budget · duplicate (normalised equal) · similar (≥ 50 % of the new line's words of 4+ letters appear in one existing line) · banned: limit, cap, match
 MODULE     plugins/flow/scripts/lesson-claude-md · standalone · seam: budgeted line writer
@@ -109,7 +109,7 @@ CALLS      `lesson-claude-md --file <CLAUDE.md> --line "<text>" [--what <what> -
 DUPLICATE  copy the `mkdir` lock from lesson-record; normalisation inline (`sed` strip comment → `tr` lowercase → `tr -cd 'a-z0-9 \n'` → collapse spaces)
 THE FIVE   (1) NEVER invent an error type, field name or result shape that already exists in the contract — copy the literal declaration. (2) NEVER type a boundary function's parameter as the narrow type; the narrow type appears only as the RETURN of a fallible function. (3) NEVER add a mode, flag, boolean or extra required parameter to a shared abstraction the design handed you — duplicate it inside your slice and say so in your completion note; and before extracting anything, write the signature first, because a flag needed at birth disproves the extraction. (4) NEVER refactor, rename or restructure outside your slice — a change to an unlisted file is a defect. (5) NEVER abbreviate inside an identifier. Spell the word.
 
-## Contract for this slice — Slice 5: Deny rung, skill and docs
+## Contract for this slice — Slice 5
 CONTRACT   lesson-sites line grammar `<rung> <status> <detail>` unchanged; new rung name is exactly `deny`, emitted between `test` and `hook`; JSON key `deny`; `present` only when `.claude/settings.json` exists and contains `"deny"`.
 NAMES      rung order Test → Deny → Hook / lint → Script → Skill → CLAUDE.md · marker · lesson-stats · lesson-claude-md · banned: permission rung, settings rung
 MODULE     plugins/flow/scripts/lesson-sites, plugins/flow/skills/lesson/SKILL.md, README + docs rows · seam: rung locator + ladder
