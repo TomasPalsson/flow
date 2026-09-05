@@ -41,6 +41,7 @@ Every component that was considered, with the verdict and the downside that was 
 | `cleanupPeriodDays: 14` | Left to the developer | Would delete resumable sessions |
 | Renaming the harness | Keep "harness" | Developer's call |
 | A mistake-to-guardrail command | `/lesson` skill (test → hook/lint → script → skill → CLAUDE.md) with `lesson-sites` and `lesson-record`; stop gate nudges from the second identical block; CLAUDE.md names the trigger | `/aside` only filed notes; the ladder now runs every time, and the ruling lands in PROGRESS.md |
+| Hooks in a worktree session read the session-start checkout's plan and state | `hook_project_dir` resolves the edited file's repo (or the hook's `cwd`), accepted only when it is a worktree of the session repo; nested or unrelated repos fall back to the session dir | A throwaway `git init` inside the project must not switch the gates off; ruling in PROGRESS.md 2026-09-05 |
 
 ## Open items, in priority order
 
