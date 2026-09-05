@@ -244,6 +244,21 @@ t_lesson_record_warns_over_budget() {
 	rm -rf "$d"
 }
 
+t_lesson_record_rejects_control_characters() {
+	local d
+	d=$(tmp_dir)
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "$(printf 'weird\ttabbed')" --mechanism "m" --cost "c"
+	assert_rc 2 "control chars: a tab in --what exits 2"
+	assert_contains "$ERR" "lesson-record: arguments must be single-line printable text" "control chars: tab error message"
+	assert_eq "$(grep -c '^- Ruling: weird' "$d/PROGRESS.md")" "0" "control chars: nothing written for a tabbed --what"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "w" --mechanism "$(printf 'bad\rmech')" --cost "c"
+	assert_rc 2 "control chars: a carriage return in --mechanism exits 2"
+	assert_contains "$ERR" "lesson-record: arguments must be single-line printable text" "control chars: carriage return error message"
+	assert_eq "$(grep -c '^- Ruling: w' "$d/PROGRESS.md")" "0" "control chars: nothing written for a CR-bearing --mechanism"
+	rm -rf "$d"
+}
+
 t_lesson_skill_frontmatter_and_references() {
 	local skill
 	skill="$SCAN_DIR/../skills/lesson/SKILL.md"
