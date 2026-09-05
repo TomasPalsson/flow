@@ -80,6 +80,17 @@ AWK_FILES=("$PROGRESS_PATH")
 
 awk -v now="$NOW" -v prune="$PRUNE_DAYS" -v as_json="$AS_JSON" \
   -v progress_path="$PROGRESS_PATH" -v fire_path="$FIRE_PATH" -F'\t' '
+# Control bytes (0x01-0x1F, 0x7F) that json_escape renders as \u00XX; \t \n
+# \r \b \f are handled separately with their two-character escapes.
+BEGIN {
+  for (ctrl_code = 1; ctrl_code <= 31; ctrl_code++) {
+    ctrl_char = sprintf("%c", ctrl_code)
+    if (ctrl_char != "\t" && ctrl_char != "\n" && ctrl_char != "\r" && ctrl_char != "\b" && ctrl_char != "\f") {
+      ctrl_hex[ctrl_char] = sprintf("%02x", ctrl_code)
+    }
+  }
+  ctrl_hex[sprintf("%c", 127)] = "7f"
+}
 # Julian day number of a Gregorian year/month/day (Fliegel & Van Flandern), integer-only.
 function jdn(year, month, day,    century_adjustment, adjusted_year, adjusted_month) {
   century_adjustment = int((14 - month) / 12)
@@ -94,13 +105,29 @@ function jdn_of_date(s,    date_parts) {
 function days_since(s) {
   return jdn_of_date(now) - jdn_of_date(s)
 }
-function json_escape(s) {
-  gsub(/\\/, "\\\\", s)
-  gsub(/"/, "\\\"", s)
-  return s
+function json_escape(s,    string_length, char_index, one_char, escaped) {
+  string_length = length(s)
+  escaped = ""
+  for (char_index = 1; char_index <= string_length; char_index++) {
+    one_char = substr(s, char_index, 1)
+    if (one_char == "\\") escaped = escaped "\\\\"
+    else if (one_char == "\"") escaped = escaped "\\\""
+    else if (one_char == "\t") escaped = escaped "\\t"
+    else if (one_char == "\n") escaped = escaped "\\n"
+    else if (one_char == "\r") escaped = escaped "\\r"
+    else if (one_char == "\b") escaped = escaped "\\b"
+    else if (one_char == "\f") escaped = escaped "\\f"
+    else if (one_char in ctrl_hex) escaped = escaped "\\u00" ctrl_hex[one_char]
+    else escaped = escaped one_char
+  }
+  return escaped
 }
 function json_string(s) {
   return (s == "") ? "null" : "\"" s "\""
+}
+function tsv_escape(s) {
+  gsub(/\t/, " ", s)
+  return s
 }
 FILENAME == progress_path {
   raw = $0
@@ -212,11 +239,11 @@ END {
     for (i = 1; i <= ruling_count; i++) {
       date_field = (r_date[i] == "") ? "-" : r_date[i]
       last_field = (r_caught[i] > 0) ? r_last[i] : "-"
-      printf "%s\t%s\t%d\t%s\t%d\t%s\t%s\n", date_field, r_rung[i], r_caught[i], last_field, r_escaped[i], r_verdict[i], r_what[i]
+      printf "%s\t%s\t%d\t%s\t%d\t%s\t%s\n", tsv_escape(date_field), tsv_escape(r_rung[i]), r_caught[i], last_field, r_escaped[i], r_verdict[i], tsv_escape(r_what[i])
     }
     for (group_num = 1; group_num <= orphan_group_count; group_num++) {
       last_field = (g_count[group_num] > 0) ? days_since(g_best[group_num]) : "-"
-      printf "%s\t-\t%d\t%s\t0\torphan\t%s\n", g_date[group_num], g_count[group_num], last_field, g_what[group_num]
+      printf "%s\t-\t%d\t%s\t0\torphan\t%s\n", tsv_escape(g_date[group_num]), g_count[group_num], last_field, tsv_escape(g_what[group_num])
     }
   }
   if (malformed > 0) print "lesson-stats: skipped " malformed " malformed line(s)" > "/dev/stderr"
