@@ -146,8 +146,12 @@ function createSandbox(explicitDir) {
   let sandboxDir;
   try {
     if (explicitDir) {
-      fs.mkdirSync(explicitDir, { recursive: true });
-      sandboxDir = explicitDir;
+      // Resolve against the current cwd right away and persist the absolute
+      // form, so a later resume (no --sandbox, cursor/statuses reloaded from
+      // the progress file) finds the same sandbox regardless of which
+      // directory the process happens to be started from next time.
+      sandboxDir = path.resolve(explicitDir);
+      fs.mkdirSync(sandboxDir, { recursive: true });
     } else {
       sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flow-tutorial-'));
     }

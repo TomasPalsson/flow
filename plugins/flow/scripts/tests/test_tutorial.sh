@@ -198,6 +198,37 @@ t_tt_resumes_at_saved_cursor() {
 }
 
 # ---------------------------------------------------------------------------
+# Regression (adversarial review, slice 2 fix round) — a relative --sandbox
+# path is resolved against the cwd it was FIRST created in and persisted
+# absolute, so a later resume (no --sandbox) from a *different* cwd still
+# reuses that same sandbox instead of silently creating a new one relative
+# to the new cwd. Not one of B9-B18/B27/B28: those never vary cwd between
+# invocations, so this path was untested until now.
+# ---------------------------------------------------------------------------
+
+t_tt_resume_relative_sandbox_survives_cwd_change() {
+	local home dirA dirB stdinf1 stdinf2 progress
+	home=$(tmp_dir)
+	dirA=$(tmp_dir)
+	dirB=$(tmp_dir)
+	stdinf1=$(tt_stdin "flow doctor" "flow init" "$TT_EDIT_AND_NEXT" q)
+	tt_in "$dirA" "$home" --sandbox rel-sb <"$stdinf1"
+	assert_rc 0 "t_tt_resume_relative_sandbox_survives_cwd_change first run rc"
+	assert_file_exists "$dirA/rel-sb/.git" "t_tt_resume_relative_sandbox_survives_cwd_change sandbox created under first cwd"
+
+	stdinf2=$(tt_stdin q)
+	tt_in "$dirB" "$home" <"$stdinf2"
+	assert_rc 0 "t_tt_resume_relative_sandbox_survives_cwd_change second run rc"
+	assert_contains "$OUT" "Lesson 3/3" "t_tt_resume_relative_sandbox_survives_cwd_change resumes at lesson 3"
+	assert_file_missing "$dirB/rel-sb" "t_tt_resume_relative_sandbox_survives_cwd_change does not create a new sandbox under second cwd"
+
+	progress=$(tt_progress_path "$home")
+	assert_contains "$(cat "$progress")" "\"sandboxDir\": \"$dirA/rel-sb\"" "t_tt_resume_relative_sandbox_survives_cwd_change progress stores the absolute path"
+
+	rm -rf "$home" "$dirA" "$dirB" "$stdinf1" "$stdinf2"
+}
+
+# ---------------------------------------------------------------------------
 # B16 — `s` skips (a status change, persisted) and moves forward; `b` only
 # moves the cursor back, it never undoes a status.
 # ---------------------------------------------------------------------------
