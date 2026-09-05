@@ -295,3 +295,77 @@ t_lesson_fires_B8_tab_stripped() {
 	assert_eq "$what" "push--force" "B8 the tab inside what is deleted (tr -d), not replaced with a space"
 	rm -rf "$scriptdir" "$proj"
 }
+
+# A fire only counts when the marker ends the reason: a marker embedded
+# mid-reason (e.g. echoed file content that happens to contain a bracketed
+# lesson marker literal) is a plain reason — normal counter/nudge behaviour.
+t_lesson_fires_marker_must_end_the_reason() {
+	local scriptdir proj s sid reason log
+	scriptdir=$(tmp_dir)
+	proj=$(tmp_dir)
+	s=$(_fires_deny_script "$scriptdir")
+	sid="fires-mid-$$"
+	reason="blocked: file.sh contains [lesson(2026-09-05): demo] in a string. Fix it."
+	log="$proj/.claude/lesson-fires.log"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "mid-marker first deny rc 0"
+	assert_file_missing "$log" "mid-marker: no fire log created (marker does not end the reason)"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "mid-marker second deny rc 0"
+	assert_contains "$OUT" "suggest /lesson" "mid-marker: second identical deny nudges as a plain reason"
+	assert_contains "$OUT" "blocked 2 times" "mid-marker: second identical deny count text"
+	assert_file_missing "$log" "mid-marker: still no fire log"
+	rm -rf "$scriptdir" "$proj"
+}
+
+# The LAST marker wins when several `[lesson(...): ...]` substrings are
+# present, and a `]` inside the winning marker's <what> does not truncate it.
+t_lesson_fires_last_marker_wins_and_brackets_in_what() {
+	local scriptdir proj s sid reason log line fields date what stamp
+	scriptdir=$(tmp_dir)
+	proj=$(tmp_dir)
+	s=$(_fires_deny_script "$scriptdir")
+	sid="fires-lastwins-$$"
+	reason="irrelevant [lesson(oops): junk] then [lesson(2026-09-05): array[0] out of range]"
+	log="$proj/.claude/lesson-fires.log"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "last-marker-wins deny rc 0"
+	assert_file_exists "$log" "last-marker-wins: fire log created"
+	line=$(sed -n '1p' "$log")
+	fields=$(printf '%s' "$line" | awk -F'\t' '{print NF}')
+	assert_eq "$fields" "4" "last-marker-wins: fire line has 4 tab-separated fields"
+	date=$(printf '%s' "$line" | awk -F'\t' '{print $1}')
+	what=$(printf '%s' "$line" | awk -F'\t' '{print $2}')
+	stamp=$(printf '%s' "$line" | awk -F'\t' '{print $3}')
+	assert_eq "$date" "2026-09-05" "last-marker-wins: date is the last marker's date, not the first (bogus) one"
+	assert_eq "$what" "array[0] out of range" "last-marker-wins: what is not truncated by the ']' inside it"
+	case "$stamp" in
+	[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z) _pass "last-marker-wins: timestamp is UTC ISO-8601 Z" ;;
+	*) _fail "last-marker-wins: timestamp is UTC ISO-8601 Z" "got: $stamp" ;;
+	esac
+	assert_eq "$(printf '%s' "$line" | awk -F'\t' '{print $4}')" "deny-fires.sh" "last-marker-wins: hook basename"
+	i=$(wc -l <"$log" | tr -d ' ')
+	assert_eq "$i" "1" "last-marker-wins: exactly one log line"
+	rm -rf "$scriptdir" "$proj"
+}
+
+# A trailing marker with a malformed date is not a marker at all: no fire,
+# normal nudge on repeat.
+t_lesson_fires_bad_date_in_trailing_marker_is_ignored() {
+	local scriptdir proj s sid reason log
+	scriptdir=$(tmp_dir)
+	proj=$(tmp_dir)
+	s=$(_fires_deny_script "$scriptdir")
+	sid="fires-baddate-$$"
+	reason="blocked [lesson(2026-9-5): x]"
+	log="$proj/.claude/lesson-fires.log"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "bad-date first deny rc 0"
+	assert_file_missing "$log" "bad-date: no fire log created"
+	run_hook "$s" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$proj" REASON="$reason"
+	assert_rc 0 "bad-date second deny rc 0"
+	assert_contains "$OUT" "suggest /lesson" "bad-date: second identical deny nudges as a plain reason"
+	assert_contains "$OUT" "blocked 2 times" "bad-date: second identical deny count text"
+	assert_file_missing "$log" "bad-date: still no fire log"
+	rm -rf "$scriptdir" "$proj"
+}
