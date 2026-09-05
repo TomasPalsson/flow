@@ -153,6 +153,23 @@ t_lesson_record_B4_malformed_date_exits_2_nothing_written() {
 	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "bad" --mechanism "m" --cost "c" --date 20260102
 	assert_rc 2 "B4: malformed --date exits 2"
 	assert_eq "$(grep -c '^- Ruling: bad' "$d/PROGRESS.md")" "0" "B4: nothing written on malformed --date"
+	assert_contains "$ERR" "--date must be YYYY-MM-DD" "B4: stderr names the date-format requirement"
+	assert_not_contains "$ERR" "unknown argument" "B4: rejected by date validation, not the unknown-argument catch-all"
+	rm -rf "$d"
+}
+
+t_lesson_record_B4b_empty_date_exits_2() {
+	local d
+	d=$(tmp_dir)
+	printf '# P\n\n## Rulings\n\n## Blocked / open questions\n- (none)\n' >"$d/PROGRESS.md"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "w" --mechanism "m" --cost "c" --date ""
+	assert_rc 2 "B4b: explicit empty --date exits 2"
+	assert_contains "$ERR" "--date must be YYYY-MM-DD" "B4b: stderr names the date-format requirement"
+	assert_eq "$(grep -c '^- Ruling: w' "$d/PROGRESS.md")" "0" "B4b: nothing written on empty --date"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --what "w2" --mechanism "m" --cost "c" --date
+	assert_rc 2 "B4b: --date as the last argument with no value exits 2"
+	assert_contains "$ERR" "--date must be YYYY-MM-DD" "B4b: trailing --date with no value is treated as empty"
+	assert_eq "$(grep -c '^- Ruling: w2' "$d/PROGRESS.md")" "0" "B4b: nothing written on trailing --date"
 	rm -rf "$d"
 }
 
