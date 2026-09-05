@@ -182,6 +182,39 @@ t_lesson_stats_now_default_is_utc_regardless_of_tz() {
 
 # --- fix 4: --dir defaults to git toplevel, --log to .claude/lesson-fires.log ---
 
+t_lesson_stats_control_characters_are_escaped() {
+	local d tab_what quote_what field_counts
+	d=$(tmp_dir)
+	tab_what=$(printf 'weird\ttabbed')
+	quote_what='say "hi" \ backslash'
+	printf '# Progress\n\n## Rulings\n- Ruling: %s — hook guard.sh + 1 test — a cost (2026-09-01)\n- Ruling: %s — hook guard.sh + 1 test — a cost (2026-09-02)\n\n## Blocked / open questions\n- (none)\n' "$tab_what" "$quote_what" >"$d/PROGRESS.md"
+
+	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15 --json
+	assert_rc 0 "control chars: --json exits 0 with a tab and quote/backslash in what"
+	printf '%s\n' "$OUT" >"$d/out.json"
+	if command -v python3 >/dev/null 2>&1; then
+		run_cmd python3 -c '
+import json, sys
+with open(sys.argv[1]) as f:
+    rows = json.load(f)
+found = [r for r in rows if r["what"].replace("\t", "") == "weirdtabbed"]
+sys.exit(0 if found and "\t" in found[0]["what"] else 1)
+' "$d/out.json"
+		assert_rc 0 "control chars: JSON what round-trips with the tab intact"
+	else
+		_pass "control chars: python3 not available, skipping JSON round-trip assertion"
+	fi
+
+	run_cmd "$LESSON_STATS" --dir "$d" --now 2026-10-15
+	assert_rc 0 "control chars: TSV mode exits 0"
+	printf '%s\n' "$OUT" >"$d/out.tsv"
+	field_counts=$(awk -F'\t' '{print NF}' "$d/out.tsv" | sort -u | tr '\n' ' ')
+	field_counts=$(printf '%s' "$field_counts" | sed 's/ *$//')
+	assert_eq "$field_counts" "7" "control chars: every TSV row has exactly 7 tab-separated fields"
+
+	rm -rf "$d"
+}
+
 t_lesson_stats_dir_and_log_default_to_project_root() {
 	local prevdir repo sub expected
 	prevdir=$(pwd)
