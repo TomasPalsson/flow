@@ -26,7 +26,7 @@ git-guard.sh — PreToolUse/Bash hook.
 lesson-nudge.sh — UserPromptSubmit hook.
 ```
 
-When the prompt reads as a correction of something the agent just did ("you deleted the wrong file", "don't do that again", "why did you push…"), prints one context line asking the agent to *offer* `/lesson` after the current step, and to run it only if the user agrees. Phrase match only; silent otherwise; `CC_NO_LESSON_NUDGE=1` disables it. Related: `hook_deny`, `hook_block` and `hook_feedback` in `lib/hookout.sh` append the same suggestion from the second identical reason in a session.
+When the prompt reads as a correction of something the agent just did ("you deleted the wrong file", "don't do that again", "why did you push…"), prints one context line asking the agent to *offer* `/lesson` after the current step, and to run it only if the user agrees. Phrase match only; silent otherwise; `CC_NO_LESSON_NUDGE=1` disables it. Related: `hook_deny`, `hook_block` and `hook_feedback` in `lib/hookout.sh` append the same suggestion from the second identical reason in a session. A deny/block/feedback reason carrying a `[lesson(DATE): what]` marker is instead appended as one line to `.claude/lesson-fires.log` silently, with no nudge text added.
 
 ### Turning the hooks off for a directory
 

@@ -1,6 +1,6 @@
 ---
 name: lesson
-description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson. Walks a fixed ladder — regression test, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/skill-improver), or a one-off preference that only applies to this conversation."
+description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson. Walks a fixed ladder — regression test, deny rule, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/skill-improver), or a one-off preference that only applies to this conversation."
 argument-hint: "[what went wrong]"
 ---
 
@@ -37,6 +37,7 @@ Ask the questions in this order and stop at the first yes. Pair any lower rung w
 | Rung | Question | Site |
 |---|---|---|
 | **Test** | Can the exact input be written as a test that fails right now? | Project suite; the harness hook or script test suites (`t_<unit>_*`) |
+| **Deny** | Must the tool call never be allowed at all, even if a hook is bypassed or disabled? (e.g. `Bash(git commit --no-verify*)`) | project `.claude/settings.json` `permissions.deny`, or the same block in the user's home `.claude/settings.json` for every project |
 | **Hook / lint** | Must the action never run (PreToolUse deny), always be corrected (PostToolUse exit 2), or never end a turn (Stop block)? Is it a threshold? | Harness hook when it applies to every project; project `.claude/settings.json` hooks or `.claude/flow.config.json` when it is local |
 | **Script** | Was the model doing bookkeeping, counting, path assembly or formatting by hand? | A script with `--help`, tests, bash 3.2 / BSD safe |
 | **Skill** | Did a skill's instructions lead here? | Edit that step; add the case to its fixture or checklist; run `skills-lint` |
@@ -50,9 +51,10 @@ Rules of thumb:
 ## Step 4 — Write it red, then green
 
 - **Test first**: add the failing case, run it, paste the red output. Then the fix, then the green output with the test count. Both go in the reply.
+- **Provenance**: `lesson-record` prints `marker: lesson(YYYY-MM-DD): <what>` when it writes the ruling (Step 6) — paste that marker onto the rung itself, in the host's comment syntax: `# …` in bash, `<!-- … -->` in markdown. For a hook, append `[lesson(DATE): what]` to the end of the deny/block/feedback reason string so a later fire is counted. A deny rung has no comment syntax (it's JSON): its provenance is the ruling alone, so quote the rule in the mechanism text instead.
 - **Hooks**: bash 3.2 and BSD tools only (the suite's portability grep enforces the banned list); guard every optional tool with `command -v`; fail closed for deny-hooks, fail open for advisory ones; keep the hook under its timeout. Register in `hooks.json` and re-run `flow doctor`.
 - **Thresholds**: never loosen one to make a lesson pass; a lesson that needs a looser threshold is the wrong rung.
-- **CLAUDE.md**: propose the exact line and, at budget, the line to cut; write only after the user agrees.
+- **CLAUDE.md**: propose the exact line, then write it with `${CLAUDE_PLUGIN_ROOT}/scripts/lesson-claude-md --file <CLAUDE.md> --line "<text>" --what "<what>" --date <date>`, which refuses an exact duplicate and refuses an at-budget write unless `--cut "<exact line>"` swaps one out — only after the user agrees.
 
 ## Step 5 — Try to break it
 
@@ -66,7 +68,7 @@ Spawn one `adversary` with the gaming lens over the diff: does the guardrail cat
   --cost "<what it costs if this ruling is wrong>"
 ```
 
-It appends the ruling under `## Rulings` in PROGRESS.md (creating the section or file) and refuses a duplicate. In the harness repo, also add one row to `docs/decisions.md`'s ledger. Commit the lesson on its own (`chore(lesson): …`) so it is revertable and reviewable alone. Then resume the interrupted task and end with `Next:` from `flow next`.
+It appends the dated ruling under `## Rulings` in PROGRESS.md (creating the section or file) and refuses a duplicate, printing the marker line to paste onto the rung written in Step 4. In the harness repo, also add one row to `docs/decisions.md`'s ledger. Commit the lesson on its own (`chore(lesson): …`) so it is revertable and reviewable alone. Later, on demand, `${CLAUDE_PLUGIN_ROOT}/scripts/lesson-stats` reads PROGRESS.md and the fire log to show whether a ruling caught anything, held, escaped, or is due a prune pass — run it when checking a lesson's record, not on a fixed schedule. Then resume the interrupted task and end with `Next:` from `flow next`.
 
 ## What a finished lesson looks like
 
@@ -77,6 +79,7 @@ Red:  t_git_guard_multiline_push_force — FAIL (allowed)
 Fix:  hooks/git-guard.sh treats newline and & as separators
 Green: 493 passed, 0 failed
 Adversary: 1 significant (`git push -f` via `sh -c`), added as test, now caught
-Ruling: multi-line push --force slipped past the guard — hook git-guard.sh + 4 tests — a false deny costs one manual retry
+Ruling: multi-line push --force slipped past the guard — hook git-guard.sh + 4 tests — a false deny costs one manual retry (2026-03-14)
+Marker: lesson(2026-03-14): multi-line push --force slipped past the guard
 Next: /flow --resume
 ```

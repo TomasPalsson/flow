@@ -13,6 +13,9 @@ and prints, per rung of the /lesson ladder, the site a guardrail would use:
 
   test      the project's test runner and directory, or the harness suites
             when <path> is the harness plugin itself
+  deny      <path>/.claude/settings.json permissions.deny block (present
+            only when the file exists and contains "deny"); ~/.claude/
+            settings.json for a machine-wide rule
   hook      .claude/settings.json (project hooks) or the plugin hooks dir
   lint      .claude/flow.config.json thresholds / .flow/ threshold files
   script    the plugin scripts dir (harness) or the project's bin dir
@@ -65,6 +68,19 @@ elif [ -f "$DIR/Cargo.toml" ]; then
   test_status=present; test_detail="cargo test"
 elif [ -f "$DIR/go.mod" ]; then
   test_status=present; test_detail="go test ./..."
+fi
+
+# deny
+settings_file="$DIR/.claude/settings.json"
+if [ -f "$settings_file" ] && grep -q '"deny"' "$settings_file"; then
+  deny_status=present
+  deny_detail="$settings_file already has a permissions.deny block"
+elif [ -f "$settings_file" ]; then
+  deny_status=absent
+  deny_detail="$settings_file exists; add a permissions.deny block to it; ~/.claude/settings.json for a machine-wide rule"
+else
+  deny_status=absent
+  deny_detail="$settings_file does not exist; create it with a permissions.deny block; ~/.claude/settings.json for a machine-wide rule"
 fi
 
 # hook
@@ -124,6 +140,7 @@ if [ "$JSON" -eq 1 ]; then
   printf '{\n'
   printf '  "dir": "%s",\n  "harnessRepo": %s,\n' "$(esc "$DIR")" "$([ "$is_harness" -eq 1 ] && printf true || printf false)"
   printf '  "test": {"status": "%s", "detail": "%s"},\n' "$test_status" "$(esc "$test_detail")"
+  printf '  "deny": {"status": "%s", "detail": "%s"},\n' "$deny_status" "$(esc "$deny_detail")"
   printf '  "hook": {"status": "%s", "detail": "%s"},\n' "$hook_status" "$(esc "$hook_detail")"
   printf '  "lint": {"status": "%s", "detail": "%s"},\n' "$lint_status" "$(esc "$lint_detail")"
   printf '  "script": {"status": "%s", "detail": "%s"},\n' "$script_status" "$(esc "$script_detail")"
@@ -133,6 +150,7 @@ if [ "$JSON" -eq 1 ]; then
   printf '}\n'
 else
   printf 'test %s %s\n' "$test_status" "$test_detail"
+  printf 'deny %s %s\n' "$deny_status" "$deny_detail"
   printf 'hook %s %s\n' "$hook_status" "$hook_detail"
   printf 'lint %s %s\n' "$lint_status" "$lint_detail"
   printf 'script %s %s\n' "$script_status" "$script_detail"

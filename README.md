@@ -58,7 +58,7 @@ Per-project knobs in `.claude/flow.config.json`: `maxFileLines`, `maxFuncLines`,
 3. Real feature with a spec and browser verification → `/flow` v2 (judge opt-in, waves for independent slices, `build-slices` in Workflow mode, deepen split out).
 4. Mechanical migration across independent files → `ultracode`, only with an exhaustive suite as referee.
 5. Always: audit the test/CI config diff by hand before the code diff; commit small; `/clear` after two failed corrections; `/wrap` before leaving.
-6. When Claude gets something wrong: `/lesson <what went wrong>`. It walks test → hook → script → skill → CLAUDE.md, writes the most deterministic rung red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. The stop gate says so itself from the second identical block.
+6. When Claude gets something wrong: `/lesson <what went wrong>`. It walks test → deny → hook → script → skill → CLAUDE.md, writes the most deterministic rung red-then-green, has an adversary try to bypass it, and records a dated ruling in PROGRESS.md, checkable later with `lesson-stats`. The stop gate says so itself from the second identical block.
 
 Full version with justifications: [`docs/research/01-harness-engineering-2026.md`](docs/research/01-harness-engineering-2026.md) §4.
 

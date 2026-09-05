@@ -213,6 +213,9 @@ and prints, per rung of the /lesson ladder, the site a guardrail would use:
 
   test      the project's test runner and directory, or the harness suites
             when <path> is the harness plugin itself
+  deny      <path>/.claude/settings.json permissions.deny block (present
+            only when the file exists and contains "deny"); ~/.claude/
+            settings.json for a machine-wide rule
   hook      .claude/settings.json (project hooks) or the plugin hooks dir
   lint      .claude/flow.config.json thresholds / .flow/ threshold files
   script    the plugin scripts dir (harness) or the project's bin dir
@@ -228,18 +231,72 @@ Text form: "<rung> <status> <detail>", status is one of present|absent.
 ## lesson-record
 
 ```
-Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>]
+Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
 
 Appends
-  - Ruling: <what> — <mechanism> — <cost>
+  - Ruling: <what> — <mechanism> — <cost> (<YYYY-MM-DD>)
 under "## Rulings" in <PROGRESS.md> (default ./PROGRESS.md), after the
-last ruling of that section (fenced ``` blocks are never headings). Creates
-the section at the end when it is missing, and the file from the minimal
-template when it does not exist. Refuses an exact duplicate line (exit 3,
-nothing written); a ruling with the same <what> but a new mechanism or cost
-is written and noted on stderr as superseding. Every write is checked and
-serialised through <PROGRESS.md>.lock. Prints the line written and, when
-the file is now over 60 lines, a warning to stderr (exit stays 0).
+last ruling of that section (fenced ``` blocks are never headings). The
+date defaults to today (UTC) and may be pinned with --date; an existing
+undated legacy ruling is never rewritten. Creates the section at the end
+when it is missing, and the file from the minimal template when it does
+not exist. Refuses an exact duplicate line (exit 3, nothing written); a
+ruling with the same <what> but a new mechanism or cost is written and
+noted on stderr as superseding. Every write is checked and serialised
+through <PROGRESS.md>.lock. Prints the line written, then a second line
+`marker: lesson(<YYYY-MM-DD>): <what>` to paste on the rung; when the
+file is now over 60 lines, a warning to stderr (exit stays 0).
 
-Exit codes: 0 written · 2 usage · 3 exact duplicate · 4 cannot write
+Exit codes: 0 written · 2 usage or malformed --date · 3 exact duplicate · 4 cannot write
+```
+
+## lesson-stats
+
+```
+Usage: lesson-stats [--dir <project>] [--file <PROGRESS.md>] [--log <lesson-fires.log>] [--now <YYYY-MM-DD>] [--prune-days <days, default 30>] [--json]
+
+<project> defaults to the current directory's git toplevel, else the
+current directory (pwd -P). <PROGRESS.md> defaults to PROGRESS.md and
+<lesson-fires.log> to .claude/lesson-fires.log, both under <project>
+unless given as an absolute path.
+
+Reads the "## Rulings" section of <file> and <log> and prints one row per
+ruling, in file order, then one row per orphan fire (a fire whose
+(date, what) pair matches no ruling), grouped by date and what, in
+first-seen order:
+
+  date  rung  caught  last  escaped  verdict  what
+
+caught is the number of matching lesson-fires.log lines; last is days
+since the most recent one, relative to --now (default: today); escaped
+counts later rulings with the same what; verdict is one of unmeasured,
+escaped, held, prune?, young (or orphan, for an unmatched fire). Missing
+values print as "-" in the default tab-separated output, or as null with
+--json (a JSON array of objects, numbers unquoted, keys in the order
+date, rung, caught, last, escaped, verdict, what). Malformed
+lesson-fires.log lines are skipped and counted in a single warning on
+stderr.
+
+Exit codes: 0 printed · 2 usage, a malformed --now, or no PROGRESS.md
+```
+
+## lesson-claude-md
+
+```
+Usage: lesson-claude-md --file <CLAUDE.md> --line "<text>" [--what <what> --date <YYYY-MM-DD>] [--cut "<exact existing line>"] [--budget <lines>]
+
+Appends <text> to <CLAUDE.md>, followed by " <!-- lesson(<date>): <what> -->"
+when --what is given (date defaults to today, UTC). Refuses an exact
+duplicate (normalised: strip any HTML comment, lowercase, keep only
+a-z0-9 and space, collapse spaces) with exit 3, naming the matching line.
+At or over the line budget (100 lines for a project file, 40 for
+$HOME/.claude/CLAUDE.md, or the --budget override) the line is refused
+with exit 5 unless --cut names an existing line to remove first, in
+which case that line is removed and the new one appended in the same
+locked write. Advisory: any existing line sharing at least half of the
+new line's distinct 4-letter-or-longer words is printed to stdout as
+"similar: <n>: <line>" (exit stays 0). Creates a missing project file;
+refuses to create a missing $HOME/.claude/CLAUDE.md (exit 4).
+
+Exit codes: 0 written · 2 usage · 3 duplicate or --cut target missing · 4 cannot write · 5 at budget
 ```
