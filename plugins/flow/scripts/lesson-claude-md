@@ -211,6 +211,14 @@ if [ -n "$CUT_LINE_NUMBER" ]; then
   }
 else
   cp "$FILE" "$tmp" || die "cannot write $tmp"
+  # A last line without a trailing newline must never be merged with the
+  # line about to be appended: give it its own newline first.
+  if [ -s "$tmp" ] && [ -n "$(tail -c 1 "$tmp")" ]; then
+    printf '\n' >>"$tmp" || {
+      rm -f "$tmp"
+      die "cannot write $tmp"
+    }
+  fi
 fi
 printf '%s\n' "$WRITE_LINE" >>"$tmp" || {
   rm -f "$tmp"
