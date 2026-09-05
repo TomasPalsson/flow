@@ -112,8 +112,8 @@ fi
 # Insert after the last line of the Rulings section (before the next "## "
 # heading), dropping a placeholder bullet if that is all the section holds.
 tmp="${FILE}.lesson.$$"
-awk -v line="$LINE" '
-  BEGIN { inr = 0; done = 0; blanks = 0; fence = 0 }
+LESSON_LINE="$LINE" awk '
+  BEGIN { inr = 0; done = 0; blanks = 0; fence = 0; line = ENVIRON["LESSON_LINE"] }
   function flush() { while (blanks > 0) { print ""; blanks-- } }
   {
     t = $0; sub(/^[ \t]*/, "", t)
