@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# lesson-stats — read PROGRESS.md's "## Rulings" and lesson-fires.log to
+# report whether each ruling's guard is actually catching recurrences, has
+# escaped, or is unmeasured. Bash 3.2 compatible; see --help.
+set -u
+
+usage() {
+  cat <<'HELP'
+Usage: lesson-stats [--dir <project>] [--file <PROGRESS.md>] [--log <lesson-fires.log>] [--now <YYYY-MM-DD>] [--prune-days <days, default 30>] [--json]
+
+Reads the "## Rulings" section of <dir>/<file> (default ./PROGRESS.md) and
+<dir>/<log> (default lesson-fires.log) and prints one row per ruling, in
+file order, then one row per orphan fire (a fire whose "what" matches no
+ruling), grouped by date and what, in first-seen order:
+
+  date  rung  caught  last  escaped  verdict  what
+
+caught is the number of matching lesson-fires.log lines; last is days
+since the most recent one, relative to --now (default: today); escaped
+counts later rulings with the same what; verdict is one of unmeasured,
+escaped, held, prune?, young (or orphan, for an unmatched fire). Missing
+values print as "-" in the default tab-separated output, or as null with
+--json (a JSON array of objects, numbers unquoted, keys in the order
+date, rung, caught, last, escaped, verdict, what). Malformed
+lesson-fires.log lines are skipped and counted in a single warning on
+stderr.
+
+Exit codes: 0 printed · 2 usage, a malformed --now, or no PROGRESS.md
+HELP
+}
+
+DIR="."
+FILE="PROGRESS.md"
+LOG="lesson-fires.log"
+NOW=""
+PRUNE_DAYS="30"
+AS_JSON=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h) usage; exit 0 ;;
+  --dir) DIR=${2:-}; shift 2 ;;
+  --file) FILE=${2:-}; shift 2 ;;
+  --log) LOG=${2:-}; shift 2 ;;
+  --now) NOW=${2:-}; shift 2 ;;
+  --prune-days) PRUNE_DAYS=${2:-}; shift 2 ;;
+  --json) AS_JSON=1; shift ;;
+  *) printf 'lesson-stats: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+printf 'lesson-stats: not implemented\n' >&2
+exit 1
