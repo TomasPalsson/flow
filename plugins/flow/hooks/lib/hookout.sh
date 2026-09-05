@@ -136,20 +136,54 @@ _json_str() {
 	printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk 'BEGIN{ORS="\\n"} {print}' | sed -e 's/\\n$//')"
 }
 
-# _lesson_fire <reason> → append one fire line for the first marker found in
-# <reason> to $(hook_project_dir)/.claude/lesson-fires.log (mkdir -p; any
-# failure swallowed). Grammar: <date>\t<what>\t<UTC ISO-8601 Z>\t<hook
-# basename>; tab and newline are stripped from what with tr -d '\t\n'.
+# _lesson_trailing_marker <reason> → rc 0 and sets _LESSON_DATE/_LESSON_WHAT
+# when <reason> ends (trailing whitespace/newline tolerated) with a
+# `[lesson(<YYYY-MM-DD>): <what>]` marker — the LAST such marker in the
+# reason, so leading noise (including an earlier, malformed marker) never
+# wins and a `]` inside <what> never truncates it. rc 1 (no globals set)
+# when the reason does not end that way: no marker at all, a marker only
+# mid-reason, a malformed date, or a <what> that is empty once tab/newline
+# are stripped with tr -d '\t\n'.
+_lesson_trailing_marker() {
+	local reason=$1 trimmed body tail
+	trimmed=$reason
+	while :; do
+		case "$trimmed" in
+		*[[:space:]]) trimmed=${trimmed%?} ;;
+		*) break ;;
+		esac
+	done
+	case "$trimmed" in
+	*"]") ;;
+	*) return 1 ;;
+	esac
+	body=${trimmed%"]"}
+	case "$body" in
+	*"[lesson("*) ;;
+	*) return 1 ;;
+	esac
+	tail=${body##*"[lesson("}
+	case "$tail" in
+	[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"): "*) ;;
+	*) return 1 ;;
+	esac
+	_LESSON_DATE=${tail:0:10}
+	_LESSON_WHAT=${tail:13}
+	_LESSON_WHAT=$(printf '%s' "$_LESSON_WHAT" | tr -d '\t\n')
+	[ -z "$_LESSON_WHAT" ] && return 1
+	return 0
+}
+
+# _lesson_fire <reason> → when <reason> ends with a marker (see
+# _lesson_trailing_marker), append one fire line to
+# $(hook_project_dir)/.claude/lesson-fires.log (mkdir -p; any failure
+# swallowed). Grammar: <date>\t<what>\t<UTC ISO-8601 Z>\t<hook basename>.
 _lesson_fire() {
-	local reason=$1 remainder marker_date marker_what target_dir
-	remainder=${reason#*"[lesson("}
-	marker_date=${remainder%%)*}
-	marker_what=${remainder#*"): "}
-	marker_what=${marker_what%%]*}
-	marker_what=$(printf '%s' "$marker_what" | tr -d '\t\n')
+	local reason=$1 target_dir
+	_lesson_trailing_marker "$reason" || return 0
 	target_dir="$(hook_project_dir)/.claude"
 	{ mkdir -p "$target_dir"; } 2>/dev/null || return 0
-	{ printf '%s\t%s\t%s\t%s\n' "$marker_date" "$marker_what" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${0##*/}" >>"$target_dir/lesson-fires.log"; } 2>/dev/null || return 0
+	{ printf '%s\t%s\t%s\t%s\n' "$_LESSON_DATE" "$_LESSON_WHAT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${0##*/}" >>"$target_dir/lesson-fires.log"; } 2>/dev/null || return 0
 }
 
 # _lesson_nudge <reason> → <reason>, plus a "/lesson" line when the same
@@ -160,10 +194,14 @@ _lesson_fire() {
 # to the unchanged reason. Reasons that already mention /lesson are left
 # alone (stop-gate adds its own wording).
 #
-# A reason carrying a marker `[lesson(<YYYY-MM-DD>): <what>]` (first one
-# counts) is a lesson firing again: append one fire line to
+# A reason that ENDS with a marker `[lesson(<YYYY-MM-DD>): <what>]` (see
+# _lesson_trailing_marker; the last marker wins, trailing whitespace is
+# tolerated) is a lesson firing again: append one fire line to
 # `.claude/lesson-fires.log` (mkdir -p; any failure swallowed) and return
-# the reason unchanged — no nudge text, no signature file write.
+# the reason unchanged — no nudge text, no signature file write. A marker
+# that only appears mid-reason (e.g. echoed file content that happens to
+# contain the marker literal) is treated as a plain reason: normal counter
+# and nudge behaviour below.
 _lesson_nudge() {
 	local reason=$1 sid tmp f sig n
 	case "$reason" in
@@ -171,12 +209,12 @@ _lesson_nudge() {
 		printf '%s' "$reason"
 		return 0
 		;;
-	*"[lesson("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"): "*"]"*)
+	esac
+	if _lesson_trailing_marker "$reason"; then
 		_lesson_fire "$reason"
 		printf '%s' "$reason"
 		return 0
-		;;
-	esac
+	fi
 	sid=$(hook_field .session_id)
 	[ -z "$sid" ] && sid="nosession"
 	sid=$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_-' '_')
