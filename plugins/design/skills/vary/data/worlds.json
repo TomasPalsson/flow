@@ -1,0 +1,3984 @@
+[
+ {
+  "id": "swiss-international",
+  "name": "Swiss / International Style",
+  "origin": "Basel/Zürich, late 1940s-1950s — Müller-Brockmann, Hofmann, Ruder",
+  "one_line": "Fixed baseline grid; hierarchy by weight/size/position, never color.",
+  "modes": [
+   "operate",
+   "read",
+   "persuade"
+  ],
+  "archetypes": [
+   "broadsheet",
+   "asymmetric-offset",
+   "index-list",
+   "cardless-table"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "committed"
+  ],
+  "palette_hint": "true black + paper white + ONE saturated accent (often red H25-35); tint neutrals ≤C0.01",
+  "seed_buckets": [
+   1,
+   2,
+   17
+  ],
+  "type": {
+   "display": [
+    "neo-grotesque"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "one family carries all sizes; weights (regular/bold) do the hierarchy work; flush-left ragged-right; no italics for emphasis; tabular figures for any numerals."
+  },
+  "grammar": [
+   "Fixed baseline grid applies to every element including images — image crops snap to grid lines, never floating off-grid.",
+   "Hierarchy is expressed primarily through type weight, size, and position — color is not used to indicate importance.",
+   "Body copy is flush-left, ragged-right; full justification is never used.",
+   "Column widths are asymmetric but derived mathematically from the grid module, never eyeballed.",
+   "Typically one saturated accent color anchors the system; everything else is true black, true white, or a near-neutral tint."
+  ],
+  "materials": [
+   "offset litho on coated stock",
+   "poster paper"
+  ],
+  "first_viewport": "A fixed 8-column grid fills the viewport edge-to-edge; a thin horizontal rule sits at one-third height carrying the wordmark flush-left and a single red rule-bounded link flush-right, with body copy beginning immediately below in a 6-column measure.",
+  "motion": {
+   "moment": "Grid rules draw themselves in on load via stroke-dashoffset, establishing structure before content appears.",
+   "easing": "linear or slight ease-out, 150-250ms",
+   "forbidden": [
+    "bounce",
+    "spring",
+    "parallax"
+   ]
+  },
+  "tell": "Centered text, or a decorative accent color used for 'pop' instead of structure.",
+  "refuse": [
+   "Never centers text.",
+   "Never uses more than one accent hue.",
+   "Never uses a drop shadow.",
+   "Never justifies body copy."
+  ],
+  "mobile_fallback": "The grid collapses to a single flush-left column; weight/size hierarchy carries over unchanged; the one accent rule becomes a horizontal divider between sections.",
+  "physical_antecedents": [
+   "Müller-Brockmann concert posters",
+   "Swiss Federal Railways (SBB) timetable boards",
+   "Zürich tram wayfinding signage"
+  ],
+  "decay": "slow",
+  "suits": [
+   "enterprise SaaS",
+   "transit",
+   "rigorous portfolios"
+  ],
+  "avoid_for": [
+   "kids",
+   "luxury fashion"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://en.wikipedia.org/wiki/International_Typographic_Style",
+   "https://en.wikipedia.org/wiki/Josef_M%C3%BCller-Brockmann",
+   "https://designreviewed.com/design-movement/international-typographic-style/"
+  ]
+ },
+ {
+  "id": "bauhaus",
+  "name": "Bauhaus",
+  "origin": "Weimar/Dessau, 1919-1933 — Herbert Bayer, László Moholy-Nagy",
+  "one_line": "Primary-color geometric primitives as literal structural units — form states its function.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "asymmetric-offset",
+   "bento",
+   "broadsheet"
+  ],
+  "color_strategies": [
+   "primary-triad",
+   "committed",
+   "restrained"
+  ],
+  "palette_hint": "pure primary red/yellow/blue at high chroma (C0.20-0.30) + true black/white; no tints, no tertiary mixing",
+  "seed_buckets": [
+   2,
+   6,
+   18
+  ],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "single geometric sans (Bayer-style geometric or Futura-class) set unjustified in tracked caps for display; no italics; no serif ever."
+  },
+  "grammar": [
+   "Only primary colors (pure red, yellow, blue) plus true black and white appear anywhere in the system.",
+   "Circles, squares, and triangles are used as literal structural units (a circle is a container or divider, not decoration).",
+   "Type is a single geometric sans, set unjustified, with no italics and no serif ever introduced.",
+   "Every shape's size and position is derived from a stated function (a divider, a container, a counterweight) — never placed purely for balance."
+  ],
+  "materials": [
+   "silkscreen poster ink",
+   "painted wood/metal primitives"
+  ],
+  "first_viewport": "A large red circle and a black square overlap in the upper-left quadrant of the viewport against pure white; the headline runs in tracked-out geometric-sans caps along the lower edge, broken by the yellow triangle that punctures its baseline.",
+  "motion": {
+   "moment": "The geometric primitives (circle/square/triangle) slide into their final grid position from off-frame on load, arriving in sequence.",
+   "easing": "linear, fast, 150-200ms per shape",
+   "forbidden": [
+    "bounce",
+    "blur transitions",
+    "gradient fades"
+   ]
+  },
+  "tell": "Rounded/organic shapes, pastel palette, serif type — any softness at all.",
+  "refuse": [
+   "Never uses a serif.",
+   "Never uses more than the primary triad plus black/white.",
+   "Never applies a shape as mere decoration — every circle/square/triangle is structural."
+  ],
+  "mobile_fallback": "The geometric primitives stack vertically in their original proportions rather than shrinking; the primary-color blocking becomes full-width horizontal bands.",
+  "physical_antecedents": [
+   "Herbert Bayer's Bauhaus exhibition posters",
+   "Marcel Breuer's Wassily chair",
+   "the Dessau Bauhaus building's curtain-wall facade"
+  ],
+  "decay": "slow",
+  "suits": [
+   "design schools",
+   "furniture/product brands",
+   "education platforms"
+  ],
+  "avoid_for": [
+   "luxury fashion",
+   "finance/trading"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://eyeondesign.aiga.org/5-examples-of-bauhaus-graphic-design-that-shaped-the-movement/",
+   "https://www.linearity.io/blog/bauhaus-design/"
+  ]
+ },
+ {
+  "id": "de-stijl",
+  "name": "De Stijl",
+  "origin": "Netherlands, 1917-1931 — Mondrian, Rietveld, van Doesburg",
+  "one_line": "The orthogonal grid itself is the artwork, in flat red/yellow/blue on black-and-white.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "bento",
+   "poster",
+   "asymmetric-offset"
+  ],
+  "color_strategies": [
+   "primary-triad",
+   "restrained",
+   "two-field-split"
+  ],
+  "palette_hint": "flat primary red (H20-30) + yellow (H90-100) + blue (H255-265) blocks on white/black/grey fields, C0.18-0.25, no gradients",
+  "seed_buckets": [
+   1,
+   6,
+   18
+  ],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "one geometric/grotesque sans set only in black or a primary-color fill, never grey; caps-only for structural labels; no italics."
+  },
+  "grammar": [
+   "Every line in the composition is strictly horizontal or vertical; no diagonal or curve appears anywhere, including in motion.",
+   "Color fills are flat and unmodulated — no gradient, no texture, no shadow.",
+   "The grid lines themselves are rendered as visible black rules, not implicit container edges — the grid IS the artwork.",
+   "Fields are asymmetric but balanced: a small saturated field can visually counterweight a much larger neutral field."
+  ],
+  "materials": [
+   "painted wood panel",
+   "lacquered furniture surface"
+  ],
+  "first_viewport": "The viewport is quartered by two black orthogonal rules (one vertical at 38%, one horizontal at 62%) into four unequal fields; one field is flat red, the rest white, and the headline sits inside the smallest field set flush to its own edges.",
+  "motion": {
+   "moment": "The orthogonal dividing rules extend from a single point to their full length on load, defining the fields before content fills them.",
+   "easing": "linear only, no easing curve",
+   "forbidden": [
+    "diagonal motion",
+    "spring",
+    "rotation"
+   ]
+  },
+  "tell": "Any diagonal line, gradient, or off-primary hue.",
+  "refuse": [
+   "Never uses a diagonal or curve.",
+   "Never lets a field span less than a full grid cell.",
+   "Never introduces a fourth hue beyond red/yellow/blue/black/white/grey."
+  ],
+  "mobile_fallback": "The orthogonal fields stack as full-width horizontal bands in their original color, preserving the asymmetric proportions rather than resizing to equal heights.",
+  "physical_antecedents": [
+   "Rietveld's Red and Blue Chair",
+   "the Schröder House facade",
+   "Mondrian's studio wall arrangement as photographed by his contemporaries"
+  ],
+  "decay": "slow",
+  "suits": [
+   "art/gallery sites",
+   "minimal brand identities",
+   "architecture firms"
+  ],
+  "avoid_for": [
+   "dense data dashboards",
+   "long-form editorial"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.theartstory.org/movement/de-stijl/",
+   "https://www.thegraphicdesignschool.com/design-history/de-stijl/"
+  ]
+ },
+ {
+  "id": "constructivist",
+  "name": "Constructivist / Soviet avant-garde",
+  "origin": "USSR, 1919-1930s — Rodchenko, Lissitzky",
+  "one_line": "Diagonal photomontage and red-on-cream type running as a graphic shape, not just text.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "zine-collage",
+   "scroll-narrative",
+   "asymmetric-offset"
+  ],
+  "color_strategies": [
+   "committed",
+   "primary-triad",
+   "duotone"
+  ],
+  "palette_hint": "committed red (H20-30, C0.20+) + true black on cream/off-white ground; yellow as the only secondary addition",
+  "seed_buckets": [
+   2,
+   6
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "condensed"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "bold condensed display sans that can rotate to follow diagonal composition lines; body reverts to a plain neo-grotesque; no serif, no light weights."
+  },
+  "grammar": [
+   "At least one major compositional element runs on a diagonal axis (rotated 10-25°) rather than the horizontal/vertical grid.",
+   "The palette is capped at red, black, and cream/white, with yellow as the only permitted addition.",
+   "Type is a condensed/bold sans set as a graphic shape — it can run at an angle or interlock with imagery, never confined to a rectangular text box.",
+   "Photography is treated as raw material for photomontage (cropped, layered, recombined), never shown as an untouched single frame."
+  ],
+  "materials": [
+   "agitprop poster paper",
+   "photomontage cut-paper"
+  ],
+  "first_viewport": "A photomontage figure is cropped and rotated 15 degrees off the horizontal, red condensed display type runs diagonally across the frame from lower-left to upper-right, and a solid black wedge anchors the opposite corner.",
+  "motion": {
+   "moment": "The photomontage element slams in already rotated, with a brief diagonal overshoot correction.",
+   "easing": "fast ease-out with 5-10 degree overshoot settle, 200-300ms",
+   "forbidden": [
+    "gentle fades",
+    "symmetrical/centered motion",
+    "pastel color transitions"
+   ]
+  },
+  "tell": "Horizontal-only layouts, muted palettes, serif type.",
+  "refuse": [
+   "Never uses a horizontal-only composition.",
+   "Never uses a soft pastel.",
+   "Never sets type outside a diagonal or angled baseline in a hero moment."
+  ],
+  "mobile_fallback": "The diagonal composition rotates to a single steep diagonal band running the height of the screen rather than flattening to horizontal.",
+  "physical_antecedents": [
+   "Rodchenko's Mayakovsky book covers",
+   "Lissitzky's 'Beat the Whites with the Red Wedge' poster",
+   "a 1920s Soviet agitprop train car"
+  ],
+  "decay": "slow",
+  "suits": [
+   "activist/political campaigns",
+   "music/festival promotion",
+   "protest-adjacent tech"
+  ],
+  "avoid_for": [
+   "healthcare",
+   "children's products",
+   "enterprise B2B"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Alexander_Rodchenko",
+   "https://creativepro.com/russian-constructivism-and-graphic-design/"
+  ]
+ },
+ {
+  "id": "dutch-structuralism",
+  "name": "Dutch Structuralism (Total Design / Experimental Jetset)",
+  "origin": "Amsterdam, 1963-present — Total Design; Experimental Jetset (1997-)",
+  "one_line": "The grid made visible; deadpan Helvetica captions describe the system itself.",
+  "modes": [
+   "read",
+   "experience"
+  ],
+  "archetypes": [
+   "broadsheet",
+   "index-list",
+   "cardless-table",
+   "single-column"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "near-achromatic ink-on-paper; structural color (if any) reads as a signal, C0.05-0.10 max, any hue",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "neo-grotesque"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "single neutral grotesque (Helvetica/Univers-class) at every size including captions; deadpan tone; no italics, no display face swap."
+  },
+  "grammar": [
+   "The underlying grid is rendered visible (hairline rules, ruler marks, or column guides left on-screen) rather than hidden by whitespace.",
+   "Only one typeface family is used system-wide, almost always a neutral grotesque (Helvetica/Univers-class).",
+   "Copy voice is deadpan and self-referential — it can describe the design system itself rather than only the product.",
+   "No decorative color exists; color, when present, marks structure (a section boundary) not mood."
+  ],
+  "materials": [
+   "offset litho",
+   "postage-stamp gravure"
+  ],
+  "first_viewport": "The page opens on the grid itself: thin black hairlines partition the viewport into a visible column system, the wordmark is set in plain Helvetica at the same size as the body intro, and a caption below the grid states which grid it is.",
+  "motion": {
+   "moment": "Almost no motion; the one moment is the grid's hairlines appearing as a flat instant toggle when a caption calls attention to them.",
+   "easing": "none, instant (0ms)",
+   "forbidden": [
+    "any easing curve",
+    "fades",
+    "hover lifts"
+   ]
+  },
+  "tell": "Warm/organic type choices, hidden/invisible grid, marketing-voice copy.",
+  "refuse": [
+   "Never hides the underlying grid.",
+   "Never writes marketing-voice copy.",
+   "Never uses more than one typeface."
+  ],
+  "mobile_fallback": "The visible grid becomes a single visible column with its hairline rule preserved above each section; the caption about the grid stays.",
+  "physical_antecedents": [
+   "Total Design's Dutch PTT stamps",
+   "Wim Crouwel's Stedelijk Museum posters",
+   "Experimental Jetset's Whitney Museum identity"
+  ],
+  "decay": "slow",
+  "suits": [
+   "cultural institutions",
+   "design studios",
+   "publishing platforms"
+  ],
+  "avoid_for": [
+   "consumer e-commerce",
+   "playful youth brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Experimental_Jetset",
+   "https://www.typeroom.eu/article/why-experimental-jetset-living-part-typographic-history"
+  ]
+ },
+ {
+  "id": "memphis",
+  "name": "Memphis",
+  "origin": "Milan, 1980-1987 — Ettore Sottsass and the Memphis Group",
+  "one_line": "Clashing neon-and-pastel geometry, deliberately off-grid, refusing a single safe accent.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "zine-collage",
+   "poster",
+   "bento",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "full-palette",
+   "high-key-pastel",
+   "acid-hi-vis"
+  ],
+  "palette_hint": "pastel-and-neon clash: two hues from opposite ends of the wheel at once, e.g. hot pink H340 + acid green H120, both C0.20+",
+  "seed_buckets": [
+   4,
+   8,
+   14,
+   21
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "mixed weights within a single headline permitted (part of the deliberate clash); geometric or display-grotesque display face; body stays a plain geometric sans for legibility."
+  },
+  "grammar": [
+   "At least two colors from opposite temperature families (a neon and a pastel) appear adjacent in the same composition, deliberately clashing.",
+   "Shapes are geometric but placed off the underlying grid at an angle or offset, never grid-aligned.",
+   "At least one squiggle, zigzag, or terrazzo-speckle fill pattern appears as a literal graphic element, not a texture overlay.",
+   "No single accent color dominates by area — visual weight is distributed across 3+ competing hues."
+  ],
+  "materials": [
+   "plastic laminate (Abet Print)",
+   "terrazzo composite"
+  ],
+  "first_viewport": "A hot-pink squiggle and a terrazzo-speckle fill float behind an asymmetrically placed headline set in mismatched weights, with a yellow triangle and a teal circle scattered off-grid in the lower third.",
+  "motion": {
+   "moment": "One squiggle or terrazzo shape wobbles/rotates slightly on hover, independent of everything else on the page.",
+   "easing": "playful ease-in-out with slight overshoot, 250-350ms",
+   "forbidden": [
+    "uniform grid-wide animation",
+    "restrained/linear motion"
+   ]
+  },
+  "tell": "Restrained palette, aligned grid, single accent color.",
+  "refuse": [
+   "Never aligns every shape to the same grid.",
+   "Never uses a single restrained accent color.",
+   "Never lets the palette read as 'safe.'"
+  ],
+  "mobile_fallback": "Shapes reflow into a single column but retain their off-grid rotation and scale; nothing snaps to alignment.",
+  "physical_antecedents": [
+   "Sottsass's Carlton bookcase",
+   "a Memphis-era Swatch watch face",
+   "an 1980s Milan showroom terrazzo floor"
+  ],
+  "decay": "medium",
+  "suits": [
+   "youth/creative brands",
+   "event/festival sites",
+   "playful consumer apps"
+  ],
+  "avoid_for": [
+   "finance",
+   "healthcare",
+   "enterprise operate-mode tools"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Memphis_Group",
+   "https://www.creativebloq.com/inspiration/10-iconic-examples-of-memphis-design"
+  ]
+ },
+ {
+  "id": "y2k-frutiger-aero",
+  "name": "Y2K / Frutiger Aero",
+  "origin": "Global consumer tech, 2004-2013 — Windows XP/Mac OS X-era skeuomorphism",
+  "one_line": "Glossy aqua gradients and bokeh nature-tech collage — 2004-era optimism, never flat.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "poster",
+   "scroll-narrative",
+   "bento",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "duotone",
+   "high-key-pastel",
+   "full-palette"
+  ],
+  "palette_hint": "aqua/sky-blue/teal gradient family, H180-220, L0.65-0.90, glossy highlight adds a near-white specular band",
+  "seed_buckets": [
+   9,
+   13,
+   14
+  ],
+  "type": {
+   "display": [
+    "humanist-sans",
+    "variable-showpiece"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "rounded humanist/geometric sans with soft terminals (Frutiger/early-Trebuchet lineage); no condensed or slab anywhere; occasional variable-axis widening for headline drama."
+  },
+  "grammar": [
+   "Every primary surface carries a gloss pass (a highlight gradient or specular sheen), never a flat matte fill.",
+   "The palette is anchored in aqua/sky-blue/teal/white; a fully achromatic or fully warm palette never appears.",
+   "Corners are rounded on every primary container (pill shapes, bubble buttons) — sharp unrounded corners are reserved for incidental dividers only.",
+   "At least one nature-tech collage element (water droplet, bokeh, cloud, or leaf motif rendered with a tech sheen) appears per major surface."
+  ],
+  "materials": [
+   "injection-molded translucent plastic",
+   "glossy CRT/LCD screen coating"
+  ],
+  "first_viewport": "A glossy aqua-to-white gradient sky fills the upper two-thirds of the viewport with a soft bokeh water-droplet overlay, a rounded pill-shaped nav bar floats near the top with a chrome bevel, and the headline sits in a bubble-round humanist sans.",
+  "motion": {
+   "moment": "A glossy highlight sweeps across a rounded surface on hover, like light passing over a wet/chrome bevel.",
+   "easing": "smooth ease-in-out, 400-600ms",
+   "forbidden": [
+    "hard cuts",
+    "flat instant state changes",
+    "brutalist snap"
+   ]
+  },
+  "tell": "Flat colors, no gloss/highlight layer, matte surfaces.",
+  "refuse": [
+   "Never uses flat, matte fills without a gloss/highlight pass.",
+   "Never uses a cold achromatic palette.",
+   "Never uses sharp unrounded corners on primary surfaces."
+  ],
+  "mobile_fallback": "The gradient sky and bokeh layer scale to cover the viewport height rather than cropping; the pill nav collapses to a single glossy bar.",
+  "physical_antecedents": [
+   "Windows XP's 'Bliss' desktop wallpaper",
+   "an early-2000s iMac G3 shell",
+   "a 2005-era MSN Messenger emoticon set"
+  ],
+  "decay": "fast",
+  "suits": [
+   "nostalgia-driven consumer brands",
+   "music apps",
+   "youth tech"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "healthcare",
+   "B2B tools"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://frutiger-aero.org/frutiger-aero",
+   "https://aesthetics.fandom.com/wiki/Frutiger_Aero"
+  ]
+ },
+ {
+  "id": "brutalist-web",
+  "name": "Brutalist web",
+  "origin": "Web, ~2014-present — Pascal Deville's brutalistwebsites.com",
+  "one_line": "Raw, unstyled browser defaults left exactly as the browser draws them.",
+  "modes": [
+   "experience",
+   "read"
+  ],
+  "archetypes": [
+   "single-column",
+   "index-list",
+   "cardless-table",
+   "broadsheet"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "system default: white/near-white bg, black text, unmodified link blue (~H260)",
+  "seed_buckets": [
+   18
+  ],
+  "type": {
+   "display": [
+    "system-stack"
+   ],
+   "body": [
+    "system-stack"
+   ],
+   "notes": "the browser's default system font stack, unmodified; default sizes; no custom webfont load; underlines on links preserved."
+  },
+  "grammar": [
+   "Default browser styling (system font stack, default link blue/underline, default focus ring) is left unstyled wherever it appears.",
+   "No element carries a border-radius or a box-shadow anywhere in the system.",
+   "Layout blocks are unaligned to a symmetric grid on purpose — column widths and gutters vary without a repeating pattern.",
+   "No image is used purely for decoration; every image is content."
+  ],
+  "materials": [
+   "raw poured concrete",
+   "unfinished plywood"
+  ],
+  "first_viewport": "Default system-serif body text starts at the very top of the page with no hero, an unstyled blue underlined link sits inline in the first sentence, and the browser's default focus ring is visible around the first interactive element.",
+  "motion": {
+   "moment": "An abrupt, unapologetic hard-cut state change with no crossfade.",
+   "easing": "instant or near-instant, 0-80ms",
+   "forbidden": [
+    "smooth easing curves",
+    "hover micro-lifts",
+    "parallax"
+   ]
+  },
+  "tell": "Rounded corners, shadows, smooth transitions anywhere.",
+  "refuse": [
+   "Never adds a border-radius.",
+   "Never adds a box-shadow.",
+   "Never restyles the default link color/underline."
+  ],
+  "mobile_fallback": "No fallback needed — the layout is already a single unstyled column at any width.",
+  "physical_antecedents": [
+   "a raw poured-concrete municipal building facade",
+   "an early-1990s university department homepage",
+   "a plain text README file"
+  ],
+  "decay": "medium",
+  "suits": [
+   "portfolios",
+   "artist/musician sites",
+   "anti-corporate positioning"
+  ],
+  "avoid_for": [
+   "e-commerce checkout flows",
+   "healthcare"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.brutalistwebsites.com/",
+   "https://superdesign.dev/styles/brutalism"
+  ]
+ },
+ {
+  "id": "neo-brutalism",
+  "name": "Neo-brutalism (product UI)",
+  "origin": "Web/product UI, ~2020-present — popularized by Michał Malewicz's March 2022 essay (no single originator is universally credited)",
+  "one_line": "Thick black borders and flat offset shadows — a rubber stamp pressed into pixels.",
+  "modes": [
+   "persuade",
+   "operate"
+  ],
+  "archetypes": [
+   "bento",
+   "dense-console",
+   "index-list",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "committed",
+   "primary-triad",
+   "acid-hi-vis"
+  ],
+  "palette_hint": "flat saturated primary-ish fills (C0.18-0.28) + true black borders/shadows, no gradients",
+  "seed_buckets": [
+   2,
+   6,
+   18,
+   21
+  ],
+  "type": {
+   "display": [
+    "display-grotesque"
+   ],
+   "body": [
+    "geometric-sans",
+    "neo-grotesque"
+   ],
+   "notes": "headline at 700-900 weight, 2-3x body size, tight-normal tracking; no italics; body in a plain geometric or neo-grotesque sans."
+  },
+  "grammar": [
+   "Every primary container has a solid 2-4px black (or near-black) border with zero blur.",
+   "Elevation is expressed as a flat-color offset shadow (translate + solid fill, no blur radius) rather than a soft drop-shadow.",
+   "Border-radius is 0 on structural containers — corners are square throughout, with no documented exception.",
+   "Headline type runs at a heavy weight (700+), sized dramatically larger than body, with no lighter weight ever used for a headline."
+  ],
+  "materials": [
+   "rubber stamp and ink",
+   "powder-coated sheet metal"
+  ],
+  "first_viewport": "A flat yellow card with a 3px solid black border and a 4px black offset shadow sits top-left holding the headline in 900-weight black type; a second flat-blue card overlaps its bottom edge by 20px with no radius on either.",
+  "motion": {
+   "moment": "A button's hard offset shadow presses in to zero-offset on click.",
+   "easing": "snappy near-linear, mimics a physical stamp, 80-120ms",
+   "forbidden": [
+    "soft ease-in-out",
+    "blur transitions",
+    "drop-shadow softening"
+   ]
+  },
+  "tell": "Blurred shadows, gradients, thin/no borders.",
+  "refuse": [
+   "Never blurs a shadow.",
+   "Never uses a border thinner than 2px on a primary container.",
+   "Never uses a soft pastel fill."
+  ],
+  "mobile_fallback": "Cards stack full-width; borders and offset shadows stay at full pixel value, never scaled down.",
+  "physical_antecedents": [
+   "a rubber stamp and ink pad",
+   "a hazard-yellow warning sign with a thick black border",
+   "a comic-book panel gutter"
+  ],
+  "decay": "fast",
+  "suits": [
+   "indie SaaS",
+   "dev tools",
+   "playful fintech"
+  ],
+  "avoid_for": [
+   "luxury fashion",
+   "healthcare"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.nngroup.com/articles/neobrutalism",
+   "https://neubrutalism.com/"
+  ]
+ },
+ {
+  "id": "japanese-editorial",
+  "name": "Japanese editorial (Idea magazine / MUJI)",
+  "origin": "Tokyo, 1980-present — MUJI's product and print design language. (Idea magazine, the namesake 1953 typography journal, in fact runs a more colorful, maximalist editorial register per its own citation below; this card follows the MUJI/negative-space lineage specifically, not Idea's editorial pages.)",
+  "one_line": "Negative space as an active element; hand-tuned kerning carries the hierarchy.",
+  "modes": [
+   "read",
+   "experience"
+  ],
+  "archetypes": [
+   "magazine-feature",
+   "single-column",
+   "broadsheet",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "restrained",
+   "muted-earth",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "near-monochrome (C0-0.02) plus one muted natural material tone (wood/paper, H30-50, C0.03-0.06)",
+  "seed_buckets": [
+   3
+  ],
+  "type": {
+   "display": [
+    "humanist-sans"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "one humanist sans hand-kerned per block; generous line-height (1.8-2.2); weight (not size) carries hierarchy; no bold overuse."
+  },
+  "grammar": [
+   "Negative space occupies a majority of at least one major section per screen and is never filled to 'balance' the layout.",
+   "Kerning and line-height are tuned per block rather than left at a default, aiming at a visibly deliberate vertical rhythm.",
+   "The MUJI/negative-space register keeps color near-monochrome plus one natural material tone — this is a distinct, more restrained register than Idea magazine's own colorful editorial spreads.",
+   "Type weight, more than size, commonly carries hierarchy — headline and body can share a similar size with weight differing."
+  ],
+  "materials": [
+   "washi paper",
+   "unbleached cotton fabric"
+  ],
+  "first_viewport": "Roughly 70% of the viewport is empty near-white space; a single vertical hairline sits at the right third, and a small, precisely kerned caption-sized headline anchors the lower-left corner beside one muted wood-tone rule.",
+  "motion": {
+   "moment": "A single element's opacity resolves slowly as it enters the negative space; nothing else on the page moves at the same time.",
+   "easing": "very slow ease-in-out, 500-800ms",
+   "forbidden": [
+    "multiple simultaneous animations",
+    "bounce",
+    "fast cuts"
+   ]
+  },
+  "tell": "Dense copy with no breathing room, saturated color.",
+  "refuse": [
+   "Never fills negative space 'just because it's empty.'",
+   "Never uses more than one saturated accent.",
+   "Never sets body copy at a tight line-height."
+  ],
+  "mobile_fallback": "The negative-space ratio is preserved by increasing top/bottom margin rather than shrinking it; the single accent rule stays inset from the edge.",
+  "physical_antecedents": [
+   "a MUJI product label",
+   "an Idea magazine spread",
+   "a traditional shoji screen's negative-space proportion"
+  ],
+  "decay": "slow",
+  "suits": [
+   "craft/design-forward brands",
+   "wellness",
+   "minimalist product sites"
+  ],
+  "avoid_for": [
+   "dense operate-mode dashboards",
+   "youth/playful consumer apps"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://www.idea-mag.com/en/about/",
+   "https://www.typeroom.eu/from-the-land-of-cherry-blossoms-a-guide-to-the-bold-japanese-magazines-we-love"
+  ]
+ },
+ {
+  "id": "scandinavian-functionalism",
+  "name": "Scandinavian functionalism",
+  "origin": "Nordic countries, 1930s-present — Stockholm Exhibition 1930; Aalto, Jacobsen",
+  "one_line": "Light birch and pale grey, generous margins, ornament only where it states a function.",
+  "modes": [
+   "read",
+   "persuade"
+  ],
+  "archetypes": [
+   "single-column",
+   "catalog-sheet",
+   "bento",
+   "sidebar-tool"
+  ],
+  "color_strategies": [
+   "restrained",
+   "muted-earth",
+   "high-key-pastel"
+  ],
+  "palette_hint": "pale birch/oat neutrals (H40-60, C0.02-0.05) with at most one moderate accent, C0.10-0.15",
+  "seed_buckets": [
+   3,
+   5
+  ],
+  "type": {
+   "display": [
+    "humanist-sans"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "warm humanist sans, regular/medium weights only; bold reserved for true emphasis; generous leading throughout."
+  },
+  "grammar": [
+   "The base palette stays in light wood/white/pale-grey tones; a saturated hue, when used, covers no more than one small accent role.",
+   "Margins and gutters are generous by a fixed multiple (at least 1.5x a typical dense-layout equivalent) at every breakpoint.",
+   "Type is a humanist (not geometric-cold) sans, set at moderate weight — bold is reserved for true emphasis, never default.",
+   "Every ornamental element states a function (a rule marks a section, a shape marks a category) — nothing is placed purely for decoration."
+  ],
+  "materials": [
+   "pale birch veneer",
+   "wool felt"
+  ],
+  "first_viewport": "A pale birch-toned background holds a single softly-lit product photograph centered-left, with generous margin on all sides and a quiet humanist-sans headline set small and left-aligned beneath it.",
+  "motion": {
+   "moment": "A product photo's ambient light appears to shift very subtly on load (a soft cross-fade between two exposures).",
+   "easing": "slow ease-in-out, 600-900ms",
+   "forbidden": [
+    "saturated color flashes",
+    "spring physics",
+    "fast cuts"
+   ]
+  },
+  "tell": "Dark themes, saturated color, ornamental flourish.",
+  "refuse": [
+   "Never defaults to dark mode as primary.",
+   "Never uses more than two accent hues.",
+   "Never adds ornament that doesn't state a function."
+  ],
+  "mobile_fallback": "The product photo and caption stack full-width with the same generous margin ratio, never reduced to save space.",
+  "physical_antecedents": [
+   "an Alvar Aalto vase",
+   "a pale birch Arne Jacobsen chair",
+   "a Nordic apartment window with sheer curtains and low winter light"
+  ],
+  "decay": "slow",
+  "suits": [
+   "furniture/home",
+   "parenting/family products",
+   "sustainability brands"
+  ],
+  "avoid_for": [
+   "nightlife/music",
+   "high-energy sports products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Scandinavian_design",
+   "https://www.scandinaviastandard.com/what-is-scandinavian-design/"
+  ]
+ },
+ {
+  "id": "italian-rationalist",
+  "name": "Italian Rationalist / Radical design",
+  "origin": "Italy, 1930s (rationalism) and 1966-1978 (radical) — Terragni; Superstudio (1966-1978), Archizoom (1966-1974)",
+  "one_line": "An infinite black-on-white grid receding to a vanishing point, punctured by one red intrusion.",
+  "modes": [
+   "experience",
+   "read"
+  ],
+  "archetypes": [
+   "map-spatial",
+   "poster",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "committed"
+  ],
+  "palette_hint": "true black/white grid with one saturated intrusion, usually red H20-30 C0.20+",
+  "seed_buckets": [
+   2
+  ],
+  "type": {
+   "display": [
+    "neo-grotesque",
+    "condensed"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "monumental tracked caps in neo-grotesque or condensed sans for the rationalist register; plain typewriter mono for the radical-manifesto register — pick one, never mix."
+  },
+  "grammar": [
+   "A strict orthogonal or radially-symmetric grid underlies the whole composition, visible even where content interrupts it.",
+   "The palette stays predominantly black-and-white, with one or a small number of saturated intrusions (Radical-era work sometimes uses several kitsch colors at once).",
+   "Photography, when used, is deadpan and documentary in tone, never lifestyle-warm or candid.",
+   "Scale is monumental — at least one element is rendered far larger than its informational weight would require, as a rhetorical gesture."
+  ],
+  "materials": [
+   "travertine stone",
+   "blueprint diazo paper"
+  ],
+  "first_viewport": "An infinite black-on-white grid recedes toward a vanishing point behind the headline, which sits centered and monumental in tracked caps, with a single red rule intruding across the grid at one horizontal band.",
+  "motion": {
+   "moment": "The infinite grid appears to recede further on scroll, as if the vanishing point moves with the viewer.",
+   "easing": "linear, scroll-linked",
+   "forbidden": [
+    "bounce",
+    "warm color transitions",
+    "organic easing curves"
+   ]
+  },
+  "tell": "Warm/organic photography, asymmetric informality.",
+  "refuse": [
+   "Never breaks the grid with an organic curve.",
+   "Never uses warm lifestyle photography.",
+   "Never uses more than one saturated intrusion color."
+  ],
+  "mobile_fallback": "The infinite grid renders as a repeating vertical band pattern behind a single scrolling column of content.",
+  "physical_antecedents": [
+   "Terragni's Casa del Fascio facade",
+   "Superstudio's 'Continuous Monument' photomontage",
+   "a 1970s Italian design-theory journal spread"
+  ],
+  "decay": "slow",
+  "suits": [
+   "architecture firms",
+   "design theory publications",
+   "avant-garde portfolios"
+  ],
+  "avoid_for": [
+   "consumer e-commerce",
+   "kids products"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://architizer.com/blog/inspiration/stories/superstudio-gridded-architecture/",
+   "https://hartdesignselection.com/en/radical-design-italian-anti-design-1960-1975/"
+  ]
+ },
+ {
+  "id": "mid-century-corporate",
+  "name": "Mid-century American corporate",
+  "origin": "USA, 1950s-60s — Paul Rand, Saul Bass",
+  "one_line": "One geometric motif repeated at every scale, anchored by a confident flat logotype.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "broadsheet",
+   "bento",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "committed",
+   "primary-triad",
+   "restrained"
+  ],
+  "palette_hint": "2-3 confident flat hues (often navy H250-260, red H20-30, cream ground), C0.15-0.22, no gradients",
+  "seed_buckets": [
+   2,
+   6,
+   18
+  ],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "single confident geometric-sans logotype-derived display face; humanist sans for body; no italics; tight consistent baseline."
+  },
+  "grammar": [
+   "The system uses exactly one recurring geometric motif (a circle, a stripe, a diagonal band) repeated at every scale from logotype to section divider.",
+   "Illustration, where used, stays flat and graphic — no photorealistic rendering, no gradient shading.",
+   "The logotype/wordmark sits as the fixed visual anchor of the first viewport, never competing with a larger hero image.",
+   "Color blocking is confident and flat — no gradient, no texture, exactly 2-3 named colors per composition."
+  ],
+  "materials": [
+   "enameled steel signage",
+   "screen-printed vinyl"
+  ],
+  "first_viewport": "A bold circular red logotype anchors the upper-left corner against a cream field; a confident diagonal band in navy sweeps from that corner to the lower-right, carrying the headline in a single geometric-sans weight.",
+  "motion": {
+   "moment": "The circular logotype spins a quarter-turn into its resting position on load, echoing a Saul Bass title-sequence cut.",
+   "easing": "fast ease-out, 200ms, single rotation only",
+   "forbidden": [
+    "continuous looping motion",
+    "soft fades",
+    "parallax"
+   ]
+  },
+  "tell": "Photographic realism, gradient/glass effects.",
+  "refuse": [
+   "Never uses a gradient.",
+   "Never uses more than one geometric motif system-wide.",
+   "Never lets illustration become photorealistic."
+  ],
+  "mobile_fallback": "The diagonal band becomes a single angled divider at the top of the stacked column; the logotype stays fixed-size, never shrinks below legibility.",
+  "physical_antecedents": [
+   "the IBM logo on a 1960s mainframe cabinet",
+   "Saul Bass's Bell System logo on a payphone",
+   "an ABC television station ident card"
+  ],
+  "decay": "slow",
+  "suits": [
+   "legacy-brand-feel fintech",
+   "insurance",
+   "'trusted since' positioning"
+  ],
+  "avoid_for": [
+   "cutting-edge tech startups wanting to feel new",
+   "gaming"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.designyourway.net/blog/paul-rand/",
+   "https://fall2017foundations.wordpress.com/2017/09/10/saul-bass-and-paul-rand-logo-design/"
+  ]
+ },
+ {
+  "id": "op-art",
+  "name": "Op-art",
+  "origin": "1960s — Bridget Riley, Victor Vasarely; MoMA's 'The Responsive Eye' 1965",
+  "one_line": "A single mathematical pattern engineered to vibrate — the pattern is the entire content.",
+  "modes": [
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "poster-stack",
+   "bento"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "monochrome-tonal",
+   "restrained"
+  ],
+  "palette_hint": "strict black/white or a very narrow value range, C near 0",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "minimal incidental captions in one weight only, geometric sans, small size — type never competes with the pattern's optical field."
+  },
+  "grammar": [
+   "A single repeating geometric pattern (lines, dots, or checks) covers the entire compositional field, engineered so adjacent elements' value contrast creates optical vibration.",
+   "The palette stays within a narrow value range — most often strict black/white, though some op-art (e.g. Vasarely) works in a narrow chromatic range instead — no mid-tone relief is introduced to 'calm' the pattern.",
+   "No photographic or illustrative content is layered on top of the pattern field; the pattern IS the content.",
+   "Line/shape repetition follows a mathematical progression (constant spacing or a defined ratio), never hand-varied."
+  ],
+  "materials": [
+   "silkscreen on canvas",
+   "woven venetian-blind slat"
+  ],
+  "first_viewport": "The entire viewport is filled edge-to-edge with a tight black-and-white concentric-line pattern that appears to pulse at the center; the only content is a small caption-weight label set in the pattern's one calm gap.",
+  "motion": {
+   "moment": "The pattern itself subtly animates via a moiré shift tied to mouse position or scroll, as the entire interaction.",
+   "easing": "continuous, tied to input position, not click-triggered",
+   "forbidden": [
+    "discrete on/off state animations",
+    "fades"
+   ]
+  },
+  "tell": "Soft gradients, organic asymmetry, muted contrast.",
+  "refuse": [
+   "Never layers 'content' on top of the pattern.",
+   "Never softens the value contrast.",
+   "Never uses an organic/hand-drawn line."
+  ],
+  "mobile_fallback": "The pattern's line frequency is reduced (fewer, thicker lines) to avoid moiré aliasing on small screens, preserving the pulse effect rather than the exact density.",
+  "physical_antecedents": [
+   "Bridget Riley's 'Movement in Squares' canvas",
+   "a moiré-pattern venetian blind",
+   "a barbershop pole"
+  ],
+  "decay": "slow",
+  "suits": [
+   "art/music event sites",
+   "fashion",
+   "anything wanting retinal intensity"
+  ],
+  "avoid_for": [
+   "accessibility-sensitive audiences",
+   "long-session operate tools",
+   "healthcare"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.britannica.com/biography/Bridget-Riley",
+   "https://www.thecollector.com/bridget-riley-op-art-optical-illusions/"
+  ]
+ },
+ {
+  "id": "psychedelic",
+  "name": "Psychedelic (Fillmore poster)",
+  "origin": "San Francisco, 1965-1971 — Wes Wilson, Victor Moscoso, the Fillmore Auditorium",
+  "one_line": "Melting hand-lettered type fused into Art-Nouveau illustration at full complementary saturation.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "poster",
+   "zine-collage",
+   "scroll-narrative",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "acid-hi-vis",
+   "full-palette",
+   "jewel-tones"
+  ],
+  "palette_hint": "full-saturation complementary pairs (e.g. orange H40 vs blue H240), C0.22-0.32, no neutral relief",
+  "seed_buckets": [
+   3,
+   9,
+   20,
+   23
+  ],
+  "type": {
+   "display": [
+    "script-hand"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "display type is illustrated/hand-lettered (not a real font swap), integrated into the artwork; body copy reverts to a plain humanist sans for actual reading."
+  },
+  "grammar": [
+   "Display type is deliberately distorted (melting, warping, or interlocking) to the point of reduced legibility, and integrates into the illustration rather than sitting in a separate text box.",
+   "At least two complementary hues (e.g., orange/blue, red/green) appear at full saturation adjacent to each other with no neutral relief between them.",
+   "Illustrated line work is organic and flowing (Art-Nouveau-derived), never geometric or ruler-straight.",
+   "No grid discipline governs placement — composition is filled edge-to-edge by the illustration's own logic."
+  ],
+  "materials": [
+   "black-light poster ink",
+   "hand-silkscreened concert handbill stock"
+  ],
+  "first_viewport": "Hand-lettered, melting display type in vibrating orange-on-magenta fills the upper half of the viewport, its letterforms integrated into an Art-Nouveau-derived illustrated border that frames the entire composition.",
+  "motion": {
+   "moment": "The hand-lettered display type appears to 'melt' — a slow vertical distortion settling into its final shape on load.",
+   "easing": "slow, slightly irregular/organic easing, 600-900ms",
+   "forbidden": [
+    "crisp geometric easing curves",
+    "instant snaps",
+    "restrained motion"
+   ]
+  },
+  "tell": "Legible geometric sans, neutral palette, grid discipline.",
+  "refuse": [
+   "Never lets the display type stay perfectly legible.",
+   "Never uses a neutral/restrained palette.",
+   "Never separates type from illustration."
+  ],
+  "mobile_fallback": "The illustrated border collapses to a top-and-bottom band only (dropping the side borders) so the hand-lettered headline keeps full width.",
+  "physical_antecedents": [
+   "a 1966 Fillmore Auditorium concert handbill",
+   "a Grateful Dead LP gatefold",
+   "a black-light poster shop window"
+  ],
+  "decay": "slow",
+  "suits": [
+   "music/festival",
+   "cannabis/counterculture brands",
+   "vinyl/record labels"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "healthcare",
+   "finance"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.smithsonianmag.com/arts-culture/psychedelic-concert-poster-rocked-world-180958780/",
+   "https://en.wikipedia.org/wiki/Wes_Wilson"
+  ]
+ },
+ {
+  "id": "punk-zine",
+  "name": "Punk / zine (Jamie Reid)",
+  "origin": "UK, 1976-1980s — Jamie Reid, Sex Pistols",
+  "one_line": "Ransom-note cut-and-paste lettering on photocopier-degraded black and white.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "zine-collage",
+   "poster",
+   "index-list",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "monochrome-tonal",
+   "acid-hi-vis"
+  ],
+  "palette_hint": "pure black/white photocopy contrast, one shock spot color (often red or hazard yellow) at C0.20+",
+  "seed_buckets": [
+   1,
+   5
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "system-stack"
+   ],
+   "body": [
+    "system-stack"
+   ],
+   "notes": "headline mixes 3+ sizes/weights/faces within one line (literal ransom-note assembly); body in plain typewriter-style or default serif, photocopier-degraded look."
+  },
+  "grammar": [
+   "At least one headline mixes 3+ different type sizes/weights/faces within a single word or line, assembled like cut newspaper lettering.",
+   "Contrast is pushed to pure black/white (no midtone greys) to simulate photocopier degradation.",
+   "At least one element references physical damage or assembly (a torn edge, a visible tape strip, a staple mark) rendered as a real graphic, not a filter.",
+   "Alignment is deliberately imperfect — baselines and margins vary line to line rather than snapping to a shared grid."
+  ],
+  "materials": [
+   "photocopier toner on cheap newsprint",
+   "gaffer tape"
+  ],
+  "first_viewport": "Ransom-note headline type — each letter a different cut-out size and face — is taped across a photocopier-degraded black-and-white photograph, with a strip of visible packing-tape texture along one torn edge.",
+  "motion": {
+   "moment": "Elements slam into place abruptly with a slight rotation-settle, echoing pasted-down cut paper.",
+   "easing": "fast with small overshoot/rotation correction, 150-200ms",
+   "forbidden": [
+    "uniform polished easing curves",
+    "smooth parallax",
+    "gradient fades"
+   ]
+  },
+  "tell": "Consistent type system, clean vector reproduction.",
+  "refuse": [
+   "Never uses a single consistent typeface across a headline.",
+   "Never smooths the photocopy contrast to greyscale.",
+   "Never aligns elements to a clean grid."
+  ],
+  "mobile_fallback": "The ransom-note headline reflows letter-by-letter with the same mixed sizes, allowed to wrap raggedly rather than resizing to fit one line.",
+  "physical_antecedents": [
+   "a Sex Pistols 'God Save the Queen' single sleeve",
+   "a photocopied fanzine stapled at a kitchen table",
+   "a safety-pin-and-tape flyer stapled to a lamppost"
+  ],
+  "decay": "slow",
+  "suits": [
+   "music",
+   "activist orgs",
+   "anti-establishment brand voice"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "healthcare",
+   "finance",
+   "luxury fashion"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.theartnewspaper.com/2023/08/10/jamie-reid-graphic-designer-who-defined-the-visual-character-of-the-punk-movement-has-died-aged-76",
+   "https://theconversation.com/jamie-reid-the-defiant-punk-art-of-the-man-behind-the-sex-pistols-iconic-imagery-211541"
+  ]
+ },
+ {
+  "id": "terminal-hacker",
+  "name": "Terminal / hacker",
+  "origin": "1970s-80s green-phosphor terminals (VT100, IBM 3270), revived 2015-present",
+  "one_line": "Monospace-only, phosphor-on-black, a blinking cursor as the literal interface metaphor.",
+  "modes": [
+   "operate"
+  ],
+  "archetypes": [
+   "dense-console",
+   "index-list",
+   "cardless-table",
+   "sidebar-tool"
+  ],
+  "color_strategies": [
+   "monochrome-tonal",
+   "restrained",
+   "duotone"
+  ],
+  "palette_hint": "single phosphor hue (green H130-140 or amber H50-60) at high L/moderate C on true black",
+  "seed_buckets": [
+   8,
+   4
+  ],
+  "type": {
+   "display": [
+    "mono"
+   ],
+   "body": [
+    "mono"
+   ],
+   "notes": "single monospace face throughout, including body copy; tabular figures mandatory; no proportional fallback; block-cursor character as a literal element."
+  },
+  "grammar": [
+   "Every piece of type on the page is monospace; no proportional font ever appears, including in body copy.",
+   "The palette is capped at one phosphor color (green or amber) plus black; no other hue is introduced.",
+   "A blinking block cursor or equivalent (▌) appears at least once as a literal UI element, not a decorative afterthought.",
+   "Interaction is framed as command input (a $ or > prompt) even where the underlying control is a button or link."
+  ],
+  "materials": [
+   "green-phosphor CRT glass",
+   "dot-matrix printer paper"
+  ],
+  "first_viewport": "A black viewport opens on a single monospace prompt line with a blinking block cursor; a boot-sequence-style list of status lines prints above it in phosphor green, then the primary command input appears at the bottom.",
+  "motion": {
+   "moment": "Text renders as if typed character-by-character on key state changes only, not everywhere.",
+   "easing": "monospace-stepped, cursor blink at a fixed interval",
+   "forbidden": [
+    "spring physics",
+    "smooth fades",
+    "rounded transitions"
+   ]
+  },
+  "tell": "Proportional/sans-serif type, soft shadows, rounded UI chrome.",
+  "refuse": [
+   "Never uses a proportional font.",
+   "Never uses a rounded corner.",
+   "Never lets a color exist outside the phosphor/amber/black set."
+  ],
+  "mobile_fallback": "Panes stack vertically in command order rather than side-by-side; the outer shell still doesn't scroll — each pane scrolls independently within its own fixed height.",
+  "physical_antecedents": [
+   "an IBM 3270 green-phosphor terminal",
+   "a VT100 console",
+   "a 1980s BBS login screen"
+  ],
+  "decay": "medium",
+  "suits": [
+   "dev tools",
+   "security products",
+   "CLI-first products"
+  ],
+  "avoid_for": [
+   "consumer e-commerce",
+   "wellness/lifestyle brands",
+   "kids products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://designbycurio.com/learn/bloomberg-terminal-green",
+   "https://toolcenterhub.com/resources/hacker-aesthetic-green-code-explained"
+  ]
+ },
+ {
+  "id": "industrial-datasheet",
+  "name": "Industrial / datasheet",
+  "origin": "Engineering/electronics documentation, 1950s-present",
+  "one_line": "Hairline-ruled tables, decimal-aligned tabular figures, labeled technical diagrams instead of photos.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "catalog-sheet",
+   "cardless-table",
+   "timeline-ledger"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "muted-earth"
+  ],
+  "palette_hint": "monochrome ink-on-paper plus 1-2 spot colors (safety orange H40-50 or signal blue H230-240) for status only",
+  "seed_buckets": [
+   3,
+   15
+  ],
+  "type": {
+   "display": [
+    "mono",
+    "neo-grotesque"
+   ],
+   "body": [
+    "mono",
+    "neo-grotesque"
+   ],
+   "notes": "monospace/tabular-figure numerals decimal-aligned; neo-grotesque sans for field labels; no italics anywhere; consistent units column."
+  },
+  "grammar": [
+   "Every table and data grouping uses hairline rules (1px solid) for structure; no box-shadow or card container ever separates a data block.",
+   "All numerals are set in a monospace or tabular-figure face and decimal-aligned within their column.",
+   "At least one labeled technical diagram (exploded view, dimension callout, or schematic) replaces what would otherwise be lifestyle photography.",
+   "The palette is monochrome or capped at two spot colors, used only for signal/status, never for branding decoration."
+  ],
+  "materials": [
+   "engineering vellum",
+   "laser-etched aluminum nameplate"
+  ],
+  "first_viewport": "A hairline-ruled table fills the viewport with no hero image; the leftmost column holds a labeled technical diagram, and every numeral column to its right is monospace and decimal-aligned.",
+  "motion": {
+   "moment": "A table row's value updates with a brief monospace digit-roll, echoing a mechanical counter.",
+   "easing": "sequential digit-roll, fast and discrete, 150-250ms",
+   "forbidden": [
+    "soft fades",
+    "bounce",
+    "decorative hover lifts"
+   ]
+  },
+  "tell": "Lifestyle photography, marketing superlatives, loose alignment.",
+  "refuse": [
+   "Never uses a card with a shadow.",
+   "Never uses more than two spot colors.",
+   "Never leaves a numeral column unaligned."
+  ],
+  "mobile_fallback": "The table becomes a stacked label/value list per row (a 'converted' spec-sheet), keeping decimal alignment within each stacked pair.",
+  "physical_antecedents": [
+   "a Digikey component datasheet",
+   "an aircraft maintenance manual torque-spec table",
+   "a multimeter's printed calibration card"
+  ],
+  "decay": "slow",
+  "suits": [
+   "B2B hardware",
+   "component/parts catalogs",
+   "engineering tools"
+  ],
+  "avoid_for": [
+   "lifestyle/consumer brands",
+   "luxury fashion",
+   "kids products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Datasheet",
+   "https://direct-axis.net/industrial-catalog-design-samples/"
+  ]
+ },
+ {
+  "id": "aviation-hud",
+  "name": "Aviation / cockpit (HUD)",
+  "origin": "Military avionics from WWII, standardized 1960s-70s; commercial glass cockpits from early 1980s (Boeing 757/767, Airbus A310)",
+  "one_line": "Thin glowing outline gauges on near-black, framed by corner brackets, signal colors only.",
+  "modes": [
+   "operate"
+  ],
+  "archetypes": [
+   "dense-console",
+   "spec-sheet",
+   "sidebar-tool",
+   "map-spatial"
+  ],
+  "color_strategies": [
+   "duotone",
+   "restrained",
+   "committed"
+  ],
+  "palette_hint": "near-black ground (L0.05-0.10) with amber (H50-60), cyan (H190-200), and green (H130-140) outline signal colors only",
+  "seed_buckets": [
+   4,
+   8,
+   13
+  ],
+  "type": {
+   "display": [
+    "mono"
+   ],
+   "body": [
+    "mono",
+    "condensed"
+   ],
+   "notes": "monospace or stencil-styled numerals, tracked wide, all-caps in instrument readouts; no lowercase in gauge labels; tabular figures mandatory."
+  },
+  "grammar": [
+   "Gauges and readouts are rendered as outline strokes with tick marks, never as solid filled shapes.",
+   "The palette is dominated by amber, cyan, and green signal colors on a near-black ground, with red reserved strictly for warnings and white/magenta for reference markers — no decorative or brand hue appears.",
+   "Every key data cluster is framed by a corner-bracket device (partial-corner strokes, not a full rectangle).",
+   "Numerals are monospace or stencil-styled and never drop to lowercase in an instrument readout."
+  ],
+  "materials": [
+   "combiner glass",
+   "backlit acrylic gauge face"
+  ],
+  "first_viewport": "Thin cyan and amber outline gauges are arranged in a fixed console layout on near-black, each with tick-marked ranges and a corner-bracket frame; no gauge has a fill, only a needle and a segmented arc.",
+  "motion": {
+   "moment": "Gauges sweep to their value on load like a real needle settling, with a slight overshoot then settle.",
+   "easing": "physical-feeling spring with damping, mimics mechanical inertia",
+   "forbidden": [
+    "instant snap-to-value",
+    "linear-only motion",
+    "soft fills"
+   ]
+  },
+  "tell": "Soft fills, drop shadows, warm/organic color.",
+  "refuse": [
+   "Never fills a gauge solid.",
+   "Never uses a warm/organic hue as a decorative or brand color (red is reserved strictly for warnings).",
+   "Never softens a corner-bracket frame into a rounded one."
+  ],
+  "mobile_fallback": "Gauges stack in priority order in a single column, each keeping its full tick-marked arc rather than shrinking below legible tick spacing.",
+  "physical_antecedents": [
+   "a 1980s Boeing 757 glass cockpit primary flight display",
+   "a fighter-jet head-up display combiner glass",
+   "a submarine sonar console"
+  ],
+  "decay": "medium",
+  "suits": [
+   "monitoring dashboards",
+   "trading/finance tools",
+   "sci-fi-flavored products"
+  ],
+  "avoid_for": [
+   "warm/consumer lifestyle brands",
+   "kids products",
+   "wellness"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://skybrary.aero/articles/head-display-hud",
+   "https://www.radiantvisionsystems.com/blog/glass-cockpit-takes-flight-evaluating-aircraft-display-quality"
+  ]
+ },
+ {
+  "id": "art-deco-geometric",
+  "name": "Art Deco geometric",
+  "origin": "France, early-to-mid 1920s, crystallized at the 1925 Paris Exposition; peaked in the US through the 1930s",
+  "one_line": "Stepped, sunburst geometry in gold and jewel tone, with a confident vertical axis.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "poster",
+   "magazine-feature",
+   "catalog-sheet",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "committed",
+   "jewel-tones",
+   "full-palette"
+  ],
+  "palette_hint": "gold (H70-85, C0.10-0.15 metallic-adjacent) + black + cream, with one jewel accent (emerald H150 or sapphire H255)",
+  "seed_buckets": [
+   5,
+   11,
+   17
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "wide"
+   ],
+   "body": [
+    "transitional-serif"
+   ],
+   "notes": "wide/display-grotesque headline face with thick-to-thin stroke contrast or inline/outline treatment, tracked wide caps; body reverts to a quiet old-style or transitional serif."
+  },
+  "grammar": [
+   "At least one symmetrical stepped, sunburst, or chevron ornament frames or radiates from the composition's focal point.",
+   "Display type carries visible thick-to-thin stroke contrast or an inline/outline treatment, never a uniform-weight casual sans.",
+   "The palette is anchored in gold/black/cream with one or more jewel-tone accents (emerald, sapphire, or ruby) — kept confident and limited, never a diffuse full-color illustration palette.",
+   "Composition holds a strong vertical axis (echoing skyscraper massing), even in a wide-format layout."
+  ],
+  "materials": [
+   "chromed steel and Bakelite",
+   "gold-leaf on lacquer"
+  ],
+  "first_viewport": "A tall stepped-ziggurat frame in gold-on-black occupies the vertical center, the headline set in a wide display face with sunburst rules radiating from its baseline, and a single emerald accent line closes the composition at the foot.",
+  "motion": {
+   "moment": "The sunburst/stepped ornament rules draw outward from the headline's baseline on load, like a stage curtain opening.",
+   "easing": "confident ease-out, 300-400ms",
+   "forbidden": [
+    "bounce",
+    "casual/organic easing",
+    "low-contrast fades"
+   ]
+  },
+  "tell": "Soft/organic curves, low-contrast pastel palette, casual lowercase-only display type.",
+  "refuse": [
+   "Never uses a lowercase-only casual display face.",
+   "Never uses a soft pastel palette.",
+   "Never leaves the vertical axis of the composition unaccented."
+  ],
+  "mobile_fallback": "The stepped/sunburst frame collapses to a top-only ornament band; the vertical-drama headline shrinks in tracking, not in the stroke-contrast ratio.",
+  "physical_antecedents": [
+   "the Chrysler Building's stainless-steel crown",
+   "a 1930s ocean-liner deco stateroom",
+   "a Paris 1925 Exposition pavilion facade"
+  ],
+  "decay": "slow",
+  "suits": [
+   "luxury hospitality",
+   "jazz-age-themed events",
+   "boutique fashion"
+  ],
+  "avoid_for": [
+   "dev tools",
+   "enterprise operate dashboards",
+   "minimal utilitarian apps"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.britannica.com/art/Art-Deco",
+   "https://www.ugurkursun.com/en/post/art-deco-in-graphic-design-1920s-1940s-the-golden-age-of-elegance-and-geometry"
+  ]
+ },
+ {
+  "id": "dieter-rams-braun",
+  "name": "Dieter Rams / Braun",
+  "origin": "Frankfurt/Kronberg, Germany, 1955-1995 — Dieter Rams at Braun; Otl Aicher's Ulm-school graphic system",
+  "one_line": "A strict modular grid, one signal color, and nothing that doesn't serve a stated function.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "catalog-sheet",
+   "single-column",
+   "bento"
+  ],
+  "color_strategies": [
+   "restrained",
+   "ink-on-paper",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "white/light-grey neutrals (C0-0.02) plus one signal hue (orange H40-50 or red H20-30) reserved for function",
+  "seed_buckets": [
+   2,
+   3
+  ],
+  "type": {
+   "display": [
+    "neo-grotesque"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "single neutral grotesque at one or two sizes maximum per screen; no italics; hierarchy from grid position, not size jump; tabular figures for any spec numbers."
+  },
+  "grammar": [
+   "The layout sits on a strict modular grid where every element's size is a multiple of one base unit — nothing is sized arbitrarily.",
+   "Exactly one signal color (commonly orange or red) is reserved for functional/interactive elements; everything else is white, black, or grey.",
+   "No element appears that doesn't serve a stated function — no decorative rule, icon, or shape exists 'for balance' alone.",
+   "Type hierarchy comes primarily from grid position and weight, not a large size jump; only a small number of sizes appear per screen."
+  ],
+  "materials": [
+   "matte white ABS plastic",
+   "brushed aluminum"
+  ],
+  "first_viewport": "A single product photograph sits isolated on a pale grey field within a strict modular grid, a small orange function-label sits at one fixed grid intersection, and the headline is set at body-adjacent size with no enlargement.",
+  "motion": {
+   "moment": "Almost no motion; the one moment is a function-label's color state change (off/on) as a flat, instant toggle.",
+   "easing": "none or near-instant, 0-60ms",
+   "forbidden": [
+    "decorative easing",
+    "bounce",
+    "parallax",
+    "gradients"
+   ]
+  },
+  "tell": "Any element without a stated function, decorative color beyond the one signal hue, enlarged 'hero' type for drama.",
+  "refuse": [
+   "Never adds an element that doesn't serve a stated function.",
+   "Never uses more than one signal color.",
+   "Never enlarges type purely for drama."
+  ],
+  "mobile_fallback": "The modular grid collapses to a single column preserving the same unit spacing; the function-label stays at its fixed small size, never enlarged to 'fill' mobile width.",
+  "physical_antecedents": [
+   "a Braun SK4 'Snow White's Coffin' radio-phonograph",
+   "a Vitsœ 606 shelving unit",
+   "a Braun ET66 calculator's control panel"
+  ],
+  "decay": "slow",
+  "suits": [
+   "hardware/product brands",
+   "design-forward consumer electronics",
+   "minimalist tools"
+  ],
+  "avoid_for": [
+   "playful youth brands",
+   "maximalist fashion",
+   "entertainment"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.vitsoe.com/us/about/dieter-rams",
+   "https://en.wikipedia.org/wiki/Dieter_Rams"
+  ]
+ },
+ {
+  "id": "letterpress-wood-type",
+  "name": "Letterpress / wood type (Hatch Show Print)",
+  "origin": "Nashville, since 1879 — Hatch Show Print",
+  "one_line": "Mismatched wood-type sizes and uneven hand-inking on a carved-illustration handbill.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "poster",
+   "poster-stack",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "duotone",
+   "ink-on-paper",
+   "muted-earth"
+  ],
+  "palette_hint": "cream/aged-paper ground (H50-60, C0.03-0.06) with 1-3 flat spot inks (barn red H20, mustard H60, teal H190)",
+  "seed_buckets": [
+   2,
+   4,
+   13
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "wide",
+    "condensed"
+   ],
+   "body": [
+    "slab"
+   ],
+   "notes": "3+ mismatched type sizes/widths within one composition (wide, condensed, display-grotesque as available 'stock'); body (if any) in a plain slab; baselines allowed to sit unevenly."
+  },
+  "grammar": [
+   "At least three different type sizes or widths appear within a single composition, echoing a mismatched wood-type case.",
+   "Baselines are allowed to sit slightly unevenly, and ink coverage varies visibly within a single letterform (simulating hand-inking).",
+   "The palette is capped at 1-3 spot colors printed as flat, uncoated-looking fills, often overprinted where they overlap.",
+   "A carved/woodblock-style illustration anchors the composition and is scaled to fill unused space exactly, the way a printer reused stock cuts."
+  ],
+  "materials": [
+   "hand-set wood type block",
+   "oil-based letterpress ink on cardstock"
+  ],
+  "first_viewport": "A carved woodblock illustration fills the upper third, mismatched wood-type sizes stack below it in barn-red and mustard ink on a cream field, with visibly uneven inking at the letter edges.",
+  "motion": {
+   "moment": "A slight misregistration 'wobble' on hover, echoing an imperfectly-inked impression.",
+   "easing": "very short, slightly imprecise/jittery on purpose, 100-150ms",
+   "forbidden": [
+    "perfectly smooth high-fidelity easing",
+    "gradients",
+    "glow"
+   ]
+  },
+  "tell": "Uniform digital-perfect kerning/registration, gradients, a single consistent type size throughout.",
+  "refuse": [
+   "Never uses uniform type size across a composition.",
+   "Never uses more than 3 ink colors.",
+   "Never renders perfectly registered/aligned type."
+  ],
+  "mobile_fallback": "Mismatched type sizes stack in their original relative proportions, never normalized to a uniform mobile type scale.",
+  "physical_antecedents": [
+   "a Hatch Show Print handbill",
+   "a traveling-circus broadside",
+   "a hand-set type case drawer"
+  ],
+  "decay": "slow",
+  "suits": [
+   "music/event handbills",
+   "craft/artisan brands",
+   "Americana-themed products"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "fintech",
+   "healthcare"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://hatchshowprint.com/about",
+   "https://hatchshowprint.com/learn/what-is-letterpress"
+  ]
+ },
+ {
+  "id": "scientific-journal",
+  "name": "Scientific journal (Nature / LaTeX two-column)",
+  "origin": "Scientific publishing, 19th century-present — Nature, LaTeX two-column convention",
+  "one_line": "A strict two-column grid where every citation and figure number is a real cross-reference.",
+  "modes": [
+   "read",
+   "operate"
+  ],
+  "archetypes": [
+   "broadsheet",
+   "spec-sheet",
+   "index-list",
+   "cardless-table"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "true black text on white/near-white paper, with a single restrained blue (H220-230) for links/citations",
+  "seed_buckets": [
+   15
+  ],
+  "type": {
+   "display": [
+    "neo-grotesque"
+   ],
+   "body": [
+    "transitional-serif"
+   ],
+   "notes": "sans-serif for figure/axis labels per Nature convention; serif body text, justified with hyphenation; tabular figures for all data and citation numbers."
+  },
+  "grammar": [
+   "Body text runs in a strict two-column grid, fully justified with hyphenation enabled.",
+   "Figures and their captions are set in a sans-serif face distinct from the serif body text, per the figure-labeling convention.",
+   "Every numbered citation, footnote, or equation reference is a literal cross-reference — clicking or reading it must lead somewhere in the document.",
+   "All data tables use tabular-figure numerals with a consistent decimal alignment and an explicit units row/column."
+  ],
+  "materials": [
+   "matte offset-printed journal stock",
+   "laser-printed preprint paper"
+  ],
+  "first_viewport": "A strict two-column grid begins immediately with a justified abstract in serif body text, a numbered figure with sans-serif caption sits inset at the top of the right column, and citation numbers appear as bracketed superscripts.",
+  "motion": {
+   "moment": "Almost no motion; the one moment is a citation number smoothly scrolling its referenced footnote into view when clicked.",
+   "easing": "linear scroll-to, 300-400ms",
+   "forbidden": [
+    "any decorative animation",
+    "fades on load",
+    "hover lifts on text"
+   ]
+  },
+  "tell": "Marketing-voice headlines, card-based layout, sans-serif body text.",
+  "refuse": [
+   "Never uses a card-based layout.",
+   "Never uses sans-serif for body prose.",
+   "Never leaves a citation or figure number unreferenced elsewhere on the page."
+  ],
+  "mobile_fallback": "The two-column grid collapses to one column in reading order; footnote/citation numbers stay inline and still link to their reference.",
+  "physical_antecedents": [
+   "a printed Nature offprint",
+   "a physics preprint from arXiv",
+   "a peer-review referee report with numbered comments"
+  ],
+  "decay": "slow",
+  "suits": [
+   "research tools",
+   "academic publishing platforms",
+   "technical documentation"
+  ],
+  "avoid_for": [
+   "consumer marketing pages",
+   "playful youth brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.nature.com/nature/for-authors/final-submission",
+   "https://www.geos.ed.ac.uk/~hcp/latex_examples/twocolumn_example.pdf"
+  ]
+ },
+ {
+  "id": "mid-century-travel-poster",
+  "name": "Mid-century travel poster",
+  "origin": "1920s-1960s — Golden Age of railway/ocean-liner travel through the Jet Age; David Klein for TWA",
+  "one_line": "A flat-litho destination image, one confident wordmark, one signature geometric motif.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "poster-stack",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "committed",
+   "full-palette",
+   "jewel-tones"
+  ],
+  "palette_hint": "warm mid-value flat lithographic hues (coral H30, sky-blue H210, sun-yellow H70), never true black",
+  "seed_buckets": [
+   3,
+   5,
+   14
+  ],
+  "type": {
+   "display": [
+    "slab",
+    "wide"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "confident slab or wide geometric wordmark for the destination name; minimal body copy in a plain geometric sans; no serif body text, no italics."
+  },
+  "grammar": [
+   "The destination image is rendered in flat lithographic color separations (visible discrete color bands, no continuous photographic gradient).",
+   "Exactly one large wordmark names the destination, set in a single confident display face — no secondary competing headline.",
+   "One repeated geometric motif (a sunburst, a wave line, a contrail) recurs as the composition's signature device.",
+   "The palette stays warm and mid-value throughout; true black never appears, and shadows are rendered as a darker flat hue instead."
+  ],
+  "materials": [
+   "stone lithograph plate",
+   "coated poster stock"
+  ],
+  "first_viewport": "A single flat-color lithographic illustration of a destination landmark fills 80% of the viewport, a large slab wordmark names the destination along the bottom edge, and a small carrier logotype sits in one corner.",
+  "motion": {
+   "moment": "The destination illustration's flat color bands fade in one layer at a time, echoing sequential litho ink passes.",
+   "easing": "even ease-in-out per layer, 200ms per layer",
+   "forbidden": [
+    "gradients",
+    "glow",
+    "parallax",
+    "bounce"
+   ]
+  },
+  "tell": "Photographic realism, gradients, more than 5-6 ink colors.",
+  "refuse": [
+   "Never uses a photographic image in place of flat illustration.",
+   "Never uses more than 5-6 ink colors.",
+   "Never uses a true black."
+  ],
+  "mobile_fallback": "The destination illustration crops to its focal element rather than shrinking, and the wordmark stays full-width beneath it.",
+  "physical_antecedents": [
+   "a 1950s TWA jet-age poster",
+   "a French national railway (SNCF) lithograph",
+   "an ocean-liner deck-plan brochure"
+  ],
+  "decay": "slow",
+  "suits": [
+   "travel/hospitality brands",
+   "tourism boards",
+   "heritage transit brands"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "fintech",
+   "dev tools"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.orsonandwelles.co.uk/blogs/articles/the-evolution-of-travel-posters-from-railway-romance-to-the-jet-age",
+   "https://classicvintageposters.com/our-blog/mid-century-modern-travel-posters-1940s-1960s"
+  ]
+ },
+ {
+  "id": "cartographic",
+  "name": "Cartographic",
+  "origin": "Ordnance Survey / USGS map conventions, 19th c.-present",
+  "one_line": "The page reads as a surveyed map: legend as first-class UI, content organized by location, not narrative order.",
+  "modes": [
+   "operate",
+   "read",
+   "persuade"
+  ],
+  "archetypes": [
+   "map-spatial",
+   "sidebar-tool",
+   "index-list",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "muted-earth",
+   "restrained",
+   "two-field-split"
+  ],
+  "palette_hint": "muted contour greens/tans for land, one steady blue for water; a single alert red reserved for danger/hazard markers only",
+  "seed_buckets": [
+   3,
+   4,
+   9,
+   10,
+   15,
+   16
+  ],
+  "type": {
+   "display": [
+    "slab",
+    "wide"
+   ],
+   "body": [
+    "humanist-sans",
+    "mono"
+   ],
+   "notes": "place names set in a condensed sans or slab with wide tracking; water features and named areas render in italic per cartographic convention, man-made/point features stay upright; coordinates and scale figures are tabular mono; label size mirrors real-world feature importance, never page hierarchy."
+  },
+  "grammar": [
+   "Every page carries a legend/key as a fixed, persistent UI element (not a hidden tooltip) — content types map 1:1 to legend symbols.",
+   "A scale bar and north-direction indicator are always visible, literal, and drawn to true proportion, never decorative.",
+   "Water features and named areas render in italic/slanted type; man-made or point features render upright — this distinction is never dropped.",
+   "Content is organized by spatial position (a real or implied grid reference), not by chronological or narrative order — no 'step 1/2/3.'",
+   "Color carries exactly one meaning per hue (elevation, depth, or category) applied consistently across the whole page, never decoratively."
+  ],
+  "materials": [
+   "offset litho on coated map stock",
+   "engraved copper-plate print (historical antecedent)",
+   "laminated field-durable folding map"
+  ],
+  "first_viewport": "A full-bleed muted terrain map fills the viewport with a fixed legend panel pinned bottom-left and a scale bar bottom-right; content pins sit at their true coordinate position, and the visitor's entry point is a single accent-colored marker, not a headline.",
+  "motion": {
+   "moment": "clicking a pin draws a route line to it stroke-by-stroke (stroke-dashoffset), as if the map were being surveyed live",
+   "easing": "linear, steady pace, 600-900ms — mimics measured surveying, not a UI reveal",
+   "forbidden": [
+    "bounce",
+    "parallax scrolling of the map plane",
+    "3D tilt/perspective on the map"
+   ]
+  },
+  "tell": "a decorative 'map-style' illustration with no legend, no scale, and pins that don't correspond to real positions — costume cartography with nothing to navigate.",
+  "refuse": [
+   "narrative/linear scroll order in place of spatial order",
+   "bright saturated non-diegetic color",
+   "hiding the legend behind a toggle by default"
+  ],
+  "mobile_fallback": "map-spatial collapses to a list of pins ordered by proximity/region (index-list grammar) with the legend rendered as a persistent filter-chip row above the list; tapping a list item opens the same detail panel the map pin would.",
+  "physical_antecedents": [
+   "an Ordnance Survey Explorer folded paper map",
+   "a ship's chart table with parallel rules and dividers",
+   "a national-park visitor-center wall map with a 'you are here' pin"
+  ],
+  "decay": "slow",
+  "suits": [
+   "logistics/delivery platforms",
+   "travel and trip planning",
+   "real estate/location search",
+   "field service dispatch"
+  ],
+  "avoid_for": [
+   "narrative long-form content",
+   "checkout/transaction flows",
+   "kids' products"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://docs.os.uk/more-than-maps/geographic-data-visualisation/guide-to-cartography/map-legends"
+  ]
+ },
+ {
+  "id": "apothecary-label",
+  "name": "Apothecary / Label",
+  "origin": "Victorian pharmacy labels, 1800s-1930s",
+  "one_line": "A single centered, symmetrical label in small-caps serif and one rule — trust through restraint, not romance.",
+  "modes": [
+   "persuade",
+   "read"
+  ],
+  "archetypes": [
+   "single-column",
+   "catalog-sheet",
+   "spec-sheet",
+   "poster"
+  ],
+  "color_strategies": [
+   "muted-earth",
+   "restrained",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "sepia/cream ground with forest-green or oxblood ink; never more than two hues total",
+  "seed_buckets": [
+   2,
+   3,
+   4,
+   9,
+   10
+  ],
+  "type": {
+   "display": [
+    "old-style-serif"
+   ],
+   "body": [
+    "old-style-serif"
+   ],
+   "notes": "product and category names set in small-caps with wide (+80-120) tracking; body copy stays a humble old-style serif set small; no bold weight is used for emphasis, only the small-caps treatment and a single rule."
+  },
+  "grammar": [
+   "Composition is bilaterally symmetrical around a vertical axis — the label is centered, never asymmetric.",
+   "Exactly one rule or bordered frame encloses the content per unit; no nested boxes.",
+   "Product and category names set in small-caps with wide letter-spacing; body text stays lowercase and small.",
+   "Latin binomial or invented scientific-sounding naming is used for any generic item; ingredient lists read like a formulary, not marketing copy.",
+   "Palette never exceeds two ink colors (typically near-black plus one muted accent) on a cream or sepia ground."
+  ],
+  "materials": [
+   "engraved letterpress on gummed paper label",
+   "embossed apothecary glass bottle",
+   "a druggist's printed label specimen catalog"
+  ],
+  "first_viewport": "A single centered label-shaped panel sits mid-viewport on a cream ground, bordered by one hairline rule, with the product name in wide-tracked small-caps above a short Latin-flavored descriptor and a purchase link no larger than the body copy.",
+  "motion": {
+   "moment": "the border rule draws itself in from the label's center outward, like ink settling into a printed frame, before the type fades in",
+   "easing": "slow ease-in-out, 400-600ms, no bounce",
+   "forbidden": [
+    "parallax",
+    "spring/bounce",
+    "color shifts on hover"
+   ]
+  },
+  "tell": "a saturated, asymmetric layout with a sans-serif wordmark and a discount badge — apothecary grammar without the symmetry and restraint is just a cream background.",
+  "refuse": [
+   "asymmetric composition",
+   "sans-serif as the primary wordmark",
+   "more than two ink colors",
+   "urgency/scarcity marketing language"
+  ],
+  "mobile_fallback": "the label frame scales down as one unit, border included, rather than restacking its contents; symmetry and the single rule persist at narrow widths, with type sizes stepping down together.",
+  "physical_antecedents": [
+   "a Victorian pharmacist's glass apothecary bottle with a printed label",
+   "a druggist's printed label specimen book sold to pharmacies",
+   "a hand-lettered ledger of compounded prescriptions kept behind the counter"
+  ],
+  "decay": "slow",
+  "suits": [
+   "wellness and supplements",
+   "craft food and beverage",
+   "natural/herbal cosmetics",
+   "small-batch spirits"
+  ],
+  "avoid_for": [
+   "fast fashion",
+   "gaming",
+   "enterprise SaaS"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://creativemarket.com/blog/design-trend-apothecary-style"
+  ]
+ },
+ {
+  "id": "museum-gallery",
+  "name": "Museum / Gallery",
+  "origin": "Institutional wall-text conventions, 1970s-present",
+  "one_line": "Extreme whitespace treats content like an exhibited object; quiet caption type never competes with the work.",
+  "modes": [
+   "persuade",
+   "read",
+   "experience"
+  ],
+  "archetypes": [
+   "single-column",
+   "poster",
+   "index-list",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "restrained",
+   "ink-on-paper",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "near-white or near-black ground only, no accent hue — color comes from the displayed work, never the system",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "humanist-sans"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "caption type sets small (comparable to a 9-10pt physical wall label) in a fixed three-line order matching the standard museum 'tombstone label' convention (attribution, title, date/medium); never mix families for hierarchy, use size and position only."
+  },
+  "grammar": [
+   "Whitespace-to-content ratio stays extreme — a single content unit occupies well under half the viewport; the ground is never filled to prove productivity.",
+   "Captions follow a fixed three-line convention (attribution, title, date/medium) set apart from the work in position and size, never overlaid on it.",
+   "Ground color is near-white or near-black only; no third hue enters the chrome.",
+   "Numbered or lettered wayfinding ('1 of 12') replaces navigation chrome — no persistent header/nav competes for attention.",
+   "No competing color accents, badges, or promotional call-outs appear near the exhibited content."
+  ],
+  "materials": [
+   "vinyl-cut wall lettering",
+   "museum-board caption card",
+   "matte photographic print mounted to board"
+  ],
+  "first_viewport": "One large image or object sits alone on a near-white field with generous margin on all sides; a small caption block (artist, title, date) sits below-left at roughly a tenth the image's visual weight, with a numbered '1/12' wayfinding mark opposite it.",
+  "motion": {
+   "moment": "moving to the next item triggers a slow cross-dissolve between exhibits, as if a spotlight faded down on one piece and up on the next",
+   "easing": "very slow ease-in-out, 600-900ms",
+   "forbidden": [
+    "snappy/bouncy transitions",
+    "parallax",
+    "any hover state that outlines or highlights the work itself"
+   ]
+  },
+  "tell": "a hero image crammed edge-to-edge with a bold sans headline overlaid on it and a colored CTA button — museum grammar treats the work as sacred and never writes on top of it.",
+  "refuse": [
+   "overlaying text on the exhibited image",
+   "busy backgrounds",
+   "more than one accent color",
+   "dense copy blocks near the work"
+  ],
+  "mobile_fallback": "the image keeps its generous margin proportionally rather than bleeding to the edge to save space; the caption block stacks directly below at the same reduced scale, and wayfinding becomes a swipe with the numbered counter persisting.",
+  "physical_antecedents": [
+   "a museum wall label beside a framed painting",
+   "an artist's monograph with one plate per spread",
+   "a gallery's printed exhibition checklist"
+  ],
+  "decay": "slow",
+  "suits": [
+   "portfolios",
+   "art and design brands",
+   "premium product reveals",
+   "architecture firms"
+  ],
+  "avoid_for": [
+   "e-commerce with high SKU counts",
+   "dense SaaS dashboards",
+   "urgency-driven campaigns"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://www.goldustdesign.co.uk/post/typographic-design-in-galleries"
+  ]
+ },
+ {
+  "id": "sports-broadcast",
+  "name": "Sports Broadcast",
+  "origin": "ESPN/Sky Sports lower-thirds, 1990s-present",
+  "one_line": "Angular sheared panels and broadcast-style data call-outs make static content feel live.",
+  "modes": [
+   "persuade",
+   "operate",
+   "experience"
+  ],
+  "archetypes": [
+   "dense-console",
+   "bento",
+   "catalog-sheet",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "committed",
+   "primary-triad",
+   "acid-hi-vis"
+  ],
+  "palette_hint": "one or two saturated 'team' colors block-filled against near-black or white; no muted or pastel tones",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "condensed"
+   ],
+   "body": [
+    "neo-grotesque"
+   ],
+   "notes": "display type is bold, condensed, and often italicized/sheared to match the panel geometry; numerals are tabular and sized larger than body text to read at a glance, like a scoreboard."
+  },
+  "grammar": [
+   "Data call-out panels are sheared/angled parallelograms, never plain rectangles.",
+   "Type inside sheared panels is itself slightly italicized or counter-sheared to remain legible at the angle.",
+   "Color blocking uses the team/category colors at full saturation as the default — tints or gradients standing in for a second color are the exception, not the rule.",
+   "At least one element behaves as if live (a ticking clock, incrementing counter, or scrolling ticker) even when the underlying content is static.",
+   "Condensed bold display type carries all primary numbers (scores, times, ranks) at a size larger than any headline prose."
+  ],
+  "materials": [
+   "broadcast character-generator (CG) overlay graphics",
+   "vinyl stadium signage",
+   "LED scoreboard display panel"
+  ],
+  "first_viewport": "A sheared, full-width color-blocked bar sits near the top like a scoreboard bug with a bold condensed stat in tabular numerals; the main content area below uses angled panel dividers instead of straight column rules.",
+  "motion": {
+   "moment": "numbers roll or flip like a mechanical scoreboard counter, digit by digit, whenever a stat updates",
+   "easing": "fast, punchy, near-linear with a hard stop, 150-250ms per digit",
+   "forbidden": [
+    "gentle fades for score/stat changes",
+    "soft rounded panels",
+    "slow ease-in-out"
+   ]
+  },
+  "tell": "static content dressed in team colors with rounded rectangle cards and no sheared geometry or live-feeling element — sports-broadcast grammar without the angle and the ticker is just a colorful dashboard.",
+  "refuse": [
+   "rounded rectangle panels",
+   "pastel or muted color blocking",
+   "static numerals presented as if scores never change"
+  ],
+  "mobile_fallback": "sheared panels reduce their skew angle (rather than removing it) to keep legibility and stack vertically; the ticker/live element persists as a horizontally scrolling strip pinned above the fold.",
+  "physical_antecedents": [
+   "an ESPN SportsCenter lower-third graphics package",
+   "a stadium scoreboard with flip-digit or LED score display",
+   "a betting-shop odds board with chalked or backlit changing numbers"
+  ],
+  "decay": "fast",
+  "suits": [
+   "live-event products",
+   "fantasy sports",
+   "betting/odds products",
+   "fan engagement apps"
+  ],
+  "avoid_for": [
+   "luxury/editorial brands",
+   "meditative/wellness apps",
+   "enterprise B2B tools"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://www.newscaststudio.com/setstudio/sportscenter/"
+  ]
+ },
+ {
+  "id": "transit-signage",
+  "name": "Transit Signage",
+  "origin": "NYC Subway (Vignelli), London Underground (Johnston/Kinneir Calvert), 1930s-1970s",
+  "one_line": "One geometric sans at every scale, a strict route-color system, and pictograms standing in for words.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "sidebar-tool",
+   "index-list",
+   "cardless-table",
+   "dense-console"
+  ],
+  "color_strategies": [
+   "primary-triad",
+   "restrained",
+   "committed"
+  ],
+  "palette_hint": "a small fixed set (≤8) of route/category colors, each mapped 1:1 to a category, on white or black ground",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "exactly one grotesque/geometric sans family is used at every scale, from wayfinding numerals to body copy, with zero substitution; numerals are geometric and monolinear, matching the Vignelli/Helvetica convention."
+  },
+  "grammar": [
+   "Exactly one geometric sans typeface is used at every scale — headline, body, numerals, labels — with zero substitution.",
+   "Each category/route gets one fixed color from a limited palette (≤8 total), applied consistently everywhere that category appears.",
+   "Pictograms replace words wherever a wordless icon can carry the same meaning unambiguously.",
+   "Spatial relationships are diagrammatic, not geographically accurate — layout optimizes for legibility and equal-interval spacing over real-world proportion.",
+   "A published grid module governs icon and label size so every pictogram reads at the same minimum legible size regardless of context."
+  ],
+  "materials": [
+   "enamel/porcelain station signage",
+   "vinyl-printed wayfinding panel",
+   "silkscreen-printed Helvetica signage plate"
+  ],
+  "first_viewport": "A diagrammatic index of routes or categories renders as evenly-spaced colored lines or blocks, not a real map, each labeled once in the single house sans with pictogram icons standing in for category names wherever possible.",
+  "motion": {
+   "moment": "selecting a route highlights it at full saturation while every other route desaturates to grey, exactly like an interactive transit map",
+   "easing": "quick linear crossfade, 150ms",
+   "forbidden": [
+    "route colors that shift or gradient on interaction",
+    "decorative icon animation",
+    "parallax"
+   ]
+  },
+  "tell": "more than eight competing colors, photographic maps, or a serif creeping into any label — a transit system's trust comes entirely from ruthless typographic and chromatic consistency.",
+  "refuse": [
+   "serif type anywhere in the system",
+   "literal photographic maps",
+   "mixed icon styles (line plus filled) in the same set"
+  ],
+  "mobile_fallback": "the diagrammatic layout compresses its interval spacing rather than switching to a geographic map; labels that would collide abbreviate using the same pictogram-first logic, never by shrinking type below the legibility floor.",
+  "physical_antecedents": [
+   "the 1972 NYCTA subway diagram and graphics standards manual",
+   "the London Underground Johnston/Kinneir Calvert signage system",
+   "an airport's gate-directory pictogram board"
+  ],
+  "decay": "slow",
+  "suits": [
+   "wayfinding/navigation UI",
+   "transit and mobility products",
+   "information-dense utilities",
+   "logistics dashboards"
+  ],
+  "avoid_for": [
+   "luxury/editorial brands",
+   "narrative storytelling sites",
+   "children's products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://standardsmanual.com/products/nyctacompactedition",
+   "https://www.moma.org/collection/works/89300"
+  ]
+ },
+ {
+  "id": "luxury-fashion-editorial",
+  "name": "Luxury Fashion Editorial",
+  "origin": "Vogue/haute-couture lookbooks, 1960s-present",
+  "one_line": "Extreme whitespace and one oversized didone headline make the interface nearly disappear.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "single-column",
+   "magazine-feature",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "monochrome-tonal",
+   "restrained",
+   "ink-on-paper"
+  ],
+  "palette_hint": "near-monochrome imagery; a single near-black ink on white or cream, no accent hue at all",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "didone"
+   ],
+   "body": [
+    "transitional-serif"
+   ],
+   "notes": "one large high-contrast didone (thin hairlines, extreme thick/thin stroke contrast) carries every headline at a size disproportionate to the content beneath it; body copy, if present at all, is minimal and set in a quieter serif; no sans-serif appears anywhere."
+  },
+  "grammar": [
+   "Whitespace-to-content ratio stays extreme — a single image or headline occupies a small fraction of the viewport, surrounded by uninterrupted ground.",
+   "Exactly one high-contrast serif or didone display face carries all headlines, at a size large enough to dominate the page.",
+   "Imagery is monochrome or near-monochrome; any color present is desaturated toward the same tonal family as the ground.",
+   "UI chrome (nav, buttons, labels) is minimized to near-invisibility — no persistent header bar, no visible button styling beyond an underline or small-caps label.",
+   "No more than one typeface family appears in the entire system — the didone/serif carries both display and the rare body use."
+  ],
+  "materials": [
+   "gravure-printed magazine spread on coated stock",
+   "letterpress couture invitation card",
+   "foil-stamped packaging insert"
+  ],
+  "first_viewport": "A single full-bleed monochrome photograph occupies the upper two-thirds of the viewport with no overlaid text; below it, one line of oversized didone headline sits alone against generous cream ground, with no visible navigation.",
+  "motion": {
+   "moment": "the hero image slowly parallaxes at a fraction of scroll speed while the headline's letter-spacing almost imperceptibly tightens as it settles into view",
+   "easing": "extremely slow ease-in-out, 800ms-1.5s",
+   "forbidden": [
+    "fast or springy motion",
+    "multiple simultaneous animated elements",
+    "color transitions"
+   ]
+  },
+  "tell": "multiple competing accent colors, a sans-serif wordmark, and a busy grid of thumbnails — luxury editorial grammar depends on a restraint a template rarely tolerates for long.",
+  "refuse": [
+   "sans-serif as the primary display face",
+   "more than one accent color",
+   "persistent visible navigation chrome",
+   "fast/energetic motion"
+  ],
+  "mobile_fallback": "the single image and headline keep their generous margins proportionally rather than compressing; navigation remains hidden behind a minimal top-corner mark rather than becoming a conventional hamburger-plus-tabs bar.",
+  "physical_antecedents": [
+   "a Vogue haute-couture lookbook spread",
+   "a couture house's printed invitation card",
+   "a fashion house's minimalist perfume packaging insert"
+  ],
+  "decay": "slow",
+  "suits": [
+   "high-end e-commerce",
+   "hospitality",
+   "beauty brands",
+   "fashion houses"
+  ],
+  "avoid_for": [
+   "dense SaaS dashboards",
+   "budget/discount retail",
+   "kids' products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Didone_(typography)"
+  ]
+ },
+ {
+  "id": "childrens-book",
+  "name": "Children's Book Illustration",
+  "origin": "Golden Book / Eric Carle tradition, 1940s-present",
+  "one_line": "Flat, hand-textured shapes and a rounded, friendly type carry one warm subject per screen.",
+  "modes": [
+   "persuade",
+   "experience",
+   "read"
+  ],
+  "archetypes": [
+   "single-column",
+   "poster",
+   "poster-stack",
+   "scroll-narrative"
+  ],
+  "color_strategies": [
+   "high-key-pastel",
+   "full-palette",
+   "primary-triad"
+  ],
+  "palette_hint": "warm saturated-but-soft hues, never neon, one subject per screen against a simple flat ground",
+  "seed_buckets": [
+   2,
+   3,
+   5,
+   9,
+   15
+  ],
+  "type": {
+   "display": [
+    "script-hand"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "display headlines use a hand-drawn, custom-feeling face with large x-height and soft terminals; body copy stays a friendly rounded humanist sans at generous size for early readers; never a condensed or sharp geometric face."
+  },
+  "grammar": [
+   "Exactly one subject or scene occupies each screen — no competing secondary content sharing the same view.",
+   "Shapes are flat and hand-textured, with visible brush or collage grain in the fill, never a smooth vector gradient.",
+   "Palette stays saturated but soft — every hue is tempered toward pastel, never neon or acid.",
+   "Type is large, rounded, and friendly at every scale; no condensed or sharp-cornered letterforms appear.",
+   "Pacing is generous — one idea per screen with ample surrounding space, mirroring a picture-book page turn."
+  ],
+  "materials": [
+   "gouache/collage illustration reproduced offset",
+   "board-book heavy cardstock",
+   "screen-printed nursery poster"
+  ],
+  "first_viewport": "One large, flat, hand-textured illustrated scene fills most of the viewport with a short rounded-type headline sitting beside or beneath it like a picture-book caption, with nothing else competing for attention.",
+  "motion": {
+   "moment": "elements enter like a page turning — a soft arc rotation and settle, echoing a physical book page",
+   "easing": "gentle ease-out with a light overshoot-and-settle, 300-450ms",
+   "forbidden": [
+    "sharp/snappy motion",
+    "glitch or digital-feeling effects",
+    "monochrome desaturation"
+   ]
+  },
+  "tell": "sharp geometric precision, a corporate sans, and monochrome restraint — children's-book grammar depends on visible hand-texture and warmth that a clean vector illustration doesn't have.",
+  "refuse": [
+   "sharp geometric shapes",
+   "monochrome or desaturated palettes",
+   "condensed/technical type",
+   "more than one subject per screen"
+  ],
+  "mobile_fallback": "one illustrated scene per screen becomes one scene per swipe/scroll section rather than shrinking multiple scenes onto one viewport; type scales down but never below a large, easy-read size.",
+  "physical_antecedents": [
+   "a Golden Book with flat gouache-style illustration",
+   "Eric Carle's collage-cut picture books",
+   "a hand-painted nursery wall mural"
+  ],
+  "decay": "medium",
+  "suits": [
+   "kids' products",
+   "early education",
+   "parenting apps",
+   "toy brands"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "finance/trading tools",
+   "luxury fashion"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Little_Golden_Books",
+   "https://en.wikipedia.org/wiki/Eric_Carle"
+  ]
+ },
+ {
+  "id": "risograph-zine",
+  "name": "Risograph Print / Zine",
+  "origin": "Riso Kagaku duplicators (Japan, 1986), adopted by indie publishers, 2000s-present",
+  "one_line": "2-3 fluorescent spot colors misregister by a few pixels, echoing a duplicator print run.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "zine-collage",
+   "poster",
+   "asymmetric-offset",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "duotone",
+   "acid-hi-vis",
+   "drenched"
+  ],
+  "palette_hint": "2-3 fluorescent spot inks (pink/blue/yellow typical), combined via multiply blend, on uncoated off-white",
+  "seed_buckets": [
+   5,
+   14,
+   15,
+   21,
+   22
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "wide"
+   ],
+   "body": [
+    "mono",
+    "humanist-sans"
+   ],
+   "notes": "one bold grotesque or wide display face carries headlines, printed in one spot color and deliberately misaligned from its own underlay by 1-3px; body copy stays a plain grotesque or mono set small, with visible grain texture."
+  },
+  "grammar": [
+   "Exactly 2-3 spot colors combine only via a multiply blend where they overlap; no true CMYK-style gradient blending.",
+   "A deliberate 1-3px misregistration offset separates color layers on at least the display type or key shapes.",
+   "A visible grain or halftone texture sits over every filled shape; no flat, noise-free vector fill appears anywhere.",
+   "Ground color reads as slightly desaturated/warm, like uncoated paper, never a clean pure white.",
+   "Edges are allowed to bleed or overlap imprecisely; nothing snaps to a pixel-perfect grid."
+  ],
+  "materials": [
+   "Riso Kagaku duplicator print on uncoated paper",
+   "hand-stapled zine binding",
+   "spot-color screen print"
+  ],
+  "first_viewport": "A bold headline set in one fluorescent spot color sits slightly offset from its own duplicate underlay in a second spot color over a grain-textured uncoated-cream ground, with an image rendered as a coarse halftone rather than a photograph.",
+  "motion": {
+   "moment": "on hover, an element 'wobbles' by re-triggering its misregistration offset at a slightly different angle, as if the print run shifted again",
+   "easing": "short and slightly imprecise/jittery, 120-180ms, not perfectly smooth",
+   "forbidden": [
+    "perfectly smooth high-fidelity easing",
+    "full RGB gradients",
+    "crisp vector edges with no grain"
+   ]
+  },
+  "tell": "full RGB gamut, sharp vector edges, and smooth gradients with a 'grainy filter' slapped on top — real riso grammar comes from the misregistration and multiply-blend mechanics, not a texture overlay alone.",
+  "refuse": [
+   "full-color photography without halftone treatment",
+   "smooth gradients",
+   "pixel-perfect alignment between color layers",
+   "more than three spot colors"
+  ],
+  "mobile_fallback": "misregistration offset and grain persist at every viewport size, proportional rather than a fixed pixel value that would vanish on small screens; the layout collapses to a single column while keeping the offset/multiply treatment on every element.",
+  "physical_antecedents": [
+   "a Riso Kagaku duplicator print run for an indie zine",
+   "a community poster printed at a risograph co-op studio",
+   "a hand-stapled photocopied fanzine with color overlays"
+  ],
+  "decay": "medium",
+  "suits": [
+   "independent publishers",
+   "event/community brands",
+   "craft goods",
+   "music/zine culture brands"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "finance/trading tools",
+   "medical/clinical products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Risograph"
+  ]
+ },
+ {
+  "id": "editorial-newspaper",
+  "name": "Editorial Newspaper (Broadsheet)",
+  "origin": "19th-c. newspaper layout, still visible in NYT/WSJ digital",
+  "one_line": "Rule-lined multi-column serif text with a huge headline jump and byline convention, borrowed straight from print.",
+  "modes": [
+   "read",
+   "persuade"
+  ],
+  "archetypes": [
+   "broadsheet",
+   "magazine-feature",
+   "index-list",
+   "single-column"
+  ],
+  "color_strategies": [
+   "ink-on-paper",
+   "restrained"
+  ],
+  "palette_hint": "true black text on white/cream, one muted accent reserved for section labels only",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "transitional-serif"
+   ],
+   "body": [
+    "old-style-serif"
+   ],
+   "notes": "huge type-size jump from body (small, dense) to headline (often 4-6x body size); byline/dateline set in small-caps or italic beneath the headline; ads/asides get a distinct border rule separating them from editorial columns."
+  },
+  "grammar": [
+   "A rule line commonly separates text columns from their neighbors, rather than relying on whitespace gaps alone.",
+   "Body copy sets in a small serif size with a dramatic, multi-step size jump to the headline, without a gradual intermediate size.",
+   "A byline/dateline metadata line (author, date, location) appears in a fixed, quiet convention directly beneath every headline.",
+   "Non-editorial content (ads, asides, promoted items) is boxed with a visible border to distinguish it from editorial columns.",
+   "Body text sets fully justified within its column, unlike sans-serif web-native ragged-right conventions."
+  ],
+  "materials": [
+   "newsprint web-offset print",
+   "folded broadsheet stock",
+   "archival bound newspaper volume"
+  ],
+  "first_viewport": "A masthead-style header with a rule beneath it introduces a multi-column serif text grid where the lead headline spans several columns at 4-6x body size, with a byline/dateline directly under it and rule lines dividing every column.",
+  "motion": {
+   "moment": "almost no motion; the one moment is a hairline rule drawing itself under the headline as the page settles, like ink drying",
+   "easing": "brief and linear, 150-200ms",
+   "forbidden": [
+    "card-based transitions",
+    "fade-up-on-scroll for every block",
+    "parallax"
+   ]
+  },
+  "tell": "sans-serif body copy, a card-based story list, and no column rules — newspaper grammar depends on the rule lines and the serif-to-headline size jump, not just 'looking journalistic.'",
+  "refuse": [
+   "sans-serif body copy",
+   "card-based article lists",
+   "ragged-right unjustified body text",
+   "omitting the byline convention"
+  ],
+  "mobile_fallback": "the multi-column grid collapses to a single justified serif column while keeping the rule-line convention above and below each article and preserving the dramatic headline-to-body size jump.",
+  "physical_antecedents": [
+   "a folded broadsheet newspaper front page",
+   "a library's bound volume of back issues",
+   "a newsstand rack of the day's papers"
+  ],
+  "decay": "slow",
+  "suits": [
+   "news and media",
+   "long-form publishing",
+   "opinion platforms",
+   "journalism-adjacent brands"
+  ],
+  "avoid_for": [
+   "playful consumer apps",
+   "gaming",
+   "children's products"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Broadsheet"
+  ]
+ },
+ {
+  "id": "corporate-memphis",
+  "name": "Corporate Memphis / Flat Illustration",
+  "trap": true,
+  "origin": "Facebook/Slack/Mailchimp-era SaaS illustration boom, ~2015-2021 (now itself a cliché, coined by Mike Merrill as 'Corporate Memphis')",
+  "one_line": "Rounded limbless figures and generic 'diverse team collaborating' scenes — the SaaS illustration default to recognize and refuse, not adopt.",
+  "modes": [],
+  "archetypes": [],
+  "color_strategies": [
+   "high-key-pastel",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "flat single-hue-family fills (e.g. all-lavender or all-peach figures) with exactly one flat shadow tone; skin tones abstracted to non-representational hues",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "a rounded geometric sans is used everywhere; the illustration, not the type, carries the brand voice."
+  },
+  "grammar": [
+   "Human figures render limbless or with noodle-thin, boneless limbs and oversized heads/hands.",
+   "Fills are flat, single-hue-family, with exactly one flat (non-gradient) shadow shape per figure.",
+   "Scenes depict generic 'collaboration' or 'productivity' scenarios with no specific, observed detail.",
+   "Figures float in undefined negative space with no ground plane or environment logic.",
+   "Diversity is signaled only through skin-tone palette swaps on an identical body template, never through pose, body type, or context variation."
+  ],
+  "materials": [
+   "digital vector illustration only — no analog/print antecedent"
+  ],
+  "first_viewport": "A hero section pairs a bold rounded-sans headline with a large flat-illustration scene of interchangeable limbless figures collaborating around an oversized laptop or clipboard, floating in empty colored negative space.",
+  "motion": {
+   "moment": "figures gently bob or a single element (a coffee cup, a plant) idly loops — the same idle-loop trick used across nearly every SaaS site that adopts this world",
+   "easing": "soft ease-in-out loop, 2-4s",
+   "forbidden": [
+    "nothing is meaningfully forbidden within the world itself — its motion, like its illustration, is the convergent default being catalogued for refusal"
+   ]
+  },
+  "tell": "this world *is* the tell — any use of it signals template SaaS rather than a considered choice; recognize a request like 'add a hero illustration of people collaborating' and route to a physical-object-derived alternative instead.",
+  "refuse": [
+   "generating this world for any project — recommend a physical-object-derived alternative instead",
+   "softening the figures further (rounder corners, softer pastels) as a 'fix' — the whole lineage is the anti-pattern, not one attribute of it"
+  ],
+  "mobile_fallback": "not applicable — not recommended as a target world at any viewport",
+  "physical_antecedents": [
+   "none — this is a purely digital-native illustration convention with no physical print or material antecedent, part of why it reads as placeholder rather than crafted"
+  ],
+  "decay": "fast",
+  "suits": [],
+  "avoid_for": [
+   "every context — catalog only to help the model recognize and reject it on sight"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Corporate_Memphis",
+   "https://webflow.com/blog/corporate-memphis"
+  ]
+ },
+ {
+  "id": "grunge-carson",
+  "name": "Grunge / David Carson Editorial",
+  "origin": "Ray Gun magazine, 1992-1996",
+  "one_line": "Deliberately illegible, overlapping type and torn-paper texture treat photography as texture, not image.",
+  "modes": [
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "zine-collage",
+   "asymmetric-offset",
+   "poster",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "monochrome-tonal",
+   "drenched",
+   "duotone"
+  ],
+  "palette_hint": "high-contrast black/white or duotone, distressed/degraded tonal range, no clean flat color",
+  "seed_buckets": [
+   3
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "blackletter-decorative",
+    "condensed"
+   ],
+   "body": [
+    "mono",
+    "system-stack"
+   ],
+   "notes": "mixed weights and even mixed families within a single word are expected; type overlaps imagery and other type at illegible densities on purpose; legible body copy reverts to a plain typewriter/system face as ironic contrast to the chaos above it."
+  },
+  "grammar": [
+   "Type deliberately overlaps other type or imagery to the point of partial illegibility — this is a choice, not a bug.",
+   "At least one torn-paper, distressed, or degraded-photocopy texture layer sits over every major image.",
+   "Mixed type weights or families appear within a single word or headline, never a consistent type scale.",
+   "Every composition bleeds off at least one edge asymmetrically — no centered, contained layouts.",
+   "Photography is treated as raw texture (cropped, degraded, layered) rather than a clean editorial image."
+  ],
+  "materials": [
+   "photocopied and re-photocopied toner print",
+   "torn and taped paper collage",
+   "degraded halftone offset print"
+  ],
+  "first_viewport": "A headline built from mismatched, overlapping type weights bleeds off two edges of the viewport, laid over a degraded, torn-edge photographic texture, with no visible grid or alignment system.",
+  "motion": {
+   "moment": "elements slam into place with a slight rotational overshoot then settle, as if physically pasted down and jostled",
+   "easing": "fast with overshoot-and-correct, 200-300ms",
+   "forbidden": [
+    "uniform polished easing curves",
+    "a clean grid reveal",
+    "gentle fade-ins"
+   ]
+  },
+  "tell": "a clean grid, legible-first hierarchy, and a consistent type scale with a 'grunge texture' PNG overlaid on top — the real grammar is illegibility and overlap as compositional choices, not a filter.",
+  "refuse": [
+   "a consistent, legible type scale",
+   "centered or grid-aligned composition",
+   "clean, undegraded photography"
+  ],
+  "mobile_fallback": "chaos is re-composed, not simply scaled down; key overlapping elements are re-laid-out for the narrower frame using the same torn/degraded texture logic, since a shrunk desktop composition becomes unreadable rather than expressive.",
+  "physical_antecedents": [
+   "a 1990s Ray Gun magazine spread",
+   "a hand-torn and taped punk flyer stapled to a telephone pole",
+   "a photocopied fanzine run through a failing toner cartridge"
+  ],
+  "decay": "fast",
+  "suits": [
+   "music",
+   "skate/streetwear",
+   "alt-culture publications",
+   "underground event brands"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "healthcare",
+   "financial services",
+   "accessibility-first products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/David_Carson_(graphic_designer)",
+   "https://en.wikipedia.org/wiki/Raygun_(magazine)"
+  ]
+ },
+ {
+  "id": "board-game-rulebook",
+  "name": "Board Game / Tabletop Rulebook",
+  "origin": "Modern hobby board-game manuals, 1990s-present",
+  "one_line": "Numbered callouts cross-reference diagrams; an iconography glossary is a first-class section, not a footnote.",
+  "modes": [
+   "read",
+   "operate"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "index-list",
+   "timeline-ledger",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "muted-earth",
+   "restrained",
+   "primary-triad"
+  ],
+  "palette_hint": "warm cardstock-toned background (cream/tan), 2-4 saturated 'component' colors used consistently for callout categories",
+  "seed_buckets": [
+   3,
+   4,
+   9,
+   15,
+   21
+  ],
+  "type": {
+   "display": [
+    "slab"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "numbered/lettered callout badges use a bold rounded or slab numeral set apart in a colored circle or hex; body copy stays a plain, highly legible humanist sans sized for scanning under time pressure (mid-game reference)."
+  },
+  "grammar": [
+   "Every instructional step carries a numbered or lettered callout badge that cross-references a specific diagram element elsewhere on the page.",
+   "An iconography glossary is a first-class, permanently accessible section, never buried or optional.",
+   "Ground color reads as warm cardstock (cream/tan), never pure white or black.",
+   "Step-by-step sequence is enforced visually — numbered, top-to-bottom or left-to-right, never reorderable-looking cards.",
+   "Diagrams are labeled illustrations, not photography; every referenced part gets its own callout marker."
+  ],
+  "materials": [
+   "saddle-stitched cardstock rulebook booklet",
+   "die-cut component reference card",
+   "printed insert-tray label"
+  ],
+  "first_viewport": "A warm cardstock-toned page opens with a numbered step list on one side and a labeled diagram on the other, each step's number badge matching a corresponding marker on the diagram, with an icon glossary strip fixed at the bottom or side.",
+  "motion": {
+   "moment": "hovering or tapping a numbered step highlights its matching diagram marker with a brief pulse, as if pointing a finger at the rulebook page",
+   "easing": "quick ease-out pulse, 200ms",
+   "forbidden": [
+    "decorative animation unrelated to the callout system",
+    "parallax",
+    "auto-advancing steps without user action"
+   ]
+  },
+  "tell": "numbered sections ('01/02/03') sitting beside feature blocks with nothing to reference — real rulebook grammar requires the numbers to actually connect a step to a diagram, or the numbering is just cosmetic.",
+  "refuse": [
+   "decorative numbering with no cross-referenced diagram",
+   "marketing-voice copy",
+   "glossy stock photography",
+   "hiding the icon glossary behind a modal"
+  ],
+  "mobile_fallback": "step and diagram split into a single stacked column with the callout badge repeated inline next to both the step text and a cropped view of its diagram region, preserving the cross-reference even without side-by-side space.",
+  "physical_antecedents": [
+   "a modern hobby board-game rulebook with numbered component diagrams",
+   "an IKEA-style wordless assembly instruction sheet",
+   "a scouting/merit-badge handbook with a skills glossary"
+  ],
+  "decay": "slow",
+  "suits": [
+   "documentation",
+   "onboarding flows",
+   "rules-heavy products (legal, compliance)",
+   "hardware setup guides"
+  ],
+  "avoid_for": [
+   "luxury/editorial brands",
+   "fast-scrolling social apps",
+   "poster-style landing pages"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.onpressbookprinting.com/resources/designing-a-board-game-manual-guide",
+   "https://stonemaiergames.com/what-makes-a-great-rulebook/"
+  ]
+ },
+ {
+  "id": "wayfinding-aicher",
+  "name": "Wayfinding / Signage Systems (Otl Aicher)",
+  "origin": "Munich Olympics 1972, airport signage lineage",
+  "one_line": "A modular pictogram grid and one accent color per zone make legibility-at-a-glance the entire design system.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "sidebar-tool",
+   "index-list",
+   "cardless-table",
+   "dense-console"
+  ],
+  "color_strategies": [
+   "primary-triad",
+   "restrained",
+   "committed"
+  ],
+  "palette_hint": "one fixed accent color per category/zone from a small palette, applied only to that zone's chrome and icons",
+  "seed_buckets": [],
+  "type": {
+   "display": [
+    "geometric-sans"
+   ],
+   "body": [
+    "geometric-sans"
+   ],
+   "notes": "a single geometric sans is used at every scale, matching the pictogram system's stroke weight; labels always pair with their pictogram, never icon-only."
+  },
+  "grammar": [
+   "All pictograms derive from a single strict base-unit grid (same stroke weight, same construction module) — no imported icon set mixed in.",
+   "Exactly one accent color is assigned per category/zone and used consistently for that zone's icons and chrome only.",
+   "Every pictogram is paired with a text label at first use; icons never stand alone as the sole identifier.",
+   "Legibility at a glance/small size is the binding constraint — no icon or label falls below a tested minimum size.",
+   "The same base module that builds the pictograms also governs spacing and grid alignment across the whole layout."
+  ],
+  "materials": [
+   "extruded aluminum signage panel",
+   "silkscreen-printed pictogram plate",
+   "backlit acrylic directory panel"
+  ],
+  "first_viewport": "A grid of zone/category tiles renders each with its own accent color and a pictogram built from the same strict base-unit grid, every tile labeled directly beneath its icon in the single house sans.",
+  "motion": {
+   "moment": "selecting a zone or category smoothly desaturates every other zone's accent color to neutral, isolating the active one, mirroring how airport signage isolates the relevant terminal",
+   "easing": "quick linear crossfade, 150-200ms",
+   "forbidden": [
+    "mixed icon styles animating differently from each other",
+    "decorative icon animation unrelated to selection state",
+    "parallax"
+   ]
+  },
+  "tell": "illustrative, detailed icons with inconsistent stroke weights and an icon grid that doesn't line up — Aicher-lineage grammar depends on every pictogram sharing one strict construction module.",
+  "refuse": [
+   "mixed icon styles (line, filled, illustrative) in one system",
+   "icon-only labels with no accompanying text at first use",
+   "more than one typeface family"
+  ],
+  "mobile_fallback": "the pictogram grid keeps its module-based sizing, never shrinking below the tested legibility floor, and reflows to fewer columns rather than shrinking icons; zone accent colors persist unchanged.",
+  "physical_antecedents": [
+   "the Otl Aicher pictogram system for the 1972 Munich Olympics",
+   "an international airport's gate-and-facility signage system",
+   "a hospital's color-coded department wayfinding wall map"
+  ],
+  "decay": "slow",
+  "suits": [
+   "multi-category platforms",
+   "large information architectures",
+   "airports/logistics-adjacent products",
+   "hospital/campus wayfinding apps"
+  ],
+  "avoid_for": [
+   "luxury fashion",
+   "narrative storytelling sites",
+   "children's illustrated products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Otl_Aicher"
+  ]
+ },
+ {
+  "id": "blueprint",
+  "name": "Blueprint / Technical Drawing",
+  "origin": "Architectural/engineering blueprints, 1900s-present",
+  "one_line": "White line-work on deep blue — everything is stroke, dimensioned with arrowheads and a drafting title block.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "dense-console",
+   "cardless-table",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "two-field-split",
+   "duotone",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "exactly two tones — deep blueprint blue and white/cyan line-work, no third color except a title-block accent",
+  "seed_buckets": [
+   15,
+   16
+  ],
+  "type": {
+   "display": [
+    "mono",
+    "condensed"
+   ],
+   "body": [
+    "mono"
+   ],
+   "notes": "all type is monospace or a drafting-stencil-style face, uppercase for labels; numerals are tabular for dimension callouts; no serif or humanist sans ever appears."
+  },
+  "grammar": [
+   "Everything renders as stroke (outline) only — no filled shapes anywhere, including UI chrome like buttons.",
+   "Exactly two tones govern the whole system: deep blue ground and white/cyan line-work (or the inverse).",
+   "Every dimensioned element carries an arrowhead-terminated measurement line and a numeric callout.",
+   "A drafting-standard title block (project name, scale, date, revision) occupies a fixed corner of every screen.",
+   "Labels and numerals use a monospace or stencil face exclusively, set uppercase."
+  ],
+  "materials": [
+   "cyanotype blueprint print",
+   "vellum drafting sheet",
+   "mylar drafting film"
+  ],
+  "first_viewport": "A stroke-only technical diagram fills most of the viewport in white line-work on deep blue, with dimension lines and arrowhead callouts labeling key measurements, and a drafting title block fixed in the bottom-right corner.",
+  "motion": {
+   "moment": "dimension lines draw themselves in stroke-by-stroke from the title block outward, as if being actively drafted",
+   "easing": "linear, mechanical pace, 300-500ms",
+   "forbidden": [
+    "filled-shape reveals",
+    "soft ease-in-out",
+    "color transitions beyond the two-tone system"
+   ]
+  },
+  "tell": "filled shapes, color beyond the two-tone blueprint system, and no dimension callouts — blueprint grammar depends on strokes-only rendering and a real drafting title block, not just a blue background.",
+  "refuse": [
+   "any filled (non-stroke) shape",
+   "a third hue introduced into the palette",
+   "dimension lines without arrowheads or numeric callouts"
+  ],
+  "mobile_fallback": "the diagram's stroke-only rendering and two-tone palette persist; the title block collapses to a single compact row at the top rather than a corner block, and dimension callouts that would collide are prioritized by importance rather than all displayed at once.",
+  "physical_antecedents": [
+   "an architect's cyanotype blueprint print",
+   "a mechanical engineering drafting table with T-square and vellum",
+   "a patent application's technical drawing sheet"
+  ],
+  "decay": "slow",
+  "suits": [
+   "construction/engineering tools",
+   "CAD-adjacent products",
+   "technical documentation",
+   "manufacturing/hardware specs"
+  ],
+  "avoid_for": [
+   "luxury fashion",
+   "children's products",
+   "warm/lifestyle brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Blueprint"
+  ]
+ },
+ {
+  "id": "newsprint-tabloid",
+  "name": "Newsprint Tabloid",
+  "origin": "NY Post / Bild-style front pages",
+  "one_line": "One enormous shock headline and halftone-dot photography dominate the page like a front page on a newsstand rack.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "broadsheet",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "monochrome-tonal",
+   "drenched",
+   "ink-on-paper"
+  ],
+  "palette_hint": "true black plus white/cream with one hot spot color (often red) reserved for the teaser strip only",
+  "seed_buckets": [
+   1,
+   24
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "condensed",
+    "wide"
+   ],
+   "body": [
+    "old-style-serif"
+   ],
+   "notes": "the headline face is an extremely bold condensed grotesque set at a size dominating 40%+ of the page; body copy reverts to a small, dense serif in stark contrast to the headline's scale."
+  },
+  "grammar": [
+   "One headline dominates at least 40% of the visible page height, set in an extremely bold condensed face.",
+   "Photography renders with a visible halftone-dot pattern, never a clean continuous-tone image.",
+   "A hard black rule separates the headline zone from body copy — no soft transition or gradient.",
+   "A single teaser strip sits at the very top of the page, above the main headline, in a smaller but still bold treatment.",
+   "Only one hot accent color (typically red) appears, reserved exclusively for the teaser strip or a single 'breaking' marker."
+  ],
+  "materials": [
+   "web-offset newsprint print",
+   "halftone-screened photo plate",
+   "newsstand rack card stock"
+  ],
+  "first_viewport": "A slim teaser strip in red sits at the very top; below it, one enormous bold condensed headline dominates most of the viewport over a halftone-dot photograph, separated from the body copy beneath by a hard black rule.",
+  "motion": {
+   "moment": "the headline 'stamps' into place with a single hard, instant appearance and no fade, like a press run slamming down",
+   "easing": "instant or near-instant, 0-80ms",
+   "forbidden": [
+    "smooth fade-ins for the headline",
+    "soft/continuous-tone photography treatment",
+    "gentle/quiet tone"
+   ]
+  },
+  "tell": "restrained headline sizing, smooth continuous-tone photography, and a quiet tone — tabloid grammar depends on the halftone texture and the headline's disproportionate scale, not just 'bold and red.'",
+  "refuse": [
+   "smooth/continuous-tone photography without halftone",
+   "restrained, evenly-sized headlines",
+   "more than one hot accent color"
+  ],
+  "mobile_fallback": "the headline keeps its disproportionate scale relative to the viewport, still dominating 40%+ of visible height, rather than shrinking to fit alongside other content; the teaser strip persists as a pinned top bar.",
+  "physical_antecedents": [
+   "a New York Post front page on a newsstand rack",
+   "a Bild tabloid cover with a shock headline",
+   "a supermarket checkout-line tabloid rack"
+  ],
+  "decay": "fast",
+  "suits": [
+   "attention-grabbing campaign pages",
+   "satire",
+   "media brands wanting punch",
+   "event announcements"
+  ],
+  "avoid_for": [
+   "healthcare/clinical products",
+   "enterprise SaaS",
+   "luxury brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Tabloid_(newspaper_format)"
+  ]
+ },
+ {
+  "id": "trading-floor",
+  "name": "Trading Floor / Financial Terminal",
+  "origin": "Bloomberg Terminal, 1980s-present",
+  "one_line": "Black-background dense multi-panel layout where color means only one thing: red or green delta.",
+  "modes": [
+   "operate"
+  ],
+  "archetypes": [
+   "dense-console",
+   "cardless-table",
+   "spec-sheet",
+   "sidebar-tool"
+  ],
+  "color_strategies": [
+   "monochrome-tonal",
+   "restrained"
+  ],
+  "palette_hint": "near-black ground; red/green reserved exclusively for positive/negative delta, no other use of either hue",
+  "seed_buckets": [
+   1,
+   2,
+   9,
+   10
+  ],
+  "type": {
+   "display": [
+    "mono"
+   ],
+   "body": [
+    "mono"
+   ],
+   "notes": "every numeral is tabular-figure monospace, right-aligned in its column, with no proportional numerals anywhere; function-key or short-code labels stand in for full-sentence UI copy."
+  },
+  "grammar": [
+   "Ground is black or near-black across the entire shell; no light-mode variant, no card backgrounds lighter than the ground.",
+   "Red and green are reserved exclusively for positive/negative delta values; neither hue appears anywhere else in the UI.",
+   "Every numeral column is monospace and right-aligned with a fixed decimal position; no proportional-width figures.",
+   "Panels tile edge-to-edge with no gutters larger than a hairline; no wasted pixel, no card padding.",
+   "Navigation is command/shortcut-driven (a visible command bar or function-key legend), not a menu of buttons."
+  ],
+  "materials": [
+   "CRT/LED terminal display glass",
+   "backlit ticker board",
+   "dot-matrix printer tape"
+  ],
+  "first_viewport": "A black-background shell tiles multiple dense data panels edge-to-edge with hairline gutters; every price/value column is right-aligned tabular monospace, colored red or green only by its delta, with a command-input bar fixed at the top or bottom.",
+  "motion": {
+   "moment": "a value that updates flashes its cell briefly in the delta color before settling to the resting red/green text tone, exactly like a live ticker tick",
+   "easing": "instant flash with an 80-120ms decay",
+   "forbidden": [
+    "card-based summary transitions",
+    "soft ease-in-out on data updates",
+    "decorative chart animation"
+   ]
+  },
+  "tell": "card-based summaries, generous whitespace, and decorative chart flourishes — real terminal grammar depends on the red/green delta discipline and edge-to-edge density, not just a black background.",
+  "refuse": [
+   "a light-mode variant",
+   "red or green used for anything besides delta",
+   "card padding/gutters wider than a hairline",
+   "proportional numerals"
+  ],
+  "mobile_fallback": "panels stack into a single scrollable column but keep edge-to-edge density and the tabular monospace/delta-color discipline; the command bar persists pinned, accessible via a fixed input row rather than disappearing behind a menu.",
+  "physical_antecedents": [
+   "a Bloomberg Terminal trading desk with dual/quad monitors",
+   "a stock exchange floor's ticker display board",
+   "a forex trading shop's wall of scrolling rate boards"
+  ],
+  "decay": "slow",
+  "suits": [
+   "finance/trading products",
+   "crypto dashboards",
+   "real-time monitoring tools",
+   "risk/ops dashboards"
+  ],
+  "avoid_for": [
+   "consumer wellness apps",
+   "children's products",
+   "luxury editorial brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Bloomberg_Terminal"
+  ]
+ },
+ {
+  "id": "vintage-analog",
+  "name": "Vintage Analog / Retro Film",
+  "origin": "Kodachrome-era print and 8mm film, 1960s-70s photography",
+  "one_line": "A warm, lifted-black color grade and physical print-border framing evoke Kodachrome-era photography.",
+  "modes": [
+   "persuade",
+   "experience"
+  ],
+  "archetypes": [
+   "poster",
+   "scroll-narrative",
+   "magazine-feature",
+   "poster-stack"
+  ],
+  "color_strategies": [
+   "muted-earth",
+   "dark-with-warm-light",
+   "duotone"
+  ],
+  "palette_hint": "warm faded grade — lifted blacks, warm highlights, desaturated overall; no pure digital black or saturated primary",
+  "seed_buckets": [
+   3,
+   4,
+   14
+  ],
+  "type": {
+   "display": [
+    "slab"
+   ],
+   "body": [
+    "mono"
+   ],
+   "notes": "captions and small metadata set in a typewriter-feeling monospace or a warm slab serif; nothing sans-serif-only appears for captions, echoing physical print-back stamping."
+  },
+  "grammar": [
+   "Color grade lifts blacks (never true digital black) and warms highlights; every image passes through this grade consistently.",
+   "A visible grain/dust/scratch texture overlay sits atop every photographic image.",
+   "Photographs render inside a rounded-corner print-border frame, mimicking a physical Polaroid or print border, never edge-to-edge bleed.",
+   "Captions use a nostalgic serif or typewriter face, never a clean contemporary sans.",
+   "No crisp, sharp edge-to-edge digital photography appears anywhere in the system; every image carries the grade and border."
+  ],
+  "materials": [
+   "Kodachrome slide film",
+   "8mm film stock",
+   "instant-print photo paper with printed border"
+  ],
+  "first_viewport": "A warm-graded photograph sits inside a rounded-corner print-border frame like a physical Polaroid, with visible grain and a typewriter-style caption beneath it, surrounded by cream or muted ground.",
+  "motion": {
+   "moment": "a new photo 'develops in' as grain resolves from heavy to normal and the warm grade fades up, mimicking a print emerging in a darkroom tray",
+   "easing": "slow ease-in, 500-700ms",
+   "forbidden": [
+    "crisp digital fade transitions",
+    "sharp edge-to-edge image reveals",
+    "cool/blue color correction"
+   ]
+  },
+  "tell": "crisp digital color, sharp edge-to-edge photography, and sans-only captions — vintage-analog grammar depends on the lifted-black grade and the physical print-border framing, not a generic 'warm filter.'",
+  "refuse": [
+   "sharp edge-to-edge photography with no border",
+   "cool or neutral color grading",
+   "sans-serif-only captions"
+  ],
+  "mobile_fallback": "the print-border frame and grain persist at reduced scale rather than being dropped for edge-to-edge images; captions keep their typewriter treatment beneath each framed photo in the single-column stack.",
+  "physical_antecedents": [
+   "a Kodachrome family slide-projector carousel",
+   "a physical Polaroid print with its white border and hand-written caption",
+   "an 8mm home-movie film reel and projector"
+  ],
+  "decay": "medium",
+  "suits": [
+   "travel",
+   "hospitality",
+   "heritage/legacy brands",
+   "photography portfolios"
+  ],
+  "avoid_for": [
+   "fintech/trading tools",
+   "dev tools",
+   "clinical/medical products"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Kodachrome"
+  ]
+ },
+ {
+  "id": "pharmaceutical-clinical",
+  "name": "Pharmaceutical / Clinical",
+  "origin": "Medical device and clinical-trial documentation",
+  "one_line": "Cool desaturated blue-grey and literal iconography make regulatory fine print a visible, respected element.",
+  "modes": [
+   "operate",
+   "read",
+   "persuade"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "sidebar-tool",
+   "cardless-table",
+   "catalog-sheet"
+  ],
+  "color_strategies": [
+   "restrained",
+   "two-field-split",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "cool, desaturated blue/white/grey only, with a single muted clinical-green or blue accent for confirmatory states",
+  "seed_buckets": [
+   9,
+   14,
+   15,
+   16
+  ],
+  "type": {
+   "display": [
+    "humanist-sans"
+   ],
+   "body": [
+    "humanist-sans"
+   ],
+   "notes": "large, high-contrast type sized well above typical body-copy minimums for accessibility; regulatory fine print stays legible at a defined minimum size and is set apart, never hidden in a footer accordion."
+  },
+  "grammar": [
+   "Palette stays cool and desaturated (blue/white/grey); no warm accent, no saturated brand color anywhere.",
+   "Iconography is extremely literal (a pill is a pill, a syringe is a syringe); no metaphorical or abstract icon substitutes.",
+   "Regulatory/fine-print text renders at a defined minimum legible size and sits in a visible, non-collapsed location, never hidden behind a 'learn more' toggle.",
+   "Interactive targets meet a large minimum hit-area size across the entire system, prioritizing accessibility over density.",
+   "Contrast ratios exceed the standard minimum (targeting AAA-level, not just AA) on all text, including fine print."
+  ],
+  "materials": [
+   "regulatory packaging insert paper",
+   "thermal-printed prescription label",
+   "medical device instructions-for-use booklet"
+  ],
+  "first_viewport": "A cool blue/grey/white panel presents one literal icon (a pill, a device, a chart) beside large, high-contrast body copy, with a visible fine-print disclosure block set in its own bordered region rather than a footer.",
+  "motion": {
+   "moment": "a confirmation action fills a progress indicator smoothly and completely before revealing the next step; no partial or ambiguous states are ever shown mid-transition",
+   "easing": "steady linear or slight ease-out, 250-350ms",
+   "forbidden": [
+    "playful bounce/spring motion",
+    "decorative illustration-style animation",
+    "fast/energetic transitions"
+   ]
+  },
+  "tell": "playful illustration, casual copy voice, and low-contrast fine print — clinical grammar depends on literal iconography and genuinely accessible, visible fine print, not just a blue color scheme.",
+  "refuse": [
+   "playful/cartoon illustration",
+   "casual or jokey copy voice",
+   "fine print below the defined minimum legible size or hidden by default",
+   "warm/saturated accent colors"
+  ],
+  "mobile_fallback": "large hit-targets and minimum fine-print size are preserved without exception; the layout stacks to a single column but never shrinks type or targets below the desktop accessibility floor to save space.",
+  "physical_antecedents": [
+   "a clinical-trial patient information leaflet insert",
+   "a medical device's regulatory packaging and instructions-for-use booklet",
+   "a hospital pharmacy's prescription label printer output"
+  ],
+  "decay": "slow",
+  "suits": [
+   "health tech",
+   "medical devices",
+   "insurance",
+   "regulated fintech"
+  ],
+  "avoid_for": [
+   "playful consumer apps",
+   "gaming",
+   "luxury/fashion brands"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Package_insert"
+  ]
+ },
+ {
+  "id": "field-guide-naturalist",
+  "name": "Field Guide Naturalist",
+  "origin": "Roger Tory Peterson's field guide system (1934-present) and Audubon's ornithological plate tradition (1827-1838)",
+  "one_line": "Audubon/Peterson plates with arrow-pointed field marks and a specimen-label system replace hero photography with observed diagrams.",
+  "modes": [
+   "read",
+   "operate",
+   "experience"
+  ],
+  "archetypes": [
+   "catalog-sheet",
+   "spec-sheet",
+   "index-list",
+   "timeline-ledger"
+  ],
+  "color_strategies": [
+   "muted-earth",
+   "restrained",
+   "monochrome-tonal"
+  ],
+  "palette_hint": "naturalistic muted greens/browns/creams matched to the subject's observed coloring, plus one color-coded edge-tab strip per category",
+  "seed_buckets": [
+   3,
+   4,
+   9,
+   10,
+   11
+  ],
+  "type": {
+   "display": [
+    "old-style-serif"
+   ],
+   "body": [
+    "old-style-serif"
+   ],
+   "notes": "captions pair a common name in plain serif with an italic Latin binomial directly beneath or beside it; identifying field-mark labels set in a small sans or serif connected to the illustration by a leader line, never floating unattached."
+  },
+  "grammar": [
+   "Every illustrated subject carries small arrow or leader-line callouts pointing to its diagnostic identifying features, sourced directly from the illustration, not a separate caption block.",
+   "Similar subjects group on one comparison plate/page in matched poses so identifying differences read at a glance.",
+   "A color-coded edge tab or strip system marks category/family, consistent across every page.",
+   "Common name sets in a plain serif; scientific/Latin binomial sets in italic directly beneath or beside it, and this pairing never breaks.",
+   "Illustration, not photography, carries the primary identification content; photography, if present, is supplementary only."
+  ],
+  "materials": [
+   "hand-colored engraved plate",
+   "offset-printed pocket field guide",
+   "museum specimen-drawer label card"
+  ],
+  "first_viewport": "A comparison plate presents several similar subjects in matched poses side by side, each with small arrow callouts pointing to distinguishing features and a common-name/italic-binomial caption pair beneath it, with a color-coded tab strip along the edge marking the category.",
+  "motion": {
+   "moment": "hovering a subject highlights its arrow callouts one at a time in sequence, as if a naturalist were walking through the identifying marks aloud",
+   "easing": "brief linear step, 150ms per callout",
+   "forbidden": [
+    "parallax",
+    "decorative illustration animation unrelated to identification",
+    "bounce/spring"
+   ]
+  },
+  "tell": "a nature-themed hero photograph with no callouts, no comparison grouping, and no edge-tab system — field-guide grammar depends on the arrow/leader-line identification mechanism, not a green color palette.",
+  "refuse": [
+   "photography replacing illustration as the primary identification content",
+   "floating captions with no leader line to the feature they describe",
+   "no comparison grouping of similar subjects"
+  ],
+  "mobile_fallback": "comparison plates split into one subject per screen in sequence rather than side-by-side, but each subject keeps its full arrow-callout set and binomial caption pair; the edge-tab category marker persists as a small persistent chip.",
+  "physical_antecedents": [
+   "Roger Tory Peterson's A Field Guide to the Birds with arrow-marked identification plates",
+   "John James Audubon's The Birds of America elephant folio plates",
+   "a natural history museum's specimen drawer label cards"
+  ],
+  "decay": "slow",
+  "suits": [
+   "nature/outdoor products",
+   "citizen-science apps",
+   "educational reference tools",
+   "field research/logging apps"
+  ],
+  "avoid_for": [
+   "fintech/trading tools",
+   "luxury fashion",
+   "gaming"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Peterson_Field_Guides",
+   "https://blog.library.si.edu/blog/2018/12/04/spotting-a-first-edition-of-petersons-a-field-guide-to-the-birds/"
+  ]
+ },
+ {
+  "id": "nautical-chart",
+  "name": "Nautical Chart",
+  "origin": "Admiralty chart conventions (UK Hydrographic Office, 19th c.-present) and NOAA nautical chart standards",
+  "one_line": "Admiralty-chart soundings, a compass rose, and a title block turn a page into a navigational document.",
+  "modes": [
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "map-spatial",
+   "spec-sheet",
+   "sidebar-tool",
+   "index-list"
+  ],
+  "color_strategies": [
+   "two-field-split",
+   "muted-earth",
+   "restrained"
+  ],
+  "palette_hint": "standardized white/blue/green/yellow water-depth and land-tint palette; no decorative substitute hue",
+  "seed_buckets": [
+   9,
+   10,
+   13,
+   14,
+   15,
+   16
+  ],
+  "type": {
+   "display": [
+    "wide"
+   ],
+   "body": [
+    "mono"
+   ],
+   "notes": "soundings (depth numbers) set in small tabular monospace scattered at their true position, never collected into a list; the title block uses a condensed wide face for chart number, scale, and datum; the compass rose renders as a literal graphic with true-north and magnetic-north rings, not decoration."
+  },
+  "grammar": [
+   "A compass rose renders as a literal, accurately-annotated graphic (true-north outer ring, magnetic-north inner ring with variation and year), never a decorative rose icon.",
+   "Depth soundings scatter across the field at their true positional location as small tabular numerals, never collected into a sidebar list.",
+   "A title block states chart number, scale, projection/datum, and sounding units explicitly — omitting sounding units is treated as an error.",
+   "The standardized water/land/intertidal color palette (white/blue/green/yellow-toned) governs all fills; no decorative hue substitution.",
+   "Symbols and abbreviations conform to a documented legend that's always reachable, never omitted."
+  ],
+  "materials": [
+   "offset-printed Admiralty paper chart",
+   "laminated waterproof chart sheet",
+   "brass parallel rule and dividers used for annotation"
+  ],
+  "first_viewport": "A chart-like field of depth soundings and coastline fills the viewport in the standard blue/white/green palette, with a literal compass rose in one corner and a title block stating chart number, scale, and sounding units in another.",
+  "motion": {
+   "moment": "panning across the chart reveals soundings fading in as they enter the surveyed area, as if the chart were being actively surveyed in real time",
+   "easing": "linear, steady, tied to pan position rather than a fixed duration",
+   "forbidden": [
+    "bounce/spring",
+    "a decorative compass rose that spins for effect",
+    "gradient water fills replacing the flat standardized tones"
+   ]
+  },
+  "tell": "a decorative compass-rose graphic with no true/magnetic-north annotation, and soundings collected into a sidebar list instead of scattered at their true position — chart grammar depends on positional accuracy, not just 'looking nautical.'",
+  "refuse": [
+   "soundings without stated units in the title block",
+   "a spinning/animated compass rose used purely for decoration",
+   "decorative water-color gradients replacing the standardized flat palette"
+  ],
+  "mobile_fallback": "the chart becomes pannable/zoomable rather than resized to fit; soundings keep their true positional scatter, and the title block and compass rose collapse into a persistent corner overlay rather than being dropped.",
+  "physical_antecedents": [
+   "a UK Admiralty paper chart with hand-annotated soundings",
+   "a ship's chart table with parallel rules, dividers, and a chart light",
+   "a NOAA nautical chart's title block and symbol legend"
+  ],
+  "decay": "slow",
+  "suits": [
+   "marine/maritime products",
+   "logistics and shipping",
+   "dive/boating apps",
+   "offshore energy operations tools"
+  ],
+  "avoid_for": [
+   "consumer social apps",
+   "children's products",
+   "luxury fashion"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://www.admiralty.co.uk/charts",
+   "https://nauticalcharts.noaa.gov/publications/us-chart-1.html"
+  ]
+ },
+ {
+  "id": "japanese-consumer-electronics-80s",
+  "name": "Japanese Consumer Electronics (1980s)",
+  "origin": "Japanese consumer electronics industrial design and print catalogs — Sony, Casio, Yamaha, Technics, 1979-1989",
+  "one_line": "Sony/Casio/Yamaha spec-sheet graphics: metallic grey bodies with exactly one signal color calling out the one feature that matters.",
+  "modes": [
+   "persuade",
+   "operate",
+   "read"
+  ],
+  "archetypes": [
+   "spec-sheet",
+   "catalog-sheet",
+   "bento",
+   "dense-console"
+  ],
+  "color_strategies": [
+   "two-field-split",
+   "muted-earth",
+   "restrained"
+  ],
+  "palette_hint": "metallic grey/silver body tones with exactly one saturated signal color (red, orange, or blue) reserved for the one feature being called out",
+  "seed_buckets": [
+   1,
+   2
+  ],
+  "type": {
+   "display": [
+    "geometric-sans",
+    "condensed"
+   ],
+   "body": [
+    "mono",
+    "geometric-sans"
+   ],
+   "notes": "product/model names set in a tight geometric sans or condensed display face, often with a subtle italic slant for a sense of engineered speed; spec numbers are strictly tabular monospace with units abbreviated to a fixed set (W, Hz, dB, kg), never spelled out."
+  },
+  "grammar": [
+   "The body/ground reads as brushed or anodized metallic grey, never a flat solid color or gradient standing in for the metal.",
+   "Exactly one saturated signal color calls out the single feature the product is being sold on; every other control/label stays greyscale.",
+   "Spec callouts use tabular monospace numerals with a fixed abbreviated unit set (W, Hz, dB, kg) directly beside each figure, never a full spelled-out unit.",
+   "A leader line connects each callout label to its exact point of reference on the product diagram; floating captions are not permitted.",
+   "A model number and short alphanumeric code (e.g. 'WM-2', 'CZ-101') anchor every unit as a first-class visual element, sized comparably to the product name itself."
+  ],
+  "materials": [
+   "brushed anodized aluminum casing",
+   "offset-printed product brochure on gloss stock",
+   "injection-molded ABS plastic with metallic paint"
+  ],
+  "first_viewport": "A product diagram rendered in metallic grey sits center-frame with thin leader lines fanning out to tabular-monospace spec callouts (W, Hz, dB) around it, and exactly one control or feature highlighted in a single saturated signal color.",
+  "motion": {
+   "moment": "the one signal-colored control depresses and springs back with a crisp mechanical click-feel on interaction, echoing a real transport button",
+   "easing": "fast, near-linear with a slight mechanical snap, 100-150ms",
+   "forbidden": [
+    "soft/organic easing",
+    "gradient sheen animations",
+    "more than one element animating in the signal color at once"
+   ]
+  },
+  "tell": "a warm lifestyle photo with rounded plastic and pastel colors — this world depends on cool metallic grey, tabular spec-sheet discipline, and exactly one signal color, not a general 'retro tech' vibe.",
+  "refuse": [
+   "pastel or warm-toned bodies",
+   "more than one saturated accent color active at once",
+   "spelled-out units instead of the fixed abbreviation set",
+   "captions without a leader line to their referent"
+  ],
+  "mobile_fallback": "the spec-callout leader-line diagram becomes a numbered list matched to a single product image with numbered dots rather than fanning leader lines, preserving the tabular monospace spec formatting and the single signal-color rule.",
+  "physical_antecedents": [
+   "a Sony Walkman TPS-L2 product brochure with metallic silver casing and blue tuner/control accents (the original 1979 Walkman's signature blue-and-silver colorway)",
+   "a Casio CZ-series synthesizer front panel with brushed metal and one red LED",
+   "a Yamaha component stereo rack spec sheet with silver faceplates and orange VU meters"
+  ],
+  "decay": "medium",
+  "suits": [
+   "consumer electronics",
+   "audio gear",
+   "precision hardware brands",
+   "retro-tech nostalgia products"
+  ],
+  "avoid_for": [
+   "wellness/organic brands",
+   "children's products",
+   "luxury fashion"
+  ],
+  "confidence": "verify",
+  "sources": [
+   "https://en.wikipedia.org/wiki/Walkman",
+   "https://en.wikipedia.org/wiki/Casiotone"
+  ]
+ },
+ {
+  "id": "video-game-menu",
+  "name": "Video Game Menu (PS2 / Persona / Splatoon era)",
+  "origin": "Late-PS2-through-PS4-era Japanese console game UI design — Persona series (Atlus) and Splatoon (Nintendo), 2006-2020s",
+  "one_line": "Diagonal panels and kinetic type stack into a UI that moves like it's alive.",
+  "modes": [
+   "experience"
+  ],
+  "archetypes": [
+   "bento",
+   "dense-console",
+   "poster-stack",
+   "asymmetric-offset"
+  ],
+  "color_strategies": [
+   "acid-hi-vis",
+   "primary-triad",
+   "drenched",
+   "committed"
+  ],
+  "palette_hint": "hard color-blocked panels in 2-3 saturated hues plus true black/white; no gradients softening the blocks",
+  "seed_buckets": [
+   1,
+   5,
+   21
+  ],
+  "type": {
+   "display": [
+    "display-grotesque",
+    "wide",
+    "blackletter-decorative"
+   ],
+   "body": [
+    "geometric-sans",
+    "mono"
+   ],
+   "notes": "headline/menu-item type is heavily kinetic: italicized, sheared to match panel angles, or built from mixed cutout letterforms; body/status text stays a plain geometric sans or mono for legibility against the busy background."
+  },
+  "grammar": [
+   "Panels are diagonal/sheared parallelograms layered with hard z-index stacking, never plain rectangles or soft-cornered cards.",
+   "Type is kinetic by default — italicized, sheared to the panel's angle, or distorted along a wave/warp; static horizontal type is the exception, not the rule.",
+   "Color blocking uses 2-3 fully saturated hues plus true black/white in hard-edged fills, with no gradients softening any transition.",
+   "Every menu-state change is accompanied by a synchronized transform (slide plus rotate plus scale together), never a plain crossfade alone.",
+   "Halftone-dot or silhouette texture fills accent shapes behind the type, adding graphic texture without softening the hard edges."
+  ],
+  "materials": [
+   "screen-rendered real-time UI (no direct physical antecedent)",
+   "skateboard-deck screen-print graphic (visual-language antecedent)",
+   "arcade-cabinet marquee print"
+  ],
+  "first_viewport": "A stack of diagonally sheared, hard-color-blocked panels layers across the screen with a kinetic, angled wordmark cutting through them, and a halftone-textured silhouette shape sitting behind the main panel.",
+  "motion": {
+   "moment": "selecting a menu item triggers every panel to slide, rotate, and rescale in a single synchronized beat, as if the whole screen were choreographed to a musical hit",
+   "easing": "fast, punchy, with a slight overshoot snap, 200-350ms",
+   "forbidden": [
+    "plain crossfade with no transform",
+    "soft ease-in-out with no punch",
+    "uniform panel motion with no per-panel timing offset"
+   ]
+  },
+  "tell": "static horizontal type on plain rectangular cards with a rounded-corner design-system feel — this world depends on diagonal panel geometry and synchronized kinetic transitions, not just bold color.",
+  "refuse": [
+   "plain rectangular panels",
+   "static (non-kinetic) type as the default treatment",
+   "soft gradients replacing hard color blocks",
+   "uncoordinated per-element fade transitions"
+  ],
+  "mobile_fallback": "panels reduce their shear angle and stack vertically but keep hard color-blocking and synchronized transform transitions on state change; the kinetic type effect is preserved on headline text even as body text reverts to plain horizontal setting for readability.",
+  "physical_antecedents": [
+   "a Persona series menu screen with diagonal red/black/white panels and halftone silhouettes",
+   "a Splatoon UI with ink-splat kinetic type and neon color blocking",
+   "a skateboard graphic deck's diagonal cut-and-layered composition"
+  ],
+  "decay": "fast",
+  "suits": [
+   "gaming",
+   "esports/streaming brands",
+   "youth-targeted consumer apps",
+   "music/festival apps"
+  ],
+  "avoid_for": [
+   "enterprise SaaS",
+   "healthcare/clinical products",
+   "luxury editorial brands"
+  ],
+  "confidence": "medium",
+  "sources": [
+   "https://ousiadroid.medium.com/what-you-can-learn-from-persona-5s-ui-design-4a4a646245b1",
+   "https://www.gameuidatabase.com/gameData.php?id=72"
+  ]
+ },
+ {
+  "id": "illuminated-manuscript",
+  "name": "Illuminated Manuscript",
+  "origin": "European illuminated manuscript tradition, monastic scriptoria, c. 500-1500 CE",
+  "one_line": "Rubricated headings, versal initials, and marginalia turn the page edge into an active decorative field.",
+  "modes": [
+   "read",
+   "experience",
+   "persuade"
+  ],
+  "archetypes": [
+   "single-column",
+   "broadsheet",
+   "index-list",
+   "magazine-feature"
+  ],
+  "color_strategies": [
+   "jewel-tones",
+   "ink-on-paper",
+   "committed"
+  ],
+  "palette_hint": "parchment/cream ground with deep jewel-tone accents (ultramarine, vermillion, gold) reserved for initials and rubrics only",
+  "seed_buckets": [
+   1,
+   2,
+   17,
+   18
+  ],
+  "type": {
+   "display": [
+    "blackletter-decorative",
+    "old-style-serif"
+   ],
+   "body": [
+    "old-style-serif"
+   ],
+   "notes": "body text sets in a humanist old-style serif evoking a scribal hand at readable size; headings and rubrics render in a second color, historically red, never in the same ink as body text; the first letter of a major section is an oversized decorated versal initial, never just a larger weight of the body face."
+  },
+  "grammar": [
+   "Section openings/headings render in a distinct rubrication color (traditionally red), never the same ink as body text — a color-coded structural signal, not decoration.",
+   "The first letter of a major section is an oversized, separately-decorated versal initial, never simply a bold or larger instance of body type.",
+   "Marginalia (annotations, cross-references, small illustrations) occupy a dedicated margin column that remains structurally separate from the main text block, never overlapping it.",
+   "Ground reads as parchment/cream, never pure white or a cool neutral.",
+   "Ornament (border flourish, versal decoration) concentrates at structural boundaries — section starts, major breaks — never scattered decoratively mid-paragraph."
+  ],
+  "materials": [
+   "vellum manuscript leaf",
+   "gold leaf and tempera illumination",
+   "hand-bound Book of Hours"
+  ],
+  "first_viewport": "A single justified text column sits on a parchment-cream ground with an oversized decorated versal initial opening the first paragraph, a rubricated (red) heading above it, and a narrow margin column beside the text carrying a small annotation.",
+  "motion": {
+   "moment": "the versal initial's decorative flourish draws itself in stroke-by-stroke on load, as if being illuminated by hand before the body text appears",
+   "easing": "slow, deliberate ease-in-out, 500-800ms",
+   "forbidden": [
+    "fast/snappy motion",
+    "parallax",
+    "flat-color fills replacing the drawn-stroke reveal"
+   ]
+  },
+  "tell": "a decorative border image slapped around plain black body text with no rubrication and no true versal initial — manuscript grammar depends on the color-coded structural signal of rubrication and a genuinely oversized, separately-decorated initial, not a border graphic.",
+  "refuse": [
+   "headings in the same ink color as body text",
+   "a merely-larger (not separately decorated) initial standing in for a versal",
+   "marginalia overlapping or crowding the main text block",
+   "a cool white ground"
+  ],
+  "mobile_fallback": "the margin column collapses beneath its paragraph as an indented, visually distinct block rather than disappearing, so annotations stay attached to their reference point; the versal initial and rubrication persist at reduced but still legible scale.",
+  "physical_antecedents": [
+   "a medieval Book of Hours with rubricated headings and gold-leafed versals",
+   "a monastic scriptorium's illuminated Gospel book",
+   "a hand-copied medieval legal charter with marginal glosses"
+  ],
+  "decay": "slow",
+  "suits": [
+   "heritage/cultural institutions",
+   "premium publishing/editions",
+   "legal/ceremonial documents",
+   "luxury stationery brands"
+  ],
+  "avoid_for": [
+   "dense SaaS dashboards",
+   "gaming",
+   "fast consumer apps"
+  ],
+  "confidence": "high",
+  "sources": [
+   "https://www.britannica.com/topic/rubrication",
+   "https://en.wikipedia.org/wiki/Illuminated_manuscript"
+  ]
+ }
+]

@@ -1,0 +1,3639 @@
+[
+  {
+    "id": "seed-01-1",
+    "bucket": 1,
+    "oklch": {
+      "l": 0.28,
+      "c": 0.1131,
+      "h": 2
+    },
+    "hex_srgb": "#510024",
+    "in_gamut_srgb": true,
+    "mood": "Garnet held up to window light, deep and alive",
+    "material": "faceted garnet",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-13-1",
+      "seed-11-1"
+    ],
+    "avoid_with": [
+      "a second red at equal weight — let this one stand alone"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.175 to 0.1131 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-01-2",
+    "bucket": 1,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.02,
+      "h": 5
+    },
+    "hex_srgb": "#ffedf0",
+    "in_gamut_srgb": true,
+    "mood": "Roadside clay dust after a dry summer",
+    "material": "sun-bleached clay dust, pale",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-13-2"
+    ],
+    "avoid_with": [
+      "the cream ground plus terracotta accent cliché"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.13, black contrast 18.62)"
+  },
+  {
+    "id": "seed-01-3",
+    "bucket": 1,
+    "oklch": {
+      "l": 0.577,
+      "c": 0.118,
+      "h": 8
+    },
+    "hex_srgb": "#b3596c",
+    "in_gamut_srgb": true,
+    "mood": "Municipal fire truck, freshly repainted for inspection",
+    "material": "1950s fire-truck enamel",
+    "derivation": "era",
+    "era": "1950s municipal enamel",
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-13-3",
+      "seed-11-3"
+    ],
+    "avoid_with": [
+      "a third competing warm hue at the same weight"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.6, black contrast 4.56"
+  },
+  {
+    "id": "seed-01-4",
+    "bucket": 1,
+    "oklch": {
+      "l": 0.625,
+      "c": 0.2498,
+      "h": 11
+    },
+    "hex_srgb": "#f80061",
+    "in_gamut_srgb": true,
+    "mood": "A stop sign at full noon glare",
+    "material": "stop-sign octagon steel",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-13-4",
+      "seed-11-4"
+    ],
+    "avoid_with": [
+      "softening with gray — needs true white or black only"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.2498 to stay in sRGB gamut; white contrast 4.07, black contrast 5.16"
+  },
+  {
+    "id": "seed-01-5",
+    "bucket": 1,
+    "oklch": {
+      "l": 0.866,
+      "c": 0.053,
+      "h": 13
+    },
+    "hex_srgb": "#f4c5c9",
+    "in_gamut_srgb": true,
+    "mood": "The one blush petal on an otherwise white peony",
+    "material": "peony blush, single petal",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-13-5"
+    ],
+    "avoid_with": [
+      "the standard cream ground plus rust accent"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-02-1",
+    "bucket": 2,
+    "oklch": {
+      "l": 0.35,
+      "c": 0.1401,
+      "h": 17
+    },
+    "hex_srgb": "#72001e",
+    "in_gamut_srgb": true,
+    "mood": "Terracotta roof tile straight from an Andalusian kiln",
+    "material": "unglazed kiln terracotta",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "committed",
+    "role_hint": "primary",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-14-1",
+      "seed-12-1"
+    ],
+    "avoid_with": [
+      "using it as an accent on cream — make it the field instead"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.2 to 0.1401 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 12.11, black contrast 1.73)"
+  },
+  {
+    "id": "seed-02-2",
+    "bucket": 2,
+    "oklch": {
+      "l": 0.415,
+      "c": 0.047,
+      "h": 20
+    },
+    "hex_srgb": "#634141",
+    "in_gamut_srgb": true,
+    "mood": "A Kodachrome slide, warm-shifted with crushed shadow detail",
+    "material": "Kodachrome skin-tone dye",
+    "derivation": "era",
+    "era": "1970s Kodachrome",
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-14-2"
+    ],
+    "avoid_with": [
+      "pairing with the reflexive sage-green wellness neutral"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-02-3",
+    "bucket": 2,
+    "oklch": {
+      "l": 0.572,
+      "c": 0.116,
+      "h": 23
+    },
+    "hex_srgb": "#b25957",
+    "in_gamut_srgb": true,
+    "mood": "An old hinge with rust bleeding into the grain",
+    "material": "rusted iron hinge",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-14-3",
+      "seed-12-3"
+    ],
+    "avoid_with": [
+      "treating rust as trim rather than the field’s own color"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.71, black contrast 4.46"
+  },
+  {
+    "id": "seed-02-4",
+    "bucket": 2,
+    "oklch": {
+      "l": 0.625,
+      "c": 0.254,
+      "h": 26
+    },
+    "hex_srgb": "#fd0025",
+    "in_gamut_srgb": true,
+    "mood": "A glossy vermilion-red toy under photo-set lights",
+    "material": "vermilion-red enamel toy, glossy",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-14-4",
+      "seed-12-4"
+    ],
+    "avoid_with": [
+      "muting this down to a safe dusty rose"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.254 to stay in sRGB gamut; white contrast 4.04, black contrast 5.2; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits acid-hi-vis)"
+  },
+  {
+    "id": "seed-02-5",
+    "bucket": 2,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.0147,
+      "h": 28
+    },
+    "hex_srgb": "#fff2f0",
+    "in_gamut_srgb": true,
+    "mood": "Foxing stains spreading across a century-old newspaper page",
+    "material": "foxed antique newsprint",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-14-5"
+    ],
+    "avoid_with": [
+      "cream ground plus terracotta accent — resist it again"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.035 to 0.0147 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.09, black contrast 19.21)"
+  },
+  {
+    "id": "seed-03-1",
+    "bucket": 3,
+    "oklch": {
+      "l": 0.35,
+      "c": 0.1326,
+      "h": 32
+    },
+    "hex_srgb": "#700e00",
+    "in_gamut_srgb": true,
+    "mood": "Amber resin, an ancient insect suspended inside",
+    "material": "fossilized amber resin, insect intact",
+    "derivation": "era",
+    "era": "Victorian curiosity cabinet",
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-15-1",
+      "seed-13-1"
+    ],
+    "avoid_with": [
+      "letting it drift brown — keep the saturation up"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.2 to 0.1326 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor jewel-tones strategy range (white contrast 11.99, black contrast 1.75)"
+  },
+  {
+    "id": "seed-03-2",
+    "bucket": 3,
+    "oklch": {
+      "l": 0.413,
+      "c": 0.047,
+      "h": 35
+    },
+    "hex_srgb": "#62423a",
+    "in_gamut_srgb": true,
+    "mood": "Toasted almond shell, dry and matte",
+    "material": "toasted almond shell",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-15-2"
+    ],
+    "avoid_with": [
+      "the sage-and-oat wellness default"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-03-3",
+    "bucket": 3,
+    "oklch": {
+      "l": 0.596,
+      "c": 0.16,
+      "h": 38
+    },
+    "hex_srgb": "#cb552e",
+    "in_gamut_srgb": true,
+    "mood": "Marmalade caught against a cold morning window",
+    "material": "bitter-orange marmalade jar",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-15-3",
+      "seed-13-3"
+    ],
+    "avoid_with": [
+      "a second orange competing at equal weight"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.3, black contrast 4.88)"
+  },
+  {
+    "id": "seed-03-4",
+    "bucket": 3,
+    "oklch": {
+      "l": 0.675,
+      "c": 0.2077,
+      "h": 41
+    },
+    "hex_srgb": "#fa5b00",
+    "in_gamut_srgb": true,
+    "mood": "A traffic cone, unmistakable at highway distance",
+    "material": "traffic-cone PVC",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-15-4",
+      "seed-13-4"
+    ],
+    "avoid_with": [
+      "softening this into a pastel apricot"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.2077 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-03-5",
+    "bucket": 3,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.0156,
+      "h": 43
+    },
+    "hex_srgb": "#fff2ed",
+    "in_gamut_srgb": true,
+    "mood": "The palest flesh near a stone fruit's pit, almost white",
+    "material": "stone-fruit flesh, palest near the pit",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-15-5"
+    ],
+    "avoid_with": [
+      "pairing with a second warm neutral — go cool for ink"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.018 to 0.0156 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.1, black contrast 19.18)"
+  },
+  {
+    "id": "seed-04-1",
+    "bucket": 4,
+    "oklch": {
+      "l": 0.261,
+      "c": 0.0722,
+      "h": 47
+    },
+    "hex_srgb": "#3f1600",
+    "in_gamut_srgb": true,
+    "mood": "Burnt umber ink, nearly dry in the well",
+    "material": "burnt umber ink, dried nib",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ink",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-16-1"
+    ],
+    "avoid_with": [
+      "flattening the whole ramp toward brown at the dark end"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.165 to 0.0722 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-04-2",
+    "bucket": 4,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.0222,
+      "h": 50
+    },
+    "hex_srgb": "#ffeee5",
+    "in_gamut_srgb": true,
+    "mood": "Rice paper lit from one low lamp",
+    "material": "rice paper under lamplight",
+    "derivation": "photograph",
+    "era": "Heian-court derived",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-16-2"
+    ],
+    "avoid_with": [
+      "losing all warmth and reading as plain gray-beige"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.035 to 0.0222 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.13, black contrast 18.61)"
+  },
+  {
+    "id": "seed-04-3",
+    "bucket": 4,
+    "oklch": {
+      "l": 0.585,
+      "c": 0.145,
+      "h": 53
+    },
+    "hex_srgb": "#bc5e0b",
+    "in_gamut_srgb": true,
+    "mood": "A cracked egg yolk pooling in a white bowl",
+    "material": "egg yolk, cracked into a bowl",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-16-3",
+      "seed-14-3"
+    ],
+    "avoid_with": [
+      "a two-field clash if the second color goes cool-neutral gray"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.43, black contrast 4.74)"
+  },
+  {
+    "id": "seed-04-4",
+    "bucket": 4,
+    "oklch": {
+      "l": 0.725,
+      "c": 0.1774,
+      "h": 56
+    },
+    "hex_srgb": "#f78300",
+    "in_gamut_srgb": true,
+    "mood": "One step in Le Corbusier's ochre color-keyboard series",
+    "material": "Le Corbusier ochre keyboard step",
+    "derivation": "math",
+    "era": "Le Corbusier 1931 keyboard",
+    "strategy_hint": "committed",
+    "role_hint": "primary",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-16-4",
+      "seed-14-4"
+    ],
+    "avoid_with": [
+      "pairing with a chalky off-white — needs a true field partner"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.1774 to stay in sRGB gamut; re-tagged in quality pass round 3: restored this hue's true loud-L chroma peak and moved to committed (drenched's own L bands cannot reach it here), preserving the bucket's required C>=0.15 seed"
+  },
+  {
+    "id": "seed-04-5",
+    "bucket": 4,
+    "oklch": {
+      "l": 0.868,
+      "c": 0.054,
+      "h": 58
+    },
+    "hex_srgb": "#f0ccb1",
+    "in_gamut_srgb": true,
+    "mood": "A marigold petal held up to the sun",
+    "material": "marigold petal, backlit",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-16-5"
+    ],
+    "avoid_with": [
+      "the standard cream ground plus rust accent, once more"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-05-1",
+    "bucket": 5,
+    "oklch": {
+      "l": 0.283,
+      "c": 0.0651,
+      "h": 62
+    },
+    "hex_srgb": "#402100",
+    "in_gamut_srgb": true,
+    "mood": "Raw honeycomb held up to a window",
+    "material": "honeycomb wax cell",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-17-1",
+      "seed-15-1"
+    ],
+    "avoid_with": [
+      "treating this as a bright honey gold — it is meant to read dusty and dim"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.176 to 0.0651 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-05-2",
+    "bucket": 5,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.02,
+      "h": 65
+    },
+    "hex_srgb": "#fcefe4",
+    "in_gamut_srgb": true,
+    "mood": "Werner's gallstone yellow, named in an 1814 nomenclature",
+    "material": "Werner's gallstone yellow",
+    "derivation": "system",
+    "era": "Werner 1814",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-17-2"
+    ],
+    "avoid_with": [
+      "the flat safety-vest yellow this hue always defaults to"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.13, black contrast 18.61)"
+  },
+  {
+    "id": "seed-05-3",
+    "bucket": 5,
+    "oklch": {
+      "l": 0.596,
+      "c": 0.128,
+      "h": 68
+    },
+    "hex_srgb": "#b06e0a",
+    "in_gamut_srgb": true,
+    "mood": "Ground mustard seed, dusty and warm",
+    "material": "mustard seed, ground",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-17-3",
+      "seed-15-3"
+    ],
+    "avoid_with": [
+      "a second yellow role competing for the same weight"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.13, black contrast 5.08"
+  },
+  {
+    "id": "seed-05-4",
+    "bucket": 5,
+    "oklch": {
+      "l": 0.775,
+      "c": 0.1669,
+      "h": 71
+    },
+    "hex_srgb": "#f7a000",
+    "in_gamut_srgb": true,
+    "mood": "School-bus paint at full saturation",
+    "material": "school-bus enamel",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-17-4",
+      "seed-15-4"
+    ],
+    "avoid_with": [
+      "using this as body text color at any size"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.1669 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-05-5",
+    "bucket": 5,
+    "oklch": {
+      "l": 0.868,
+      "c": 0.054,
+      "h": 73
+    },
+    "hex_srgb": "#eacfad",
+    "in_gamut_srgb": true,
+    "mood": "Threshed wheat husk caught in low sun",
+    "material": "wheat husk, threshed",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-17-5"
+    ],
+    "avoid_with": [
+      "cream ground plus rust — swap the accent to something cooler"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-06-1",
+    "bucket": 6,
+    "oklch": {
+      "l": 0.28,
+      "c": 0.0586,
+      "h": 77
+    },
+    "hex_srgb": "#392400",
+    "in_gamut_srgb": true,
+    "mood": "Riso brown ink, doubled for density",
+    "material": "riso 'brown' ink, double pass",
+    "derivation": "system",
+    "era": "risograph zine print",
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-18-1",
+      "seed-16-1"
+    ],
+    "avoid_with": [
+      "overprinting with a second warm ink — keep this one clean"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.175 to 0.0586 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-06-2",
+    "bucket": 6,
+    "oklch": {
+      "l": 0.423,
+      "c": 0.051,
+      "h": 80
+    },
+    "hex_srgb": "#5d4b2d",
+    "in_gamut_srgb": true,
+    "mood": "Dried chamomile, faded almost to straw",
+    "material": "dried chamomile flower",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-18-2"
+    ],
+    "avoid_with": [
+      "the sage-and-oat pairing again"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-06-3",
+    "bucket": 6,
+    "oklch": {
+      "l": 0.588,
+      "c": 0.1209,
+      "h": 83
+    },
+    "hex_srgb": "#9f7500",
+    "in_gamut_srgb": true,
+    "mood": "Fresh lemon zest against a white cutting board",
+    "material": "lemon rind, fresh zest",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-18-3",
+      "seed-16-3"
+    ],
+    "avoid_with": [
+      "splitting the page with a second saturated field"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.124 to 0.1209 to stay in sRGB gamut; rotated 180° from seed-18-3 as its field partner; white contrast 4.18, black contrast 5.02"
+  },
+  {
+    "id": "seed-06-4",
+    "bucket": 6,
+    "oklch": {
+      "l": 0.85,
+      "c": 0.1707,
+      "h": 86
+    },
+    "hex_srgb": "#ffc417",
+    "in_gamut_srgb": true,
+    "mood": "New York taxi paint under midday sun",
+    "material": "taxi-cab enamel",
+    "derivation": "place",
+    "era": "mid-century transit livery",
+    "strategy_hint": "committed",
+    "role_hint": "primary",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-18-4",
+      "seed-16-4"
+    ],
+    "avoid_with": [
+      "letting a mid-gray sit anywhere near this as text"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1707 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-06-5",
+    "bucket": 6,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.035,
+      "h": 88
+    },
+    "hex_srgb": "#fff4db",
+    "in_gamut_srgb": true,
+    "mood": "Muslin curtain bleached pale by a south window",
+    "material": "unbleached muslin, sun-faded",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-18-5"
+    ],
+    "avoid_with": [
+      "true black ink here — needs a warm near-black instead"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.09, black contrast 19.22)"
+  },
+  {
+    "id": "seed-07-1",
+    "bucket": 7,
+    "oklch": {
+      "l": 0.3,
+      "c": 0.0552,
+      "h": 92
+    },
+    "hex_srgb": "#382d07",
+    "in_gamut_srgb": true,
+    "mood": "Olive-drab canvas, a decade in a duffel bag",
+    "material": "olive-drab cotton canvas, aged",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-19-1",
+      "seed-17-1"
+    ],
+    "avoid_with": [
+      "brightening this into a fresh lime — it needs to stay dusty and worn"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass round 2: L/C tightened to clear strategy range cleanly (white contrast 13.58, black contrast 1.55)"
+  },
+  {
+    "id": "seed-07-2",
+    "bucket": 7,
+    "oklch": {
+      "l": 0.423,
+      "c": 0.051,
+      "h": 95
+    },
+    "hex_srgb": "#574e2c",
+    "in_gamut_srgb": true,
+    "mood": "A dried sage leaf, dusty and quiet",
+    "material": "dried sage leaf",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-19-2"
+    ],
+    "avoid_with": [
+      "pairing with beige — the sage-and-beige wellness default"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-07-3",
+    "bucket": 7,
+    "oklch": {
+      "l": 0.565,
+      "c": 0.1168,
+      "h": 98
+    },
+    "hex_srgb": "#887600",
+    "in_gamut_srgb": true,
+    "mood": "A glass of absinthe held toward a window",
+    "material": "absinthe, glass held to light",
+    "derivation": "place",
+    "era": "Belle Époque café",
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-19-3",
+      "seed-17-3"
+    ],
+    "avoid_with": [
+      "a second acid tone directly beside it"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.1168 to 0.1168 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor two-field-split strategy range (white contrast 4.53, black contrast 4.64)"
+  },
+  {
+    "id": "seed-07-4",
+    "bucket": 7,
+    "oklch": {
+      "l": 0.9,
+      "c": 0.1878,
+      "h": 101
+    },
+    "hex_srgb": "#fae000",
+    "in_gamut_srgb": true,
+    "mood": "New tennis-ball felt, straight from the can",
+    "material": "tennis-ball felt",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-19-4",
+      "seed-17-4"
+    ],
+    "avoid_with": [
+      "mid-gray text on this fill — it goes muddy fast"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1878 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-07-5",
+    "bucket": 7,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.018,
+      "h": 103
+    },
+    "hex_srgb": "#f7f6e8",
+    "in_gamut_srgb": true,
+    "mood": "Morning mist over a grass field, barely green",
+    "material": "morning mist, faint grass-green cast",
+    "derivation": "object",
+    "era": "Japanese traditional wakakusa",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-19-5"
+    ],
+    "avoid_with": [
+      "the wellness-pastel-mint substitution"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.09, black contrast 19.3)"
+  },
+  {
+    "id": "seed-08-1",
+    "bucket": 8,
+    "oklch": {
+      "l": 0.271,
+      "c": 0.0581,
+      "h": 107
+    },
+    "hex_srgb": "#2a2800",
+    "in_gamut_srgb": true,
+    "mood": "Deep bottle-glass green, stacked in a cellar rack",
+    "material": "green bottle glass, cellar-dark",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ink",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-20-1"
+    ],
+    "avoid_with": [
+      "expecting a saturated dark version of this hue — it does not exist in sRGB"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.17 to 0.0581 to stay in sRGB gamut; no in-gamut dark+saturated color exists at this hue; chroma reduced accordingly"
+  },
+  {
+    "id": "seed-08-2",
+    "bucket": 8,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.035,
+      "h": 110
+    },
+    "hex_srgb": "#f3f4da",
+    "in_gamut_srgb": true,
+    "mood": "Washi paper with the faintest green cast",
+    "material": "washi paper, faint green cast",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-20-2"
+    ],
+    "avoid_with": [
+      "losing the green entirely and reading as plain cream"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.12, black contrast 18.76)"
+  },
+  {
+    "id": "seed-08-3",
+    "bucket": 8,
+    "oklch": {
+      "l": 0.594,
+      "c": 0.132,
+      "h": 113
+    },
+    "hex_srgb": "#808602",
+    "in_gamut_srgb": true,
+    "mood": "Foliage green as Kodachrome film actually renders it",
+    "material": "1970s Kodachrome foliage",
+    "derivation": "era",
+    "era": "1970s Kodachrome",
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-20-3",
+      "seed-18-3"
+    ],
+    "avoid_with": [
+      "a competing warm field splitting the page unevenly"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 3.94, black contrast 5.33)"
+  },
+  {
+    "id": "seed-08-4",
+    "bucket": 8,
+    "oklch": {
+      "l": 0.925,
+      "c": 0.16,
+      "h": 116
+    },
+    "hex_srgb": "#e1f36c",
+    "in_gamut_srgb": true,
+    "mood": "Fresh acrylic paint on a hard tennis court",
+    "material": "tennis-court acrylic paint",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "drenched",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-20-4",
+      "seed-18-4"
+    ],
+    "avoid_with": [
+      "letting this drench a whole reading-heavy screen"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor drenched strategy range (white contrast 1.22, black contrast 17.24)"
+  },
+  {
+    "id": "seed-08-5",
+    "bucket": 8,
+    "oklch": {
+      "l": 0.85,
+      "c": 0.1978,
+      "h": 118
+    },
+    "hex_srgb": "#c3de00",
+    "in_gamut_srgb": true,
+    "mood": "A fresh-cut lime peel, acid-bright under kitchen light",
+    "material": "lime peel, fresh cut",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-20-5"
+    ],
+    "avoid_with": [
+      "matching both split fields at identical lightness — kills the seam"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.2 to 0.1978 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor two-field-split strategy range (white contrast 1.53, black contrast 13.77)"
+  },
+  {
+    "id": "seed-09-1",
+    "bucket": 9,
+    "oklch": {
+      "l": 0.271,
+      "c": 0.0657,
+      "h": 122
+    },
+    "hex_srgb": "#212b00",
+    "in_gamut_srgb": true,
+    "mood": "Forest moss, grown in permanent shade",
+    "material": "moss-covered stone, forest floor",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-21-1",
+      "seed-19-1"
+    ],
+    "avoid_with": [
+      "the wellness sage-green cliché standing in for genuine forest moss"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.17 to 0.0657 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-09-2",
+    "bucket": 9,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.02,
+      "h": 125
+    },
+    "hex_srgb": "#eff4e6",
+    "in_gamut_srgb": true,
+    "mood": "A hospital enamel tray, cold and utilitarian",
+    "material": "hospital enamel tray",
+    "derivation": "era",
+    "era": "mid-century clinical",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-21-2"
+    ],
+    "avoid_with": [
+      "the sage-and-beige wellness default, applied to a clinical hue"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.12, black contrast 18.75)"
+  },
+  {
+    "id": "seed-09-3",
+    "bucket": 9,
+    "oklch": {
+      "l": 0.562,
+      "c": 0.111,
+      "h": 128
+    },
+    "hex_srgb": "#628134",
+    "in_gamut_srgb": true,
+    "mood": "Cricket-pitch turf mown into stripes",
+    "material": "cricket-pitch turf",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-21-3",
+      "seed-19-3"
+    ],
+    "avoid_with": [
+      "a fourth competing role hue diluting the lead"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.46, black contrast 4.71"
+  },
+  {
+    "id": "seed-09-4",
+    "bucket": 9,
+    "oklch": {
+      "l": 0.9,
+      "c": 0.2459,
+      "h": 131
+    },
+    "hex_srgb": "#a2fc00",
+    "in_gamut_srgb": true,
+    "mood": "A green highlighter left uncapped on a desk",
+    "material": "highlighter, capless on a desk",
+    "derivation": "photograph",
+    "era": "1980s office supply",
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-21-4",
+      "seed-19-4"
+    ],
+    "avoid_with": [
+      "body text sitting directly on this fill"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.2459 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-09-5",
+    "bucket": 9,
+    "oklch": {
+      "l": 0.899,
+      "c": 0.07,
+      "h": 133
+    },
+    "hex_srgb": "#cce8b9",
+    "in_gamut_srgb": true,
+    "mood": "A celadon glaze with the faintest crackle",
+    "material": "celadon glaze, faint crackle",
+    "derivation": "system",
+    "era": "Song-dynasty derived",
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-21-5"
+    ],
+    "avoid_with": [
+      "pairing with a second pastel of equal weight"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-10-1",
+    "bucket": 10,
+    "oklch": {
+      "l": 0.251,
+      "c": 0.0761,
+      "h": 137
+    },
+    "hex_srgb": "#0d2a00",
+    "in_gamut_srgb": true,
+    "mood": "River stone, moss-green, worn smooth by decades of thumbs",
+    "material": "river stone, moss-green, worn smooth",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-22-1",
+      "seed-20-1"
+    ],
+    "avoid_with": [
+      "a competing green diluting which one leads"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.16 to 0.0761 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-10-2",
+    "bucket": 10,
+    "oklch": {
+      "l": 0.415,
+      "c": 0.048,
+      "h": 140
+    },
+    "hex_srgb": "#3e5239",
+    "in_gamut_srgb": true,
+    "mood": "Dried lichen clinging to old bark",
+    "material": "dried lichen on bark",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-22-2"
+    ],
+    "avoid_with": [
+      "the sage-and-beige substitution once more"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-10-3",
+    "bucket": 10,
+    "oklch": {
+      "l": 0.571,
+      "c": 0.116,
+      "h": 143
+    },
+    "hex_srgb": "#4b8948",
+    "in_gamut_srgb": true,
+    "mood": "A 1930s travel poster's flat two-tone field",
+    "material": "1930s travel-poster field",
+    "derivation": "photograph",
+    "era": "WPA silkscreen",
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-22-3",
+      "seed-20-3"
+    ],
+    "avoid_with": [
+      "letting the seam between fields go unstyled"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.22, black contrast 4.97"
+  },
+  {
+    "id": "seed-10-4",
+    "bucket": 10,
+    "oklch": {
+      "l": 0.85,
+      "c": 0.2597,
+      "h": 146
+    },
+    "hex_srgb": "#00f753",
+    "in_gamut_srgb": true,
+    "mood": "Fresh pool-table felt under hall light",
+    "material": "pool-table felt",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-22-4",
+      "seed-20-4"
+    ],
+    "avoid_with": [
+      "a mid-gray divider line between the two fields"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.2597 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits acid-hi-vis)"
+  },
+  {
+    "id": "seed-10-5",
+    "bucket": 10,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.035,
+      "h": 148
+    },
+    "hex_srgb": "#e6fce8",
+    "in_gamut_srgb": true,
+    "mood": "Rice paper with the faintest green wash",
+    "material": "rice paper, faint green wash",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-22-5"
+    ],
+    "avoid_with": [
+      "true black ink — use a green-shifted near-black instead"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.08, black contrast 19.45)"
+  },
+  {
+    "id": "seed-11-1",
+    "bucket": 11,
+    "oklch": {
+      "l": 0.274,
+      "c": 0.0721,
+      "h": 152
+    },
+    "hex_srgb": "#003114",
+    "in_gamut_srgb": true,
+    "mood": "Verdigris green, spread thick across a century-old roof",
+    "material": "verdigris patina, oxidized roofing",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-23-1",
+      "seed-21-1"
+    ],
+    "avoid_with": [
+      "reading this as simply 'dark green' — keep the blue undertone"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.172 to 0.0721 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-11-2",
+    "bucket": 11,
+    "oklch": {
+      "l": 0.437,
+      "c": 0.058,
+      "h": 155
+    },
+    "hex_srgb": "#365b44",
+    "in_gamut_srgb": true,
+    "mood": "An oxidized statue, patina green with age",
+    "material": "oxidized statue metal, green patina",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-23-2"
+    ],
+    "avoid_with": [
+      "a warm accent fighting this cool ramp"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-11-3",
+    "bucket": 11,
+    "oklch": {
+      "l": 0.59,
+      "c": 0.135,
+      "h": 158
+    },
+    "hex_srgb": "#0e955d",
+    "in_gamut_srgb": true,
+    "mood": "Two riso inks overprinted, aqua under kelly green",
+    "material": "riso 'aqua' over 'kelly green' overprint",
+    "derivation": "system",
+    "era": "risograph zine print",
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-23-3",
+      "seed-21-3"
+    ],
+    "avoid_with": [
+      "a third ink — the overlap already made one"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 3.84, black contrast 5.48)"
+  },
+  {
+    "id": "seed-11-4",
+    "bucket": 11,
+    "oklch": {
+      "l": 0.875,
+      "c": 0.1948,
+      "h": 161
+    },
+    "hex_srgb": "#00fcab",
+    "in_gamut_srgb": true,
+    "mood": "Municipal swimming-pool tile, chlorine-bright",
+    "material": "pool-tile enamel",
+    "derivation": "math",
+    "era": "mid-century civic pool",
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-23-4",
+      "seed-21-4"
+    ],
+    "avoid_with": [
+      "pairing with true red — the two vibrate uncomfortably"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1948 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-11-5",
+    "bucket": 11,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.018,
+      "h": 163
+    },
+    "hex_srgb": "#ebf9f2",
+    "in_gamut_srgb": true,
+    "mood": "A mint tin's enamel lid, worn nearly to bare metal",
+    "material": "mint-tin enamel, worn pale",
+    "derivation": "material",
+    "era": "1990s confectionery",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-23-5"
+    ],
+    "avoid_with": [
+      "a second mint-adjacent hue competing nearby"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.08, black contrast 19.36)"
+  },
+  {
+    "id": "seed-12-1",
+    "bucket": 12,
+    "oklch": {
+      "l": 0.274,
+      "c": 0.0562,
+      "h": 167
+    },
+    "hex_srgb": "#003021",
+    "in_gamut_srgb": true,
+    "mood": "Aquarium glass at the tank's darkest corner",
+    "material": "deep aquarium glass",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ink",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-24-1"
+    ],
+    "avoid_with": [
+      "crushing all hue out at the ramp’s dark end"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.172 to 0.0562 to stay in sRGB gamut; reviewed: clip is honest, deep aquarium glass reads correctly at this L/C"
+  },
+  {
+    "id": "seed-12-2",
+    "bucket": 12,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.02,
+      "h": 170
+    },
+    "hex_srgb": "#e5f6f0",
+    "in_gamut_srgb": true,
+    "mood": "Munsell 5BG 9/2, the palest chip in the fan",
+    "material": "Munsell 5BG 9/2 reference chip",
+    "derivation": "system",
+    "era": "Munsell notation",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-24-2"
+    ],
+    "avoid_with": [
+      "treating this as decoration instead of a checking tool"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.12, black contrast 18.77)"
+  },
+  {
+    "id": "seed-12-3",
+    "bucket": 12,
+    "oklch": {
+      "l": 0.585,
+      "c": 0.1123,
+      "h": 173
+    },
+    "hex_srgb": "#009175",
+    "in_gamut_srgb": true,
+    "mood": "Surgical scrub-suit cotton, washed a hundred times",
+    "material": "scrub-suit cotton twill",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-24-3",
+      "seed-22-3"
+    ],
+    "avoid_with": [
+      "a warm text color sitting directly on this fill"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.123 to 0.1123 to stay in sRGB gamut; white contrast 3.96, black contrast 5.31; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits two-field-split)"
+  },
+  {
+    "id": "seed-12-4",
+    "bucket": 12,
+    "oklch": {
+      "l": 0.875,
+      "c": 0.16,
+      "h": 176
+    },
+    "hex_srgb": "#1ff7d2",
+    "in_gamut_srgb": true,
+    "mood": "A soap bubble's iridescent skin, cyan-green catching the light",
+    "material": "soap-bubble film, cyan-green iridescence",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "drenched",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-24-4",
+      "seed-22-4"
+    ],
+    "avoid_with": [
+      "letting a whole screen drench in this at reading length"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor drenched strategy range (white contrast 1.37, black contrast 15.29)"
+  },
+  {
+    "id": "seed-12-5",
+    "bucket": 12,
+    "oklch": {
+      "l": 0.897,
+      "c": 0.068,
+      "h": 178
+    },
+    "hex_srgb": "#acecdd",
+    "in_gamut_srgb": true,
+    "mood": "Sea glass tumbled smooth by decades of surf",
+    "material": "sea glass, tumbled smooth",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-24-5"
+    ],
+    "avoid_with": [
+      "an identical-lightness partner field — the seam needs contrast"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-13-1",
+    "bucket": 13,
+    "oklch": {
+      "l": 0.266,
+      "c": 0.0477,
+      "h": 182
+    },
+    "hex_srgb": "#002d27",
+    "in_gamut_srgb": true,
+    "mood": "Unpolished ore from a Persian mine, dull before cutting",
+    "material": "unpolished green-blue ore, Persian mine",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-01-1",
+      "seed-23-1"
+    ],
+    "avoid_with": [
+      "a second dull mineral tone fighting for the same dusty register"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.168 to 0.0477 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-13-2",
+    "bucket": 13,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.015,
+      "h": 185
+    },
+    "hex_srgb": "#e7f5f3",
+    "in_gamut_srgb": true,
+    "mood": "The quiet end of an evenly-stepped hue ramp",
+    "material": "hue-ramp terminus, near-neutral",
+    "derivation": "math",
+    "era": "transit signage system",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-01-2"
+    ],
+    "avoid_with": [
+      "picking a hue too close to an adjacent line color"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.12, black contrast 18.75)"
+  },
+  {
+    "id": "seed-13-3",
+    "bucket": 13,
+    "oklch": {
+      "l": 0.565,
+      "c": 0.0983,
+      "h": 188
+    },
+    "hex_srgb": "#008881",
+    "in_gamut_srgb": true,
+    "mood": "Sunlit chlorine water seen from the pool's edge",
+    "material": "swimming-pool water, sunlit",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-01-3",
+      "seed-23-3"
+    ],
+    "avoid_with": [
+      "a fourth role hue diluting which one leads"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.113 to 0.0983 to stay in sRGB gamut; white contrast 4.34, black contrast 4.84"
+  },
+  {
+    "id": "seed-13-4",
+    "bucket": 13,
+    "oklch": {
+      "l": 0.9,
+      "c": 0.1549,
+      "h": 191
+    },
+    "hex_srgb": "#00fef7",
+    "in_gamut_srgb": true,
+    "mood": "A cyan neon tube, freshly lit",
+    "material": "neon tube, cyan gas",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-01-4",
+      "seed-23-4"
+    ],
+    "avoid_with": [
+      "glow effects — let the flat hue do the work"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1549 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-13-5",
+    "bucket": 13,
+    "oklch": {
+      "l": 0.881,
+      "c": 0.061,
+      "h": 193
+    },
+    "hex_srgb": "#a9e5e3",
+    "in_gamut_srgb": true,
+    "mood": "An unhatched robin's egg in a nest",
+    "material": "robin's-egg shell, unhatched",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-01-5"
+    ],
+    "avoid_with": [
+      "near-black plus this as the only accent — the dark-mode cliché"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-14-1",
+    "bucket": 14,
+    "oklch": {
+      "l": 0.284,
+      "c": 0.0483,
+      "h": 197
+    },
+    "hex_srgb": "#003132",
+    "in_gamut_srgb": true,
+    "mood": "An anodized instrument panel, cool under cabin light",
+    "material": "anodized aluminum panel",
+    "derivation": "math",
+    "era": "mid-century aviation",
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-02-1",
+      "seed-24-1"
+    ],
+    "avoid_with": [
+      "a warm accent competing at the same visual weight"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.177 to 0.0483 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-14-2",
+    "bucket": 14,
+    "oklch": {
+      "l": 0.43,
+      "c": 0.055,
+      "h": 200
+    },
+    "hex_srgb": "#25595c",
+    "in_gamut_srgb": true,
+    "mood": "A chambray work shirt faded by years of washing",
+    "material": "chambray work shirt, faded",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-02-2"
+    ],
+    "avoid_with": [
+      "the teal-on-slate 'trustworthy tech' default"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-14-3",
+    "bucket": 14,
+    "oklch": {
+      "l": 0.563,
+      "c": 0.0959,
+      "h": 203
+    },
+    "hex_srgb": "#00858e",
+    "in_gamut_srgb": true,
+    "mood": "Harbor water off a North Atlantic fishing town",
+    "material": "North Atlantic harbor water",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-02-3",
+      "seed-24-3"
+    ],
+    "avoid_with": [
+      "an identical field on both sides of the split"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.111 to 0.0959 to stay in sRGB gamut; white contrast 4.43, black contrast 4.75"
+  },
+  {
+    "id": "seed-14-4",
+    "bucket": 14,
+    "oklch": {
+      "l": 0.85,
+      "c": 0.1454,
+      "h": 206
+    },
+    "hex_srgb": "#00e8fc",
+    "in_gamut_srgb": true,
+    "mood": "Serenity, half of 2016's pastel pairing",
+    "material": "Pantone Serenity, pale blue",
+    "derivation": "era",
+    "era": "Pantone Color of the Year 1999",
+    "strategy_hint": "committed",
+    "role_hint": "primary",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-02-4",
+      "seed-24-4"
+    ],
+    "avoid_with": [
+      "reviving this without its era-mood context"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1454 to stay in sRGB gamut; gamut ceiling for this hue at any lightness is ~0.1454 — the cyan/blue-cyan range (~195-225°) cannot reach C>=0.15 in sRGB (see OKLCH Practical Rules); this is the most saturated in-gamut option, not an authoring gap"
+  },
+  {
+    "id": "seed-14-5",
+    "bucket": 14,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.0279,
+      "h": 208
+    },
+    "hex_srgb": "#e1fbff",
+    "in_gamut_srgb": true,
+    "mood": "Washi paper with the faintest sky-blue wash",
+    "material": "washi paper, sky-wash",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-02-5"
+    ],
+    "avoid_with": [
+      "true black ink over this pale a field"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.035 to 0.0279 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.08, black contrast 19.44)"
+  },
+  {
+    "id": "seed-15-1",
+    "bucket": 15,
+    "oklch": {
+      "l": 0.3,
+      "c": 0.046,
+      "h": 212
+    },
+    "hex_srgb": "#0a343b",
+    "in_gamut_srgb": true,
+    "mood": "Storm-cloud slate, low in the sky",
+    "material": "slate-blue storm cloud, low ceiling",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-03-1",
+      "seed-01-1"
+    ],
+    "avoid_with": [
+      "warming this toward navy instead of true storm-gray"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass round 2: L/C tightened to clear strategy range cleanly (white contrast 13.4, black contrast 1.57)"
+  },
+  {
+    "id": "seed-15-2",
+    "bucket": 15,
+    "oklch": {
+      "l": 0.427,
+      "c": 0.053,
+      "h": 215
+    },
+    "hex_srgb": "#295661",
+    "in_gamut_srgb": true,
+    "mood": "A wet slate roof tile after rain",
+    "material": "slate roof tile, wet",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-03-2"
+    ],
+    "avoid_with": [
+      "the teal-on-slate trustworthy-tech default"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-15-3",
+    "bucket": 15,
+    "oklch": {
+      "l": 0.568,
+      "c": 0.1021,
+      "h": 218
+    },
+    "hex_srgb": "#00859f",
+    "in_gamut_srgb": true,
+    "mood": "Delft pottery blue against its own white glaze",
+    "material": "Delft tin-glazed earthenware",
+    "derivation": "era",
+    "era": "17th-century Dutch",
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-03-3",
+      "seed-01-3"
+    ],
+    "avoid_with": [
+      "a warm second field breaking the duotone's discipline"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.114 to 0.1021 to stay in sRGB gamut; white contrast 4.32, black contrast 4.86; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits two-field-split)"
+  },
+  {
+    "id": "seed-15-4",
+    "bucket": 15,
+    "oklch": {
+      "l": 0.8,
+      "c": 0.1452,
+      "h": 221
+    },
+    "hex_srgb": "#0fd2ff",
+    "in_gamut_srgb": true,
+    "mood": "A shopfront sign lettered in sky-blue neon",
+    "material": "sky-blue neon-lit enamel sign",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-03-4",
+      "seed-01-4"
+    ],
+    "avoid_with": [
+      "letting red and yellow outweigh this in the composition"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.4 to 0.1452 to stay in sRGB gamut; gamut ceiling for this hue at any lightness is ~0.1452 — the cyan/blue-cyan range (~195-225°) cannot reach C>=0.15 in sRGB (see OKLCH Practical Rules); this is the most saturated in-gamut option, not an authoring gap"
+  },
+  {
+    "id": "seed-15-5",
+    "bucket": 15,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.018,
+      "h": 223
+    },
+    "hex_srgb": "#e9f8fe",
+    "in_gamut_srgb": true,
+    "mood": "A faintly blue-tinted paper stock, barely there",
+    "material": "paper stock, faint blue tint",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-03-5"
+    ],
+    "avoid_with": [
+      "a saturated accent competing with the restraint here"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.09, black contrast 19.32)"
+  },
+  {
+    "id": "seed-16-1",
+    "bucket": 16,
+    "oklch": {
+      "l": 0.267,
+      "c": 0.0516,
+      "h": 227
+    },
+    "hex_srgb": "#002a39",
+    "in_gamut_srgb": true,
+    "mood": "A naval instrument panel lit only by its own dials",
+    "material": "naval instrument-panel enamel",
+    "derivation": "place",
+    "era": "mid-century aviation",
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ink",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-04-1"
+    ],
+    "avoid_with": [
+      "crushing this ramp's dark end to plain black-blue"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.168 to 0.0516 to stay in sRGB gamut; reviewed: naval-panel navy reads correctly at this L/C"
+  },
+  {
+    "id": "seed-16-2",
+    "bucket": 16,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.0238,
+      "h": 230
+    },
+    "hex_srgb": "#e2f5ff",
+    "in_gamut_srgb": true,
+    "mood": "Airmail onion-skin paper, held to the light",
+    "material": "airmail paper stock, pale blue-tinted",
+    "derivation": "era",
+    "era": "pre-digital office",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-04-2"
+    ],
+    "avoid_with": [
+      "reading this as a Tailwind-indigo substitute by default"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.03 to 0.0238 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.12, black contrast 18.74)"
+  },
+  {
+    "id": "seed-16-3",
+    "bucket": 16,
+    "oklch": {
+      "l": 0.58,
+      "c": 0.1198,
+      "h": 233
+    },
+    "hex_srgb": "#0085b5",
+    "in_gamut_srgb": true,
+    "mood": "The blue cone at the base of a gas flame",
+    "material": "gas-stove flame, blue cone",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-04-3",
+      "seed-02-3"
+    ],
+    "avoid_with": [
+      "letting this default to the reflexive indigo-500 the model always reaches for"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.12 to 0.1198 to stay in sRGB gamut; white contrast 4.18, black contrast 5.02; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits two-field-split)"
+  },
+  {
+    "id": "seed-16-4",
+    "bucket": 16,
+    "oklch": {
+      "l": 0.725,
+      "c": 0.156,
+      "h": 236
+    },
+    "hex_srgb": "#00b3fa",
+    "in_gamut_srgb": true,
+    "mood": "An arcade cabinet's injection-molded blue shell",
+    "material": "arcade-cabinet plastic shell",
+    "derivation": "photograph",
+    "era": "1980s arcade",
+    "strategy_hint": "committed",
+    "role_hint": "primary",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-04-4",
+      "seed-02-4"
+    ],
+    "avoid_with": [
+      "drenching a long-session reading screen in this"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.156 to stay in sRGB gamut; re-tagged in quality pass round 3: restored this hue's true loud-L chroma peak and moved to committed (drenched's own L bands cannot reach it here), preserving the bucket's required C>=0.15 seed"
+  },
+  {
+    "id": "seed-16-5",
+    "bucket": 16,
+    "oklch": {
+      "l": 0.882,
+      "c": 0.061,
+      "h": 238
+    },
+    "hex_srgb": "#b3dffc",
+    "in_gamut_srgb": true,
+    "mood": "Two shades of denim stitched along one seam",
+    "material": "denim, split-screen seam",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-04-5"
+    ],
+    "avoid_with": [
+      "matching both split fields at the same lightness"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-17-1",
+    "bucket": 17,
+    "oklch": {
+      "l": 0.26,
+      "c": 0.0617,
+      "h": 242
+    },
+    "hex_srgb": "#00273f",
+    "in_gamut_srgb": true,
+    "mood": "Raw denim, gone dark from years of wear",
+    "material": "raw denim, worn dark",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "primary",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-05-1",
+      "seed-03-1"
+    ],
+    "avoid_with": [
+      "a second washed-out blue diluting which one leads"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.165 to 0.0617 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits muted-earth)"
+  },
+  {
+    "id": "seed-17-2",
+    "bucket": 17,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.018,
+      "h": 245
+    },
+    "hex_srgb": "#e8f3fd",
+    "in_gamut_srgb": true,
+    "mood": "The palest blue step in the 216-color web-safe grid",
+    "material": "1990s CRT web-safe blue",
+    "derivation": "object",
+    "era": "1990s web-safe palette",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-05-2"
+    ],
+    "avoid_with": [
+      "letting this drift into the generic corporate-blue default"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass round 2: L/C tightened to clear strategy range cleanly (white contrast 1.12, black contrast 18.67)"
+  },
+  {
+    "id": "seed-17-3",
+    "bucket": 17,
+    "oklch": {
+      "l": 0.578,
+      "c": 0.119,
+      "h": 248
+    },
+    "hex_srgb": "#387ebc",
+    "in_gamut_srgb": true,
+    "mood": "Anodized steel on a night-flight instrument panel",
+    "material": "midnight aviation-panel steel",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-05-3",
+      "seed-03-3"
+    ],
+    "avoid_with": [
+      "a fourth hue diluting which role leads"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.3, black contrast 4.88"
+  },
+  {
+    "id": "seed-17-4",
+    "bucket": 17,
+    "oklch": {
+      "l": 0.65,
+      "c": 0.189,
+      "h": 251
+    },
+    "hex_srgb": "#0091fd",
+    "in_gamut_srgb": true,
+    "mood": "An electric-blue neon tube at full charge",
+    "material": "electric blue, glass tube",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-05-4",
+      "seed-03-4"
+    ],
+    "avoid_with": [
+      "a glow filter — the flat saturated fill is enough"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.189 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-17-5",
+    "bucket": 17,
+    "oklch": {
+      "l": 0.879,
+      "c": 0.059,
+      "h": 253
+    },
+    "hex_srgb": "#bcdafe",
+    "in_gamut_srgb": true,
+    "mood": "A hydrangea petal under flat overcast light",
+    "material": "hydrangea petal, overcast light",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-05-5"
+    ],
+    "avoid_with": [
+      "pastel-on-pastel with no dark ink anchoring it"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-18-1",
+    "bucket": 18,
+    "oklch": {
+      "l": 0.35,
+      "c": 0.1242,
+      "h": 257
+    },
+    "hex_srgb": "#003779",
+    "in_gamut_srgb": true,
+    "mood": "A sailor's peacoat, dyed to its deepest possible blue",
+    "material": "peacoat wool, indigo-dark dye lot",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-06-1",
+      "seed-04-1"
+    ],
+    "avoid_with": [
+      "letting this settle into the expected AI-purple default"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.2 to 0.1242 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor jewel-tones strategy range (white contrast 11.52, black contrast 1.82)"
+  },
+  {
+    "id": "seed-18-2",
+    "bucket": 18,
+    "oklch": {
+      "l": 0.437,
+      "c": 0.059,
+      "h": 260
+    },
+    "hex_srgb": "#3e5272",
+    "in_gamut_srgb": true,
+    "mood": "Slate flagstone after a week of rain",
+    "material": "quarried slate, rain-dark, blue-gray",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-06-2"
+    ],
+    "avoid_with": [
+      "the sage-and-beige wellness substitution, in purple's clothing"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-18-3",
+    "bucket": 18,
+    "oklch": {
+      "l": 0.566,
+      "c": 0.113,
+      "h": 263
+    },
+    "hex_srgb": "#5274b9",
+    "in_gamut_srgb": true,
+    "mood": "A market awning split between two violets",
+    "material": "market-awning violet stripe",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-06-3",
+      "seed-04-3"
+    ],
+    "avoid_with": [
+      "matching the seam's shadow to plain gray"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.61, black contrast 4.56"
+  },
+  {
+    "id": "seed-18-4",
+    "bucket": 18,
+    "oklch": {
+      "l": 0.45,
+      "c": 0.3059,
+      "h": 266
+    },
+    "hex_srgb": "#1700fa",
+    "in_gamut_srgb": true,
+    "mood": "A violet highlighter, blindingly fresh",
+    "material": "violet highlighter ink, unused",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-06-4",
+      "seed-04-4"
+    ],
+    "avoid_with": [
+      "reading as just 'dark purple' without its red undertone"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.3059 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits acid-hi-vis)"
+  },
+  {
+    "id": "seed-18-5",
+    "bucket": 18,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.014,
+      "h": 268
+    },
+    "hex_srgb": "#f1f5ff",
+    "in_gamut_srgb": true,
+    "mood": "Vellum paper with the faintest cool-purple cast",
+    "material": "vellum paper stock, faint cool-purple cast",
+    "derivation": "material",
+    "era": "pre-digital office",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-06-5"
+    ],
+    "avoid_with": [
+      "true neutral black — keep the violet undertone in the ink"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.035 to 0.014 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.09, black contrast 19.25)"
+  },
+  {
+    "id": "seed-19-1",
+    "bucket": 19,
+    "oklch": {
+      "l": 0.3,
+      "c": 0.1932,
+      "h": 272
+    },
+    "hex_srgb": "#1a008c",
+    "in_gamut_srgb": true,
+    "mood": "An amethyst geode's interior, held up to gallery light",
+    "material": "amethyst geode interior",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-07-1",
+      "seed-05-1"
+    ],
+    "avoid_with": [
+      "letting the warm-light note read as pink instead of purple"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.3 to 0.1932 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor jewel-tones strategy range (white contrast 14.76, black contrast 1.42)"
+  },
+  {
+    "id": "seed-19-2",
+    "bucket": 19,
+    "oklch": {
+      "l": 0.42,
+      "c": 0.05,
+      "h": 275
+    },
+    "hex_srgb": "#454b69",
+    "in_gamut_srgb": true,
+    "mood": "One tonal step in a Le Corbusier violet keyboard",
+    "material": "Le Corbusier violet keyboard step",
+    "derivation": "system",
+    "era": "Le Corbusier 1931 keyboard",
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-07-2"
+    ],
+    "avoid_with": [
+      "using more than the 3-5 steps his sliders intended"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-19-3",
+    "bucket": 19,
+    "oklch": {
+      "l": 0.561,
+      "c": 0.18,
+      "h": 278
+    },
+    "hex_srgb": "#6063db",
+    "in_gamut_srgb": true,
+    "mood": "Purple riso ink overprinted on federal blue",
+    "material": "riso 'purple' over 'blue' overprint",
+    "derivation": "math",
+    "era": "risograph zine print",
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-07-3",
+      "seed-05-3"
+    ],
+    "avoid_with": [
+      "a third printed ink — the overlap already made one"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.88, black contrast 4.3)"
+  },
+  {
+    "id": "seed-19-4",
+    "bucket": 19,
+    "oklch": {
+      "l": 0.5,
+      "c": 0.2897,
+      "h": 281
+    },
+    "hex_srgb": "#5a16ff",
+    "in_gamut_srgb": true,
+    "mood": "A grape-soda bottle's molded plastic cap",
+    "material": "grape-soda bottle plastic",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-07-4",
+      "seed-05-4"
+    ],
+    "avoid_with": [
+      "reading this as juvenile rather than confidently primary"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.2897 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-19-5",
+    "bucket": 19,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.0145,
+      "h": 283
+    },
+    "hex_srgb": "#f3f4ff",
+    "in_gamut_srgb": true,
+    "mood": "Clear apothecary glass, the faintest cool-purple tint",
+    "material": "clear glass, faintest cool-purple tint",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-07-5"
+    ],
+    "avoid_with": [
+      "a competing saturated hue at the same restrained weight"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.018 to 0.0145 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.09, black contrast 19.2)"
+  },
+  {
+    "id": "seed-20-1",
+    "bucket": 20,
+    "oklch": {
+      "l": 0.285,
+      "c": 0.1644,
+      "h": 287
+    },
+    "hex_srgb": "#2d0074",
+    "in_gamut_srgb": true,
+    "mood": "Perkin's mauveine, at full 1856 synthetic strength",
+    "material": "mauveine dye, concentrated",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "ink",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-08-1"
+    ],
+    "avoid_with": [
+      "crushing the ramp's dark end to plain black"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.177 to 0.1644 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits jewel-tones)"
+  },
+  {
+    "id": "seed-20-2",
+    "bucket": 20,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.0203,
+      "h": 290
+    },
+    "hex_srgb": "#f1f0ff",
+    "in_gamut_srgb": true,
+    "mood": "Pale notepaper, barely tinted",
+    "material": "notepaper stock, barely tinted",
+    "derivation": "math",
+    "era": "pre-industrial correspondence",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-08-2"
+    ],
+    "avoid_with": [
+      "using this as a flourish rather than functional ink"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.025 to 0.0203 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.13, black contrast 18.65)"
+  },
+  {
+    "id": "seed-20-3",
+    "bucket": 20,
+    "oklch": {
+      "l": 0.565,
+      "c": 0.18,
+      "h": 293
+    },
+    "hex_srgb": "#7d5ad4",
+    "in_gamut_srgb": true,
+    "mood": "A bougainvillea bract pinned against whitewashed stucco",
+    "material": "bougainvillea bract against whitewash",
+    "derivation": "material",
+    "era": "Mediterranean",
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-08-3",
+      "seed-06-3"
+    ],
+    "avoid_with": [
+      "a fourth hue competing for the lead role"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.9, black contrast 4.29)"
+  },
+  {
+    "id": "seed-20-4",
+    "bucket": 20,
+    "oklch": {
+      "l": 0.525,
+      "c": 0.16,
+      "h": 296
+    },
+    "hex_srgb": "#7551ba",
+    "in_gamut_srgb": true,
+    "mood": "Raw silk dyed past the point of subtlety",
+    "material": "orchid-dyed raw silk",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "drenched",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-08-4",
+      "seed-06-4"
+    ],
+    "avoid_with": [
+      "a long-session screen drenched entirely in this"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor drenched strategy range (white contrast 5.77, black contrast 3.64)"
+  },
+  {
+    "id": "seed-20-5",
+    "bucket": 20,
+    "oklch": {
+      "l": 0.898,
+      "c": 0.0569,
+      "h": 298
+    },
+    "hex_srgb": "#e1d6ff",
+    "in_gamut_srgb": true,
+    "mood": "The pale half of a market awning stripe, sun-bleached",
+    "material": "sun-bleached awning canvas, faint cool-purple cast",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-08-5"
+    ],
+    "avoid_with": [
+      "an unstyled seam between the two fields"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.069 to 0.0569 to stay in sRGB gamut"
+  },
+  {
+    "id": "seed-21-1",
+    "bucket": 21,
+    "oklch": {
+      "l": 0.284,
+      "c": 0.1499,
+      "h": 302
+    },
+    "hex_srgb": "#3a0065",
+    "in_gamut_srgb": true,
+    "mood": "A sugilite cabochon under one gallery spotlight",
+    "material": "sugilite cabochon, polished",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-09-1",
+      "seed-07-1"
+    ],
+    "avoid_with": [
+      "a second jewel tone competing at equal saturation"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.177 to 0.1499 to stay in sRGB gamut; split-complement rotation from seed-13-1"
+  },
+  {
+    "id": "seed-21-2",
+    "bucket": 21,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.02,
+      "h": 305
+    },
+    "hex_srgb": "#f5effd",
+    "in_gamut_srgb": true,
+    "mood": "A pale warm-white, barely warmed, per Werner's nomenclature",
+    "material": "Werner-style pale warm-white reference",
+    "derivation": "material",
+    "era": "Werner 1814",
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-09-2"
+    ],
+    "avoid_with": [
+      "the flat magenta this hue always defaults to"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.13, black contrast 18.65)"
+  },
+  {
+    "id": "seed-21-3",
+    "bucket": 21,
+    "oklch": {
+      "l": 0.585,
+      "c": 0.122,
+      "h": 308
+    },
+    "hex_srgb": "#9066b3",
+    "in_gamut_srgb": true,
+    "mood": "A peony petal on a beauty-editorial spread",
+    "material": "peony petal, editorial beauty page",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "full-palette",
+    "role_hint": "accent",
+    "modes": [
+      "experience",
+      "persuade"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-09-3",
+      "seed-07-3"
+    ],
+    "avoid_with": [
+      "a fourth hue diluting which role leads"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.43, black contrast 4.74"
+  },
+  {
+    "id": "seed-21-4",
+    "bucket": 21,
+    "oklch": {
+      "l": 0.6,
+      "c": 0.3014,
+      "h": 311
+    },
+    "hex_srgb": "#b801ff",
+    "in_gamut_srgb": true,
+    "mood": "Fluorescent-pink riso ink, straight from the drum",
+    "material": "fluorescent-pink riso ink",
+    "derivation": "era",
+    "era": "risograph zine print",
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-09-4",
+      "seed-07-4"
+    ],
+    "avoid_with": [
+      "a glow filter — the flat saturated fill is loud enough"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.3014 to stay in sRGB gamut; white contrast 4.68, black contrast 4.49"
+  },
+  {
+    "id": "seed-21-5",
+    "bucket": 21,
+    "oklch": {
+      "l": 0.885,
+      "c": 0.062,
+      "h": 313
+    },
+    "hex_srgb": "#e8cef7",
+    "in_gamut_srgb": true,
+    "mood": "One fallen cherry-blossom petal on pale stone",
+    "material": "cherry-blossom petal, single fallen",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "high-key-pastel",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-09-5"
+    ],
+    "avoid_with": [
+      "pastel-on-pastel with no dark ink anchoring it"
+    ],
+    "text_on_it": "black",
+    "notes": ""
+  },
+  {
+    "id": "seed-22-1",
+    "bucket": 22,
+    "oklch": {
+      "l": 0.35,
+      "c": 0.1706,
+      "h": 317
+    },
+    "hex_srgb": "#5c0073",
+    "in_gamut_srgb": true,
+    "mood": "A fuchsia flower's waxy, deeply saturated petal",
+    "material": "fuchsia flower, waxy petal",
+    "derivation": "material",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-10-1",
+      "seed-08-1"
+    ],
+    "avoid_with": [
+      "letting this settle into a safe rose-pink"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.25 to 0.1706 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor jewel-tones strategy range (white contrast 12.33, black contrast 1.7)"
+  },
+  {
+    "id": "seed-22-2",
+    "bucket": 22,
+    "oklch": {
+      "l": 0.404,
+      "c": 0.042,
+      "h": 320
+    },
+    "hex_srgb": "#534157",
+    "in_gamut_srgb": true,
+    "mood": "Dried hibiscus steeped past its brightest red",
+    "material": "dried hibiscus, deep and warm",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "muted-earth",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-10-2"
+    ],
+    "avoid_with": [
+      "the sage-and-beige wellness default, misapplied here"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-22-3",
+    "bucket": 22,
+    "oklch": {
+      "l": 0.592,
+      "c": 0.126,
+      "h": 323
+    },
+    "hex_srgb": "#a162a9",
+    "in_gamut_srgb": true,
+    "mood": "A theater curtain split between two fuchsias",
+    "material": "theater-curtain fuchsia stripe",
+    "derivation": "era",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-10-3",
+      "seed-08-3"
+    ],
+    "avoid_with": [
+      "matching both fields at identical lightness"
+    ],
+    "text_on_it": "white",
+    "notes": "white contrast 4.34, black contrast 4.84"
+  },
+  {
+    "id": "seed-22-4",
+    "bucket": 22,
+    "oklch": {
+      "l": 0.675,
+      "c": 0.314,
+      "h": 326
+    },
+    "hex_srgb": "#ef00fa",
+    "in_gamut_srgb": true,
+    "mood": "Prickly-pear syrup held up to the light",
+    "material": "prickly-pear syrup, jewel-bright",
+    "derivation": "object",
+    "era": null,
+    "strategy_hint": "acid-hi-vis",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-10-4",
+      "seed-08-4"
+    ],
+    "avoid_with": [
+      "softening this into a safe blush instead"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.314 to stay in sRGB gamut; white contrast 3.47, black contrast 6.05; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits acid-hi-vis)"
+  },
+  {
+    "id": "seed-22-5",
+    "bucket": 22,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.025,
+      "h": 328
+    },
+    "hex_srgb": "#fff0fe",
+    "in_gamut_srgb": true,
+    "mood": "Blotting paper carrying a faint pink ghost of yesterday's ink",
+    "material": "blotting paper, faint pink cast",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-10-5"
+    ],
+    "avoid_with": [
+      "true black text over this pale a wash"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.1, black contrast 19.15)"
+  },
+  {
+    "id": "seed-23-1",
+    "bucket": 23,
+    "oklch": {
+      "l": 0.35,
+      "c": 0.158,
+      "h": 332
+    },
+    "hex_srgb": "#65005e",
+    "in_gamut_srgb": true,
+    "mood": "A deep-cut magenta gemstone, faceted under one spotlight",
+    "material": "deep-cut magenta gemstone, faceted",
+    "derivation": "place",
+    "era": null,
+    "strategy_hint": "jewel-tones",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-11-1",
+      "seed-09-1"
+    ],
+    "avoid_with": [
+      "letting this read as orange instead of true magenta"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.25 to 0.158 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor jewel-tones strategy range (white contrast 12.25, black contrast 1.71)"
+  },
+  {
+    "id": "seed-23-2",
+    "bucket": 23,
+    "oklch": {
+      "l": 0.403,
+      "c": 0.042,
+      "h": 335
+    },
+    "hex_srgb": "#574052",
+    "in_gamut_srgb": true,
+    "mood": "A Munsell chip, precise where mood boards guess",
+    "material": "Munsell 5RP reference chip",
+    "derivation": "era",
+    "era": "Munsell notation",
+    "strategy_hint": "monochrome-tonal",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-11-2"
+    ],
+    "avoid_with": [
+      "treating this as decoration rather than a checking tool"
+    ],
+    "text_on_it": "white",
+    "notes": ""
+  },
+  {
+    "id": "seed-23-3",
+    "bucket": 23,
+    "oklch": {
+      "l": 0.568,
+      "c": 0.18,
+      "h": 338
+    },
+    "hex_srgb": "#b6429b",
+    "in_gamut_srgb": true,
+    "mood": "Pink riso ink overprinted on true-red stock",
+    "material": "riso 'pink' over 'red' overprint",
+    "derivation": "object",
+    "era": "risograph zine print",
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-11-3",
+      "seed-09-3"
+    ],
+    "avoid_with": [
+      "a third ink — the overlap already made one"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.95, black contrast 4.24)"
+  },
+  {
+    "id": "seed-23-4",
+    "bucket": 23,
+    "oklch": {
+      "l": 0.675,
+      "c": 0.2891,
+      "h": 341
+    },
+    "hex_srgb": "#ff0bca",
+    "in_gamut_srgb": true,
+    "mood": "Bubblegum stretched thin before it snaps",
+    "material": "bubblegum, freshly blown",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "primary-triad",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-11-4",
+      "seed-09-4"
+    ],
+    "avoid_with": [
+      "reading as juvenile rather than confidently primary"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.4 to 0.2891 to stay in sRGB gamut; white contrast 3.41, black contrast 6.15"
+  },
+  {
+    "id": "seed-23-5",
+    "bucket": 23,
+    "oklch": {
+      "l": 0.97,
+      "c": 0.018,
+      "h": 343
+    },
+    "hex_srgb": "#fff1f8",
+    "in_gamut_srgb": true,
+    "mood": "Spun sugar at a county-fair stand",
+    "material": "cotton candy, spun sugar",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "restrained",
+    "role_hint": "ground",
+    "modes": [
+      "operate",
+      "read"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-11-5"
+    ],
+    "avoid_with": [
+      "a competing saturated hue at the same restrained weight"
+    ],
+    "text_on_it": "black",
+    "notes": "re-authored in quality pass: L/C adjusted to honor restrained strategy range (white contrast 1.09, black contrast 19.19)"
+  },
+  {
+    "id": "seed-24-1",
+    "bucket": 24,
+    "oklch": {
+      "l": 0.287,
+      "c": 0.1211,
+      "h": 347
+    },
+    "hex_srgb": "#500036",
+    "in_gamut_srgb": true,
+    "mood": "Hand-rubbed crimson lacquer on an old chest",
+    "material": "crimson lacquer, hand-rubbed",
+    "derivation": "era",
+    "era": "Edo-period lacquerware",
+    "strategy_hint": "jewel-tones",
+    "role_hint": "ink",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "dark",
+    "pairs_with": [
+      "seed-12-1"
+    ],
+    "avoid_with": [
+      "crushing this ramp's dark end toward plain maroon"
+    ],
+    "text_on_it": "white",
+    "notes": "chroma clipped from 0.179 to 0.1211 to stay in sRGB gamut; re-tagged strategy_hint in quality pass (color unchanged, now honestly fits jewel-tones)"
+  },
+  {
+    "id": "seed-24-2",
+    "bucket": 24,
+    "oklch": {
+      "l": 0.96,
+      "c": 0.0233,
+      "h": 350
+    },
+    "hex_srgb": "#ffecf4",
+    "in_gamut_srgb": true,
+    "mood": "Card stock with the barest whisper of warmth",
+    "material": "card stock, barest warm-pink whisper",
+    "derivation": "object",
+    "era": "hand-set letterpress",
+    "strategy_hint": "ink-on-paper",
+    "role_hint": "ground",
+    "modes": [
+      "read",
+      "operate"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-12-2"
+    ],
+    "avoid_with": [
+      "using this as decoration instead of functional ink"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.025 to 0.0233 to stay in sRGB gamut; re-authored in quality pass: L/C adjusted to honor ink-on-paper strategy range (white contrast 1.13, black contrast 18.56)"
+  },
+  {
+    "id": "seed-24-3",
+    "bucket": 24,
+    "oklch": {
+      "l": 0.567,
+      "c": 0.16,
+      "h": 353
+    },
+    "hex_srgb": "#ba467f",
+    "in_gamut_srgb": true,
+    "mood": "Cherry lacquer on a mid-century dashboard",
+    "material": "cherry-lacquer dashboard trim",
+    "derivation": "photograph",
+    "era": null,
+    "strategy_hint": "committed",
+    "role_hint": "accent",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-12-3",
+      "seed-10-3"
+    ],
+    "avoid_with": [
+      "a fourth hue competing for the lead role"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass: L/C adjusted to honor committed strategy range (white contrast 4.92, black contrast 4.27)"
+  },
+  {
+    "id": "seed-24-4",
+    "bucket": 24,
+    "oklch": {
+      "l": 0.55,
+      "c": 0.16,
+      "h": 356
+    },
+    "hex_srgb": "#b54075",
+    "in_gamut_srgb": true,
+    "mood": "A scoop of raspberry sorbet under gelato-case light",
+    "material": "raspberry sorbet, fresh scoop",
+    "derivation": "system",
+    "era": null,
+    "strategy_hint": "drenched",
+    "role_hint": "primary",
+    "modes": [
+      "experience"
+    ],
+    "light_or_dark": "either",
+    "pairs_with": [
+      "seed-12-4",
+      "seed-10-4"
+    ],
+    "avoid_with": [
+      "a long-session screen drenched entirely in this"
+    ],
+    "text_on_it": "white",
+    "notes": "re-authored in quality pass round 2: L/C tightened to clear strategy range cleanly (white contrast 5.31, black contrast 3.95)"
+  },
+  {
+    "id": "seed-24-5",
+    "bucket": 24,
+    "oklch": {
+      "l": 0.891,
+      "c": 0.0628,
+      "h": 358
+    },
+    "hex_srgb": "#ffcadb",
+    "in_gamut_srgb": true,
+    "mood": "The cream half of a café awning stripe",
+    "material": "cream awning canvas, faint warm cast",
+    "derivation": "math",
+    "era": null,
+    "strategy_hint": "two-field-split",
+    "role_hint": "ground",
+    "modes": [
+      "persuade",
+      "experience"
+    ],
+    "light_or_dark": "light",
+    "pairs_with": [
+      "seed-12-5"
+    ],
+    "avoid_with": [
+      "an unstyled seam between the two fields"
+    ],
+    "text_on_it": "black",
+    "notes": "chroma clipped from 0.065 to 0.0628 to stay in sRGB gamut"
+  }
+]

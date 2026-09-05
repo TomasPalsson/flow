@@ -1,0 +1,7052 @@
+[
+ {
+  "id": "switzer",
+  "name": "Switzer",
+  "class": "neo-grotesque",
+  "voice": "Swiss modernist neutral workhorse",
+  "worlds": [
+   "swiss-international",
+   "transit-signage",
+   "dutch-structuralism"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=switzer@400,700&display=swap",
+   "css_family": "'Switzer', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta",
+   "erode"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/switzer"
+ },
+ {
+  "id": "general-sans",
+  "name": "General Sans",
+  "class": "neo-grotesque",
+  "voice": "Neutral grotesque, product/SaaS operate voice",
+  "worlds": [
+   "swiss-international",
+   "dutch-structuralism",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=general-sans@400,700&display=swap",
+   "css_family": "'General Sans', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta",
+   "erode"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "slow",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/general-sans",
+  "notes": "Instructions flagged this as a 'decide' case: marked true because General Sans has become, alongside Switzer, one of the two most-reached-for Fontshare picks in indie/SaaS branding — no longer meaningfully distinctive on its own."
+ },
+ {
+  "id": "karrik",
+  "name": "Karrik",
+  "class": "neo-grotesque",
+  "voice": "Vernacular/garage-sign neo-grotesque, deliberately unoptical, brutalist warmth",
+  "worlds": [
+   "brutalist-web",
+   "neo-brutalism",
+   "punk-zine"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular, Italic",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/karrik/",
+   "css_family": "'Karrik', sans-serif"
+  },
+  "pairs_with": [
+   "compagnon"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek",
+   "corporate-clean brief"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/karrik/"
+ },
+ {
+  "id": "reglo",
+  "name": "Reglo",
+  "class": "geometric-sans",
+  "voice": "Bold architectural geometric sans, radio/media branding origin",
+  "worlds": [
+   "constructivist",
+   "punk-zine",
+   "risograph-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Bold only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/reglo",
+   "css_family": "'Reglo', sans-serif"
+  },
+  "pairs_with": [
+   "young-serif"
+  ],
+  "avoid_when": [
+   "needs body text weights (bold-only family)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/reglo",
+  "notes": "typography.md called this a quiet neo-grotesque; the foundry page describes it as a bold geometric sans, Bold weight only — reclassified geometric-sans."
+ },
+ {
+  "id": "nimbus-sans-l",
+  "name": "Nimbus Sans L",
+  "class": "neo-grotesque",
+  "voice": "Helvetica-metric-compatible civic workhorse",
+  "worlds": [
+   "swiss-international",
+   "wayfinding-aicher",
+   "transit-signage"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "open-foundry",
+  "license": "GNU GPL v3.0",
+  "commercial_free": true,
+  "weights": "Regular, Italic, Bold, Bold Italic",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/nimbus-sans-l",
+   "css_family": "'Nimbus Sans L', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "license requires GPL comfort, not just OFL"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/nimbus-sans-l"
+ },
+ {
+  "id": "tex-gyre-heros",
+  "name": "Tex Gyre Heros",
+  "class": "neo-grotesque",
+  "voice": "Scientific-paper Helvetica alternative, print/LaTeX heritage",
+  "worlds": [
+   "scientific-journal",
+   "swiss-international",
+   "pharmaceutical-clinical"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "open-foundry",
+  "license": "GUST Font License v1.0",
+  "commercial_free": true,
+  "weights": "Regular, Condensed, Italic, Condensed Italic, Bold, Condensed Bold, Bold Italic, Condensed Bold Italic",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/tex-gyre-heros",
+   "css_family": "'TeX Gyre Heros', sans-serif"
+  },
+  "pairs_with": [
+   "junicode"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/tex-gyre-heros",
+  "notes": "GUST TeX Gyre family ships broad Cyrillic coverage; verify exact subset per weight before shipping non-Latin body text."
+ },
+ {
+  "id": "aileron",
+  "name": "Aileron",
+  "class": "neo-grotesque",
+  "voice": "Unbranded Helvetica-alike utility, CC0 public-domain-style",
+  "worlds": [
+   "industrial-datasheet",
+   "dieter-rams-braun"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "open-foundry",
+  "license": "CC0 1.0 Universal",
+  "commercial_free": true,
+  "weights": "100-900, 10 weights + italics",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/aileron",
+   "css_family": "'Aileron', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/aileron"
+ },
+ {
+  "id": "public-sans",
+  "name": "Public Sans",
+  "class": "neo-grotesque",
+  "voice": "US government civic-neutral operate default",
+  "worlds": [
+   "transit-signage",
+   "wayfinding-aicher",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Public+Sans:wght@100..900&display=swap",
+   "css_family": "'Public Sans', sans-serif"
+  },
+  "pairs_with": [
+   "bespoke-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Public+Sans"
+ },
+ {
+  "id": "uncut-sans",
+  "name": "Uncut Sans",
+  "class": "neo-grotesque",
+  "voice": "Contemporary neutral grotesque, 12 optical cuts",
+  "worlds": [
+   "swiss-international",
+   "dutch-structuralism"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "uncut.wtf",
+  "license": "Free for commercial use (per foundry page)",
+  "commercial_free": true,
+  "weights": "12 cuts",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": true,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://uncut.wtf/sans-serif/uncut-sans/",
+   "css_family": "'Uncut Sans', sans-serif"
+  },
+  "pairs_with": [
+   "hedvig-letters-serif"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://uncut.wtf/sans-serif/uncut-sans/",
+  "notes": "uncut.wtf blocks the WebFetch tool's UA (403) but a direct curl with a browser UA returns 200 and confirms 'commercial and personal projects' terms — confirmed on second attempt. uncut.wtf blocks automated fetches (HTTP 454); download manually from source_url, or prefer a Google/Fontshare alternative when automation matters."
+ },
+ {
+  "id": "archivo",
+  "name": "Archivo",
+  "class": "neo-grotesque",
+  "voice": "Wide grotesque superfamily with full wdth axis (condensed→expanded in one file)",
+  "worlds": [
+   "swiss-international",
+   "transit-signage",
+   "brutalist-web"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght",
+   "wdth"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Archivo', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond",
+   "archivo-narrow"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Archivo",
+  "notes": "'Archivo Expanded' is not a separate family — expansion is the wdth axis of Archivo itself (verified: separate family name 400s on Google's API)."
+ },
+ {
+  "id": "familjen-grotesk",
+  "name": "Familjen Grotesk",
+  "class": "neo-grotesque",
+  "voice": "Swedish quiet grotesque, warm and understated",
+  "worlds": [
+   "scandinavian-functionalism",
+   "swiss-international"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=familjen-grotesk@400,700&display=swap",
+   "css_family": "'Familjen Grotesk', sans-serif"
+  },
+  "pairs_with": [
+   "compagnon"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/familjen-grotesk"
+ },
+ {
+  "id": "supreme",
+  "name": "Supreme",
+  "class": "neo-grotesque",
+  "voice": "Versatile contemporary grotesque, quiet product-brand default",
+  "worlds": [
+   "swiss-international",
+   "dutch-structuralism"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=supreme@400,700&display=swap",
+   "css_family": "'Supreme', sans-serif"
+  },
+  "pairs_with": [
+   "boska"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/supreme"
+ },
+ {
+  "id": "clash-grotesk",
+  "name": "Clash Grotesk",
+  "class": "neo-grotesque",
+  "voice": "Text companion to Clash Display, quiet grotesque body partner",
+  "worlds": [
+   "neo-brutalism",
+   "brutalist-web"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-600",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,700&display=swap",
+   "css_family": "'Clash Grotesk', sans-serif"
+  },
+  "pairs_with": [
+   "clash-display"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/clash-grotesk"
+ },
+ {
+  "id": "panchang",
+  "name": "Panchang",
+  "class": "geometric-sans",
+  "voice": "Geometric with wonky/humanist quirks, contemporary Indian type-design voice",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "memphis"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=panchang@400,700&display=swap",
+   "css_family": "'Panchang', sans-serif"
+  },
+  "pairs_with": [
+   "sentient"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/panchang"
+ },
+ {
+  "id": "chillax",
+  "name": "Chillax",
+  "class": "geometric-sans",
+  "voice": "Rounded geometric, soft/friendly consumer-app voice",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "childrens-book"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=chillax@400,700&display=swap",
+   "css_family": "'Chillax', sans-serif"
+  },
+  "pairs_with": [
+   "ranade"
+  ],
+  "avoid_when": [
+   "confident/serious brief"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/chillax"
+ },
+ {
+  "id": "cabinet-grotesk",
+  "name": "Cabinet Grotesk",
+  "class": "geometric-sans",
+  "voice": "Idiosyncratic geometric grotesque — already a known 'indie/AI-brand' tell",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "neo-brutalism"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,700&display=swap",
+   "css_family": "'Cabinet Grotesk', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "startup/SaaS brief that wants to avoid the default indie-brand look"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/cabinet-grotesk"
+ },
+ {
+  "id": "cooper-hewitt",
+  "name": "Cooper Hewitt",
+  "class": "geometric-sans",
+  "voice": "Museum-commissioned geometric sans, warm institutional",
+  "worlds": [
+   "museum-gallery",
+   "mid-century-corporate",
+   "bauhaus"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Thin-Heavy (12 weights + italics)",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/cooper-hewitt",
+   "css_family": "'Cooper Hewitt', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/cooper-hewitt",
+  "notes": "pairs_with references EB Garamond in this catalog rather than Libre Baskerville (not separately catalogued)."
+ },
+ {
+  "id": "work-sans",
+  "name": "Work Sans",
+  "class": "geometric-sans",
+  "voice": "Grotesque/geometric hybrid tuned for small-size text",
+  "worlds": [
+   "swiss-international",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Work Sans', sans-serif"
+  },
+  "pairs_with": [
+   "young-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Work+Sans"
+ },
+ {
+  "id": "league-spartan",
+  "name": "League Spartan",
+  "class": "geometric-sans",
+  "voice": "Geometric condensed, poster-Futura energy",
+  "worlds": [
+   "mid-century-travel-poster",
+   "bauhaus",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap",
+   "css_family": "'League Spartan', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text at small sizes"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/League+Spartan"
+ },
+ {
+  "id": "cotham-sans",
+  "name": "Cotham Sans",
+  "class": "geometric-sans",
+  "voice": "Straightforward grotesk, quiet institutional",
+  "worlds": [
+   "swiss-international",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/cotham-sans",
+   "css_family": "'Cotham Sans', sans-serif"
+  },
+  "pairs_with": [
+   "bagnard"
+  ],
+  "avoid_when": [
+   "needs bold/weight range (regular only)"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/cotham-sans"
+ },
+ {
+  "id": "gap-sans",
+  "name": "Gap Sans",
+  "class": "display-grotesque",
+  "voice": "Geometric display sans reworking a vernacular signage face",
+  "worlds": [
+   "risograph-zine",
+   "memphis"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular, Bold, Black",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/gap-sans",
+   "css_family": "'Gap Sans', sans-serif"
+  },
+  "pairs_with": [
+   "cotham-sans"
+  ],
+  "avoid_when": [
+   "body text (display-only proportions)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/gap-sans",
+  "notes": "typography.md filed this as humanist-sans; the foundry page describes it as a display face — reclassified display-grotesque."
+ },
+ {
+  "id": "amulya",
+  "name": "Amulya",
+  "class": "geometric-sans",
+  "voice": "Rounded geometric grotesque, contemporary Indian type-design voice",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "childrens-book"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=amulya@400,700&display=swap",
+   "css_family": "'Amulya', sans-serif"
+  },
+  "pairs_with": [
+   "author"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/amulya"
+ },
+ {
+  "id": "synonym",
+  "name": "Synonym",
+  "class": "geometric-sans",
+  "voice": "Minimal variable grotesque, quiet contemporary UI voice",
+  "worlds": [
+   "swiss-international",
+   "dutch-structuralism"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=synonym@400,700&display=swap",
+   "css_family": "'Synonym', sans-serif"
+  },
+  "pairs_with": [
+   "boska"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/synonym"
+ },
+ {
+  "id": "technor",
+  "name": "Technor",
+  "class": "geometric-sans",
+  "voice": "Squarish futuristic geometric, tech/dashboard display voice",
+  "worlds": [
+   "aviation-hud",
+   "video-game-menu",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=technor@400,700&display=swap",
+   "css_family": "'Technor', sans-serif"
+  },
+  "pairs_with": [
+   "excon"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/technor"
+ },
+ {
+  "id": "roundo",
+  "name": "Roundo",
+  "class": "geometric-sans",
+  "voice": "Rounded-terminal geometric, friendly consumer voice",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "childrens-book"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=roundo@400,700&display=swap",
+   "css_family": "'Roundo', sans-serif"
+  },
+  "pairs_with": [
+   "chillax"
+  ],
+  "avoid_when": [
+   "confident/serious brief"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/roundo"
+ },
+ {
+  "id": "kohinoor-zerone",
+  "name": "Kohinoor Zerone",
+  "class": "geometric-sans",
+  "voice": "Monolinear geometric grotesque from the Kohinoor family",
+  "worlds": [
+   "swiss-international",
+   "y2k-frutiger-aero"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "devanagari"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=kohinoor-zerone@400,700&display=swap",
+   "css_family": "'Kohinoor Zerone', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/kohinoor-zerone"
+ },
+ {
+  "id": "bricolage-grotesque",
+  "name": "Bricolage Grotesque",
+  "class": "humanist-sans",
+  "voice": "Variable French/British grotesque fusion, expressive across wght+wdth+opsz",
+  "worlds": [
+   "swiss-international",
+   "editorial-newspaper"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght",
+   "opsz"
+  ],
+  "italics": false,
+  "opsz": true,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap",
+   "css_family": "'Bricolage Grotesque', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "used at default instance with axes untouched — wastes the entire reason to pick it"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Bricolage+Grotesque",
+  "notes": "Borderline call per instructions: flagged true because its opsz+wght combination is now a recognizable 2024-2026 variable-font tell when used at defaults; still genuinely excellent when the axes are actually driven."
+ },
+ {
+  "id": "bespoke-sans",
+  "name": "Bespoke Sans",
+  "class": "humanist-sans",
+  "voice": "Warm humanist grotesque, editorial/product hybrid",
+  "worlds": [
+   "editorial-newspaper",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=bespoke-sans@400,700&display=swap",
+   "css_family": "'Bespoke Sans', sans-serif"
+  },
+  "pairs_with": [
+   "bespoke-serif"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/bespoke-sans"
+ },
+ {
+  "id": "clash-display",
+  "name": "Clash Display",
+  "class": "display-grotesque",
+  "voice": "Bold condensed-ish display grotesque, headline-only",
+  "worlds": [
+   "neo-brutalism",
+   "brutalist-web",
+   "video-game-menu"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-600 (7 styles)",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=clash-display@400,700&display=swap",
+   "css_family": "'Clash Display', sans-serif"
+  },
+  "pairs_with": [
+   "clash-grotesk",
+   "switzer"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/clash-display"
+ },
+ {
+  "id": "apfel-grotezk",
+  "name": "Apfel Grotezk",
+  "class": "display-grotesque",
+  "voice": "Idiosyncratic sharp-detail neo-grotesque — extremely trendy 2023-2025 branding voice",
+  "worlds": [
+   "neo-brutalism",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "collletttivo",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Static family (Brut, Mono, Satz)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://www.collletttivo.it/typefaces/apfel-grotezk",
+   "css_family": "'Apfel Grotezk', sans-serif"
+  },
+  "pairs_with": [
+   "absans"
+  ],
+  "avoid_when": [
+   "startup branding that wants to avoid the default indie-brand look"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://www.collletttivo.it/typefaces/apfel-grotezk"
+ },
+ {
+  "id": "terminal-grotesque",
+  "name": "Terminal Grotesque",
+  "class": "display-grotesque",
+  "voice": "Pixel/terminal-inflected grotesque, techno/rave voice",
+  "worlds": [
+   "terminal-hacker",
+   "video-game-menu",
+   "punk-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Terminal Grotesque, Terminal Grotesque Open (2 static styles)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/terminal-grotesque/",
+   "css_family": "'Terminal Grotesque', sans-serif"
+  },
+  "pairs_with": [
+   "steps-mono"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/terminal-grotesque/"
+ },
+ {
+  "id": "pilowlava",
+  "name": "Pilowlava",
+  "class": "display-grotesque",
+  "voice": "Distorted brutalist/rave display grotesque, cooled-lava letterforms",
+  "worlds": [
+   "punk-zine",
+   "video-game-menu",
+   "psychedelic"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Atome, Regular (2 static styles)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/pilowlava/",
+   "css_family": "'Pilowlava', sans-serif"
+  },
+  "pairs_with": [
+   "terminal-grotesque"
+  ],
+  "avoid_when": [
+   "body text",
+   "restrained/quiet brief"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/pilowlava/"
+ },
+ {
+  "id": "anthony",
+  "name": "Anthony",
+  "class": "display-grotesque",
+  "voice": "Geometric brutalist display with pseudo-random sculptural alternates",
+  "worlds": [
+   "neo-brutalism",
+   "op-art",
+   "constructivist"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Single static style",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/anthony/",
+   "css_family": "'Anthony', sans-serif"
+  },
+  "pairs_with": [
+   "karrik"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/anthony/"
+ },
+ {
+  "id": "avara",
+  "name": "Avara",
+  "class": "display-grotesque",
+  "voice": "Curveless transitional-serif-turned-grotesque on a square grid, DIY/punk",
+  "worlds": [
+   "punk-zine",
+   "constructivist",
+   "de-stijl"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Bold, Black, Bold Italic",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/avara/",
+   "css_family": "'Avara', sans-serif"
+  },
+  "pairs_with": [
+   "resistance"
+  ],
+  "avoid_when": [
+   "body text (bold-only)"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/avara/"
+ },
+ {
+  "id": "resistance",
+  "name": "Résistance",
+  "class": "display-grotesque",
+  "voice": "Curveless brutalist activist/protest-poster grotesque",
+  "worlds": [
+   "punk-zine",
+   "constructivist"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Single static style",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/resistance/",
+   "css_family": "'Résistance', sans-serif"
+  },
+  "pairs_with": [
+   "avara"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/resistance/"
+ },
+ {
+  "id": "degheest",
+  "name": "Degheest",
+  "class": "display-grotesque",
+  "voice": "Revival collection honoring Ange Degheest — 19 styles spanning gothic, serif, expanded",
+  "worlds": [
+   "letterpress-wood-type",
+   "vintage-analog"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "19 styles across Director/FT88/Basalte/Abordage/Equateur/Latitude/Louise subfamilies",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/degheest/",
+   "css_family": "'Degheest Director', sans-serif"
+  },
+  "pairs_with": [
+   "compagnon"
+  ],
+  "avoid_when": [
+   "needs one predictable static cut — this is a sprawling revival collection"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/degheest/"
+ },
+ {
+  "id": "outward",
+  "name": "Outward",
+  "class": "display-grotesque",
+  "voice": "Bold condensed geometric display, black-over-gray poster voice",
+  "worlds": [
+   "neo-brutalism",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Block, Round, Borders (3 static cuts)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/outward/",
+   "css_family": "'Outward', sans-serif"
+  },
+  "pairs_with": [
+   "terminal-grotesque"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/outward/"
+ },
+ {
+  "id": "format-1452",
+  "name": "Format 1452",
+  "class": "display-grotesque",
+  "voice": "DIN-like modular condensed grotesque, no optical corrections by design",
+  "worlds": [
+   "industrial-datasheet",
+   "transit-signage",
+   "blueprint"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Single static style",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/format-1452/",
+   "css_family": "'Format 1452', sans-serif"
+  },
+  "pairs_with": [
+   "nimbus-sans-l"
+  ],
+  "avoid_when": [
+   "body text at small sizes (modular geometry over-corrects)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/format-1452/"
+ },
+ {
+  "id": "amdal",
+  "name": "Amdal",
+  "class": "display-grotesque",
+  "voice": "Contemporary titling face for Tifinagh (Berber/Amazigh) script",
+  "worlds": [
+   "field-guide-naturalist",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "tifinagh"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/amdal/",
+   "css_family": "'Amdal', sans-serif"
+  },
+  "pairs_with": [],
+  "avoid_when": [
+   "any Latin body or display text — this face has no Latin glyphs, Tifinagh titling only"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/amdal/",
+  "notes": "Corrects typography.md, which implied a generic grotesque display; the foundry page confirms Amdal is Tifinagh-script-only, no Latin coverage."
+ },
+ {
+  "id": "facade",
+  "name": "Façade",
+  "class": "display-grotesque",
+  "voice": "Architectural gridwork brutalist display, building-facade-as-letterform",
+  "worlds": [
+   "neo-brutalism",
+   "constructivist",
+   "brutalist-web"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "ouest, sud, est, sud-ouest (4 static cuts)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/facade/",
+   "css_family": "'Façade', sans-serif"
+  },
+  "pairs_with": [
+   "anthony"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/facade/"
+ },
+ {
+  "id": "bespoke-stencil",
+  "name": "Bespoke Stencil",
+  "class": "display-grotesque",
+  "voice": "Stencil-cut display grotesque, industrial/military-adjacent voice",
+  "worlds": [
+   "industrial-datasheet",
+   "blueprint",
+   "transit-signage"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=bespoke-stencil@400,700&display=swap",
+   "css_family": "'Bespoke Stencil', sans-serif"
+  },
+  "pairs_with": [
+   "bespoke-sans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/bespoke-stencil"
+ },
+ {
+  "id": "hoover",
+  "name": "Hoover",
+  "class": "display-grotesque",
+  "voice": "Bold geometric display grotesque",
+  "worlds": [
+   "mid-century-corporate",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=hoover@400,700&display=swap",
+   "css_family": "'Hoover', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/hoover"
+ },
+ {
+  "id": "new-title",
+  "name": "New Title",
+  "class": "display-grotesque",
+  "voice": "Bold poster headline grotesque",
+  "worlds": [
+   "mid-century-travel-poster",
+   "risograph-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=new-title@400,700&display=swap",
+   "css_family": "'New Title', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/new-title"
+ },
+ {
+  "id": "alpino",
+  "name": "Alpino",
+  "class": "display-grotesque",
+  "voice": "Outdoor/alpine-adjacent geometric display",
+  "worlds": [
+   "field-guide-naturalist",
+   "mid-century-travel-poster"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=alpino@400,700&display=swap",
+   "css_family": "'Alpino', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/alpino"
+ },
+ {
+  "id": "britney",
+  "name": "Britney",
+  "class": "display-grotesque",
+  "voice": "Playful bold display grotesque",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "memphis"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=britney@400,700&display=swap",
+   "css_family": "'Britney', sans-serif"
+  },
+  "pairs_with": [
+   "chillax"
+  ],
+  "avoid_when": [
+   "body text",
+   "restrained brief"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/britney"
+ },
+ {
+  "id": "chubbo",
+  "name": "Chubbo",
+  "class": "display-grotesque",
+  "voice": "Rounded chunky geometric display",
+  "worlds": [
+   "memphis",
+   "childrens-book",
+   "y2k-frutiger-aero"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=chubbo@400,700&display=swap",
+   "css_family": "'Chubbo', sans-serif"
+  },
+  "pairs_with": [
+   "roundo"
+  ],
+  "avoid_when": [
+   "body text",
+   "serious/formal brief"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/chubbo"
+ },
+ {
+  "id": "pilcrow-rounded",
+  "name": "Pilcrow Rounded",
+  "class": "display-grotesque",
+  "voice": "Rounded-terminal geometric grotesque",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "childrens-book"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-800",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=pilcrow-rounded@400,700&display=swap",
+   "css_family": "'Pilcrow Rounded', sans-serif"
+  },
+  "pairs_with": [
+   "chillax"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/pilcrow-rounded"
+ },
+ {
+  "id": "boxing",
+  "name": "Boxing",
+  "class": "display-grotesque",
+  "voice": "Condensed bold display grotesque, sport/broadcast energy",
+  "worlds": [
+   "sports-broadcast",
+   "trading-floor"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=boxing@400,700&display=swap",
+   "css_family": "'Boxing', sans-serif"
+  },
+  "pairs_with": [
+   "excon"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/boxing"
+ },
+ {
+  "id": "striper",
+  "name": "Striper",
+  "class": "display-grotesque",
+  "voice": "Striped/layered display grotesque, poster-stack energy",
+  "worlds": [
+   "risograph-zine",
+   "psychedelic",
+   "op-art"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400 (variable striping)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=striper@400,700&display=swap",
+   "css_family": "'Striper', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/striper"
+ },
+ {
+  "id": "sentient",
+  "name": "Sentient",
+  "class": "old-style-serif",
+  "voice": "Old-style transitional, warm literary",
+  "worlds": [
+   "editorial-newspaper",
+   "japanese-editorial",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=sentient@400,700&display=swap",
+   "css_family": "'Sentient', serif"
+  },
+  "pairs_with": [
+   "panchang"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/sentient"
+ },
+ {
+  "id": "erode",
+  "name": "Erode",
+  "class": "transitional-serif",
+  "voice": "Transitional text serif, editorial-friendly at small sizes",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=erode@400,700&display=swap",
+   "css_family": "'Erode', serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/erode"
+ },
+ {
+  "id": "ranade",
+  "name": "Ranade",
+  "class": "old-style-serif",
+  "voice": "Warm old-style-leaning serif, editorial",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "12 styles",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=ranade@400,700&display=swap",
+   "css_family": "'Ranade', serif"
+  },
+  "pairs_with": [
+   "switzer"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/ranade"
+ },
+ {
+  "id": "gambetta",
+  "name": "Gambetta",
+  "class": "transitional-serif",
+  "voice": "Text serif with diagonal stress, book/editorial design",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "Static + variable build",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=gambetta@400,700&display=swap",
+   "css_family": "'Gambetta', serif"
+  },
+  "pairs_with": [
+   "general-sans",
+   "cabinet-grotesk"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/gambetta"
+ },
+ {
+  "id": "gambarino",
+  "name": "Gambarino",
+  "class": "didone",
+  "voice": "Display-cut companion to Gambetta, higher contrast serif for headlines",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=gambarino@400,700&display=swap",
+   "css_family": "'Gambarino', serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [
+   "body text (display-only contrast)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/gambarino"
+ },
+ {
+  "id": "boska",
+  "name": "Boska",
+  "class": "transitional-serif",
+  "voice": "Elegant bold serif with fashion-editorial presence",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=boska@400,700&display=swap",
+   "css_family": "'Boska', serif"
+  },
+  "pairs_with": [
+   "supreme",
+   "synonym"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/boska"
+ },
+ {
+  "id": "compagnon",
+  "name": "Compagnon",
+  "class": "mono",
+  "voice": "Typewriter-archive-inspired monospace, mid-century mechanical warmth",
+  "worlds": [
+   "scientific-journal",
+   "field-guide-naturalist",
+   "trading-floor"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Light, Light Italic, Roman, Medium, Bold",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/compagnon/",
+   "css_family": "'Compagnon', monospace"
+  },
+  "pairs_with": [
+   "karrik"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/compagnon/",
+  "notes": "typography.md filed this as a humanist book serif; the foundry classifies it under Monospace + Workhorse and it's a typewriter-typeface revival — reclassified mono."
+ },
+ {
+  "id": "hedvig-letters-serif",
+  "name": "Hedvig Letters Serif",
+  "class": "old-style-serif",
+  "voice": "Humanist old-style serif, superfamily with matching Sans/Mono siblings",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "uncut.wtf",
+  "license": "Free for commercial use (per foundry page)",
+  "commercial_free": true,
+  "weights": "5 cuts incl. variable",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://uncut.wtf/serif/hedvig-letters-serif/",
+   "css_family": "'Hedvig Letters Serif', serif"
+  },
+  "pairs_with": [
+   "uncut-sans"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://uncut.wtf/serif/hedvig-letters-serif/",
+  "notes": "Confirmed via Wayback Machine snapshot (2025-12-01) after uncut.wtf blocked WebFetch's UA directly; snapshot text confirms 'commercial and personal projects' use and Kanon Foundry authorship. uncut.wtf blocks automated fetches (HTTP 454); download manually from source_url, or prefer a Google/Fontshare alternative when automation matters."
+ },
+ {
+  "id": "borges",
+  "name": "Borges",
+  "class": "transitional-serif",
+  "voice": "Literary serif, quiet and legible",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery",
+   "scientific-journal"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "collletttivo",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Static family",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://www.collletttivo.it/typefaces/borges",
+   "css_family": "'Borges', serif"
+  },
+  "pairs_with": [
+   "absans"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.collletttivo.it/typefaces/borges"
+ },
+ {
+  "id": "young-serif",
+  "name": "Young Serif",
+  "class": "old-style-serif",
+  "voice": "Soft rounded old-style serif inspired by Plantin Infant/ITC Italian Old Style",
+  "worlds": [
+   "childrens-book",
+   "apothecary-label",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular only",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/young-serif",
+   "css_family": "'Young Serif', serif"
+  },
+  "pairs_with": [
+   "reglo"
+  ],
+  "avoid_when": [
+   "needs body-text weight range (regular only)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/young-serif"
+ },
+ {
+  "id": "junicode",
+  "name": "Junicode",
+  "class": "old-style-serif",
+  "voice": "Medievalist/academic serif, deep Unicode coverage for scholarly work",
+  "worlds": [
+   "scientific-journal",
+   "illuminated-manuscript",
+   "museum-gallery"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular, Italic, Bold, Bold Italic",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/junicode",
+   "css_family": "'Junicode', serif"
+  },
+  "pairs_with": [
+   "tex-gyre-heros"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/junicode",
+  "notes": "Ships 3000+ characters incl. medievalist/IPA glyphs (per foundry page); verify per-script coverage before relying on it for a specific non-Latin body-text need."
+ },
+ {
+  "id": "eb-garamond",
+  "name": "EB Garamond",
+  "class": "old-style-serif",
+  "voice": "Genuine Garamond revival, classical, not yet a trendy default the way Cormorant/Lora are",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery",
+   "scientific-journal"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap",
+   "css_family": "'EB Garamond', serif"
+  },
+  "pairs_with": [
+   "nimbus-sans-l",
+   "aileron"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/EB+Garamond"
+ },
+ {
+  "id": "author",
+  "name": "Author",
+  "class": "transitional-serif",
+  "voice": "Editorial serif, book-adjacent voice",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "200-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=author@400,700&display=swap",
+   "css_family": "'Author', serif"
+  },
+  "pairs_with": [
+   "amulya"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/author"
+ },
+ {
+  "id": "rowan",
+  "name": "Rowan",
+  "class": "transitional-serif",
+  "voice": "Editorial display serif with a warm, slightly rustic character",
+  "worlds": [
+   "editorial-newspaper",
+   "field-guide-naturalist"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=rowan@400,700&display=swap",
+   "css_family": "'Rowan', serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/rowan"
+ },
+ {
+  "id": "bespoke-serif",
+  "name": "Bespoke Serif",
+  "class": "transitional-serif",
+  "voice": "Editorial serif, government/civic-adjacent companion to Public Sans",
+  "worlds": [
+   "editorial-newspaper",
+   "scientific-journal"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=bespoke-serif@400,700&display=swap",
+   "css_family": "'Bespoke Serif', serif"
+  },
+  "pairs_with": [
+   "public-sans",
+   "bespoke-sans"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/bespoke-serif"
+ },
+ {
+  "id": "prata",
+  "name": "Prata",
+  "class": "didone",
+  "voice": "High-contrast didone, teardrop terminals, single weight, display-only",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Prata&display=swap",
+   "css_family": "'Prata', serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but regular"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Prata"
+ },
+ {
+  "id": "antic-didone",
+  "name": "Antic Didone",
+  "class": "didone",
+  "voice": "Newspaper/magazine headline didone",
+  "worlds": [
+   "editorial-newspaper",
+   "newsprint-tabloid"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Antic+Didone&display=swap",
+   "css_family": "'Antic Didone', serif"
+  },
+  "pairs_with": [
+   "public-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but regular",
+   "needs non-Latin"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Antic+Didone"
+ },
+ {
+  "id": "bodoni-moda",
+  "name": "Bodoni Moda",
+  "class": "didone",
+  "voice": "Contemporary variable Bodoni with a real optical-size axis",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": true,
+  "axes": [
+   "wght",
+   "opsz"
+  ],
+  "italics": true,
+  "opsz": true,
+  "x_height": "small",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&display=swap",
+   "css_family": "'Bodoni Moda', serif"
+  },
+  "pairs_with": [
+   "switzer"
+  ],
+  "avoid_when": [
+   "needs non-Latin"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Bodoni+Moda",
+  "notes": "Ships a real opsz axis — set font-optical-sizing: auto rather than hand-picking one cut for both caption and display sizes."
+ },
+ {
+  "id": "melodrama",
+  "name": "Melodrama",
+  "class": "didone",
+  "voice": "Dramatic display serif with high contrast, fashion-editorial voice",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=melodrama@400,700&display=swap",
+   "css_family": "'Melodrama', serif"
+  },
+  "pairs_with": [
+   "chillax"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/melodrama"
+ },
+ {
+  "id": "zodiak",
+  "name": "Zodiak",
+  "class": "didone",
+  "voice": "Bold editorial/fashion display serif",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=zodiak@400,700&display=swap",
+   "css_family": "'Zodiak', serif"
+  },
+  "pairs_with": [
+   "switzer"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/zodiak"
+ },
+ {
+  "id": "abril-fatface",
+  "name": "Abril Fatface",
+  "class": "didone",
+  "voice": "Ultra-bold fat-face didone, poster/headline drama",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "mid-century-travel-poster"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap",
+   "css_family": "'Abril Fatface', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but the single fat cut",
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Abril+Fatface"
+ },
+ {
+  "id": "yeseva-one",
+  "name": "Yeseva One",
+  "class": "didone",
+  "voice": "Warm display didone with calligraphic curls",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "apothecary-label"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Yeseva+One&display=swap",
+   "css_family": "'Yeseva One', serif"
+  },
+  "pairs_with": [
+   "ranade"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Yeseva+One"
+ },
+ {
+  "id": "rozha-one",
+  "name": "Rozha One",
+  "class": "didone",
+  "voice": "Didone-adjacent display serif with Devanagari companion cut",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "devanagari"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Rozha+One&display=swap",
+   "css_family": "'Rozha One', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Rozha+One"
+ },
+ {
+  "id": "bevellier",
+  "name": "Bevellier",
+  "class": "didone",
+  "voice": "High-contrast fashion/luxury display serif",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=bevellier@400,700&display=swap",
+   "css_family": "'Bevellier', serif"
+  },
+  "pairs_with": [
+   "synonym"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/bevellier"
+ },
+ {
+  "id": "mazius-display",
+  "name": "Mazius Display",
+  "class": "didone",
+  "voice": "Elegant high-contrast calligraphic-chancery didone, four styles for headlines",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "collletttivo",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Roman, Bold, two italics (4 styles)",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://www.collletttivo.it/typefaces/mazius-display",
+   "css_family": "'Mazius Display', serif"
+  },
+  "pairs_with": [
+   "absans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.collletttivo.it/typefaces/mazius-display"
+ },
+ {
+  "id": "bagnard",
+  "name": "Bagnard",
+  "class": "slab",
+  "voice": "French slab/serif hybrid with hand-carved, graffiti-inspired character",
+  "worlds": [
+   "letterpress-wood-type",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "open-foundry",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://open-foundry.com/fonts/bagnard",
+   "css_family": "'Bagnard', serif"
+  },
+  "pairs_with": [
+   "cotham-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but regular"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://open-foundry.com/fonts/bagnard"
+ },
+ {
+  "id": "biorhyme",
+  "name": "BioRhyme",
+  "class": "slab",
+  "voice": "Slab with large x-height, elegant proportions, less common than Arvo/Bitter",
+  "worlds": [
+   "field-guide-naturalist",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=BioRhyme:wght@200..800&display=swap",
+   "css_family": "'BioRhyme', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/BioRhyme"
+ },
+ {
+  "id": "aleo",
+  "name": "Aleo",
+  "class": "slab",
+  "voice": "Semi-rounded contemporary slab, companion to Arvo but less overused",
+  "worlds": [
+   "industrial-datasheet",
+   "board-game-rulebook"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Aleo:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Aleo', serif"
+  },
+  "pairs_with": [
+   "archivo"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Aleo"
+ },
+ {
+  "id": "roboto-slab",
+  "name": "Roboto Slab",
+  "class": "slab",
+  "voice": "Variable civic slab, broad script coverage",
+  "worlds": [
+   "industrial-datasheet",
+   "transit-signage"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap",
+   "css_family": "'Roboto Slab', serif"
+  },
+  "pairs_with": [
+   "archivo"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Roboto+Slab"
+ },
+ {
+  "id": "zilla-slab",
+  "name": "Zilla Slab",
+  "class": "slab",
+  "voice": "Mozilla-commissioned text slab, warm and legible",
+  "worlds": [
+   "industrial-datasheet",
+   "scientific-journal"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap",
+   "css_family": "'Zilla Slab', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Zilla+Slab"
+ },
+ {
+  "id": "arvo",
+  "name": "Arvo",
+  "class": "slab",
+  "voice": "Geometric slab workhorse",
+  "worlds": [
+   "industrial-datasheet",
+   "board-game-rulebook"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+   "css_family": "'Arvo', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Arvo"
+ },
+ {
+  "id": "bitter",
+  "name": "Bitter",
+  "class": "slab",
+  "voice": "Variable text slab tuned for screen reading, wide script coverage",
+  "worlds": [
+   "editorial-newspaper",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Bitter', serif"
+  },
+  "pairs_with": [
+   "archivo"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Bitter"
+ },
+ {
+  "id": "rokkitt",
+  "name": "Rokkitt",
+  "class": "slab",
+  "voice": "Variable slab with rounded warmth",
+  "worlds": [
+   "board-game-rulebook",
+   "childrens-book"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Rokkitt:wght@100..900&display=swap",
+   "css_family": "'Rokkitt', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Rokkitt"
+ },
+ {
+  "id": "trench-slab",
+  "name": "Trench Slab",
+  "class": "slab",
+  "voice": "Industrial military-adjacent slab, sturdy and utilitarian",
+  "worlds": [
+   "industrial-datasheet",
+   "blueprint",
+   "aviation-hud"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=trench-slab@400,700&display=swap",
+   "css_family": "'Trench Slab', serif"
+  },
+  "pairs_with": [
+   "nimbus-sans-l"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/trench-slab"
+ },
+ {
+  "id": "bespoke-slab",
+  "name": "Bespoke Slab",
+  "class": "slab",
+  "voice": "Civic slab companion to Public Sans/Bespoke Sans/Serif superfamily",
+  "worlds": [
+   "industrial-datasheet",
+   "transit-signage"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=bespoke-slab@400,700&display=swap",
+   "css_family": "'Bespoke Slab', serif"
+  },
+  "pairs_with": [
+   "bespoke-sans",
+   "bespoke-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/bespoke-slab"
+ },
+ {
+  "id": "tanker",
+  "name": "Tanker",
+  "class": "slab",
+  "voice": "Bold industrial signage slab, warehouse/stencil-adjacent energy",
+  "worlds": [
+   "industrial-datasheet",
+   "blueprint"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=tanker@400,700&display=swap",
+   "css_family": "'Tanker', serif"
+  },
+  "pairs_with": [
+   "nimbus-sans-l"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/tanker"
+ },
+ {
+  "id": "victor-mono",
+  "name": "Victor Mono",
+  "class": "mono",
+  "voice": "Semi-condensed mono with cursive italics and ligatures, code with personality",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Victor+Mono:ital,wght@0,100..700;1,100..700&display=swap",
+   "css_family": "'Victor Mono', monospace"
+  },
+  "pairs_with": [
+   "switzer"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Victor+Mono"
+ },
+ {
+  "id": "cascadia-code",
+  "name": "Cascadia Code",
+  "class": "mono",
+  "voice": "Ligatured Microsoft mono, native to VS Code/Windows Terminal",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&display=swap",
+   "css_family": "'Cascadia Code', monospace"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Cascadia+Code"
+ },
+ {
+  "id": "geist-mono",
+  "name": "Geist Mono",
+  "class": "mono",
+  "voice": "Clean contemporary mono, no ligatures, full variable weight range — a named second-order default",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Geist+Mono:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Geist Mono', monospace"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [
+   "dashboard brief wants to avoid the default Vercel-adjacent look"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Geist+Mono",
+  "notes": "Now mirrored directly on Google Fonts (confirmed 200 on css2) in addition to Vercel's own CDN."
+ },
+ {
+  "id": "hack",
+  "name": "Hack",
+  "class": "mono",
+  "voice": "Compact, sturdy mono, excellent at small sizes on low-DPI",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "github",
+  "license": "MIT + Bitstream Vera + DejaVu blend",
+  "commercial_free": true,
+  "weights": "Regular, Bold, Italic, Bold Italic (4)",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://github.com/source-foundry/Hack/releases/latest",
+   "css_family": "'Hack', monospace"
+  },
+  "pairs_with": [
+   "nimbus-sans-l"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://github.com/source-foundry/Hack"
+ },
+ {
+  "id": "source-code-pro",
+  "name": "Source Code Pro",
+  "class": "mono",
+  "voice": "Wide weight range workhorse mono, personality recedes",
+  "worlds": [
+   "terminal-hacker",
+   "scientific-journal"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap",
+   "css_family": "'Source Code Pro', monospace"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Source+Code+Pro"
+ },
+ {
+  "id": "steps-mono",
+  "name": "Steps Mono",
+  "class": "mono",
+  "voice": "Collaborative condensed curveless mono, techno/experimental voice",
+  "worlds": [
+   "terminal-hacker",
+   "video-game-menu"
+  ],
+  "roles": [
+   "ui",
+   "display"
+  ],
+  "source": "velvetyne",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Thin, Mono (2 static styles)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://velvetyne.fr/fonts/steps-mono/",
+   "css_family": "'Steps Mono', monospace"
+  },
+  "pairs_with": [
+   "terminal-grotesque"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://velvetyne.fr/fonts/steps-mono/"
+ },
+ {
+  "id": "jetbrains-mono",
+  "name": "JetBrains Mono",
+  "class": "mono",
+  "voice": "Developer-tool workhorse mono, wide script coverage",
+  "worlds": [
+   "industrial-datasheet",
+   "terminal-hacker"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap",
+   "css_family": "'JetBrains Mono', monospace"
+  },
+  "pairs_with": [
+   "ibm-plex-sans"
+  ],
+  "avoid_when": [
+   "dashboard brief wants to avoid the very common dev-tool default"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/JetBrains+Mono"
+ },
+ {
+  "id": "ibm-plex-mono",
+  "name": "IBM Plex Mono",
+  "class": "mono",
+  "voice": "IBM corporate mono, technical/engineering voice",
+  "worlds": [
+   "industrial-datasheet",
+   "scientific-journal",
+   "terminal-hacker"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap",
+   "css_family": "'IBM Plex Mono', monospace"
+  },
+  "pairs_with": [
+   "ibm-plex-sans",
+   "ibm-plex-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+ },
+ {
+  "id": "space-mono",
+  "name": "Space Mono",
+  "class": "mono",
+  "voice": "Quirky retro-futurist mono — an already-common indie/dashboard default",
+  "worlds": [
+   "terminal-hacker",
+   "video-game-menu"
+  ],
+  "roles": [
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+   "css_family": "'Space Mono', monospace"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "brief wants to avoid the well-known indie-dashboard default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Space+Mono",
+  "notes": "Not explicitly named in the second-order-default instruction list, but paired with Space Grotesk as the same family's mono half and equally recognizable — flagged for consistency."
+ },
+ {
+  "id": "fira-code",
+  "name": "Fira Code",
+  "class": "mono",
+  "voice": "Ligatured programming mono, wide script coverage incl. Greek",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap",
+   "css_family": "'Fira Code', monospace"
+  },
+  "pairs_with": [
+   "ibm-plex-sans"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Fira+Code"
+ },
+ {
+  "id": "azeret-mono",
+  "name": "Azeret Mono",
+  "class": "mono",
+  "voice": "Variable geometric mono, contemporary dashboard voice",
+  "worlds": [
+   "terminal-hacker",
+   "video-game-menu"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Azeret Mono', monospace"
+  },
+  "pairs_with": [
+   "technor"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Azeret+Mono"
+ },
+ {
+  "id": "necto-mono",
+  "name": "Necto Mono",
+  "class": "mono",
+  "voice": "Aseptic low-contrast mono with slanted terminals, single-weight utilitarian",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui"
+  ],
+  "source": "collletttivo",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Regular only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://www.collletttivo.it/typefaces/necto-mono",
+   "css_family": "'Necto Mono', monospace"
+  },
+  "pairs_with": [
+   "absans"
+  ],
+  "avoid_when": [
+   "needs weight range (regular only)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.collletttivo.it/typefaces/necto-mono"
+ },
+ {
+  "id": "excon",
+  "name": "Excon",
+  "class": "wide",
+  "voice": "Expanded/wide grotesque display, industrial",
+  "worlds": [
+   "industrial-datasheet",
+   "transit-signage",
+   "brutalist-web"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "Static, multiple widths",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=excon@400,700&display=swap",
+   "css_family": "'Excon', sans-serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/excon"
+ },
+ {
+  "id": "stint-ultra-expanded",
+  "name": "Stint Ultra Expanded",
+  "class": "wide",
+  "voice": "Ultra-expanded square serif/geometric hybrid",
+  "worlds": [
+   "art-deco-geometric",
+   "mid-century-travel-poster"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Stint+Ultra+Expanded&display=swap",
+   "css_family": "'Stint Ultra Expanded', serif"
+  },
+  "pairs_with": [
+   "syncopate"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Stint+Ultra+Expanded"
+ },
+ {
+  "id": "syncopate",
+  "name": "Syncopate",
+  "class": "wide",
+  "voice": "Wide geometric unicase, headline-only",
+  "worlds": [
+   "art-deco-geometric",
+   "bauhaus",
+   "de-stijl"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&display=swap",
+   "css_family": "'Syncopate', sans-serif"
+  },
+  "pairs_with": [
+   "stint-ultra-expanded"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Syncopate"
+ },
+ {
+  "id": "bungee",
+  "name": "Bungee",
+  "class": "wide",
+  "voice": "Urban signage display, wide and bold with an inline/shade family",
+  "worlds": [
+   "transit-signage",
+   "risograph-zine",
+   "video-game-menu"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only (Inline/Shade/Outline siblings)",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Bungee&display=swap",
+   "css_family": "'Bungee', sans-serif"
+  },
+  "pairs_with": [
+   "excon"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Bungee"
+ },
+ {
+  "id": "aktura",
+  "name": "Aktura",
+  "class": "wide",
+  "voice": "Wide geometric display grotesque",
+  "worlds": [
+   "art-deco-geometric",
+   "mid-century-corporate"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=aktura@400,700&display=swap",
+   "css_family": "'Aktura', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.fontshare.com/fonts/aktura"
+ },
+ {
+  "id": "special-gothic-condensed-one",
+  "name": "Special Gothic Condensed One",
+  "class": "condensed",
+  "voice": "Condensed sans reading as modern rather than retro-condensed",
+  "worlds": [
+   "editorial-newspaper",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Special+Gothic+Condensed+One&display=swap",
+   "css_family": "'Special Gothic Condensed One', sans-serif"
+  },
+  "pairs_with": [
+   "erode"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Special+Gothic+Condensed+One"
+ },
+ {
+  "id": "archivo-narrow",
+  "name": "Archivo Narrow",
+  "class": "condensed",
+  "voice": "Condensed sibling of the Archivo superfamily, consistent x-height with wide siblings",
+  "worlds": [
+   "editorial-newspaper",
+   "transit-signage"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400..700&display=swap",
+   "css_family": "'Archivo Narrow', sans-serif"
+  },
+  "pairs_with": [
+   "archivo",
+   "eb-garamond"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Archivo+Narrow"
+ },
+ {
+  "id": "pt-sans-narrow",
+  "name": "PT Sans Narrow",
+  "class": "condensed",
+  "voice": "Utilitarian condensed, civic/operate voice, very legible at small sizes",
+  "worlds": [
+   "transit-signage",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "ui",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&display=swap",
+   "css_family": "'PT Sans Narrow', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/PT+Sans+Narrow"
+ },
+ {
+  "id": "oswald",
+  "name": "Oswald",
+  "class": "condensed",
+  "voice": "Reworked Alternate Gothic, ubiquitous but genuinely well-drawn condensed sans",
+  "worlds": [
+   "editorial-newspaper",
+   "sports-broadcast"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap",
+   "css_family": "'Oswald', sans-serif"
+  },
+  "pairs_with": [
+   "bitter"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common condensed default"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Oswald"
+ },
+ {
+  "id": "bebas-neue",
+  "name": "Bebas Neue",
+  "class": "condensed",
+  "voice": "Ubiquitous bold condensed display caps",
+  "worlds": [
+   "sports-broadcast",
+   "trading-floor",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap",
+   "css_family": "'Bebas Neue', sans-serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text",
+   "brief wants to avoid a very common condensed default"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Bebas+Neue"
+ },
+ {
+  "id": "anton",
+  "name": "Anton",
+  "class": "condensed",
+  "voice": "Ultra-bold condensed poster caps",
+  "worlds": [
+   "sports-broadcast",
+   "risograph-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Anton&display=swap",
+   "css_family": "'Anton', sans-serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Anton"
+ },
+ {
+  "id": "fjalla-one",
+  "name": "Fjalla One",
+  "class": "condensed",
+  "voice": "Quiet condensed sans, editorial deck/caption voice",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Fjalla+One&display=swap",
+   "css_family": "'Fjalla One', sans-serif"
+  },
+  "pairs_with": [
+   "erode"
+  ],
+  "avoid_when": [
+   "needs any weight but regular"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Fjalla+One"
+ },
+ {
+  "id": "yanone-kaffeesatz",
+  "name": "Yanone Kaffeesatz",
+  "class": "condensed",
+  "voice": "Quiet variable condensed sans with a slight retro warmth",
+  "worlds": [
+   "editorial-newspaper",
+   "apothecary-label"
+  ],
+  "roles": [
+   "display",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@200..700&display=swap",
+   "css_family": "'Yanone Kaffeesatz', sans-serif"
+  },
+  "pairs_with": [
+   "young-serif"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Yanone+Kaffeesatz"
+ },
+ {
+  "id": "khand",
+  "name": "Khand",
+  "class": "condensed",
+  "voice": "Condensed grotesque with a Devanagari-designed companion cut",
+  "worlds": [
+   "industrial-datasheet",
+   "sports-broadcast"
+  ],
+  "roles": [
+   "display",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "devanagari"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Khand:wght@300;400;500;600;700&display=swap",
+   "css_family": "'Khand', sans-serif"
+  },
+  "pairs_with": [
+   "rajdhani"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Khand"
+ },
+ {
+  "id": "rajdhani",
+  "name": "Rajdhani",
+  "class": "condensed",
+  "voice": "Squarish condensed grotesque, dashboard/HUD-adjacent, Devanagari companion cut",
+  "worlds": [
+   "aviation-hud",
+   "video-game-menu",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "devanagari"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap",
+   "css_family": "'Rajdhani', sans-serif"
+  },
+  "pairs_with": [
+   "khand"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Rajdhani"
+ },
+ {
+  "id": "roboto-flex",
+  "name": "Roboto Flex",
+  "class": "variable-showpiece",
+  "voice": "Parametric variable system, UI-to-display range in one file",
+  "worlds": [
+   "industrial-datasheet",
+   "terminal-hacker"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-1000 (parametric)",
+  "variable": true,
+  "axes": [
+   "wght",
+   "wdth",
+   "opsz",
+   "GRAD",
+   "slnt",
+   "XTRA",
+   "YOPQ",
+   "YTLC",
+   "YTUC",
+   "YTAS",
+   "YTDE",
+   "YTFI"
+  ],
+  "italics": false,
+  "opsz": true,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "greek",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap",
+   "css_family": "'Roboto Flex', sans-serif"
+  },
+  "pairs_with": [
+   "amstelvar"
+  ],
+  "avoid_when": [
+   "used at a single default instance — wastes the entire reason to choose it"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Roboto+Flex"
+ },
+ {
+  "id": "amstelvar",
+  "name": "Amstelvar",
+  "class": "variable-showpiece",
+  "voice": "Parametric variable text serif, deep control over stroke contrast and proportions",
+  "worlds": [
+   "editorial-newspaper",
+   "museum-gallery"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts-early-access",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "parametric",
+  "variable": true,
+  "axes": [
+   "opsz",
+   "wght",
+   "wdth",
+   "GRAD",
+   "XTRA",
+   "XOPQ",
+   "XTCH",
+   "YOPQ",
+   "YTLC",
+   "YTUC",
+   "YTAS",
+   "YTDE",
+   "YTFI",
+   "PWGT",
+   "PWDT"
+  ],
+  "italics": false,
+  "opsz": true,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://github.com/google/fonts/raw/main/ofl/amstelvaralpha/AmstelvarAlpha-VF.ttf",
+   "css_family": "'Amstelvar Alpha', serif"
+  },
+  "pairs_with": [
+   "roboto-flex"
+  ],
+  "avoid_when": [
+   "needs a production-guaranteed Google Fonts css2 URL — this ships only as an early-access GitHub file, not on the css2 API"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://github.com/google/fonts/tree/main/ofl/amstelvaralpha",
+  "notes": "Not served via fonts.googleapis.com/css2 (confirmed 400) — it lives in google/fonts' ofl/amstelvaralpha directory marked EARLY_ACCESS. Self-host the raw TTF directly."
+ },
+ {
+  "id": "recursive",
+  "name": "Recursive",
+  "class": "variable-showpiece",
+  "voice": "Custom CASL/MONO/CRSV/slnt axes blending casual↔geometric and prose↔code",
+  "worlds": [
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-900",
+  "variable": true,
+  "axes": [
+   "wght",
+   "CASL",
+   "MONO",
+   "CRSV",
+   "slnt"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Recursive:wght,CASL,MONO,slnt@300..1000,0..1,0..1,-15..0&display=swap",
+   "css_family": "'Recursive', sans-serif"
+  },
+  "pairs_with": [
+   "roboto-flex"
+  ],
+  "avoid_when": [
+   "used at default instance with no CASL/MONO expression"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Recursive"
+ },
+ {
+  "id": "decovar",
+  "name": "Decovar",
+  "class": "variable-showpiece",
+  "voice": "Decorative showpiece with a dozen custom ornamental axes, display-only experimentation",
+  "worlds": [
+   "art-deco-geometric",
+   "psychedelic",
+   "op-art"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts-early-access",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "parametric",
+  "variable": true,
+  "axes": [
+   "BLDA",
+   "TRMC",
+   "TRMK",
+   "TRMB",
+   "SKLA",
+   "TRMD",
+   "TRML",
+   "TRMF",
+   "WMX2",
+   "TRMA",
+   "TRMT",
+   "BLDB"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://github.com/google/fonts/raw/main/ofl/decovaralpha/DecovarAlpha-VF.ttf",
+   "css_family": "'Decovar Alpha', sans-serif"
+  },
+  "pairs_with": [],
+  "avoid_when": [
+   "body text",
+   "needs a production css2 URL — early-access GitHub file only"
+  ],
+  "decay": "fast",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://github.com/google/fonts/tree/main/ofl/decovaralpha",
+  "notes": "Same early-access situation as Amstelvar: not on fonts.googleapis.com/css2 (confirmed 400), lives in ofl/decovaralpha as an alpha TTF."
+ },
+ {
+  "id": "noto-sans",
+  "name": "Noto Sans",
+  "class": "neo-grotesque",
+  "voice": "Civic/neutral coverage face, broadest free script coverage available",
+  "worlds": [
+   "swiss-international",
+   "wayfinding-aicher"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "devanagari",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Noto Sans', sans-serif"
+  },
+  "pairs_with": [
+   "noto-serif"
+  ],
+  "avoid_when": [
+   "brand-personality brief — this is a coverage/fallback face, not a voice choice"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/noto/specimen/Noto+Sans"
+ },
+ {
+  "id": "noto-serif",
+  "name": "Noto Serif",
+  "class": "transitional-serif",
+  "voice": "Civic/neutral coverage serif, matches Noto Sans script-for-script",
+  "worlds": [
+   "swiss-international",
+   "editorial-newspaper"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Noto Serif', serif"
+  },
+  "pairs_with": [
+   "noto-sans"
+  ],
+  "avoid_when": [
+   "brand-personality brief"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Noto+Serif"
+ },
+ {
+  "id": "pt-sans",
+  "name": "PT Sans",
+  "class": "humanist-sans",
+  "voice": "Russian-commissioned civic humanist sans, strong Cyrillic design",
+  "worlds": [
+   "swiss-international",
+   "transit-signage"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+   "css_family": "'PT Sans', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/PT+Sans"
+ },
+ {
+  "id": "pt-serif",
+  "name": "PT Serif",
+  "class": "transitional-serif",
+  "voice": "Russian-commissioned civic serif, pairs with PT Sans/Narrow",
+  "worlds": [
+   "editorial-newspaper",
+   "scientific-journal"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+   "css_family": "'PT Serif', serif"
+  },
+  "pairs_with": [
+   "pt-sans",
+   "pt-sans-narrow"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/PT+Serif"
+ },
+ {
+  "id": "golos-text",
+  "name": "Golos Text",
+  "class": "neo-grotesque",
+  "voice": "Contemporary Russian grotesque, VK-commissioned, strong Cyrillic-first design",
+  "worlds": [
+   "swiss-international",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..900&display=swap",
+   "css_family": "'Golos Text', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Golos+Text"
+ },
+ {
+  "id": "montserrat",
+  "name": "Montserrat",
+  "class": "geometric-sans",
+  "voice": "Ubiquitous Buenos-Aires-signage-inspired geometric sans — now with Cyrillic/Vietnamese coverage",
+  "worlds": [
+   "art-deco-geometric",
+   "mid-century-corporate"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Montserrat', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [
+   "brief wants to avoid one of the most common Google Fonts defaults"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Montserrat"
+ },
+ {
+  "id": "onest",
+  "name": "Onest",
+  "class": "geometric-sans",
+  "voice": "Contemporary VK-commissioned grotesque, wide script + math/symbol coverage",
+  "worlds": [
+   "swiss-international",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap",
+   "css_family": "'Onest', sans-serif"
+  },
+  "pairs_with": [
+   "golos-text"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Onest"
+ },
+ {
+  "id": "ibm-plex-sans",
+  "name": "IBM Plex Sans",
+  "class": "humanist-sans",
+  "voice": "IBM corporate humanist sans, superfamily with Serif/Mono siblings, Greek coverage",
+  "worlds": [
+   "industrial-datasheet",
+   "scientific-journal",
+   "terminal-hacker"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap",
+   "css_family": "'IBM Plex Sans', sans-serif"
+  },
+  "pairs_with": [
+   "ibm-plex-serif",
+   "ibm-plex-mono"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/IBM+Plex+Sans"
+ },
+ {
+  "id": "ibm-plex-serif",
+  "name": "IBM Plex Serif",
+  "class": "transitional-serif",
+  "voice": "IBM corporate serif, superfamily companion to Plex Sans/Mono",
+  "worlds": [
+   "industrial-datasheet",
+   "scientific-journal"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-700",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap",
+   "css_family": "'IBM Plex Serif', serif"
+  },
+  "pairs_with": [
+   "ibm-plex-sans",
+   "ibm-plex-mono"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/IBM+Plex+Serif"
+ },
+ {
+  "id": "caveat",
+  "name": "Caveat",
+  "class": "script-hand",
+  "voice": "Casual handwriting script, Cyrillic coverage",
+  "worlds": [
+   "childrens-book",
+   "punk-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap",
+   "css_family": "'Caveat', cursive"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text",
+   "formal/corporate brief"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Caveat"
+ },
+ {
+  "id": "dancing-script",
+  "name": "Dancing Script",
+  "class": "script-hand",
+  "voice": "Flowing formal script, invitation/label voice",
+  "worlds": [
+   "apothecary-label",
+   "luxury-fashion-editorial"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap",
+   "css_family": "'Dancing Script', cursive"
+  },
+  "pairs_with": [
+   "young-serif"
+  ],
+  "avoid_when": [
+   "body text",
+   "technical/civic brief"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Dancing+Script"
+ },
+ {
+  "id": "sacramento",
+  "name": "Sacramento",
+  "class": "script-hand",
+  "voice": "Monoline retro script, mid-century signage feel",
+  "worlds": [
+   "mid-century-travel-poster",
+   "apothecary-label"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Sacramento&display=swap",
+   "css_family": "'Sacramento', cursive"
+  },
+  "pairs_with": [
+   "young-serif"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Sacramento"
+ },
+ {
+  "id": "kalam",
+  "name": "Kalam",
+  "class": "script-hand",
+  "voice": "Handwriting script with a real Devanagari companion cut",
+  "worlds": [
+   "childrens-book",
+   "field-guide-naturalist"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300, 400, 700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "devanagari"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap",
+   "css_family": "'Kalam', cursive"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Kalam"
+ },
+ {
+  "id": "gochi-hand",
+  "name": "Gochi Hand",
+  "class": "script-hand",
+  "voice": "Rounded marker/felt-tip handwriting",
+  "worlds": [
+   "childrens-book",
+   "punk-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap",
+   "css_family": "'Gochi Hand', cursive"
+  },
+  "pairs_with": [
+   "chubbo"
+  ],
+  "avoid_when": [
+   "body text",
+   "formal brief"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Gochi+Hand"
+ },
+ {
+  "id": "unifraktur-maguntia",
+  "name": "UnifrakturMaguntia",
+  "class": "blackletter-decorative",
+  "voice": "Classic German blackletter/fraktur revival",
+  "worlds": [
+   "illuminated-manuscript",
+   "punk-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap",
+   "css_family": "'UnifrakturMaguntia', cursive"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "body text",
+   "legibility-critical use"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/UnifrakturMaguntia"
+ },
+ {
+  "id": "unifrakturcook",
+  "name": "UnifrakturCook",
+  "class": "blackletter-decorative",
+  "voice": "Bold German blackletter/fraktur revival",
+  "worlds": [
+   "illuminated-manuscript",
+   "punk-zine"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "700 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap",
+   "css_family": "'UnifrakturCook', cursive"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "body text",
+   "legibility-critical use",
+   "needs any weight but 700 (only weight shipped)"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/UnifrakturCook",
+  "notes": "Google's css2 API 400s for a bare family request; must specify :wght@700 explicitly since Bold is the only weight the family ships (verified)."
+ },
+ {
+  "id": "pirata-one",
+  "name": "Pirata One",
+  "class": "blackletter-decorative",
+  "voice": "Playful pirate-flag blackletter display",
+  "worlds": [
+   "punk-zine",
+   "childrens-book"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Pirata+One&display=swap",
+   "css_family": "'Pirata One', cursive"
+  },
+  "pairs_with": [
+   "chubbo"
+  ],
+  "avoid_when": [
+   "body text",
+   "serious/formal brief"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Pirata+One"
+ },
+ {
+  "id": "system-ui",
+  "name": "System UI Stack",
+  "class": "system-stack",
+  "voice": "Zero-network-cost OS-native stack; signals 'tool, not brand moment' for Operate surfaces",
+  "worlds": [
+   "swiss-international",
+   "terminal-hacker",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "system",
+  "license": "N/A (OS-provided)",
+  "commercial_free": true,
+  "weights": "OS-dependent, typically 100-900",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "greek",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "system",
+   "css_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, system-ui, sans-serif"
+  },
+  "pairs_with": [],
+  "avoid_when": [
+   "a brand moment is actually wanted"
+  ],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://developer.mozilla.org/en-US/docs/Web/CSS/font-family#system-ui",
+  "notes": "Pseudo-entry per schema spec: load.type is 'system', no url/download_url needed."
+ },
+ {
+  "id": "absans",
+  "name": "Absans",
+  "class": "humanist-sans",
+  "voice": "Quiet humanist grotesque, companion piece to Apfel Grotezk's idiosyncrasy",
+  "worlds": [
+   "neo-brutalism",
+   "swiss-international"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "collletttivo",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "Static family",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "self-host",
+   "download_url": "https://www.collletttivo.it/typefaces/absans",
+   "css_family": "'Absans', sans-serif"
+  },
+  "pairs_with": [
+   "apfel-grotezk",
+   "borges",
+   "mazius-display",
+   "necto-mono"
+  ],
+  "avoid_when": [
+   "needs cyrillic or greek"
+  ],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "medium",
+  "source_url": "https://www.collletttivo.it/typefaces",
+  "notes": "Referenced as a pairing partner by four other Collletttivo entries in typography.md; confirmed real via the foundry's full typeface listing fetch (16 total) though not individually specimen-fetched — confidence medium pending a direct page check."
+ },
+ {
+  "id": "satoshi",
+  "name": "Satoshi",
+  "class": "geometric-sans",
+  "voice": "Contemporary geometric grotesque — the single most recognizable Fontshare/indie-brand default",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "swiss-international"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "fontshare",
+  "license": "ITF Free Font License",
+  "commercial_free": true,
+  "weights": "300-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "fontshare-css",
+   "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,700&display=swap",
+   "css_family": "'Satoshi', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [
+   "any brief that wants to avoid the most common indie/startup default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://www.fontshare.com/fonts/satoshi"
+ },
+ {
+  "id": "inter",
+  "name": "Inter",
+  "class": "neo-grotesque",
+  "voice": "The default UI grotesque — the exact tell this catalog exists to route around",
+  "worlds": [
+   "swiss-international",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght",
+   "opsz"
+  ],
+  "italics": true,
+  "opsz": true,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+   "css_family": "'Inter', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "any brief that wants to escape the single most common UI-sans default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Inter",
+  "notes": "Kept in the catalog per instructions (do not delete) but this is the archetypal default the whole catalog exists to route the roller away from — always flagged, never a 'safe' pick just because it's technically present."
+ },
+ {
+  "id": "space-grotesk",
+  "name": "Space Grotesk",
+  "class": "geometric-sans",
+  "voice": "Proportional companion to Space Mono — a well-known indie/tech-brand default",
+  "worlds": [
+   "terminal-hacker",
+   "video-game-menu"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap",
+   "css_family": "'Space Grotesk', sans-serif"
+  },
+  "pairs_with": [
+   "space-mono"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common indie-tech default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Space+Grotesk"
+ },
+ {
+  "id": "fraunces",
+  "name": "Fraunces",
+  "class": "old-style-serif",
+  "voice": "Soft old-style serif with a real opsz axis — a very common 2023-2026 editorial/indie default",
+  "worlds": [
+   "editorial-newspaper",
+   "luxury-fashion-editorial"
+  ],
+  "roles": [
+   "display",
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght",
+   "opsz",
+   "SOFT",
+   "WONK"
+  ],
+  "italics": true,
+  "opsz": true,
+  "x_height": "medium",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap",
+   "css_family": "'Fraunces', serif"
+  },
+  "pairs_with": [
+   "general-sans"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common editorial/indie default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Fraunces"
+ },
+ {
+  "id": "instrument-serif",
+  "name": "Instrument Serif",
+  "class": "transitional-serif",
+  "voice": "High-contrast display-adjacent serif — a very common 2024-2026 landing-page default",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "japanese-editorial"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap",
+   "css_family": "'Instrument Serif', serif"
+  },
+  "pairs_with": [
+   "instrument-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but regular",
+   "brief wants to avoid a very common landing-page default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Instrument+Serif"
+ },
+ {
+  "id": "instrument-sans",
+  "name": "Instrument Sans",
+  "class": "humanist-sans",
+  "voice": "Quiet humanist companion to Instrument Serif",
+  "worlds": [
+   "swiss-international",
+   "luxury-fashion-editorial"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap",
+   "css_family": "'Instrument Sans', sans-serif"
+  },
+  "pairs_with": [
+   "instrument-serif"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common landing-page default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Instrument+Sans"
+ },
+ {
+  "id": "playfair-display",
+  "name": "Playfair Display",
+  "class": "didone",
+  "voice": "The default 'elegant' didone — extremely common luxury/editorial tell",
+  "worlds": [
+   "luxury-fashion-editorial",
+   "art-deco-geometric"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "small",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap",
+   "css_family": "'Playfair Display', serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "brief wants to avoid the single most common 'elegant' didone default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Playfair+Display"
+ },
+ {
+  "id": "dm-sans",
+  "name": "DM Sans",
+  "class": "geometric-sans",
+  "voice": "Low-contrast geometric sans — a very common Google-Fonts-era product default",
+  "worlds": [
+   "swiss-international",
+   "y2k-frutiger-aero"
+  ],
+  "roles": [
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-1000",
+  "variable": true,
+  "axes": [
+   "wght",
+   "opsz"
+  ],
+  "italics": true,
+  "opsz": true,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap",
+   "css_family": "'DM Sans', sans-serif"
+  },
+  "pairs_with": [
+   "dm-serif-text"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common product-default sans"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/DM+Sans"
+ },
+ {
+  "id": "dm-serif-text",
+  "name": "DM Serif Text",
+  "class": "old-style-serif",
+  "voice": "Warm old-style serif companion to DM Sans, common product-default pairing",
+  "worlds": [
+   "editorial-newspaper",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "body"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400 only",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "medium",
+  "scripts": [
+   "latin"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&display=swap",
+   "css_family": "'DM Serif Text', serif"
+  },
+  "pairs_with": [
+   "dm-sans"
+  ],
+  "avoid_when": [
+   "needs any weight but regular",
+   "brief wants to avoid a very common product-default pairing"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/DM+Serif+Text"
+ },
+ {
+  "id": "plus-jakarta-sans",
+  "name": "Plus Jakarta Sans",
+  "class": "geometric-sans",
+  "voice": "Rounded-geometric UI sans — a very common 2023-2026 SaaS default",
+  "worlds": [
+   "y2k-frutiger-aero",
+   "swiss-international"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
+   "css_family": "'Plus Jakarta Sans', sans-serif"
+  },
+  "pairs_with": [
+   "fraunces"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common SaaS default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Plus+Jakarta+Sans"
+ },
+ {
+  "id": "outfit",
+  "name": "Outfit",
+  "class": "geometric-sans",
+  "voice": "Clean geometric sans — a very common 2022-2026 template/theme default",
+  "worlds": [
+   "swiss-international",
+   "y2k-frutiger-aero"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap",
+   "css_family": "'Outfit', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [
+   "brief wants to avoid a very common template default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Outfit"
+ },
+ {
+  "id": "syne",
+  "name": "Syne",
+  "class": "display-grotesque",
+  "voice": "Expressive variable display grotesque — a common 2023-2026 bold-brand default",
+  "worlds": [
+   "neo-brutalism",
+   "memphis",
+   "psychedelic"
+  ],
+  "roles": [
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "greek"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Syne:wght@400..800&display=swap",
+   "css_family": "'Syne', sans-serif"
+  },
+  "pairs_with": [
+   "work-sans"
+  ],
+  "avoid_when": [
+   "body text",
+   "brief wants to avoid a common bold-brand default"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Syne"
+ },
+ {
+  "id": "geist",
+  "name": "Geist",
+  "class": "neo-grotesque",
+  "voice": "Vercel-designed neutral grotesque — a very common 2024-2026 dev-tool/dashboard default, sibling to Geist Mono",
+  "worlds": [
+   "swiss-international",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "display",
+   "body",
+   "ui"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "cyrillic",
+   "cyrillic-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Geist', sans-serif"
+  },
+  "pairs_with": [
+   "geist-mono"
+  ],
+  "avoid_when": [
+   "brief wants to avoid the default Vercel-adjacent dashboard look"
+  ],
+  "decay": "fast",
+  "second_order_default": true,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Geist"
+ },
+ {
+  "id": "source-sans-3",
+  "name": "Source Sans 3",
+  "class": "humanist-sans",
+  "voice": "Adobe humanist workhorse, quiet civic voice",
+  "worlds": [
+   "scientific-journal",
+   "pharmaceutical-clinical",
+   "transit-signage"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap",
+   "css_family": "'Source Sans 3', sans-serif"
+  },
+  "pairs_with": [
+   "erode"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Source+Sans+3"
+ },
+ {
+  "id": "nunito-sans",
+  "name": "Nunito Sans",
+  "class": "humanist-sans",
+  "voice": "rounded-terminal humanist, friendly product UI",
+  "worlds": [
+   "childrens-book",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,200..900;1,200..900&display=swap",
+   "css_family": "'Nunito Sans', sans-serif"
+  },
+  "pairs_with": [
+   "ranade"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Nunito+Sans"
+ },
+ {
+  "id": "mulish",
+  "name": "Mulish",
+  "class": "humanist-sans",
+  "voice": "minimalist humanist with open apertures",
+  "worlds": [
+   "scandinavian-functionalism",
+   "museum-gallery"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..900;1,200..900&display=swap",
+   "css_family": "'Mulish', sans-serif"
+  },
+  "pairs_with": [
+   "bespoke-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Mulish"
+ },
+ {
+  "id": "fira-sans",
+  "name": "Fira Sans",
+  "class": "humanist-sans",
+  "voice": "Mozilla humanist with strong small-size legibility; huge weight range",
+  "worlds": [
+   "industrial-datasheet",
+   "scientific-journal",
+   "dieter-rams-braun"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100, 200, 300, 400, 500, 600, 700, 800, 900",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap",
+   "css_family": "'Fira Sans', sans-serif"
+  },
+  "pairs_with": [
+   "gambetta"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Fira+Sans"
+ },
+ {
+  "id": "alegreya-sans",
+  "name": "Alegreya Sans",
+  "class": "humanist-sans",
+  "voice": "calligraphic humanist, literary companion to Alegreya",
+  "worlds": [
+   "illuminated-manuscript",
+   "field-guide-naturalist",
+   "editorial-newspaper"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100, 300, 400, 500, 700, 800, 900",
+  "variable": false,
+  "axes": [],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "greek-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,100;0,300;0,400;0,500;0,700;0,800;0,900;1,100;1,300;1,400;1,500;1,700;1,800;1,900&display=swap",
+   "css_family": "'Alegreya Sans', sans-serif"
+  },
+  "pairs_with": [
+   "erode"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Alegreya+Sans"
+ },
+ {
+  "id": "cabin",
+  "name": "Cabin",
+  "class": "humanist-sans",
+  "voice": "Gill-inspired humanist with geometric touches",
+  "worlds": [
+   "mid-century-travel-poster",
+   "scandinavian-functionalism"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-700",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap",
+   "css_family": "'Cabin', sans-serif"
+  },
+  "pairs_with": [
+   "hedvig-letters-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Cabin"
+ },
+ {
+  "id": "asap",
+  "name": "Asap",
+  "class": "humanist-sans",
+  "voice": "slightly rounded humanist made for screens; variable width axis",
+  "worlds": [
+   "pharmaceutical-clinical",
+   "wayfinding-aicher"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Asap:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Asap', sans-serif"
+  },
+  "pairs_with": [
+   "noto-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Asap"
+ },
+ {
+  "id": "overpass",
+  "name": "Overpass",
+  "class": "humanist-sans",
+  "voice": "US highway-sign (Highway Gothic) humanist; signage voice",
+  "worlds": [
+   "transit-signage",
+   "wayfinding-aicher",
+   "cartographic"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Overpass', sans-serif"
+  },
+  "pairs_with": [
+   "rowan"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Overpass"
+ },
+ {
+  "id": "hind",
+  "name": "Hind",
+  "class": "humanist-sans",
+  "voice": "Devanagari-first humanist with Latin companion; multilingual UI",
+  "worlds": [
+   "transit-signage",
+   "pharmaceutical-clinical"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300, 400, 500, 600, 700",
+  "variable": false,
+  "axes": [],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "devanagari",
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&display=swap",
+   "css_family": "'Hind', sans-serif"
+  },
+  "pairs_with": [
+   "noto-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Hind"
+ },
+ {
+  "id": "atkinson-hyperlegible-next",
+  "name": "Atkinson Hyperlegible Next",
+  "class": "humanist-sans",
+  "voice": "Braille Institute face built for low-vision legibility",
+  "worlds": [
+   "pharmaceutical-clinical",
+   "wayfinding-aicher",
+   "industrial-datasheet"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "200-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap",
+   "css_family": "'Atkinson Hyperlegible Next', sans-serif"
+  },
+  "pairs_with": [
+   "ranade"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next"
+ },
+ {
+  "id": "albert-sans",
+  "name": "Albert Sans",
+  "class": "humanist-sans",
+  "voice": "Scandinavian-flavoured geometric-humanist hybrid",
+  "worlds": [
+   "scandinavian-functionalism",
+   "dieter-rams-braun"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&display=swap",
+   "css_family": "'Albert Sans', sans-serif"
+  },
+  "pairs_with": [
+   "ranade"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Albert+Sans"
+ },
+ {
+  "id": "merriweather-sans",
+  "name": "Merriweather Sans",
+  "class": "humanist-sans",
+  "voice": "low-contrast humanist with a slightly condensed set, pairs with Merriweather",
+  "worlds": [
+   "editorial-newspaper",
+   "field-guide-naturalist"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "300-800",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic-ext",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&display=swap",
+   "css_family": "'Merriweather Sans', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [],
+  "decay": "slow",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Merriweather+Sans"
+ },
+ {
+  "id": "schibsted-grotesk",
+  "name": "Schibsted Grotesk",
+  "class": "humanist-sans",
+  "voice": "Nordic newspaper grotesk-humanist for dense news UI",
+  "worlds": [
+   "editorial-newspaper",
+   "newsprint-tabloid"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "400-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": true,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "latin",
+   "latin-ext"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&display=swap",
+   "css_family": "'Schibsted Grotesk', sans-serif"
+  },
+  "pairs_with": [
+   "pt-serif"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Schibsted+Grotesk"
+ },
+ {
+  "id": "commissioner",
+  "name": "Commissioner",
+  "class": "humanist-sans",
+  "voice": "variable humanist with flair/volume axes; municipal voice",
+  "worlds": [
+   "transit-signage",
+   "mid-century-corporate"
+  ],
+  "roles": [
+   "body",
+   "ui",
+   "display"
+  ],
+  "source": "google-fonts",
+  "license": "OFL-1.1",
+  "commercial_free": true,
+  "weights": "100-900",
+  "variable": true,
+  "axes": [
+   "wght"
+  ],
+  "italics": false,
+  "opsz": false,
+  "x_height": "large",
+  "scripts": [
+   "cyrillic",
+   "cyrillic-ext",
+   "greek",
+   "latin",
+   "latin-ext",
+   "vietnamese"
+  ],
+  "load": {
+   "type": "google-css",
+   "url": "https://fonts.googleapis.com/css2?family=Commissioner:wght@100..900&display=swap",
+   "css_family": "'Commissioner', sans-serif"
+  },
+  "pairs_with": [
+   "eb-garamond"
+  ],
+  "avoid_when": [],
+  "decay": "medium",
+  "second_order_default": false,
+  "confidence": "high",
+  "source_url": "https://fonts.google.com/specimen/Commissioner"
+ }
+]
