@@ -25,7 +25,7 @@ Exit codes: 0 written · 2 usage or malformed --date · 3 exact duplicate · 4 c
 HELP
 }
 
-WHAT=""; MECH=""; COST=""; FILE="PROGRESS.md"; DATE=""
+WHAT=""; MECH=""; COST=""; FILE="PROGRESS.md"; DATE=""; DATE_SET=0
 while [ $# -gt 0 ]; do
   case "$1" in
   --help | -h) usage; exit 0 ;;
@@ -33,7 +33,10 @@ while [ $# -gt 0 ]; do
   --mechanism) MECH=${2:-}; shift 2 ;;
   --cost) COST=${2:-}; shift 2 ;;
   --file) FILE=${2:-}; shift 2 ;;
-  --date) DATE=${2:-}; shift 2 ;;
+  --date)
+    DATE_SET=1
+    if [ $# -ge 2 ]; then DATE=$2; shift 2; else DATE=""; shift 1; fi
+    ;;
   *) printf 'lesson-record: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
@@ -44,7 +47,7 @@ fi
 case "$WHAT$MECH$COST" in *"
 "*) printf 'lesson-record: arguments must be single-line\n' >&2; exit 2 ;; esac
 
-if [ -z "$DATE" ]; then
+if [ "$DATE_SET" -eq 0 ]; then
   DATE=$(date -u +%Y-%m-%d)
 else
   case "$DATE" in
