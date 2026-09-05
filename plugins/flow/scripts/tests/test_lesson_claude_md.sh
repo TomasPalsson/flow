@@ -21,6 +21,20 @@ t_lesson_claude_md_B15_appends_with_marker() {
 	rm -rf "$d"
 }
 
+t_lesson_claude_md_B15b_no_trailing_newline_append() {
+	local d f expected
+	d=$(tmp_dir)
+	f="$d/CLAUDE.md"
+	printf 'line 0\nline 1' >"$f"
+	run_cmd "$SCRIPT" --file "$f" --line "new text"
+	assert_rc 0 "B15b: appending to a file without a trailing newline exits 0"
+	expected=$(printf 'line 0\nline 1\nnew text')
+	assert_eq "$(cat "$f")" "$expected" "B15b: existing content is untouched and the new line starts on its own line"
+	assert_eq "$(wc -l <"$f" | tr -d ' ')" "3" "B15b: the file has exactly 3 real lines, not merged into 2"
+	assert_contains "$OUT" "lines: 3/100" "B15b: stdout reports the true post-write line count, not wc -l on the input"
+	rm -rf "$d"
+}
+
 t_lesson_claude_md_B16_duplicate_refused() {
 	local d f
 	d=$(tmp_dir)
@@ -76,6 +90,36 @@ t_lesson_claude_md_B19_similar_reported() {
 	run_cmd "$SCRIPT" --file "$f" --line "Please run tests before pushing important changes"
 	assert_rc 0 "B19: a similar but not duplicate line exits 0"
 	assert_contains "$OUT" "similar: 1:" "B19: stdout reports the similar existing line"
+	rm -rf "$d"
+}
+
+t_lesson_claude_md_B19b_dissimilar_not_reported() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/CLAUDE.md"
+	printf '%s\n' \
+		"Keep the onboarding checklist updated every quarter." \
+		"Schedule regular backups for the production database." \
+		"Document API changes before every deployment cycle." >"$f"
+	# new line's 4+-letter words: before credentials database every incident
+	# major rotate (7 distinct); the best-matching existing line shares only
+	# "before" and "every" (2/7, well under 50%).
+	run_cmd "$SCRIPT" --file "$f" --line "Rotate database credentials before every major incident."
+	assert_rc 0 "B19b: a dissimilar line still exits 0"
+	assert_not_contains "$OUT" "similar:" "B19b: stdout does not report any existing line as similar"
+	rm -rf "$d"
+}
+
+t_lesson_claude_md_B19c_boundary_50pct_reported() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/CLAUDE.md"
+	printf 'The database schema includes several important fields.\n' >"$f"
+	# new line's 4+-letter words: database please review schema (4 distinct);
+	# the existing line shares exactly "database" and "schema" (2/4 = 50%).
+	run_cmd "$SCRIPT" --file "$f" --line "Please review database schema."
+	assert_rc 0 "B19c: a boundary-similar line still exits 0"
+	assert_contains "$OUT" "similar: 1:" "B19c: an exact-50%-shared-words line is reported as similar"
 	rm -rf "$d"
 }
 
