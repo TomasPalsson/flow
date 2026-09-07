@@ -147,6 +147,8 @@ ${C.accent}Commands:${C.reset}
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json]                                     Print the next command to run, from
                                                      deterministic repo state only
+  loop <subcommand> [options]                       Run a task until a deterministic
+                                                     verifier passes (flow loop --help)
   off [<dir>]                                       Turn the judging hooks off for <dir>
                                                      (default: cwd) and everything under it
   on [<dir>]                                        Turn them back on
@@ -587,6 +589,45 @@ function doctorProgressCheck(push) {
   }
 }
 
+// A contract whose iteration/max_iterations are non-numeric or whose verify
+// is empty is corrupt (K-B); doctor only reports it here, `flow loop`
+// itself is what renames it to loop.md.corrupt.
+function doctorLoopContractCorrupt(front) {
+  if (!/^\d+$/.test(String(front.iteration || '').trim())) return true;
+  if (!/^\d+$/.test(String(front.max_iterations || '').trim())) return true;
+  return !front.verify || String(front.verify).trim() === '';
+}
+
+// C006 K-L: project-scoped, like progress-md — reads the CURRENT repo's
+// .claude/loop/loop.md (process.cwd()), not $HOME.
+function doctorLoopCheck(push) {
+  const cwd = process.cwd();
+  if (!isGitRepo(cwd)) return;
+  const p = path.join(cwd, '.claude', 'loop', 'loop.md');
+  const raw = safeRead(p);
+  if (raw === null) return;
+  let front;
+  try {
+    ({ front } = require('./lib/loop.js').parseContract(raw));
+  } catch {
+    push('loop-contract', 'FAIL', `${p} does not parse`);
+    return;
+  }
+  if (doctorLoopContractCorrupt(front)) {
+    push('loop-contract', 'FAIL', `${p} is corrupt`);
+    return;
+  }
+  if (front.status === 'active') {
+    push(
+      'loop-contract',
+      'WARN',
+      `loop: active contract since ${front.started_at} (shape ${front.shape}, iteration ${front.iteration}/${front.max_iterations}) — flow loop status | flow loop stop`
+    );
+    return;
+  }
+  push('loop-contract', 'PASS', `${p} status=${front.status}`);
+}
+
 function doctorToolChecks(push) {
   const required = ['git', 'jq', 'node', 'python3'];
   for (const t of required) {
@@ -1012,6 +1053,7 @@ function buildDoctorChecks(dotfilesRoot) {
   run('flow-config-overrides', () => doctorHarnessJsonOverridesCheck(push));
   run('thresholds-referenced', () => doctorThresholdsReferencedCheck(push));
   run('progress-md', () => doctorProgressCheck(push));
+  run('loop-contract', () => doctorLoopCheck(push));
   run('tools', () => doctorToolChecks(push));
   run('skill-index-cost', () => doctorSkillIndexCostCheck(push));
   run('skills-lint', () => doctorSkillsLintCheck(push));
@@ -1191,6 +1233,25 @@ ${C.accent}Options:${C.reset}
 
 const VALID_STACK_ARGS = ['auto', 'node', 'python', 'rust', 'go'];
 
+// K-A: `.claude/loop/*` (ignored) and `!.claude/loop/LEARNINGS.md` (kept) —
+// appended once, idempotently. `flow init` never creates `.claude/loop/`
+// itself; `flow loop init` does that.
+function planLoopGitignore(cwd) {
+  const abs = path.join(cwd, '.gitignore');
+  const existing = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : '';
+  const have = (line) => existing.split('\n').some((l) => l.trim() === line);
+  let addition = '';
+  if (!have('.claude/loop/*')) addition += '.claude/loop/*\n';
+  if (!have('!.claude/loop/LEARNINGS.md')) addition += '!.claude/loop/LEARNINGS.md\n';
+  return { abs, existing, addition };
+}
+
+function writeLoopGitignore(plan) {
+  if (!plan.addition) return;
+  const sep = plan.existing && !plan.existing.endsWith('\n') ? '\n' : '';
+  fs.writeFileSync(plan.abs, plan.existing + sep + plan.addition);
+}
+
 function cmdInit(argv) {
   const dryRun = argv.includes('--dry-run');
   const force = argv.includes('--force');
@@ -1262,13 +1323,22 @@ function cmdInit(argv) {
     });
   }
 
+  const loopGitignore = planLoopGitignore(cwd);
+  actions.push({
+    path: '.gitignore',
+    willWrite: Boolean(loopGitignore.addition),
+    reason: loopGitignore.addition ? 'append loop ignore lines' : 'already present, skip',
+    content: null,
+  });
+
   if (!dryRun) {
     for (const a of actions) {
-      if (!a.willWrite) continue;
+      if (!a.willWrite || a.path === '.gitignore') continue;
       const abs = path.join(cwd, a.path);
       fs.mkdirSync(path.dirname(abs), { recursive: true });
       fs.writeFileSync(abs, a.content);
     }
+    writeLoopGitignore(loopGitignore);
   }
 
   const label = dryRun ? 'WOULD WRITE' : 'WROTE';
@@ -2011,6 +2081,22 @@ function gitDefaultBranch(dir) {
   return null;
 }
 
+// K-L: null unless `.claude/loop/loop.md` at the git toplevel is active, in
+// which case the loop's shape picks the resume command.
+function computeNextLoopActive(toplevel, branch, dirty) {
+  const loopRaw = safeRead(path.join(toplevel, '.claude', 'loop', 'loop.md'));
+  if (loopRaw === null) return null;
+  let loopFront = null;
+  try {
+    ({ front: loopFront } = require('./lib/loop.js').parseContract(loopRaw));
+  } catch {
+    loopFront = null;
+  }
+  if (!loopFront || loopFront.status !== 'active') return null;
+  const next = loopFront.shape === 'fresh' ? 'flow loop run' : 'flow loop status';
+  return { next, why: null, state: { gitRepo: true, branch, dirty, source: 'loop-active' } };
+}
+
 // computeNext(cwd) -> { next, why (string|null), state }. Pure decision
 // logic, no printing — cmdNext formats it for --json or plain-text output.
 function computeNext(cwd) {
@@ -2021,6 +2107,11 @@ function computeNext(cwd) {
   const branch = gitBranch(cwd);
   const dirty = gitDirty(cwd);
   const toplevel = gitToplevel(cwd) || cwd;
+
+  // K-L: an active loop contract wins over the PROGRESS.md resume line —
+  // one early branch, evaluated first.
+  const loopNext = computeNextLoopActive(toplevel, branch, dirty);
+  if (loopNext) return loopNext;
 
   const progressPath = path.join(cwd, 'PROGRESS.md');
   const resume = fs.existsSync(progressPath) ? readProgressResume(progressPath) : null;
@@ -2204,7 +2295,9 @@ function main() {
 
   const rest = argv.slice(1);
 
-  if (rest.includes('--help') || rest.includes('-h')) {
+  // `loop` owns its own --help / <subcommand> --help handling (K-C); never
+  // route it through the generic top-help interception below.
+  if (cmd !== 'loop' && (rest.includes('--help') || rest.includes('-h'))) {
     if (cmd === 'init') {
       printInitHelp();
     } else if (cmd === 'install') {
@@ -2223,6 +2316,7 @@ function main() {
   else if (cmd === 'check') process.exit(cmdCheck(rest));
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
   else if (cmd === 'next') process.exit(cmdNext(rest));
+  else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
   else {
     stderr.write(`${C.error}flow: unknown command '${cmd}'${C.reset}\n`);
