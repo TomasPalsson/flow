@@ -138,7 +138,7 @@ function runIteration(toplevel, claudePath, env, flags, iterNum, prompt, errorSt
   return streak;
 }
 
-function runLoop(toplevel, claudePath, env, flags) {
+function runDriver(toplevel, claudePath, env, flags) {
   let errorStreak = 0;
   for (;;) {
     const result = tick(toplevel, { session: '', hook: false, env, now: Date.now() });
@@ -197,7 +197,7 @@ function cmdRun(argv, toplevel, env) {
     return 2;
   }
 
-  runLoop(toplevel, claudePath, env, flags);
+  runDriver(toplevel, claudePath, env, flags);
 
   const final = readContract(toplevel);
   const status = final ? final.front.status : 'stopped';
