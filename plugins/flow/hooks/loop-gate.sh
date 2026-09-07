@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# loop-gate.sh — Stop hook. Reads .claude/loop/loop.md to decide whether an
-# active loop contract exists; when it does, passes `flow loop tick --hook`
-# through verbatim. All loop logic (block/allow, iteration caps, shape)
-# lives in `flow loop tick` — this hook decides nothing itself. See spec
-# 006 K-K.
+# loop-gate.sh — Stop hook. See spec 006 K-K.
+# Reads: .claude/loop/loop.md (fast path: no contract, no spawn).
+# Prints: `flow loop tick --hook --session <id>`'s stdout, verbatim.
+# All loop logic (block/allow, iteration caps, shape) lives in `flow
+# loop tick`; this hook decides nothing itself.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
