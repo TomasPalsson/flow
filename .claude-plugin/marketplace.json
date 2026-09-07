@@ -6,8 +6,8 @@
     {
       "name": "flow",
       "source": "./plugins/flow",
-      "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, and the flow/feature/qa/audit skill set.",
-      "version": "0.1.0"
+      "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the flow/feature/qa/audit skill set, and /flow:loop (verifier-decided unattended loops).",
+      "version": "0.2.0"
     },
     {
       "name": "design",
