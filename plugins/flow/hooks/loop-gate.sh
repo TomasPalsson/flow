@@ -10,7 +10,12 @@ HERE=$(cd "$(dirname "$0")" && pwd -P)
 . "$HERE/lib/hookout.sh"
 hook_skip_if_off
 
+# The contract lives at the git toplevel (K-A); the session may have started
+# in a subdirectory, so resolve the toplevel before the fast path.
 dir=$(hook_project_dir)
+if have git; then
+	top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) && [ -n "$top" ] && dir=$top
+fi
 [ -f "$dir/.claude/loop/loop.md" ] || exit 0
 
 sid=$(hook_field .session_id)
