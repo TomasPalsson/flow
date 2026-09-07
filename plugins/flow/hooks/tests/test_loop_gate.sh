@@ -119,3 +119,33 @@ sys.exit(0 if found else 1)
 		fi
 	fi
 }
+
+# Adversary finding (spec 006 review): CLAUDE_PROJECT_DIR may be a
+# subdirectory of the repo; the contract lives at the git toplevel (K-A), so
+# the fast path must resolve the toplevel, not the session dir.
+t_loop_gate_subdir_session_resolves_toplevel() {
+	local repo bindir fbin
+	repo=$(tmp_repo)
+	mkdir -p "$repo/.claude/loop" "$repo/pkg/app"
+	: >"$repo/.claude/loop/loop.md"
+	bindir=$(tmp_dir)
+	fbin=$(_fake_flow_bin "$bindir" 'printf "%s\n" "{\"decision\":\"block\",\"reason\":\"sub\"}"; exit 0')
+	run_hook "$LOOP_GATE" '{"session_id":"s1","hook_event_name":"Stop"}' CLAUDE_PROJECT_DIR="$repo/pkg/app" CC_FLOW_BIN="$fbin"
+	assert_rc 0 "t_loop_gate_subdir_session_resolves_toplevel rc"
+	assert_contains "$OUT" '"reason":"sub"' "t_loop_gate_subdir_session_resolves_toplevel block passed through"
+	rm -rf "$repo" "$bindir"
+}
+
+t_loop_gate_child_stderr_suppressed() {
+	local repo bindir fbin
+	repo=$(tmp_repo)
+	mkdir -p "$repo/.claude/loop"
+	: >"$repo/.claude/loop/loop.md"
+	bindir=$(tmp_dir)
+	fbin=$(_fake_flow_bin "$bindir" 'echo "LEAK" >&2; exit 1')
+	run_hook "$LOOP_GATE" '{"session_id":"s1","hook_event_name":"Stop"}' CLAUDE_PROJECT_DIR="$repo" CC_FLOW_BIN="$fbin"
+	assert_rc 0 "t_loop_gate_child_stderr_suppressed rc"
+	assert_eq "$OUT" "" "t_loop_gate_child_stderr_suppressed no-stdout"
+	assert_not_contains "$ERR" "LEAK" "t_loop_gate_child_stderr_suppressed no-stderr"
+	rm -rf "$repo" "$bindir"
+}
