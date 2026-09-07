@@ -1,9 +1,12 @@
 # Progress
 
 ## Now
-- resume: `flow next` — `vary` design skill committed (617990d) and merged with origin/main; decide whether `.skill-forge/` (1.7 MB research workspace) is gitignored or kept
+- resume: `flow next` — loop engineering landed on this branch (spec 006; 19 commits since 093f969): merge to main, then dogfood `/flow:loop` on one real backlog; decide whether `.skill-forge/` (research workspaces: design-v2, loop) is gitignored or kept
 
 ## Next
+- Dogfood `/flow:loop --fresh` overnight on a real project (candidates: any of the ~20 `.claude/` projects under ~/Desktop/Projects; none has run `flow init` yet) and tune the defaults (30 iterations / 480 min / stall 3) from the log
+- Merge order with the sibling worktrees: this branch touches `hooks.json` (one Stop entry), `bin/flow` (dispatch/doctor/next/init deltas) and `skills/fix`; worktree A (harness audit + spec 004 flow v2) rewrites `hookout.sh` and plans `flow goal` — build `flow goal` on `flow loop run` rather than a second driver
+- Optional: `checkwash` as an opt-in verifier prefix in the loop skill once it has a held-out false-positive number
 - Dogfood `/design:vary` on one real surface (a persuade page and an operate page); tune roll.mjs tunables (GLOBAL_WINDOW 8 / PROJECT_WINDOW 3 / ticket weights) from what repeats
 - Decide the fate of the old `design` skill (plugins/design/skills/design): retire, or keep as a fallback
 - Corroborate the 7 `confidence: verify` world cards (japanese-editorial, italian-rationalist, apothecary-label, museum-gallery, sports-broadcast, editorial-newspaper, japanese-consumer-electronics-80s) or drop them
@@ -11,6 +14,7 @@
 - Optional: description-triggering optimisation for `vary` via skill-creator `run_loop.py` if available
 
 ## Done
+- 2026-09-07: loop engineering — research 12 (10-angle sweep + 2 source-level dives, 40 claims confirmed), spec 006, `flow loop` CLI (`bin/lib/loop/`, 7 subcommands, K-A..K-L), `loop-gate.sh` Stop hook, `/flow:loop` skill (judge 110/120 A), fix skill off ralph-loop, docs; two headless probes ($0.79 and $0.80, one iteration each) — 130b2f2 and earlier
 - 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); plugins/design/skills/vary — 617990d
 - 2026-09-05: fix(tutorial) --sandbox path resolution — 7580745
 - 2026-09-05: feat(tutorial) Slice 2 runner, lessons 1-3 — 7df4be7
@@ -18,6 +22,9 @@
 - Done before 2026-09-05: 6 items (rename harness→flow, /lesson, install merge, skills-lint perf, doctor hang fix)
 
 ## Rulings
+- Ruling: a loop exits on a verifier command the harness runs, never on a model-emitted phrase — `flow loop check` + K-F tamper veto + `BLOCKED.md`, 115 `t_loop_*` tests — if wrong, a goal with no runnable check must go through `/goal` or a human gate instead of a loop
+- Ruling: the in-session loop shape is capped at Claude Code's 8 consecutive Stop-hook blocks and says so; anything longer is `flow loop run` (fresh `claude -p` per iteration) — verified verbatim in code.claude.com/docs/en/hooks — if wrong, users see a block-cap warning at iteration 8 and re-arm as fresh
+- Ruling: workflow/subagent briefs are passed as ABSOLUTE paths when working in a worktree — the build-slices run resolved `.claude/slices/1-brief.md` against the main checkout and a developer read a stale brief for another feature — if wrong, one wasted agent run
 - Ruling: post-bash-write blamed gitignored container logs on the command — hook post-bash-write.sh gitignore filter (fail closed on ignore-file edits) + 4 tests — a false skip hides an oversized file written into an already-gitignored dir; a false keep is one noisy block
 - Ruling: design direction is ASSIGNED by scripts/roll.mjs, never chosen by the model from a menu — measured argmax collapse (27/30 reverts) and ban-list rebound make prose fixes fail — if wrong, the skill produces coherent but occasionally ill-fitting looks; the user re-rolls or takes `--canon`
 - Ruling: `vary` keeps `user-invocable`/`argument-hint` frontmatter despite the judge flagging them as non-spec — every installed skill in this plugin uses them and the harness honours them — if wrong, two ignored fields
