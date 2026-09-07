@@ -9,7 +9,7 @@ const { readContract, writeContract } = require('./contract.js');
 const { runVerify } = require('./verify.js');
 const { countTestFiles } = require('./tamper.js');
 const { appendLog } = require('./log.js');
-const { sha1, slugify } = require('./util.js');
+const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
 const { cmdStop } = require('./status.js');
 
 const DEFAULT_PROMPT = [
@@ -157,6 +157,7 @@ function cmdInit(argv, toplevel, env) {
   const front = buildInitFront(toplevel, args, base);
   const body = initBody(args, base);
   writeContract(toplevel, front, body);
+  ensureLoopGitignore(toplevel);
 
   const learningsPath = path.join(toplevel, '.claude', 'loop', 'LEARNINGS.md');
   if (!fs.existsSync(learningsPath)) fs.writeFileSync(learningsPath, '## Codebase patterns\n\n');

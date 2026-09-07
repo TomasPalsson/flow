@@ -9,7 +9,7 @@ const { readContract, writeContract } = require('./contract.js');
 const { tick } = require('./tick.js');
 const { appendLog } = require('./log.js');
 const { cmdStatus } = require('./status.js');
-const { toInt, toFloat, headSha, gitDirty } = require('./util.js');
+const { toInt, toFloat, headSha, gitDirty, fmtCost } = require('./util.js');
 
 function resolveOnPath(name, env) {
   const pathVar = (env && env.PATH) || '';
@@ -97,13 +97,20 @@ function spawnChild(claudePath, front, prompt, toplevel, env) {
   return { payload: payload || { raw_stdout: r.stdout, raw_stderr: r.stderr, status: r.status }, isError };
 }
 
-function checkpointIfDirty(toplevel, front, iterNum, noCheckpoint) {
+// Loop state never rides a checkpoint commit (K-A); only LEARNINGS.md may.
+const CHECKPOINT_EXCLUDES = [
+  ':(exclude).claude/loop/loop.md', ':(exclude).claude/loop/loop.log',
+  ':(exclude).claude/loop/verify.last', ':(exclude).claude/loop/iterations',
+  ':(exclude).claude/loop/BLOCKED.md', ':(exclude).claude/loop/loop.md.corrupt',
+];
+
+function checkpointIfDirty(toplevel, front, iterNum, noCheckpoint, durSec) {
   if (noCheckpoint || !gitDirty(toplevel)) return;
-  spawnSync('git', ['-C', toplevel, 'add', '-A']);
+  spawnSync('git', ['-C', toplevel, 'add', '-A', '--', '.'].concat(CHECKPOINT_EXCLUDES));
   spawnSync('git', ['-C', toplevel, 'commit', '-q', '-m', `loop(${front.slug}) iteration ${iterNum}: checkpoint`]);
   appendLog(toplevel, {
     event: 'checkpoint', iter: iterNum, headBefore: front.base, headAfter: headSha(toplevel),
-    verify: '-', sig: '-', changed: 1, cost: front.cost_usd || '-', dur: '-', note: '',
+    verify: '-', sig: '-', changed: 1, cost: fmtCost(front.cost_usd), dur: durSec, note: '',
   });
 }
 
@@ -113,17 +120,18 @@ function runIteration(toplevel, claudePath, env, flags, iterNum, prompt, errorSt
   const spawned = spawnChild(claudePath, readContract(toplevel).front, prompt, toplevel, env);
   saveIterationJson(toplevel, iterNum, spawned.payload);
 
+  const durSec = spawned.payload && typeof spawned.payload.duration_ms === 'number' ? Math.round(spawned.payload.duration_ms / 1000) : '-';
   const contract = readContract(toplevel);
   const front = contract.front;
   if (spawned.payload && typeof spawned.payload.total_cost_usd === 'number') {
-    front.cost_usd = String(toFloat(front.cost_usd) + spawned.payload.total_cost_usd);
+    front.cost_usd = fmtCost(toFloat(front.cost_usd) + spawned.payload.total_cost_usd, 6);
   }
   let streak = errorStreak;
   if (spawned.isError) {
     streak += 1;
     appendLog(toplevel, {
       event: 'error', iter: iterNum, headBefore: front.base, headAfter: headSha(toplevel),
-      verify: '-', sig: '-', changed: 0, cost: front.cost_usd, dur: '-', note: 'claude -p error',
+      verify: '-', sig: '-', changed: 0, cost: fmtCost(front.cost_usd), dur: durSec, note: 'claude -p error',
     });
     if (streak >= 3) {
       front.status = 'stopped';
@@ -134,7 +142,7 @@ function runIteration(toplevel, claudePath, env, flags, iterNum, prompt, errorSt
     streak = 0;
   }
   writeContract(toplevel, front, contract.body);
-  if (front.status === 'active') checkpointIfDirty(toplevel, front, iterNum, flags.noCheckpoint);
+  if (front.status === 'active') checkpointIfDirty(toplevel, front, iterNum, flags.noCheckpoint, durSec);
   return streak;
 }
 

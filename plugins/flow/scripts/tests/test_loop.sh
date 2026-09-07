@@ -417,7 +417,7 @@ t_loop_run_fake_claude_ki() {
 	assert_contains "$OUT" "finished: verifier passed" "t_loop_run_fake_claude_ki finished"
 
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "status: done" "t_loop_run_fake_claude_ki status-done"
-	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "cost_usd: 0.7875" "t_loop_run_fake_claude_ki cost"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "cost_usd: 0.787494" "t_loop_run_fake_claude_ki cost"
 	assert_contains "$(cd "$proj" && git log --oneline)" "checkpoint" "t_loop_run_fake_claude_ki checkpoint-commit"
 
 	rm -rf "$home" "$proj" "$fakebin"

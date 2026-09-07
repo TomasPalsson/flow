@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { readContract, writeContract } = require('./contract.js');
 const { appendLog, lastLogLines } = require('./log.js');
-const { headSha } = require('./util.js');
+const { headSha, fmtCost } = require('./util.js');
 
 function verifyTail(toplevel, n) {
   let raw = '';
@@ -62,7 +62,7 @@ function cmdStop(argv, toplevel) {
   writeContract(toplevel, front, contract.body);
   appendLog(toplevel, {
     event: 'stop', iter: front.iteration, headBefore: front.base, headAfter: headSha(toplevel),
-    verify: '-', sig: '-', changed: 0, cost: front.cost_usd || '-', dur: '-', note: reason,
+    verify: '-', sig: '-', changed: 0, cost: fmtCost(front.cost_usd), dur: '-', note: reason,
   });
   process.stdout.write(`flow loop stop: stopped (${reason})\n`);
   return 0;

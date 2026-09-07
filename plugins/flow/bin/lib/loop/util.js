@@ -16,6 +16,33 @@ function toFloat(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+// fmtCost — a dollar amount as a short decimal (≤ 4 dp, no float noise);
+// '-' stays '-'. K-E log lines and the contract's cost_usd use this.
+function fmtCost(v, dp) {
+  if (v === '-' || v === undefined || v === null || v === '') return '-';
+  const n = parseFloat(v);
+  if (!Number.isFinite(n)) return '-';
+  return String(Number(n.toFixed(dp === undefined ? 4 : dp)));
+}
+
+// ensureLoopGitignore — K-A: `.claude/loop/*` ignored except LEARNINGS.md.
+// Idempotent; appends only the missing lines. `flow init` writes the same
+// two lines; `flow loop init` calls this so a repo that never ran `flow
+// init` does not sweep loop state into its checkpoint commits.
+function ensureLoopGitignore(toplevel) {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const abs = path.join(toplevel, '.gitignore');
+  const existing = fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : '';
+  const have = (line) => existing.split('\n').some((l) => l.trim() === line);
+  let addition = '';
+  if (!have('.claude/loop/*')) addition += '.claude/loop/*\n';
+  if (!have('!.claude/loop/LEARNINGS.md')) addition += '!.claude/loop/LEARNINGS.md\n';
+  if (!addition) return;
+  const sep = existing && !existing.endsWith('\n') ? '\n' : '';
+  fs.writeFileSync(abs, existing + sep + addition);
+}
+
 function sha1(s) {
   return crypto.createHash('sha1').update(String(s)).digest('hex');
 }
@@ -54,4 +81,4 @@ function humanDuration(startIso, endIso) {
   return `${Math.floor(sec / 60)}m${sec % 60}s`;
 }
 
-module.exports = { toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, headSha, gitDirty, humanDuration };
+module.exports = { toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, headSha, gitDirty, humanDuration, fmtCost, ensureLoopGitignore };

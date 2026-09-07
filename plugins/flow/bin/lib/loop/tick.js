@@ -11,7 +11,7 @@ const { tamperCheck } = require('./tamper.js');
 const { fingerprint } = require('./fingerprint.js');
 const { appendLog } = require('./log.js');
 const { continuationReason, finishReason } = require('./reasons.js');
-const { toInt, toFloat, headSha } = require('./util.js');
+const { toInt, toFloat, headSha, fmtCost } = require('./util.js');
 
 function terminalFinish(toplevel, front, body, now) {
   if (!front.finished_at) front.finished_at = new Date(now).toISOString();
@@ -72,7 +72,7 @@ function logEvent(toplevel, front, event, verify, changed, note) {
     verify: verify ? verify.rc : '-',
     sig: verify ? verify.sig : '-',
     changed: changed ? 1 : 0,
-    cost: front.cost_usd || '-',
+    cost: fmtCost(front.cost_usd),
     dur: '-',
     note,
   });
