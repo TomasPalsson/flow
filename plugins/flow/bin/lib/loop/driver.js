@@ -157,7 +157,8 @@ function runDriver(toplevel, claudePath, env, flags) {
     }
     process.stdout.write(`iter ${result.iteration}: continue\n`);
     errorStreak = runIteration(toplevel, claudePath, env, flags, result.iteration, result.reason, errorStreak);
-    if (readContract(toplevel).front.status === 'stopped') break;
+    // An error-streak stop is delivered by the next tick as a `finish`
+    // (K-H rule 4) — never break past it, or the finishing text is lost.
   }
 }
 

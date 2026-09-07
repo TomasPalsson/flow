@@ -25,7 +25,9 @@ function terminalFinish(toplevel, front, body, now) {
 function tickAllowChecks(front, opts) {
   if (front.status !== 'active' && String(front.finish_reported) === '1') return true;
   if (front.shape === 'fresh' && opts.hook) return true;
-  if (front.shape === 'session' && front.session_id && opts.session && front.session_id !== opts.session) return true;
+  // Rule 3: a contract bound to a session yields to any other session — and
+  // to an unknown one (empty --session): cannot judge → allow.
+  if (front.shape === 'session' && front.session_id && (opts.session || '') !== front.session_id) return true;
   return false;
 }
 
