@@ -134,6 +134,12 @@
           },
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/loop-gate.sh",
+            "timeout": 660,
+            "statusMessage": "flow: loop tick…"
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
