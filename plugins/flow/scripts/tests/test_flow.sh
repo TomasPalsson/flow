@@ -675,3 +675,20 @@ t_flow_scripts_are_well_formed() {
 		assert_rc 0 "flow: $s passes bash -n"
 	done
 }
+
+# --reuse: a /flow:prep directory keeps its number; nothing new is created
+t_flow_new_spec_reuse_prep_dir() {
+	local repo
+	repo=$(tmp_repo)
+	mkdir -p "$repo/.specs/003-entry-tagging"
+	printf '# Prep\n' >"$repo/.specs/003-entry-tagging/PREP.md"
+	run_cmd bash -c 'cd "$1" && "$2" "Entry tagging" --reuse .specs/003-entry-tagging --no-branch' _ "$repo" "$SCAN_DIR/new-spec"
+	assert_rc 0 "flow: new-spec --reuse rc0"
+	assert_contains "$OUT" '"number":"003"' "flow: new-spec --reuse keeps the number"
+	assert_contains "$OUT" '"slug":"entry-tagging"' "flow: new-spec --reuse reads the slug from the dir"
+	assert_contains "$OUT" '"spec_dir":".specs/003-entry-tagging"' "flow: new-spec --reuse spec_dir is the prep dir"
+	assert_eq "$(ls "$repo/.specs" | wc -l | tr -d ' ')" "1" "flow: new-spec --reuse allocates no new directory"
+	run_cmd bash -c 'cd "$1" && "$2" "X" --reuse .specs/nope --no-branch' _ "$repo" "$SCAN_DIR/new-spec"
+	assert_rc 1 "flow: new-spec --reuse on a missing dir exits 1"
+	rm -rf "$repo"
+}

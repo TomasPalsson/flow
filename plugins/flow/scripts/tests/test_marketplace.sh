@@ -34,6 +34,7 @@ flow claude-improver
 flow find-skills
 flow prompt-engineer
 flow better-plan
+flow prep
 flow grill-me
 flow grill-with-docs
 flow brainstorm
@@ -148,7 +149,10 @@ t_mkt_no_skill_in_two_bundles() {
 		return 0
 	fi
 	# a symlinked plugin dir is an alias of another bundle, not a second bundle
-	names=$(cd "$REPO/plugins" && for d in */skills/*/; do [ -L "${d%%/*}" ] && continue; basename "$d"; done | sort)
+	names=$(cd "$REPO/plugins" && for d in */skills/*/; do
+		[ -L "${d%%/*}" ] && continue
+		basename "$d"
+	done | sort)
 	dup=$(printf '%s\n' "$names" | uniq -d)
 	assert_eq "$dup" "" "t_mkt_no_skill_in_two_bundles no-duplicate-skill-names"
 }

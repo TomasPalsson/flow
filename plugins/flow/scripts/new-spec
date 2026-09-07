@@ -5,7 +5,7 @@ set -u
 
 usage() {
   cat <<'EOF'
-Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--worktree] [--json]
+Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--worktree] [--reuse <dir>/NNN-slug] [--json]
 
 Computes the next 3-digit spec number from existing <dir>/NNN-* entries
 (001 when none exist), slugifies <title> to lowercase ASCII [a-z0-9-]
@@ -15,6 +15,10 @@ and every local/remote branch's committed <dir>. Inside zellij
 (ZELLIJ_PANE_ID set), the pane is renamed to NNN-slug; failures are
 ignored.
 
+With --reuse <path>, no number is allocated and nothing is created:
+<path> must be an existing <dir>/NNN-slug (a /flow:prep directory holding
+PREP.md); NNN and slug are read from its name and everything else runs
+as usual, so spec.md lands beside PREP.md.
 Unless --no-branch is given, creates and checks out branch
 <prefix><slug> from the current HEAD. With --worktree, instead creates
 the branch in a sibling worktree at
@@ -127,6 +131,7 @@ DIR=".specs"
 PREFIX="flow/"
 NO_BRANCH=0
 WORKTREE=0
+REUSE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -149,6 +154,10 @@ while [ $# -gt 0 ]; do
   --worktree)
     WORKTREE=1
     shift
+    ;;
+  --reuse)
+    REUSE=$2
+    shift 2
     ;;
   --json)
     shift
@@ -185,13 +194,30 @@ if [ "$NO_BRANCH" -eq 0 ]; then
   fi
 fi
 
-NUMBER=$(next_number "$DIR")
-SLUG=$(slugify "$TITLE")
-SPEC_DIR="$DIR/$NUMBER-$SLUG"
-
-if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
-  printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
-  exit 1
+if [ -n "$REUSE" ]; then
+  if [ ! -d "$REUSE" ]; then
+    printf 'new-spec: --reuse %s is not a directory\n' "$REUSE" >&2
+    exit 1
+  fi
+  SPEC_DIR=${REUSE%/}
+  base=$(basename "$SPEC_DIR")
+  case "$base" in
+  [0-9][0-9][0-9]-?*) ;;
+  *)
+    printf 'new-spec: --reuse expects <dir>/NNN-slug, got %s\n' "$base" >&2
+    exit 1
+    ;;
+  esac
+  NUMBER=${base%%-*}
+  SLUG=${base#*-}
+else
+  NUMBER=$(next_number "$DIR")
+  SLUG=$(slugify "$TITLE")
+  SPEC_DIR="$DIR/$NUMBER-$SLUG"
+  if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
+    printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
+    exit 1
+  fi
 fi
 
 if [ -n "${ZELLIJ_PANE_ID:-}" ] && command -v zellij >/dev/null 2>&1; then

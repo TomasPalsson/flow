@@ -24,7 +24,7 @@ plugins/flow/
                                   overkill, pr-reviewer, claude-md, skill-forge, skill-improver,
                                   skill-judge, claude-improver, find-skills, prompt-engineer,
                                   better-plan, grill-me, grill-with-docs, brainstorm,
-                                  develop-idea, scrutinize-idea
+                                  develop-idea, scrutinize-idea, prep
 ```
 
 `shared/` is reference material and scripts consumed by other skills (`shared/scripts/`,

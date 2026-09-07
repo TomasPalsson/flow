@@ -2054,7 +2054,7 @@ function gitPushed(dir) {
 }
 
 // findSpecDirForBranch: for a `flow/<slug>` branch, the `.specs/NNN-<slug>`
-// entry that new-spec created for it (relative path), or null.
+// entry holding a spec.md (relative path), or null.
 function findSpecDirForBranch(cwd, branch) {
   const slug = branch.replace(/^flow\//, '');
   const specsDir = path.join(cwd, '.specs');
@@ -2064,7 +2064,9 @@ function findSpecDirForBranch(cwd, branch) {
   } catch {
     return null;
   }
-  const hit = entries.find((e) => /^\d{3}-/.test(e) && e.slice(4) === slug);
+  // A dir holding only PREP.md (prep ran, spec not written) is not a spec.
+  const hit = entries.find((e) => /^\d{3}-/.test(e) && e.slice(4) === slug
+    && fs.existsSync(path.join(specsDir, e, 'spec.md')));
   return hit ? path.join('.specs', hit) : null;
 }
 
@@ -2097,6 +2099,100 @@ function computeNextLoopActive(toplevel, branch, dirty) {
   return { next, why: null, state: { gitRepo: true, branch, dirty, source: 'loop-active' } };
 }
 
+// findPrepWithoutSpec(cwd, branch): every `.specs/NNN-*` holding a PREP.md
+// with no sibling spec.md is a prep waiting on its spec
+// (docs/research/13-flow-prep-2026-09-07.md §5). Prefers the dir whose slug
+// matches a `flow/<slug>` branch, else the highest number. Returns
+// { dir, status, asked, budget, count } or null. Callers consult it only
+// after every branch/dirty/shipped check, so a stale prep never outranks
+// real state.
+function findPrepWithoutSpec(cwd, branch) {
+  const specsDir = path.join(cwd, '.specs');
+  let entries;
+  try {
+    entries = fs.readdirSync(specsDir).filter((e) => /^\d{3}-/.test(e)).sort();
+  } catch {
+    return null;
+  }
+  const hits = entries.filter((e) => fs.existsSync(path.join(specsDir, e, 'PREP.md'))
+    && !fs.existsSync(path.join(specsDir, e, 'spec.md')));
+  if (hits.length === 0) return null;
+  const slug = branch.replace(/^flow\//, '');
+  const pick = hits.find((e) => e.slice(4) === slug) || hits[hits.length - 1];
+  const raw = safeRead(path.join(specsDir, pick, 'PREP.md')) || '';
+  const statusMatch = raw.match(/Status:\s*([^·\n]+)/);
+  const qMatch = raw.match(/Questions:\s*(\d+)\s+of\s+(\d+)/);
+  return {
+    dir: path.join('.specs', pick),
+    status: statusMatch ? statusMatch[1].replace(/\s+-\s.*$/, '').trim() : '',
+    asked: qMatch ? qMatch[1] : null,
+    budget: qMatch ? qMatch[2] : null,
+    count: hits.length,
+  };
+}
+
+// prepNext(cwd, branch, dirty) -> a computeNext result for a prep waiting on
+// its spec, or null when there is none (or its status is "done in chat").
+function prepNext(cwd, branch, dirty) {
+  const prep = findPrepWithoutSpec(cwd, branch);
+  if (!prep) return null;
+  const more = prep.count > 1 ? ` (${prep.count} preps without a spec; newest shown)` : '';
+  if (/^ready for spec/.test(prep.status)) {
+    return {
+      next: '/flow:flow-spec',
+      why: `${prep.dir}/PREP.md is ready for spec, no spec.md yet${more}`,
+      state: { gitRepo: true, branch, dirty, source: 'prep-ready', prepDir: prep.dir },
+    };
+  }
+  if (/^interviewing/.test(prep.status)) {
+    return {
+      next: '/flow:prep',
+      why: `${prep.dir}/PREP.md: interview ${prep.asked} of ${prep.budget} answered${more}`,
+      state: { gitRepo: true, branch, dirty, source: 'prep-interviewing', prepDir: prep.dir },
+    };
+  }
+  return null;
+}
+
+// flowBranchNext(cwd, branch, dirty): on a `flow/<slug>` branch with no
+// flow.json and no plan — the branch's spec dir decides what is next.
+function flowBranchNext(cwd, branch, dirty) {
+
+  // A committed .specs/NNN-<slug> for this branch means the flow already
+  // ran and its run state was cleaned up after the PR (step 6) — never
+  // send the user back to "write a spec" for a shipped flow.
+  const specDir = findSpecDirForBranch(cwd, branch);
+  if (specDir && dirty) {
+    return {
+      next: '/wrap then /ship',
+      why: `${specDir} is committed on ${branch}; tree is dirty`,
+      state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped-dirty', specDir },
+    };
+  }
+  if (specDir && gitPushed(cwd)) {
+    const defaultBranch = gitDefaultBranch(cwd) || 'main';
+    return {
+      next: 'gh pr view --web',
+      why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
+      state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped', specDir },
+    };
+  }
+  if (specDir) {
+    return {
+      next: '/ship',
+      why: `${specDir} is committed on ${branch} but not pushed`,
+      state: { gitRepo: true, branch, dirty, source: 'flow-branch-unpushed', specDir },
+    };
+  }
+  const prepOnBranch = prepNext(cwd, branch, dirty);
+  if (prepOnBranch) return prepOnBranch;
+  return {
+    next: '/flow <describe the feature>',
+    why: 'spec gate is active on this branch',
+    state: { gitRepo: true, branch, dirty, source: 'flow-branch-no-plan' },
+  };
+}
+
 // computeNext(cwd) -> { next, why (string|null), state }. Pure decision
 // logic, no printing — cmdNext formats it for --json or plain-text output.
 function computeNext(cwd) {
@@ -2124,6 +2220,7 @@ function computeNext(cwd) {
   }
 
   const flow = readFlowJson(cwd);
+
   const planPath = path.join(cwd, '.claude', 'feature-plan.local.md');
   const planExists = fs.existsSync(planPath);
 
@@ -2189,38 +2286,13 @@ function computeNext(cwd) {
   }
 
   if (!flow && /^flow\//.test(branch) && !planExists) {
-    // A committed .specs/NNN-<slug> for this branch means the flow already
-    // ran and its run state was cleaned up after the PR (step 6) — never
-    // send the user back to "write a spec" for a shipped flow.
-    const specDir = findSpecDirForBranch(cwd, branch);
-    if (specDir && dirty) {
-      return {
-        next: '/wrap then /ship',
-        why: `${specDir} is committed on ${branch}; tree is dirty`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped-dirty', specDir },
-      };
-    }
-    if (specDir && gitPushed(cwd)) {
-      const defaultBranch = gitDefaultBranch(cwd) || 'main';
-      return {
-        next: 'gh pr view --web',
-        why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped', specDir },
-      };
-    }
-    if (specDir) {
-      return {
-        next: '/ship',
-        why: `${specDir} is committed on ${branch} but not pushed`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-unpushed', specDir },
-      };
-    }
-    return {
-      next: '/flow <describe the feature>',
-      why: 'spec gate is active on this branch',
-      state: { gitRepo: true, branch, dirty, source: 'flow-branch-no-plan' },
-    };
+    return flowBranchNext(cwd, branch, dirty);
   }
+
+  // A prep waiting on its spec outranks only the generic fallbacks below —
+  // never a live flow, a mismatch, or a shipped branch.
+  const prep = flow ? null : prepNext(cwd, branch, dirty);
+  if (prep) return prep;
 
   if (dirty) {
     return {
