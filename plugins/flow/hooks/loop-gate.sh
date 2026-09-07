@@ -13,14 +13,12 @@ hook_skip_if_off
 dir=$(hook_project_dir)
 [ -f "$dir/.claude/loop/loop.md" ] || exit 0
 
-flow_bin=${CC_FLOW_BIN:-}
-if [ -z "$flow_bin" ]; then
-	have node || exit 0
-	flow_bin="node $HERE/../bin/flow"
-fi
-
 sid=$(hook_field .session_id)
-# shellcheck disable=SC2086  # $flow_bin is intentionally word-split (may be "node path" or a single script path)
-out=$(cd "$dir" && $flow_bin loop tick --hook --session "$sid" 2>/dev/null) || exit 0
+if [ -n "${CC_FLOW_BIN:-}" ]; then
+	out=$(cd "$dir" && "$CC_FLOW_BIN" loop tick --hook --session "$sid" 2>/dev/null) || exit 0
+else
+	have node || exit 0
+	out=$(cd "$dir" && node "$HERE/../bin/flow" loop tick --hook --session "$sid" 2>/dev/null) || exit 0
+fi
 [ -n "$out" ] && printf '%s\n' "$out"
 exit 0
