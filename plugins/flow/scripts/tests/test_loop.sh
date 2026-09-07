@@ -439,6 +439,9 @@ EOF
 	assert_rc 1 "t_loop_run_fake_claude_error_streak_ki rc"
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "status: stopped" "t_loop_run_fake_claude_error_streak_ki stopped"
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "stop_reason: error" "t_loop_run_fake_claude_error_streak_ki reason"
+	# adversary finding: the error-streak stop must deliver the K-J finishing text once (K-H rule 4)
+	assert_contains "$OUT" "[flow loop] stopped: error" "t_loop_run_fake_claude_error_streak_ki finish-text"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "finish_reported: 1" "t_loop_run_fake_claude_error_streak_ki finish-reported"
 
 	rm -rf "$home" "$proj" "$fakebin"
 }
@@ -589,4 +592,61 @@ t_loop_run_log_dur_and_cost_format_ke() {
 		_pass "t_loop_run_log_dur_and_cost_format_ke cost-4dp"
 	fi
 	rm -rf "$home" "$proj" "$fakebin"
+}
+
+# Adversary findings (spec 006 review, 2026-09-07): K-F must see untracked
+# files and numeric threshold weakening; K-H rule 3 must allow on an empty
+# --session when the contract is bound to one.
+t_loop_check_suspect_on_threshold_weakened_kf() {
+	local proj home
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/.claude"
+	printf '{"maxFileLines": 400, "stopGate": "scoped"}\n' >"$proj/.claude/flow.config.json"
+	(cd "$proj" && git add .claude/flow.config.json && git commit -q -m "gate config") >/dev/null 2>&1
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" >/dev/null
+	: >"$proj/done.txt"
+	printf '{"maxFileLines": 999999, "stopGate": "scoped"}\n' >"$proj/.claude/flow.config.json"
+	lp_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_loop_check_suspect_on_threshold_weakened_kf rc"
+	assert_contains "$OUT" "gate config weakened" "t_loop_check_suspect_on_threshold_weakened_kf finding"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_check_untracked_test_skip_kf() {
+	local proj home
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" >/dev/null
+	: >"$proj/done.txt"
+	printf 'import pytest\n@pytest.mark.skip(reason="later")\ndef test_x(): pass\n' >"$proj/tests/test_new.py"
+	lp_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_loop_check_untracked_test_skip_kf rc"
+	assert_contains "$OUT" "skip/xfail added in tests/test_new.py" "t_loop_check_untracked_test_skip_kf finding"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_check_untracked_gate_config_kf() {
+	local proj home
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" >/dev/null
+	: >"$proj/done.txt"
+	mkdir -p "$proj/.claude"
+	printf '{"stopGate": false}\n' >"$proj/.claude/flow.config.json"
+	lp_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_loop_check_untracked_gate_config_kf rc"
+	assert_contains "$OUT" "gate config weakened" "t_loop_check_untracked_gate_config_kf finding"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_tick_empty_session_allows_kh3() {
+	local proj home
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape session --session s1 >/dev/null
+	lp_cli_in "$proj" "$home" loop tick --hook --session ""
+	assert_rc 0 "t_loop_tick_empty_session_allows_kh3 rc"
+	assert_eq "$OUT" "" "t_loop_tick_empty_session_allows_kh3 allows"
+	rm -rf "$home" "$proj"
 }
