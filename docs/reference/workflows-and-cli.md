@@ -77,6 +77,8 @@ Commands:
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json]                                     Print the next command to run, from
                                                      deterministic repo state only
+  loop <subcommand> [options]                       Run a task until a deterministic
+                                                     verifier passes (flow loop --help)
   off [<dir>]                                       Turn the judging hooks off for <dir>
                                                      (default: cwd) and everything under it
   on [<dir>]                                        Turn them back on
@@ -88,3 +90,132 @@ Exit codes:
   0  ok
   1  doctor found a FAIL, or the underlying tool failed
 ```
+
+## flow loop
+
+Runs a task until a deterministic verifier passes — never until the model
+says so. See spec `.specs/006-loop-engineering/spec.md` for the full
+`.claude/loop/` contract and `/flow:loop` (`plugins/flow/skills/loop/SKILL.md`)
+for how to pick a shape and arm one. All commands anchor at the git toplevel
+(`git rev-parse --show-toplevel`; exit 1 `not a git repository` otherwise) and
+every read command takes `--json`. While a contract is `active`, `flow doctor`
+warns and `flow next` prefers `flow loop status` (shape `session`) or
+`flow loop run` (shape `fresh`) over its usual resume line.
+
+```
+flow loop — run a task until a deterministic verifier passes
+
+Usage:
+  flow loop <command> [options]
+
+Commands:
+  init "<goal>" --verify "<cmd>" [options]   Arm a loop contract (red first)
+  check [--json]                             Run the verifier + tamper check once
+  tick [--json|--hook] [--session <id>]      One state transition (K-H)
+  run [options]                              Fresh-shape driver (outer claude -p loop)
+  status [--json]                            Contract summary + tail of verify.last
+  stop [--reason <text>]                     Stop the active loop
+  log [-n N]                                 Last N log lines (default 20)
+
+Options:
+  -h, --help   Show this help message
+```
+
+### init
+
+```
+flow loop init "<goal>" --verify "<cmd>" [--shape session|fresh]
+  [--prompt-file <path> | --prompt "<text>"] [--session <id>]
+  [--max-iterations N] [--max-minutes N] [--max-usd N] [--stall-after N]
+  [--verify-timeout S] [--permission-mode M] [--model M] [--max-turns N]
+  [--allow-green] [--force]
+
+Usage:
+  flow loop init "<goal>" --verify "<cmd>"
+```
+
+Runs the verifier once; refuses (exit 1, `verifier already passes; nothing to
+loop (use --allow-green to loop anyway)`) unless it is red or `--allow-green`
+is given. Refuses (exit 1) when an `active` contract already exists unless
+`--force` (which first stops it with reason `manual`). On success, prints the
+goal, verifier, shape, caps and the files written, and — for `shape: session`
+— `armed: loop-gate.sh will re-feed the prompt on every Stop until the
+verifier passes`.
+
+### check
+
+```
+flow loop check [--json]
+
+Usage:
+  flow loop check [--json]
+```
+
+Runs the verifier and the tamper check once, without mutating the contract.
+Prints `verdict: pass|fail|suspect`, `verify_rc`, `tamper: [...]` and the last
+40 lines of verifier output. Exit 0 pass, 1 fail, 2 suspect.
+
+### tick
+
+```
+flow loop tick [--json|--hook] [--session <id>]
+
+Usage:
+  flow loop tick [--hook]
+```
+
+One state transition of the K-H machine; always exits 0. `--hook` prints
+exactly the Claude Code Stop JSON to emit (`{"decision":"block","reason":...}`)
+or nothing when the loop should allow the turn to end — this is the only
+form `loop-gate.sh` consumes. Not meant to be run by hand outside the hook.
+
+### run
+
+```
+flow loop run [--max-iterations N] [--max-minutes N] [--max-usd N]
+  [--permission-mode M] [--model M] [--max-turns N] [--dry-run]
+  [--no-checkpoint] [--worktree]
+
+Usage:
+  flow loop run [--dry-run]
+```
+
+The fresh-shape driver: an outer loop of `claude -p` sessions, run until the
+verifier passes or a cap trips. `--dry-run` prints the plan without spawning
+anything. `--worktree` builds on `loop/<slug>` under `.claude/worktrees/`.
+Exit 0 `done`, 2 `suspect`, 1 any `stopped` reason.
+
+### status
+
+```
+flow loop status [--json]
+
+Usage:
+  flow loop status
+```
+
+Contract summary, the last log line and the last 20 lines of `verify.last`.
+Exit 0, or 3 when there is no contract.
+
+### stop
+
+```
+flow loop stop [--reason <text>]
+
+Usage:
+  flow loop stop
+```
+
+Sets `status: stopped`, `stop_reason: manual` (or the given text) and
+`finished_at`. Exit 0 even when nothing was active (prints `no active loop`).
+
+### log
+
+```
+flow loop log [-n N]
+
+Usage:
+  flow loop log [-n N]
+```
+
+Prints the last N `loop.log` lines verbatim (default 20).

@@ -17,13 +17,14 @@ plugins/flow/
 ├── workflows/                   build-slices · review-diff · research-sweep · plan-review
 │                                 (registered as flow:<name> via the Workflow tool)
 ├── flow-templates/           REVIEW.md · PROGRESS.md · CLAUDE.project.md · gates.yml.tmpl
-├── bin/flow                  the harness CLI (doctor · init · check · skills-lint · install)
+├── bin/flow                  the harness CLI (doctor · init · check · skills-lint · install ·
+│                                 loop) · bin/lib/loop/ (contract, tick, verify, tamper, CLI)
 └── skills/                      flow, flow-spec, flow-deepen, flow-handoff, flow-to-issues,
-                                  feature, spec-judge, shared, qa, audit, fix, ultracode, overkill,
-                                  pr-reviewer, claude-md, skill-forge, skill-improver, skill-judge,
-                                  claude-improver, find-skills, prompt-engineer, better-plan,
-                                  grill-me, grill-with-docs, brainstorm, develop-idea,
-                                  scrutinize-idea
+                                  feature, spec-judge, shared, qa, audit, fix, loop, ultracode,
+                                  overkill, pr-reviewer, claude-md, skill-forge, skill-improver,
+                                  skill-judge, claude-improver, find-skills, prompt-engineer,
+                                  better-plan, grill-me, grill-with-docs, brainstorm,
+                                  develop-idea, scrutinize-idea
 ```
 
 `shared/` is reference material and scripts consumed by other skills (`shared/scripts/`,

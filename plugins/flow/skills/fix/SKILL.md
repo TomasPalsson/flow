@@ -1,6 +1,6 @@
 ---
 name: fix
-description: "Systematic bug fix from triage through regression test and PR. Use when: (1) a specific behavior is broken and needs a permanent fix with regression test and PR, (2) the user reports something stopped working, crashes, or returns wrong results, (3) a known error needs root-cause diagnosis and targeted resolution. Classifies bugs (frontend/backend/integration/infrastructure), drives reproducibility, performs root cause analysis, implements targeted fixes with Ralph Loop, adds mandatory regression tests, and applies tiered verification. Do NOT use for: general debugging exploration without a clear fix target, performance profiling, refactoring, or feature development. Trigger keywords: fix, bug, error, broken, crash, regression, not working, failing, issue, defect, wrong behavior."
+description: "Systematic bug fix from triage through regression test and PR. Use when: (1) a specific behavior is broken and needs a permanent fix with regression test and PR, (2) the user reports something stopped working, crashes, or returns wrong results, (3) a known error needs root-cause diagnosis and targeted resolution. Classifies bugs (frontend/backend/integration/infrastructure), drives reproducibility, performs root cause analysis, implements targeted fixes with /flow:loop, adds mandatory regression tests, and applies tiered verification. Do NOT use for: general debugging exploration without a clear fix target, performance profiling, refactoring, or feature development. Trigger keywords: fix, bug, error, broken, crash, regression, not working, failing, issue, defect, wrong behavior."
 ---
 
 # Fix Workflow
@@ -17,7 +17,7 @@ You are executing an adaptive bug fix workflow. This workflow detects the projec
 - **NEVER commit with failing tests** — a green test suite is the minimum bar before any commit; red tests mean the fix isn't ready
 - **NEVER suppress or skip a test to make the suite pass** — suppressing a test is hiding a bug, not fixing one
 - **NEVER ignore test validity** — before modifying a failing test, verify it's testing the correct behavior, not just asserting old (buggy) behavior
-- **NEVER output a false completion promise** — the Ralph Loop's integrity depends on honest completion signals; lying to exit the loop wastes more time than iterating honestly
+- **NEVER claim the fix is complete before `flow loop check` (or `$TEST_CMD`) is actually green** — `/flow:loop`'s verifier decides completion, not your self-report; claiming it early wastes more time than iterating honestly
 
 ## Step -1: Resume Check
 
@@ -165,36 +165,37 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/diagnosis.md` for the diagnosis template.
 
 ## PHASE B: Fix
 
-### Execution — Ralph Loop Path
+### Execution — /flow:loop Path
 
-Check if `ralph-wiggum` or `ralph-loop` plugin is installed. If available, invoke:
+This plugin ships `/flow:loop` (`plugins/flow/skills/loop/SKILL.md`): a loop whose deterministic verifier decides completion, never the model's self-report. Arm it fresh-shape — the iteration budgets below exceed the in-session shape's 8-iteration cap:
 
+```bash
+flow loop init "fix: <bug description>" --verify "$TEST_CMD" --shape fresh \
+  --prompt-file .claude/loop/prompt.md --max-iterations <N>
+flow loop run   # Bash, run_in_background: true
 ```
-Skill tool call:
-  skill: "ralph-loop:ralph-loop"
-  args: "<execution prompt below>" --completion-promise "BUG FIXED" --max-iterations <N>
-```
 
-Where `<N>` comes from: `--max-iterations` argument if provided, otherwise default by complexity (simple=15, medium=30, complex=60).
+Where `<N>` comes from: `--max-iterations` argument if provided, otherwise default by complexity (simple=15, medium=30, complex=60). `init` runs the verifier once and refuses to arm when it already passes ("nothing to loop") — that means the reproduction from Step 2 is not actually failing; fix that first. After `flow loop run` starts, tell the user the loop is armed, print `flow loop status`, and end the turn: a fresh loop is an outer loop of fresh `claude -p` sessions and must not run inside this turn.
 
 #### Execution Prompt
 
-**MANDATORY — READ ENTIRE FILE**: Load [`execution-prompt.md`](execution-prompt.md) in full. Pass its contents (everything after the `---` separator) as the prompt argument to ralph-loop.
+**MANDATORY — READ ENTIRE FILE**: Load [`execution-prompt.md`](execution-prompt.md) in full; it is the per-iteration prompt body, not a one-shot argument. Write its contents (everything after the `---` separator) to `.claude/loop/prompt.md` before arming.
 
 #### Post-Loop Check
 
-After ralph-loop returns (whether by completion promise or iteration exhaustion):
+On resume (the user returns, or a background-task notification fires), run `flow loop status`:
 
-1. Check if `.claude/workflow-state.local.md` still exists
-2. **If it exists** — the loop exhausted iterations without completing:
+1. **`stopped: cap|time|budget|stall|wedge|error`** — the loop did not finish.
    - Read the state file's Progress section
-   - Report to the user: **"Ralph Loop exhausted [N] iterations. Progress: [completed steps] done, [remaining steps] remaining. Current position: [step]. Would you like me to continue with another ralph-loop invocation, or switch to manual execution?"**
-3. **If it doesn't exist** — completion promise fired, bug is fixed. Report the PR URL.
+   - Report to the user: **"The `/flow:loop` run stopped ([reason]) after [n] iterations. Progress: [completed steps] done, [remaining steps] remaining. Would you like me to continue with another `/flow:loop` invocation, or switch to manual execution?"**
+2. **`stopped: blocked`** — read `.claude/loop/BLOCKED.md` and report what it says; ask the user how to proceed.
+3. **`suspect`** — do not fix it inside the loop; report `flow loop check`'s tamper findings verbatim; a human decides.
+4. **`done`** — the verifier passed and the tamper check is clean. Continue with the remaining unchecked steps in `.claude/workflow-state.local.md` and report the PR URL.
 
-### Execution — Fallback Path (no ralph-loop)
+### Execution — Fallback Path (no git repo / flow unavailable)
 
-If ralph-loop is not available:
-1. Tell the user: "The ralph-loop plugin is not installed. I'll execute the fix directly."
+`flow loop` requires a git repository (`git rev-parse --show-toplevel`) and the `flow` CLI on PATH. If either is missing:
+1. Tell the user: "flow loop isn't available here (no git repo or no `flow` CLI). I'll execute the fix directly."
 2. Load [`execution-prompt.md`](execution-prompt.md) and follow its instructions manually — execute each step sequentially.
 3. If stuck after 3 attempts on any step, stop and ask the user for guidance.
 4. On completion: delete `.claude/workflow-state.local.md`.
