@@ -95,6 +95,7 @@ All commands anchor at `git rev-parse --show-toplevel` (exit 1 `not a git reposi
 - Any added line in `git diff <base>` changing `stopGate` to false or `.claude/flow.config.json` thresholds (same regex as tamper-notice) → `gate config weakened`.
 - The verifier command string in the contract differs from what `init` wrote (guard: `verify_sha` key, cksum of the verify string) → `verifier rewritten`.
 Test paths: `*_test.*`, `*.test.*`, `*.spec.*`, `test_*.*`, `tests/`, `__tests__/`, `spec/`. Counting uses `git ls-files` plus untracked non-ignored files. A green verifier with any tamper finding is `suspect`, never `pass`.
+**Delta 2026-09-07 (adversary review):** "added lines" means the `git diff <base>` for tracked files **plus every line of every untracked, non-ignored file** (a file the model never staged is not invisible); `gate config weakened` also fires when a numeric `max*`/`complexity`/`threshold` key in a gate-config file changes value between the removed and added lines (the tamper-notice rule), and names the file. K-H rule 3: an empty `--session` against a contract bound to a session is "cannot judge" → allow. K-I: the error-streak stop is delivered by the next tick as a `finish`, like every other stop.
 
 ### K-G Default prompt body (written by `init` when no prompt is given; the skill usually supplies its own)
 ```
