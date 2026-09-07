@@ -399,7 +399,7 @@ n=\$(cat "$countfile")
 n=\$((n + 1))
 printf '%s' "\$n" >"$countfile"
 if [ "\$n" -eq 2 ]; then touch done.txt; fi
-printf '{"total_cost_usd":0.5,"session_id":"x","is_error":false}\n'
+printf '{"total_cost_usd":0.3937470000000001,"session_id":"x","is_error":false,"duration_ms":1234}\n'
 EOF
 	chmod +x "$fakebin/claude"
 	printf '%s' "$fakebin"
@@ -417,7 +417,7 @@ t_loop_run_fake_claude_ki() {
 	assert_contains "$OUT" "finished: verifier passed" "t_loop_run_fake_claude_ki finished"
 
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "status: done" "t_loop_run_fake_claude_ki status-done"
-	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "cost_usd: 1" "t_loop_run_fake_claude_ki cost"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "cost_usd: 0.7875" "t_loop_run_fake_claude_ki cost"
 	assert_contains "$(cd "$proj" && git log --oneline)" "checkpoint" "t_loop_run_fake_claude_ki checkpoint-commit"
 
 	rm -rf "$home" "$proj" "$fakebin"
@@ -531,4 +531,62 @@ t_loop_init_gitignore_lines_kl() {
 	assert_eq "$count" "1" "t_loop_init_gitignore_lines_kl idempotent"
 
 	rm -rf "$home" "$proj"
+}
+
+# Headless probe findings (2026-09-07): a checkpoint commit swept .claude/loop/
+# state into git in a repo that never ran `flow init`; log lines had dur=- and
+# a 16-digit cost. K-A: loop state is ignored except LEARNINGS.md; K-E: dur in
+# seconds, cost as a short decimal.
+t_loop_init_writes_gitignore_lines_ka() {
+	local proj home count
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+	assert_contains "$(cat "$proj/.gitignore")" ".claude/loop/*" "t_loop_init_writes_gitignore_lines_ka ignore-line"
+	assert_contains "$(cat "$proj/.gitignore")" "!.claude/loop/LEARNINGS.md" "t_loop_init_writes_gitignore_lines_ka keep-line"
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh --force >/dev/null
+	count=$(grep -c '^\.claude/loop/\*$' "$proj/.gitignore")
+	assert_eq "$count" "1" "t_loop_init_writes_gitignore_lines_ka idempotent"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_run_checkpoint_excludes_loop_state_ki() {
+	local proj home fakebin files
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+	# simulate a repo whose .gitignore predates the loop (no loop lines)
+	: >"$proj/.gitignore"
+	fakebin=$(_lp_write_fake_claude)
+	lp_cli_env_in "$proj" "$home" "$fakebin" loop run
+	assert_rc 0 "t_loop_run_checkpoint_excludes_loop_state_ki rc"
+	files=$(cd "$proj" && git log --name-only --format= | sort -u)
+	assert_not_contains "$files" ".claude/loop/loop.md" "t_loop_run_checkpoint_excludes_loop_state_ki no-contract"
+	assert_not_contains "$files" ".claude/loop/loop.log" "t_loop_run_checkpoint_excludes_loop_state_ki no-log"
+	assert_not_contains "$files" ".claude/loop/verify.last" "t_loop_run_checkpoint_excludes_loop_state_ki no-verify-last"
+	assert_not_contains "$files" ".claude/loop/iterations/" "t_loop_run_checkpoint_excludes_loop_state_ki no-iterations"
+	assert_contains "$files" "done.txt" "t_loop_run_checkpoint_excludes_loop_state_ki work-committed"
+	rm -rf "$home" "$proj" "$fakebin"
+}
+
+t_loop_run_log_dur_and_cost_format_ke() {
+	local proj home fakebin line
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+	fakebin=$(_lp_write_fake_claude)
+	lp_cli_env_in "$proj" "$home" "$fakebin" loop run >/dev/null
+	line=$(grep ' checkpoint ' "$proj/.claude/loop/loop.log" | tail -1)
+	case "$line" in
+	*" dur=-"* | *" dur=- "*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
+	*" dur="[0-9]*) _pass "t_loop_run_log_dur_and_cost_format_ke dur-numeric" ;;
+	*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
+	esac
+	# cost has at most 4 decimals on every line that carries a number
+	if grep -E ' cost=[0-9]+\.[0-9]{5,}' "$proj/.claude/loop/loop.log" >/dev/null; then
+		_fail "t_loop_run_log_dur_and_cost_format_ke cost-4dp" "$(grep -E ' cost=[0-9]+\.[0-9]{5,}' "$proj/.claude/loop/loop.log" | head -1)"
+	else
+		_pass "t_loop_run_log_dur_and_cost_format_ke cost-4dp"
+	fi
+	rm -rf "$home" "$proj" "$fakebin"
 }
