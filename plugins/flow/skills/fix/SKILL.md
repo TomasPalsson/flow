@@ -167,7 +167,13 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/diagnosis.md` for the diagnosis template.
 
 ### Execution — /flow:loop Path
 
-This plugin ships `/flow:loop` (`plugins/flow/skills/loop/SKILL.md`): a loop whose deterministic verifier decides completion, never the model's self-report. Arm it fresh-shape — the iteration budgets below exceed the in-session shape's 8-iteration cap:
+This plugin ships `/flow:loop` (`plugins/flow/skills/loop/SKILL.md`): a loop whose deterministic verifier decides completion, never the model's self-report. It is armed fresh-shape — the iteration budgets below exceed the in-session shape's 8-iteration cap.
+
+#### Execution Prompt
+
+**MANDATORY — READ ENTIRE FILE**: Load [`execution-prompt.md`](execution-prompt.md) in full; it is the per-iteration prompt body, not a one-shot argument. Write its contents (everything after the `---` separator) to `.claude/loop/prompt.md` before arming.
+
+#### Arm and start
 
 ```bash
 flow loop init "fix: <bug description>" --verify "$TEST_CMD" --shape fresh \
@@ -176,10 +182,6 @@ flow loop run   # Bash, run_in_background: true
 ```
 
 Where `<N>` comes from: `--max-iterations` argument if provided, otherwise default by complexity (simple=15, medium=30, complex=60). `init` runs the verifier once and refuses to arm when it already passes ("nothing to loop") — that means the reproduction from Step 2 is not actually failing; fix that first. After `flow loop run` starts, tell the user the loop is armed, print `flow loop status`, and end the turn: a fresh loop is an outer loop of fresh `claude -p` sessions and must not run inside this turn.
-
-#### Execution Prompt
-
-**MANDATORY — READ ENTIRE FILE**: Load [`execution-prompt.md`](execution-prompt.md) in full; it is the per-iteration prompt body, not a one-shot argument. Write its contents (everything after the `---` separator) to `.claude/loop/prompt.md` before arming.
 
 #### Post-Loop Check
 
