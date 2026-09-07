@@ -7,6 +7,7 @@
 - Dogfood `/flow:loop --fresh` overnight on a real project (candidates: any of the ~20 `.claude/` projects under ~/Desktop/Projects; none has run `flow init` yet) and tune the defaults (30 iterations / 480 min / stall 3) from the log
 - Merge order with the sibling worktrees: this branch touches `hooks.json` (one Stop entry), `bin/flow` (dispatch/doctor/next/init deltas) and `skills/fix`; worktree A (harness audit + spec 004 flow v2) rewrites `hookout.sh` and plans `flow goal` — build `flow goal` on `flow loop run` rather than a second driver
 - Optional: `checkwash` as an opt-in verifier prefix in the loop skill once it has a held-out false-positive number
+- `/flow:prep` — research done (docs/research/12-flow-prep-2026-09-07.md, branch flow/prep-skill-research): build it as grill-me + PREP.md + budget + route on top of the sibling worktree's `/flow:spec`/`/flow:next` redesign; three rulings open (recommend-with vs after, AskUserQuestion, PREP.md location)
 - Dogfood `/design:vary` on one real surface (a persuade page and an operate page); tune roll.mjs tunables (GLOBAL_WINDOW 8 / PROJECT_WINDOW 3 / ticket weights) from what repeats
 - Decide the fate of the old `design` skill (plugins/design/skills/design): retire, or keep as a fallback
 - Corroborate the 7 `confidence: verify` world cards (japanese-editorial, italian-rationalist, apothecary-label, museum-gallery, sports-broadcast, editorial-newspaper, japanese-consumer-electronics-80s) or drop them
