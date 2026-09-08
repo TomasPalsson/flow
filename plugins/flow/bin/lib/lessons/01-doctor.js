@@ -9,8 +9,9 @@ module.exports = {
   title: 'flow doctor — what does the deployment think of itself?',
   intro: [
     'flow doctor prints one PASS/WARN/FAIL line per deployment check it knows',
-    'about, then a summary. Nothing here can touch your real machine — this',
-    'shell runs inside a disposable sandbox.',
+    'about, then a summary. Commands you type run in a throwaway directory:',
+    'this is a scratch git repo, not a sandbox — it shares your real HOME,',
+    'PATH and network, so only type commands you would run anyway.',
   ].join('\n'),
   tryIt: 'flow doctor',
   check(result) {

@@ -83,6 +83,7 @@ OVERLAP_AWK='
 BEGIN { infence = 0; cur = ""; cnt = 0 }
 {
   line = $0
+  sub(/\r$/, "", line)
   t = line
   sub(/^[ \t]*/, "", t)
   if (t ~ /^(```|~~~)/) { infence = !infence; next }
@@ -177,6 +178,7 @@ META_AWK='
 BEGIN { infence = 0; cur = ""; cnt = 0 }
 {
   line = $0
+  sub(/\r$/, "", line)
   t = line
   sub(/^[ \t]*/, "", t)
   if (t ~ /^(```|~~~)/) { infence = !infence; next }

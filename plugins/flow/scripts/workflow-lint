@@ -28,8 +28,10 @@ failing closed on anything else), no Date.now/Math.random/new Date, no
 TypeScript syntax, every agent() call pins a top-level agentType or model,
 the file parses, and build-slices.js schedules slices via parallel().
 
-With no arguments, scans $HOME/.claude/workflows. A directory argument
-scans its top-level *.js files; a file argument is checked directly.
+With no arguments, scans ${CLAUDE_PLUGIN_ROOT:-<script dir>/..}/workflows
+when that directory exists, else ~/.claude/skills/flow/workflows when
+that exists, else ~/.claude/workflows. A directory argument scans its
+top-level *.js files; a file argument is checked directly.
 
 Prints "OK <file>" or "<file>: <rule>: <problem>" lines; exit 1 on any
 problem found in any file.
@@ -43,7 +45,15 @@ case "${1:-}" in
   ;;
 esac
 
-DEFAULT_DIR="$HOME/.claude/workflows"
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$SCRIPT_DIR/..}"
+if [ -d "$PLUGIN_ROOT/workflows" ]; then
+  DEFAULT_DIR="$PLUGIN_ROOT/workflows"
+elif [ -d "$HOME/.claude/skills/flow/workflows" ]; then
+  DEFAULT_DIR="$HOME/.claude/skills/flow/workflows"
+else
+  DEFAULT_DIR="$HOME/.claude/workflows"
+fi
 
 if [ "$#" -eq 0 ]; then
   set -- "$DEFAULT_DIR"

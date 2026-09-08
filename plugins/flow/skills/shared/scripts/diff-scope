@@ -481,6 +481,7 @@ ${C.accent}Arguments:${C.reset}
 
 ${C.accent}Flags:${C.reset}
   --format pretty   Human-readable output instead of JSON
+  --json            JSON output (the default; wins over --format pretty)
   -h, --help        Show this help message
 
 ${C.accent}Output (JSON):${C.reset}
@@ -513,12 +514,15 @@ function main() {
     process.exit(0);
   }
 
-  const prettyIdx = args.indexOf('--format');
+  // --json is the default shape; accepting the flag means a caller never has
+  // to know that (FU-33), and it wins over --format pretty.
+  const wantsJson = args.includes('--json');
   let pretty = false;
-  let remaining = [...args];
+  let remaining = args.filter(a => a !== '--json');
+  const prettyIdx = remaining.indexOf('--format');
 
   if (prettyIdx !== -1) {
-    const fmt = args[prettyIdx + 1];
+    const fmt = remaining[prettyIdx + 1];
     if (fmt === 'pretty') pretty = true;
     remaining = remaining.filter((_, i) => i !== prettyIdx && i !== prettyIdx + 1);
   }
@@ -569,7 +573,7 @@ function main() {
     commits,
   };
 
-  if (pretty) {
+  if (pretty && !wantsJson) {
     printPretty(output);
   } else {
     stdout.write(JSON.stringify(output, null, 2) + '\n');

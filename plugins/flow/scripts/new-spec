@@ -28,8 +28,11 @@ and prints the same JSON to stdout.
 --json is accepted for symmetry with the other scripts; output is
 already JSON on every run.
 
-Does not check working-tree dirtiness. Exit 1 only when a branch is
-requested outside a git repository, or <dir> is not writable.
+Does not check working-tree dirtiness. Exit 1 when: a branch is
+requested outside a git repository; <title> has no ASCII letter or
+digit to slugify; <dir> is not writable; or `git checkout -b`/`git
+worktree add` fails (its error is printed and neither flow.json nor
+the spec dir is written).
 EOF
 }
 
@@ -187,15 +190,21 @@ fi
 
 NUMBER=$(next_number "$DIR")
 SLUG=$(slugify "$TITLE")
-SPEC_DIR="$DIR/$NUMBER-$SLUG"
 
-if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
-  printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
+if [ -z "$SLUG" ]; then
+  printf 'new-spec: title must contain at least one ASCII letter or digit\n' >&2
   exit 1
 fi
 
-if [ -n "${ZELLIJ_PANE_ID:-}" ] && command -v zellij >/dev/null 2>&1; then
-  zellij action rename-pane "$NUMBER-$SLUG" >/dev/null 2>&1 || true
+SPEC_DIR="$DIR/$NUMBER-$SLUG"
+
+# Create SPEC_DIR BEFORE any git mutation: if <dir> is not writable we fail
+# here with the repo untouched (no branch/worktree created). If the
+# subsequent branch/worktree step fails, we remove this now-empty
+# directory again so neither failure path leaves partial state.
+if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
+  printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
+  exit 1
 fi
 
 BRANCH=""
@@ -205,10 +214,39 @@ if [ "$NO_BRANCH" -eq 0 ]; then
   if [ "$WORKTREE" -eq 1 ]; then
     TOPLEVEL=$(git rev-parse --show-toplevel)
     WORKTREE_PATH="$TOPLEVEL/../code-worktrees/$BRANCH"
-    git worktree add -b "$BRANCH" "$WORKTREE_PATH" >/dev/null
+    BRANCH_EXISTED=0
+    if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+      BRANCH_EXISTED=1
+    fi
+    err=$(git worktree add -b "$BRANCH" "$WORKTREE_PATH" 2>&1 >/dev/null)
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      # A failed `worktree add -b` can still create the branch before
+      # failing on the worktree step; remove it so a retry of the same
+      # title does not hit "a branch named ... already exists" instead.
+      if [ "$BRANCH_EXISTED" -eq 0 ]; then
+        git branch -D "$BRANCH" >/dev/null 2>&1 || true
+      fi
+      rmdir "$SPEC_DIR" 2>/dev/null || true
+      printf 'new-spec: git worktree add failed:\n%s\n' "$err" >&2
+      exit 1
+    fi
+    # Record the physical toplevel of the worktree just created, not the raw
+    # (unresolved, "/../"-containing) path string used to create it.
+    WORKTREE_PATH=$(git -C "$WORKTREE_PATH" rev-parse --show-toplevel)
   else
-    git checkout -b "$BRANCH" >/dev/null 2>&1
+    err=$(git checkout -b "$BRANCH" 2>&1 >/dev/null)
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      rmdir "$SPEC_DIR" 2>/dev/null || true
+      printf 'new-spec: git checkout -b failed:\n%s\n' "$err" >&2
+      exit 1
+    fi
   fi
+fi
+
+if [ -n "${ZELLIJ_PANE_ID:-}" ] && command -v zellij >/dev/null 2>&1; then
+  zellij action rename-pane "$NUMBER-$SLUG" >/dev/null 2>&1 || true
 fi
 
 mkdir -p .claude

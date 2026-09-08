@@ -191,6 +191,34 @@ t_flow_new_spec_unwritable_dir_exit1() {
 	cd "$prevdir" || true
 }
 
+t_flow_new_spec_unwritable_dir_no_branch_created() {
+	# Regression guard: an unwritable --dir must fail BEFORE the
+	# branch/worktree step runs, so a run WITHOUT --no-branch leaves the
+	# checkout on its original branch with no new branch created.
+	local repo prevdir target before_branch
+	prevdir=$(pwd)
+	if [ "$(id -u)" = "0" ]; then
+		_pass "flow: new-spec unwritable dir leaves no new branch (skipped: running as root)"
+		return
+	fi
+	repo=$(tmp_repo)
+	target="$repo/locked"
+	mkdir -p "$target"
+	chmod 555 "$target"
+	cd "$repo" || {
+		_fail "flow: new-spec unwritable-dir no-branch-created setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	before_branch=$(git rev-parse --abbrev-ref HEAD)
+	run_cmd "$SCAN_DIR/new-spec" "Locked Dir Branch Feature" --dir locked
+	assert_rc 1 "flow: new-spec exits 1 when the target dir is not writable and a branch was requested"
+	assert_eq "$(git rev-parse --abbrev-ref HEAD)" "$before_branch" "flow: new-spec does not switch branch when the target dir write fails"
+	assert_eq "$(git branch --list 'flow/locked-dir-branch-feature')" "" "flow: new-spec does not leave a stray branch when the target dir write fails"
+	chmod 755 "$target"
+	cd "$prevdir" || true
+}
+
 t_flow_new_spec_number_scans_worktrees() {
 	local repo prevdir wtpath
 	prevdir=$(pwd)
@@ -316,6 +344,88 @@ STUBEOF
 	run_cmd env PATH="$stub:$PATH" ZELLIJ_PANE_ID= "$SCAN_DIR/new-spec" "Pane Feature" --no-branch
 	assert_rc 0 "flow: new-spec no zellij no rename rc0"
 	assert_file_missing "$stub/calls.log" "flow: new-spec no zellij no rename does not call zellij"
+	cd "$prevdir" || true
+}
+
+t_flow_new_spec_empty_slug_exit1() {
+	local repo prevdir before_specs before_flow
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: new-spec empty-slug setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	before_specs=$(ls -A .specs 2>/dev/null || true)
+	before_flow=$([ -f .claude/flow.json ] && echo yes || echo no)
+	run_cmd "$SCAN_DIR/new-spec" "!!! ... ---" --no-branch
+	assert_rc 1 "flow: new-spec exits 1 for a title with no ASCII letter or digit"
+	assert_contains "$ERR" "title must contain at least one ASCII letter or digit" "flow: new-spec empty-slug error names the rule"
+	assert_eq "$(ls -A .specs 2>/dev/null || true)" "$before_specs" "flow: new-spec empty-slug does not create a spec dir"
+	assert_eq "$([ -f .claude/flow.json ] && echo yes || echo no)" "$before_flow" "flow: new-spec empty-slug does not write flow.json"
+	cd "$prevdir" || true
+}
+
+t_flow_new_spec_checkout_failure_no_writes() {
+	local repo prevdir
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: new-spec checkout-failure setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	# Pre-create the branch new-spec will try to `checkout -b`, so git fails.
+	git branch flow/dup-title-feature >/dev/null 2>&1
+	run_cmd "$SCAN_DIR/new-spec" "Dup Title Feature"
+	assert_rc 1 "flow: new-spec exits 1 when git checkout -b fails"
+	assert_contains "$ERR" "git checkout -b failed" "flow: new-spec prints the checkout failure"
+	assert_file_missing ".specs/001-dup-title-feature" "flow: new-spec does not create the spec dir on checkout failure"
+	assert_file_missing ".claude/flow.json" "flow: new-spec does not write flow.json on checkout failure"
+	cd "$prevdir" || true
+}
+
+t_flow_new_spec_worktree_failure_no_writes() {
+	local repo prevdir toplevel wtpath
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: new-spec worktree-failure setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	toplevel=$(git rev-parse --show-toplevel)
+	wtpath="$toplevel/../code-worktrees/flow/dup-worktree-feature"
+	mkdir -p "$wtpath"
+	printf 'occupied\n' >"$wtpath/blocker.txt"
+	run_cmd "$SCAN_DIR/new-spec" "Dup Worktree Feature" --worktree
+	assert_rc 1 "flow: new-spec exits 1 when git worktree add fails"
+	assert_contains "$ERR" "git worktree add failed" "flow: new-spec prints the worktree-add failure"
+	assert_file_missing ".specs/001-dup-worktree-feature" "flow: new-spec does not create the spec dir on worktree failure"
+	assert_file_missing ".claude/flow.json" "flow: new-spec does not write flow.json on worktree failure"
+	rm -rf "$wtpath" 2>/dev/null || true
+	cd "$prevdir" || true
+}
+
+t_flow_new_spec_worktree_records_physical_path() {
+	local repo prevdir suffix wtpath json_wt
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	suffix=$(mktemp -u "${TMPDIR:-/tmp}/wtphysXXXXXX")
+	suffix=${suffix##*/}
+	suffix=$(LC_ALL=C printf '%s' "$suffix" | LC_ALL=C tr '[:upper:]' '[:lower:]')
+	cd "$repo" || {
+		_fail "flow: new-spec worktree-physical-path setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	run_cmd "$SCAN_DIR/new-spec" "Physical Path Feature $suffix" --worktree
+	assert_rc 0 "flow: new-spec --worktree physical-path rc0"
+	json_wt=$(printf '%s' "$OUT" | sed -n 's/.*"worktree":"\([^"]*\)".*/\1/p')
+	assert_not_contains "$json_wt" "/../" "flow: new-spec records the resolved physical worktree path, not a raw \"/../\" string"
+	wtpath=$(dirname "$repo")/code-worktrees/flow/physical-path-feature-$suffix
+	git worktree remove --force "$wtpath" >/dev/null 2>&1 || true
+	rm -rf "$wtpath" 2>/dev/null || true
 	cd "$prevdir" || true
 }
 
@@ -650,6 +760,137 @@ PLANEOF
 	run_cmd "$SCAN_DIR/slice-overlap" "$f"
 	assert_rc 0 "flow: slice-overlap rc0 when a single slice lists the same file twice"
 	assert_eq "$OUT" "" "flow: slice-overlap prints nothing for a file repeated within one slice's own Files list"
+}
+
+t_flow_slice_overlap_strips_crlf() {
+	# The shared file is the LAST token on each "- **Files**:" line, so an
+	# awk that does not strip a trailing \r from the whole line (only
+	# trims [ \t] from each split field) attaches the CR to this exact
+	# token on both slices, producing a byte-identical overlap key
+	# ("src/shared.py\r") on both sides — same rc=1, but the printed line
+	# carries the raw CR and never equals the clean assertion below. That
+	# distinguishes the fixed awk (line-level `sub(/\r$/, "", line)`) from
+	# the unfixed one, unlike a fixture where the shared file is first.
+	local d f lf
+	d=$(tmp_dir)
+	lf="$d/crlf-plan.lf.md"
+	f="$d/crlf-plan.md"
+	cat >"$lf" <<'PLANEOF'
+## Behavior Inventory
+
+| Behavior | Slice | Verified by |
+|---|---|---|
+| Thing happens | Slice 1 | test_thing.py::test_it |
+
+## Slice 1 - First thing
+
+- **Files**: src/one.py, src/shared.py
+
+### Slice 1 - RED
+
+red
+
+### Slice 1 - GREEN
+
+green
+
+### Slice 1 - REFACTOR
+
+refactor
+
+## Slice 2 - Second thing
+
+- **Files**: src/two.py, src/shared.py
+- **Depends-on**: Slice 1
+
+### Slice 2 - RED
+
+red
+
+### Slice 2 - GREEN
+
+green
+
+### Slice 2 - REFACTOR
+
+refactor
+
+## Gate Phases
+
+- Phase 1: lint
+PLANEOF
+	awk '{ printf "%s\r\n", $0 }' "$lf" >"$f"
+	run_cmd "$SCAN_DIR/slice-overlap" "$f"
+	assert_rc 1 "flow: slice-overlap strips CRLF and still detects a real overlap"
+	assert_contains "$OUT" "src/shared.py: Slice 1, Slice 2" "flow: slice-overlap CRLF file overlap output has no trailing CR on the file name"
+	assert_not_contains "$OUT" "$(printf '\r')" "flow: slice-overlap output contains no raw CR byte"
+}
+
+t_flow_slice_overlap_strips_crlf_waves() {
+	# --waves runs the same OVERLAP_AWK gate first. Put the shared file
+	# LAST on Slice 1's line only (Slice 2's line ends in a different
+	# file), so an unfixed awk attaches a trailing CR to Slice 1's
+	# "src/shared.py" but leaves Slice 2's clean copy untouched: the two
+	# keys ("src/shared.py\r" vs "src/shared.py") would then look like
+	# DIFFERENT files, the overlap would be missed (rc 0), and --waves
+	# would wrongly compute waves for what is really one shared file.
+	# The fixed awk strips the CR before the Files bullet is parsed, so
+	# both copies collapse to the same key and the overlap gate blocks
+	# wave computation (rc 1) — a token position where the CR fix is
+	# load-bearing for the --waves entry point too.
+	local d f lf
+	d=$(tmp_dir)
+	lf="$d/crlf-waves-plan.lf.md"
+	f="$d/crlf-waves-plan.md"
+	cat >"$lf" <<'PLANEOF'
+## Behavior Inventory
+
+| Behavior | Slice | Verified by |
+|---|---|---|
+| Thing happens | Slice 1 | test_thing.py::test_it |
+
+## Slice 1 - First thing
+
+- **Files**: src/one.py, src/shared.py
+
+### Slice 1 - RED
+
+red
+
+### Slice 1 - GREEN
+
+green
+
+### Slice 1 - REFACTOR
+
+refactor
+
+## Slice 2 - Second thing
+
+- **Files**: src/shared.py, src/two.py
+- **Depends-on**: Slice 1
+
+### Slice 2 - RED
+
+red
+
+### Slice 2 - GREEN
+
+green
+
+### Slice 2 - REFACTOR
+
+refactor
+
+## Gate Phases
+
+- Phase 1: lint
+PLANEOF
+	awk '{ printf "%s\r\n", $0 }' "$lf" >"$f"
+	run_cmd "$SCAN_DIR/slice-overlap" "$f" --waves
+	assert_rc 1 "flow: slice-overlap --waves strips CRLF and still catches the overlap before computing waves"
+	assert_contains "$OUT" "src/shared.py: Slice 1, Slice 2" "flow: slice-overlap --waves CRLF overlap output has no trailing CR on the file name"
+	assert_not_contains "$OUT" "wave " "flow: slice-overlap --waves does not compute waves when the CRLF-hidden overlap is caught"
 }
 
 t_flow_scripts_are_well_formed() {

@@ -28,16 +28,6 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/turn-stamp.sh",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lesson-nudge.sh",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
-            "timeout": 15
           }
         ]
       }
@@ -53,11 +43,6 @@
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/rtk-rewrite.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/git-guard.sh",
             "timeout": 10
           }
@@ -69,15 +54,6 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/spec-gate.sh",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
             "timeout": 15
           }
         ]
@@ -110,16 +86,8 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-bash-write.sh",
-            "timeout": 90
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
-            "timeout": 15
+            "timeout": 90,
+            "statusMessage": "flow: checking bash-written files…"
           }
         ]
       }
@@ -130,12 +98,8 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop-gate.sh",
-            "timeout": 600
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
-            "timeout": 15
+            "timeout": 600,
+            "statusMessage": "flow: running gates…"
           }
         ]
       }
@@ -148,11 +112,6 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/subagent-log.sh",
             "timeout": 10,
             "async": true
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/worklog-hook.sh",
-            "timeout": 15
           }
         ]
       }

@@ -18,7 +18,7 @@ module.exports = {
   intro: [
     'flow init always writes REVIEW.md, PROGRESS.md and .claude/flow.config.json;',
     'a CI gate and lint thresholds only follow when it can detect a stack (this',
-    'sandbox has none, so it skips them).',
+    'scratch repo has none, so it skips them).',
   ].join('\n'),
   tryIt: 'flow init',
   check(result, ctx) {

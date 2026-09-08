@@ -3,11 +3,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { execSync, spawnSync } = require('node:child_process');
+const { spawnSync } = require('node:child_process');
 
-// ─────────��───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // CLI Args
-// ────────────���───────────────��────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 let baseBranch = '';
@@ -34,236 +34,352 @@ Options:
   --json         JSON-only output (suppress test runner output)
   -h, --help     Show this help
 
-Output (stdout): {"changed_files","test_files","test_cmd","exit_code","passed","duration_ms"}
+Environment:
+  CC_CHANGED_FILES   newline-separated paths (relative to cwd) used as the
+                     change set verbatim; git is not consulted when it is set.
+                     Set but empty means "nothing changed" — status "no-tests".
+
+Output (stdout): {"status","passed","test_cmd","test_files","changed_files",
+                  "exit_code","duration_ms","message"}
+  status   ran | no-tests | unavailable
+  passed   true/false when status is "ran", otherwise null
+  exit_code  the runner's exit code; null when no command ran to completion
+  unavailable = no verdict: the runner could not be executed, timed out, or was
+  killed by a signal. Never read it as a failing suite.
+  --dry-run reports dry_run:true and executes nothing; "status" is not
+  meaningful under --dry-run — read "test_files" and "message" instead
+
+Exit codes: 0 tests passed or nothing to run · non-zero tests failed or the
+runner could not be executed.
 `);
       process.exit(0);
+      break;
     default:
       if (!args[i].startsWith('-') && !baseBranch) baseBranch = args[i];
   }
 }
 
+const ROOT = process.cwd();
+const MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod'];
+const PRUNE_DIRS = [
+  '.git', 'node_modules', '.venv', 'venv', 'target', 'dist', 'build', 'out',
+  '.next', '.nuxt', '.turbo', '.cache', 'coverage', '__pycache__', '.ruff_cache',
+  '.mypy_cache', '.pytest_cache', '.terraform', '.open-next', '.build', '.sst',
+];
+const FULL_SUITE_RATIO = 0.4;
+const RUN_TIMEOUT_MS = 300000;
+
+/** Change-set entries dropped for pointing outside ROOT; named in `message`. */
+const outsideRoot = [];
+
+/**
+ * argv → a line a shell re-parses into exactly this argv. `test_cmd` is pasted
+ * into the stop-gate's "To reproduce: cd <dir> && <cmd>", so a test path with a
+ * space or a shell metacharacter has to survive the round trip.
+ */
+const SHELL_SAFE_ARG = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+function shellJoin(argv) {
+  return argv
+    .map(a => (SHELL_SAFE_ARG.test(a) ? a : `'${String(a).split("'").join("'\\''")}'`))
+    .join(' ');
+}
+
+/**
+ * Why this spawn produced no exit code, or null when it produced one. A runner
+ * killed by a signal (the OOM killer, the timeout below) or one the OS refused
+ * to start never judged anything: `passed:false` there would block a turn over
+ * a suite that never ran (C-C).
+ */
+function noVerdictReason(result, duration) {
+  const err = result.error;
+  if (err && err.code === 'ETIMEDOUT') return `timed out after ${duration}ms (limit ${RUN_TIMEOUT_MS}ms)`;
+  // ENOBUFS means a pipe capture hit its maxBuffer and THIS process killed the
+  // child; Node also reports SIGTERM for it, so naming it after the signal
+  // branch would blame a killer that never existed.
+  if (err && err.code === 'ENOBUFS') return `produced more output than the capture buffer holds and was killed after ${duration}ms`;
+  if (result.signal) return `killed by ${result.signal} after ${duration}ms`;
+  if (err && err.code) return `cannot execute (${err.code})`;
+  if (err) return `cannot execute (${err.message})`;
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ───────────────────��─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
-function run(cmd) {
-  try {
-    return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-  } catch { return ''; }
+/**
+ * Run a command with an explicit argv and NO shell: a repository file name is
+ * data here, never something a shell can re-parse into a command.
+ */
+function run(cmd, argv, cwd) {
+  const r = spawnSync(cmd, argv, {
+    encoding: 'utf8',
+    cwd: cwd || ROOT,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    shell: false,
+    // A pipe capture is bounded by maxBuffer (1 MB by default) and the child is
+    // KILLED at the limit: without this a repo with a very large change set
+    // would silently lose its `git diff` and test nothing.
+    maxBuffer: 20 * 1024 * 1024,
+  });
+  if (r.error || r.status !== 0) return '';
+  return (r.stdout || '').trim();
 }
 
 function exists(p) {
   try { fs.accessSync(p); return true; } catch { return false; }
 }
 
+function readFile(p) {
+  try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
+}
+
 function output(obj) {
   process.stdout.write(JSON.stringify(obj, null, jsonOnly ? undefined : 2) + '\n');
+}
+
+/**
+ * The one output shape every exit path uses (C-C). `exit_code` is null — never
+ * an invented 1 — whenever no command produced an exit code of its own.
+ */
+function report(o) {
+  output({
+    status: o.status,
+    passed: o.status === 'ran' ? o.passed === true : null,
+    test_cmd: o.test_cmd || '',
+    test_files: o.test_files || [],
+    changed_files: o.changed_files || [],
+    exit_code: typeof o.exit_code === 'number' ? o.exit_code : (o.exit_code === null ? null : 0),
+    duration_ms: o.duration_ms || 0,
+    message: o.message || '',
+    ...(o.package_root !== undefined ? { package_root: o.package_root } : {}),
+    ...(o.dry_run ? { dry_run: true } : {}),
+    // Only when the change set spans several packages: one line per package so
+    // a caller can see which suite produced which verdict.
+    ...(o.packages ? { packages: o.packages } : {}),
+  });
 }
 
 function isTestFile(file) {
   return /\.(test|spec)\.[jt]sx?$/.test(file) ||
          /\/__tests__\//.test(file) ||
          /\/tests?\//.test(file) && /\.(test|spec|_test)\.[jt]sx?$/.test(file) ||
-         /test_[^/]+\.py$/.test(file) ||
+         /(^|\/)test_[^/]+\.py$/.test(file) ||
          /_test\.go$/.test(file) ||
          /_test\.rs$/.test(file);
 }
 
-// ───────────────────────────────────────────────────────────���─────────────────
-// 1. Detect base branch
+/** A .py/.rs file that carries its own tests is its own test file. */
+function hasInFileTests(abs, file) {
+  const text = readFile(abs);
+  if (!text) return false;
+  if (/\.rs$/.test(file)) return /#\[cfg\(test\)\]|#\[test\]/.test(text);
+  if (/\.py$/.test(file)) return /(^|\n)\s*(def test_|class Test)/.test(text);
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. The change set
 // ─────────────────────────────────────────────────────────────────────────────
 
 function detectBaseBranch() {
   if (baseBranch) return baseBranch;
-
-  // Check if main exists
-  const branches = run('git branch --list main master');
+  const branches = run('git', ['branch', '--list', 'main', 'master']);
   if (branches.includes('main')) return 'main';
   if (branches.includes('master')) return 'master';
-  return 'main'; // default
+  return 'main';
+}
+
+/**
+ * FU-19 / C-C: the caller already knows what changed — use its list verbatim.
+ * SET-but-empty means "this turn changed nothing", not "go ask git": returning
+ * [] here is what keeps a whole-branch diff out of a scoped run.
+ */
+function envChangedFiles() {
+  const raw = process.env.CC_CHANGED_FILES;
+  if (raw === undefined) return null;
+  const all = raw.split('\n').map(s => s.trim()).filter(Boolean)
+    .map(f => (path.isAbsolute(f) ? path.relative(ROOT, f) : f));
+  return keepInsideRoot(all);
+}
+
+/**
+ * The entries that really live in this project, recording the rest in
+ * `outsideRoot`. A change set is data from a caller: `../sibling/x.js` — what a
+ * `git diff` with diff.relative in a subdirectory, or an absolute path made
+ * relative above, can produce — must never select a package root outside ROOT.
+ * Doing so would run a stranger's test command with cwd outside the project and
+ * report its exit code as this project's verdict.
+ */
+function keepInsideRoot(files) {
+  const kept = [];
+  for (const f of files) {
+    const abs = path.resolve(ROOT, f);
+    if (abs === ROOT || abs.startsWith(ROOT + path.sep)) kept.push(f);
+    else outsideRoot.push(f);
+  }
+  return kept;
+}
+
+function gitChangedFiles(base) {
+  const files = new Set();
+  const branchDiff = run('git', ['diff', '--name-only', `${base}...HEAD`]);
+  if (branchDiff) branchDiff.split('\n').filter(Boolean).forEach(f => files.add(f));
+  const unstaged = run('git', ['diff', '--name-only']);
+  if (unstaged) unstaged.split('\n').filter(Boolean).forEach(f => files.add(f));
+  const staged = run('git', ['diff', '--name-only', '--cached']);
+  if (staged) staged.split('\n').filter(Boolean).forEach(f => files.add(f));
+  return keepInsideRoot([...files].filter(f => exists(path.join(ROOT, f))));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Get changed files
-// ──────────��───────────────────────────────���──────────────────────────────────
+// 2. Which package owns the change
+// ─────────────────────────────────────────────────────────────────────────────
 
-function getChangedFiles(base) {
-  const files = new Set();
-
-  // Changes vs base branch
-  const branchDiff = run(`git diff --name-only ${base}...HEAD 2>/dev/null`);
-  if (branchDiff) branchDiff.split('\n').filter(Boolean).forEach(f => files.add(f));
-
-  // Unstaged changes
-  const unstaged = run('git diff --name-only');
-  if (unstaged) unstaged.split('\n').filter(Boolean).forEach(f => files.add(f));
-
-  // Staged changes
-  const staged = run('git diff --name-only --cached');
-  if (staged) staged.split('\n').filter(Boolean).forEach(f => files.add(f));
-
-  return [...files].filter(f => exists(f));
+function packageRootOf(relFile) {
+  let dir = path.dirname(path.resolve(ROOT, relFile));
+  // `dir === ROOT || dir.startsWith(ROOT + sep)`: a bare prefix test also
+  // matches the sibling `<ROOT>-evil`, whose manifest would then be picked.
+  while (dir === ROOT || dir.startsWith(ROOT + path.sep)) {
+    if (MANIFESTS.some(m => exists(path.join(dir, m)))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return ROOT;
 }
 
-// ────────────────���────────────────────────────────────────────────────────────
+/**
+ * The change set split by owning package, most-changed-files first. EVERY
+ * package a changed file belongs to gets an entry: running only the biggest one
+ * and reporting `passed:true` would let a red suite in another changed package
+ * ship unverified, because the stop-gate blocks only on `passed:false`.
+ */
+function resolveScopes(changedFiles) {
+  const byRoot = new Map();
+  for (const f of changedFiles) {
+    const r = packageRootOf(f);
+    if (!byRoot.has(r)) byRoot.set(r, []);
+    byRoot.get(r).push(f);
+  }
+  return [...byRoot.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
+    .map(([dir, files]) => ({
+      dir,
+      relRoot: path.relative(ROOT, dir),
+      label: path.relative(ROOT, dir) || '.',
+      scoped: files.map(f => path.relative(dir, path.resolve(ROOT, f))),
+    }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 3. Map source files to test files
 // ─────────────────────────────────────────────────────────────────────────────
 
-function mapToTestFiles(changedFiles) {
+/** Conventional test paths for one changed file, relative to <base>. */
+function conventionCandidates(file, base) {
+  const has = p => exists(path.resolve(base, p));
+  const out = [];
+  const ext = path.extname(file);
+  const stem = file.slice(0, file.length - ext.length);
+  const dir = path.dirname(file);
+  const name = path.basename(file, ext);
+
+  // A Rust/Python module that carries its own tests is its own test file.
+  if ((ext === '.rs' || ext === '.py') && has(file) && hasInFileTests(path.resolve(base, file), file)) {
+    out.push(file);
+  }
+
+  if (/\.[jt]sx?$/.test(ext)) {
+    out.push(
+      `${stem}.test${ext}`, `${stem}.spec${ext}`, `${stem}.test.tsx`, `${stem}.spec.tsx`,
+      path.join(dir, '__tests__', `${name}.test${ext}`),
+      path.join(dir, '__tests__', `${name}.spec${ext}`),
+      path.join(dir, '__tests__', `${name}.test.tsx`),
+      `tests/${name}.test${ext}`, `test/${name}.test${ext}`,
+    );
+  }
+  if (ext === '.py') {
+    out.push(
+      path.join(dir, `test_${name}.py`),
+      path.join(dir, 'tests', `test_${name}.py`),
+      path.join('tests', `test_${name}.py`),
+      `test_${name}.py`,
+    );
+  }
+  if (ext === '.go' && !file.endsWith('_test.go')) out.push(`${stem}_test.go`);
+  if (ext === '.rs') {
+    const testsDir = path.join(path.dirname(dir), 'tests');
+    try {
+      for (const e of fs.readdirSync(path.resolve(base, testsDir))) {
+        if (e.endsWith('.rs')) out.push(path.join(testsDir, e));
+      }
+    } catch { /* no tests/ dir */ }
+  }
+  return out.filter(has);
+}
+
+/** Test files that mention a changed source file by name. */
+function importScan(sourceFiles, base, add) {
+  if (sourceFiles.length === 0 || sourceFiles.length > 20) return;
+  for (const src of sourceFiles) {
+    const name = path.basename(src, path.extname(src));
+    const grepResult = run('grep', [
+      '-rlF',
+      '--exclude-dir=node_modules', '--exclude-dir=.venv', '--exclude-dir=.sst',
+      '--exclude-dir=.git', '--exclude-dir=dist', '--exclude-dir=build',
+      '--include=*.test.*', '--include=*.spec.*', '--include=*_test.*', '--include=test_*',
+      '-e', name, '.',
+    ], base);
+    if (!grepResult) continue;
+    for (const f of grepResult.split('\n').filter(Boolean)) {
+      const clean = f.startsWith('./') ? f.slice(2) : f;
+      if (exists(path.resolve(base, clean)) && isTestFile(clean)) add(clean);
+    }
+  }
+}
+
+function mapToTestFiles(changedFiles, base) {
   const testFiles = new Set();
-
   for (const file of changedFiles) {
-    // If it's already a test file, include it
-    if (isTestFile(file)) {
-      testFiles.add(file);
-      continue;
-    }
-
-    const ext = path.extname(file);
-    const base = file.replace(ext, '');
-    const dir = path.dirname(file);
-    const name = path.basename(file, ext);
-
-    // Convention mapping — JS/TS
-    if (/\.[jt]sx?$/.test(ext)) {
-      const candidates = [
-        `${base}.test${ext}`,
-        `${base}.spec${ext}`,
-        `${base}.test.tsx`,
-        `${base}.spec.tsx`,
-        path.join(dir, '__tests__', `${name}.test${ext}`),
-        path.join(dir, '__tests__', `${name}.spec${ext}`),
-        path.join(dir, '__tests__', `${name}.test.tsx`),
-        `tests/${name}.test${ext}`,
-        `test/${name}.test${ext}`,
-      ];
-      for (const c of candidates) {
-        if (exists(c)) testFiles.add(c);
-      }
-    }
-
-    // Convention mapping — Python
-    if (ext === '.py') {
-      const candidates = [
-        path.join(dir, `test_${name}.py`),
-        path.join(dir, 'tests', `test_${name}.py`),
-        path.join('tests', `test_${name}.py`),
-        `test_${name}.py`,
-      ];
-      for (const c of candidates) {
-        if (exists(c)) testFiles.add(c);
-      }
-    }
-
-    // Convention mapping — Go
-    if (ext === '.go' && !file.endsWith('_test.go')) {
-      const candidate = base + '_test.go';
-      if (exists(candidate)) testFiles.add(candidate);
-    }
-
-    // Convention mapping — Rust
-    if (ext === '.rs') {
-      // Rust tests are usually in the same file, but check for tests/ dir
-      const testsDir = path.join(path.dirname(dir), 'tests');
-      if (exists(testsDir)) {
-        try {
-          const entries = fs.readdirSync(testsDir);
-          for (const e of entries) {
-            if (e.endsWith('.rs')) testFiles.add(path.join(testsDir, e));
-          }
-        } catch { /* ignore */ }
-      }
-    }
+    if (isTestFile(file)) { testFiles.add(file); continue; }
+    for (const c of conventionCandidates(file, base)) testFiles.add(c);
   }
+  importScan(changedFiles.filter(f => !isTestFile(f)), base, f => testFiles.add(f));
 
-  // Import scanning — find test files that import changed source files
-  const sourceFiles = changedFiles.filter(f => !isTestFile(f));
-  if (sourceFiles.length > 0 && sourceFiles.length <= 20) {
-    for (const src of sourceFiles) {
-      const name = path.basename(src, path.extname(src));
-      // Search for imports of this file in test files
-      try {
-        const grepResult = run(
-          `grep -rl --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=.sst --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --include='*.test.*' --include='*.spec.*' --include='*_test.*' --include='test_*' "${name}" . 2>/dev/null`
-        );
-        if (grepResult) {
-          grepResult.split('\n').filter(Boolean).forEach(f => {
-            const clean = f.startsWith('./') ? f.slice(2) : f;
-            if (exists(clean) && isTestFile(clean)) testFiles.add(clean);
-          });
-        }
-      } catch { /* grep found nothing */ }
-    }
-  }
-
-  // Filter out vendored/generated directories
-  const excludeDirs = ['node_modules/', '.venv/', '.sst/', 'dist/', 'build/', '.next/', '__pycache__/'];
+  const excludeDirs = PRUNE_DIRS.map(d => `${d}/`);
   return [...testFiles]
     .filter(f => !excludeDirs.some(d => f.includes(d)))
     .sort();
 }
 
-// ─��─────���─────────────────────────────────��─────────────────────────────���─────
-// 4. Detect test runner
-// ──────────────────────────────────────────────────��──────────────────────────
-
-function detectTestRunner() {
-  // Try detect-project script
-  const detectPaths = [
-    path.join(process.cwd(), '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
-    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
-  ];
-
-  for (const dp of detectPaths) {
-    if (exists(dp)) {
-      try {
-        const result = spawnSync('node', [dp], { encoding: 'utf8', timeout: 5000 });
-        if (result.status === 0) {
-          const data = JSON.parse(result.stdout);
-          if (data.test_cmd) return { cmd: data.test_cmd, type: detectRunnerType(data.test_cmd) };
-        }
-      } catch { /* fall through */ }
-    }
-  }
-
-  // Check package.json
-  try {
-    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    if (pkg.scripts && pkg.scripts.test) {
-      const testScript = pkg.scripts.test;
-      // Detect package manager
-      const lockMap = [
-        ['bun.lockb', 'bun'], ['bun.lock', 'bun'],
-        ['pnpm-lock.yaml', 'pnpm'], ['yarn.lock', 'yarn'],
-        ['package-lock.json', 'npm'],
-      ];
-      let mgr = 'npx';
-      for (const [file, m] of lockMap) {
-        if (exists(file)) { mgr = m === 'npm' ? 'npx' : m; break; }
+/** How many test files the package has in total — the 40% rule's denominator. */
+function countSuiteTestFiles(base) {
+  let count = 0;
+  const stack = [base];
+  let visited = 0;
+  while (stack.length > 0 && visited < 20000) {
+    const dir = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      visited++;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (PRUNE_DIRS.includes(e.name)) continue;
+        stack.push(full);
+      } else if (isTestFile(path.relative(base, full))) {
+        count++;
       }
-
-      if (/vitest/.test(testScript)) return { cmd: `${mgr} vitest run`, type: 'vitest' };
-      if (/jest/.test(testScript)) return { cmd: `${mgr} jest`, type: 'jest' };
-
-      // Generic — use the package manager's test command
-      const runMgr = mgr === 'npx' ? 'npm' : mgr;
-      return { cmd: `${runMgr} run test`, type: 'generic-node' };
     }
-  } catch { /* no package.json */ }
-
-  // Python
-  if (exists('pyproject.toml') || exists('pytest.ini') || exists('setup.cfg')) {
-    return { cmd: 'pytest', type: 'pytest' };
   }
-
-  // Go
-  if (exists('go.mod')) return { cmd: 'go test', type: 'go' };
-
-  // Rust
-  if (exists('Cargo.toml')) return { cmd: 'cargo test', type: 'cargo' };
-
-  return { cmd: '', type: 'unknown' };
+  return count;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Detect test runner
+// ─────────────────────────────────────────────────────────────────────────────
 
 function detectRunnerType(cmd) {
   if (/vitest/.test(cmd)) return 'vitest';
@@ -274,118 +390,280 @@ function detectRunnerType(cmd) {
   return 'generic-node';
 }
 
-// ───────────────────────────────��─────────────────────────────��───────────────
+function detectTestRunner(base) {
+  const detectPaths = [
+    path.join(ROOT, '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+  ];
+  for (const dp of detectPaths) {
+    if (!exists(dp)) continue;
+    try {
+      const result = spawnSync('node', [dp, '--dir', base], { encoding: 'utf8', timeout: 5000, maxBuffer: 20 * 1024 * 1024 });
+      if (result.status === 0) {
+        const data = JSON.parse(result.stdout);
+        if (data.test_cmd) return { cmd: data.test_cmd, type: detectRunnerType(data.test_cmd) };
+      }
+    } catch { /* fall through */ }
+  }
+
+  const pkgPath = path.join(base, 'package.json');
+  if (exists(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.scripts && pkg.scripts.test) {
+        const testScript = pkg.scripts.test;
+        const lockMap = [
+          ['bun.lockb', 'bun'], ['bun.lock', 'bun'],
+          ['pnpm-lock.yaml', 'pnpm'], ['yarn.lock', 'yarn'],
+          ['package-lock.json', 'npm'],
+        ];
+        let mgr = 'npx';
+        for (const [file, m] of lockMap) {
+          if (exists(path.join(base, file))) { mgr = m === 'npm' ? 'npx' : m; break; }
+        }
+        if (/vitest/.test(testScript)) return { cmd: `${mgr} vitest run`, type: 'vitest' };
+        if (/jest/.test(testScript)) return { cmd: `${mgr} jest`, type: 'jest' };
+        const runMgr = mgr === 'npx' ? 'npm' : mgr;
+        return { cmd: `${runMgr} run test`, type: 'generic-node' };
+      }
+    } catch { /* no usable package.json */ }
+  }
+
+  if (exists(path.join(base, 'pyproject.toml')) || exists(path.join(base, 'pytest.ini')) || exists(path.join(base, 'setup.cfg'))) {
+    return { cmd: 'pytest', type: 'pytest' };
+  }
+  if (exists(path.join(base, 'go.mod'))) return { cmd: 'go test', type: 'go' };
+  if (exists(path.join(base, 'Cargo.toml'))) return { cmd: 'cargo test', type: 'cargo' };
+  return { cmd: '', type: 'unknown' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 5. Build test command with file filter
-// ───────────────────────��─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The command as an argv ARRAY: each test file is one entry, so a path with a
+ * space in it stays one argument and can never turn a green suite red.
+ */
 function buildTestCmd(runner, testFiles) {
-  if (runAll || testFiles.length === 0) return runner.cmd;
-
+  const base = runner.cmd.split(/\s+/).filter(Boolean);
+  if (runAll || testFiles.length === 0) return base;
   switch (runner.type) {
     case 'vitest':
-      return `${runner.cmd} ${testFiles.join(' ')}`;
     case 'jest':
-      return `${runner.cmd} ${testFiles.join(' ')}`;
     case 'pytest':
-      return `${runner.cmd} ${testFiles.join(' ')}`;
+      return [...base, ...testFiles];
     case 'go': {
-      // Convert file paths to package paths
       const pkgs = [...new Set(testFiles.map(f => './' + path.dirname(f)))];
-      return `go test ${pkgs.join(' ')}`;
+      return ['go', 'test', ...pkgs];
     }
     case 'cargo':
-      // Cargo test doesn't easily filter by file, run all
-      return runner.cmd;
+      return base;
     default:
-      // Try passing files as args — works for most runners
-      return `${runner.cmd} -- ${testFiles.join(' ')}`;
+      return [...base, '--', ...testFiles];
   }
 }
 
-// ──────────���──────────────────────���───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Main
-// ────────────────────���────────────────────────────────���───────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Past 40% of the suite a filtered run costs about as much as the real thing
+ * and proves less — run the whole suite and say so in the message.
+ */
+function chooseCommand(runner, testFiles, dir, notes) {
+  if (!runAll && testFiles.length > 0) {
+    const suite = countSuiteTestFiles(dir);
+    if (suite > 0 && testFiles.length / suite > FULL_SUITE_RATIO) {
+      // Tense-neutral: this same note is printed by --dry-run, which runs
+      // nothing — "ran the full suite" there would claim an execution that
+      // never happened.
+      notes.push(`mapped ${testFiles.length} of ${suite} test files (>${Math.round(FULL_SUITE_RATIO * 100)}% of the suite); the full suite is used`);
+      return runner.cmd.split(/\s+/).filter(Boolean);
+    }
+  }
+  return buildTestCmd(runner, testFiles);
+}
+
+/** Runs one package's suite. Returns its outcome; never exits. */
+function runOne(plan) {
+  const start = Date.now();
+  const result = spawnSync(plan.argv[0], plan.argv.slice(1), {
+    // The runner's output is not read back, so it is never piped: a pipe makes
+    // spawnSync buffer the whole suite in memory and kill the runner at
+    // maxBuffer, which would turn a red suite into "no verdict".
+    stdio: jsonOnly ? ['ignore', 'ignore', 'ignore'] : ['ignore', 'inherit', 'inherit'],
+    cwd: plan.dir,
+    timeout: RUN_TIMEOUT_MS,
+  });
+  const duration_ms = Date.now() - start;
+
+  // A runner that cannot be executed never counts as a failing test suite.
+  if ((result.error && result.error.code === 'ENOENT') || result.status === 127) {
+    return {
+      ...plan, status: 'unavailable', passed: null, duration_ms,
+      exit_code: result.status === 127 ? 127 : null,
+      message: `test runner could not be executed: ${plan.test_cmd}`,
+    };
+  }
+
+  // Nor does one that was killed or refused: it returned no verdict at all.
+  const noVerdict = noVerdictReason(result, duration_ms);
+  if (noVerdict) {
+    return {
+      ...plan, status: 'unavailable', passed: null, exit_code: null, duration_ms,
+      message: `test runner ${noVerdict}: ${plan.test_cmd}`,
+    };
+  }
+
+  return {
+    ...plan, status: 'ran', passed: result.status === 0,
+    exit_code: result.status, duration_ms, message: '',
+  };
+}
+
+/** The outcome of a package that needs no run: no runner, or nothing mapped. */
+function staticOutcome(plan) {
+  return {
+    ...plan,
+    status: plan.kind === 'unavailable' ? 'unavailable' : 'no-tests',
+    passed: null,
+    exit_code: plan.kind === 'unavailable' ? null : 0,
+    duration_ms: 0,
+  };
+}
+
+/** What this package would run: its mapped tests, its runner, its argv. */
+function planScope(scope) {
+  const notes = [];
+  const test_files = mapToTestFiles(scope.scoped, scope.dir);
+  const runner = detectTestRunner(scope.dir);
+  if (!runner.cmd) {
+    return { ...scope, kind: 'unavailable', test_files, test_cmd: '', notes,
+      message: `no test runner found in ${scope.dir}` };
+  }
+  const argv = chooseCommand(runner, test_files, scope.dir, notes);
+  const test_cmd = shellJoin(argv);
+  if (test_files.length === 0 && !runAll) {
+    return { ...scope, kind: 'no-tests', test_files, test_cmd, argv, notes,
+      message: 'no test files found for the changed sources' };
+  }
+  return { ...scope, kind: 'run', test_files, test_cmd, argv, notes, message: '' };
+}
+
+/**
+ * The one outcome the single-valued fields describe. A proven red outranks an
+ * unknown — it is the only result the stop-gate blocks on, so a package that
+ * really failed must not be softened away — and an unknown outranks green, so
+ * `passed:true` is never reported while a changed package went untested.
+ */
+function pickPrimary(outcomes) {
+  return outcomes.find(o => o.status === 'ran' && o.passed === false)
+      || outcomes.find(o => o.status === 'unavailable')
+      || outcomes.find(o => o.status === 'ran')
+      || outcomes[0];
+}
+
+function verdictWord(o) {
+  if (o.status === 'ran') return o.passed ? 'passed' : 'failed';
+  if (o.status === 'unavailable') return 'could not run';
+  return 'no test files mapped';
+}
+
+/** The notes every report carries: dropped paths first, then per-package ones. */
+function collectNotes(entries, multi) {
+  const notes = [];
+  if (outsideRoot.length > 0) {
+    notes.push(`ignored ${outsideRoot.length} changed path(s) outside the project root: ${outsideRoot.join(', ')}`);
+  }
+  for (const e of entries) {
+    for (const n of e.notes) notes.push(multi ? `${e.label}: ${n}` : n);
+  }
+  return notes;
+}
+
+/** Reports the aggregate of every package that was looked at. Never returns. */
+function reportOutcomes(outcomes, changedFiles) {
+  const primary = pickPrimary(outcomes);
+  const multi = outcomes.length > 1;
+  const notes = [];
+  if (primary.message) notes.push(primary.message);
+  if (multi) {
+    notes.push(`changed files span ${outcomes.length} packages, each ran on its own: ` +
+      outcomes.map(o => `${o.label} ${verdictWord(o)} (${o.test_cmd || 'no runner'})`).join(', '));
+  }
+  notes.push(...collectNotes(outcomes, multi));
+
+  report({
+    status: primary.status,
+    passed: primary.passed,
+    changed_files: changedFiles,
+    test_files: primary.test_files,
+    test_cmd: primary.test_cmd,
+    package_root: primary.relRoot,
+    exit_code: primary.exit_code,
+    duration_ms: outcomes.reduce((n, o) => n + o.duration_ms, 0),
+    message: notes.filter(Boolean).join('; '),
+    ...(multi ? { packages: outcomes.map(o => ({
+      package_root: o.relRoot, status: o.status, passed: o.passed,
+      test_cmd: o.test_cmd, test_files: o.test_files, exit_code: o.exit_code,
+    })) } : {}),
+  });
+
+  if (primary.status === 'ran') process.exit(primary.passed ? 0 : (primary.exit_code || 1));
+  process.exit(primary.status === 'unavailable' ? 1 : 0);
+}
+
+/**
+ * --dry-run. `status` cannot say "a run was planned but skipped", so the message
+ * leads with the count that test_files carries — a consumer keying on the enum
+ * alone must not read this as "there is nothing to test here". Never returns.
+ */
+function reportDryRun(plans, changedFiles) {
+  const runnable = plans.filter(p => p.kind === 'run');
+  const primary = runnable[0];
+  const multi = plans.length > 1;
+  const total = runnable.reduce((n, p) => n + p.test_files.length, 0);
+  const notes = [`dry run: ${total} test file(s) would run; nothing was executed`];
+  if (multi) {
+    notes.push(`changed files span ${plans.length} packages: ` +
+      plans.map(p => `${p.label} would run ${p.test_cmd || 'nothing (no runner)'}`).join(', '));
+  }
+  notes.push(...collectNotes(plans, multi));
+
+  report({
+    status: 'no-tests',
+    changed_files: changedFiles,
+    test_files: primary.test_files,
+    test_cmd: primary.test_cmd,
+    package_root: primary.relRoot,
+    dry_run: true,
+    message: notes.filter(Boolean).join('; '),
+    ...(multi ? { packages: plans.map(p => ({
+      package_root: p.relRoot, test_cmd: p.test_cmd, test_files: p.test_files,
+    })) } : {}),
+  });
+  process.exit(0);
+}
 
 function main() {
-  const base = detectBaseBranch();
-  const changedFiles = getChangedFiles(base);
+  const fromEnv = envChangedFiles();
+  const changedFiles = fromEnv !== null ? fromEnv : gitChangedFiles(detectBaseBranch());
 
   if (changedFiles.length === 0) {
-    output({
-      changed_files: [],
-      test_files: [],
-      test_cmd: '',
-      exit_code: 0,
-      passed: true,
-      duration_ms: 0,
-      message: 'No changed files found',
-    });
+    const why = outsideRoot.length > 0
+      ? `no changed files inside the project root; ignored ${outsideRoot.length}: ${outsideRoot.join(', ')}`
+      : 'no changed files';
+    report({ status: 'no-tests', message: why });
     process.exit(0);
   }
 
-  const testFiles = mapToTestFiles(changedFiles);
-  const runner = detectTestRunner();
+  const plans = resolveScopes(changedFiles).map(planScope);
 
-  if (!runner.cmd) {
-    output({
-      changed_files: changedFiles,
-      test_files: testFiles,
-      test_cmd: '',
-      exit_code: 1,
-      passed: false,
-      duration_ms: 0,
-      message: 'Could not detect test runner',
-    });
-    process.exit(1);
-  }
+  if (dryRun && plans.some(p => p.kind === 'run')) reportDryRun(plans, changedFiles);
 
-  const fullCmd = buildTestCmd(runner, testFiles);
-
-  if (testFiles.length === 0 && !runAll) {
-    output({
-      changed_files: changedFiles,
-      test_files: [],
-      test_cmd: fullCmd,
-      exit_code: 0,
-      passed: true,
-      duration_ms: 0,
-      message: 'No test files found for changed sources',
-    });
-    process.exit(0);
-  }
-
-  if (dryRun) {
-    output({
-      changed_files: changedFiles,
-      test_files: testFiles,
-      test_cmd: fullCmd,
-      dry_run: true,
-    });
-    process.exit(0);
-  }
-
-  // Run tests
-  const start = Date.now();
-  const parts = fullCmd.split(' ');
-  const result = spawnSync(parts[0], parts.slice(1), {
-    stdio: jsonOnly ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'inherit', 'inherit'],
-    encoding: 'utf8',
-    timeout: 300000, // 5 minute timeout
-  });
-
-  const duration = Date.now() - start;
-  const exitCode = result.status ?? 1;
-
-  output({
-    changed_files: changedFiles,
-    test_files: testFiles,
-    test_cmd: fullCmd,
-    exit_code: exitCode,
-    passed: exitCode === 0,
-    duration_ms: duration,
-  });
-
-  process.exit(exitCode);
+  reportOutcomes(plans.map(p => (p.kind === 'run' ? runOne(p) : staticOutcome(p))), changedFiles);
 }
 
 main();

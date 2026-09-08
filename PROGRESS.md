@@ -1,7 +1,8 @@
 # Progress
 
 ## Now
-- resume: `flow next` — `vary` design skill committed (617990d) and merged with origin/main; decide whether `.skill-forge/` (1.7 MB research workspace) is gitignored or kept
+- resume: spec 003 (harness bug fixes) built and verified in this worktree, uncommitted: hooks 1163/0, scripts 1540/0, field re-probe on finance/terraform/prr green. Decide: commit + merge to main; then whether to run spec 004 (flow v2) and 005 (lesson v2) inline, with Sonnet-only agents, or later
+- decide whether `.skill-forge/` (1.7 MB research workspace) is gitignored or kept
 
 ## Next
 - Dogfood `/design:vary` on one real surface (a persuade page and an operate page); tune roll.mjs tunables (GLOBAL_WINDOW 8 / PROJECT_WINDOW 3 / ticket weights) from what repeats

@@ -37,9 +37,9 @@ unchanged (`cp`/`rsync -a`, preserving file modes and the executable bit), with
 two narrow exceptions:
 
 - `rtk-fast.sh`, `rtk-rewrite.sh` and `.rtk-hook.sha256` under `hooks/` were
-  **not** copied — the SPEC marks them out of scope for every unit ("No unit
-  edits, wires, or tests them"; the orchestrator wires `rtk-rewrite.sh` into
-  settings by hand). `__pycache__/` (a gitignored build artifact) was not
+  **not** copied, and spec 003 (FU-27/B12) has since deleted them from the
+  dotfiles side as well, together with their registration — nothing wires or
+  ships them any more. `__pycache__/` (a gitignored build artifact) was not
   copied either.
 - `scripts/tests/test_agents.sh`, `test_commands.sh` and `test_explorer.sh`
   were **not** copied, and the wrap.md-specific assertions inside

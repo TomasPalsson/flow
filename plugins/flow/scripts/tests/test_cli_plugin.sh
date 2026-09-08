@@ -13,7 +13,8 @@ set -u
 CLI_PATH=""
 CLI_PATH=$(cd "$HERE/../../../.." && pwd -P)
 REPO_ROOT_FOR_TEST="$CLI_PATH"
-CLI_PATH="$CLI_PATH/bin/.local/bin/flow"; [ -x "$SCAN_DIR/../bin/flow" ] && CLI_PATH="$SCAN_DIR/../bin/flow"
+CLI_PATH="$CLI_PATH/bin/.local/bin/flow"
+[ -x "$SCAN_DIR/../bin/flow" ] && CLI_PATH="$SCAN_DIR/../bin/flow"
 
 # _clip_cli_in <project-dir> <home-dir> <harness-args...>
 # Runs `node $CLI_PATH <args>` with cwd=<project-dir> and HOME=<home-dir>,
@@ -84,10 +85,6 @@ JSON
 # ---------------------------------------------------------------------------
 # install --marketplace: creates ~/.claude/skills/<name> symlinks
 # ---------------------------------------------------------------------------
-
-
-
-
 
 t_clip_install_marketplace_help_mentions_flag() {
 	local home
@@ -484,16 +481,18 @@ EOF
 # C21 (single-symlink live loading): ~/.claude/skills -> <marketplace>/plugins;
 # hooks/scripts/flow-templates -> the core plugin; no ~/.claude/workflows.
 _clip_write_core_plugin() {
-  mkdir -p "$1/plugins/flow/.claude-plugin" "$1/plugins/flow/hooks" "$1/plugins/flow/scripts" "$1/plugins/flow/flow-templates" "$1/plugins/flow/workflows" "$1/plugins/flow/bin" "$1/.claude-plugin"
-  printf '{"name":"flow","version":"0.1.0","skills":["./skills/"]}\n' >"$1/plugins/flow/.claude-plugin/plugin.json"
-  printf '{"name":"flow","owner":{"name":"t"},"plugins":[{"name":"flow","source":"./plugins/flow"}]}\n' >"$1/.claude-plugin/marketplace.json"
-  printf '{"hooks":{}}\n' >"$1/plugins/flow/hooks/hooks.json"
-  printf '#!/usr/bin/env node\nconsole.log("stub")\n' >"$1/plugins/flow/bin/flow"
+	mkdir -p "$1/plugins/flow/.claude-plugin" "$1/plugins/flow/hooks" "$1/plugins/flow/scripts" "$1/plugins/flow/flow-templates" "$1/plugins/flow/workflows" "$1/plugins/flow/bin" "$1/.claude-plugin"
+	printf '{"name":"flow","version":"0.1.0","skills":["./skills/"]}\n' >"$1/plugins/flow/.claude-plugin/plugin.json"
+	printf '{"name":"flow","owner":{"name":"t"},"plugins":[{"name":"flow","source":"./plugins/flow"}]}\n' >"$1/.claude-plugin/marketplace.json"
+	printf '{"hooks":{}}\n' >"$1/plugins/flow/hooks/hooks.json"
+	printf '#!/usr/bin/env node\nconsole.log("stub")\n' >"$1/plugins/flow/bin/flow"
 }
 
 t_clip_install_plugin_mode_links_skills_to_plugins_dir() {
 	local home dotfiles mkt
-	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	_clip_write_core_plugin "$mkt"
 	_clip_write_marketplace_plugin "$mkt" "widget"
@@ -509,10 +508,12 @@ t_clip_install_plugin_mode_links_skills_to_plugins_dir() {
 
 t_clip_install_plugin_mode_is_idempotent() {
 	local home dotfiles mkt
-	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	_clip_write_core_plugin "$mkt"
-	printf '{}\n' >"$dotfiles/claude/.claude/settings.json"   # plugin mode: no hooks block in settings
+	printf '{}\n' >"$dotfiles/claude/.claude/settings.json" # plugin mode: no hooks block in settings
 	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$mkt"
 	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$mkt"
 	assert_not_contains "$OUT" "FAIL $home/.claude" "plugin mode second run: no install FAIL line"
@@ -522,7 +523,9 @@ t_clip_install_plugin_mode_is_idempotent() {
 
 t_clip_install_plugin_mode_settings_hooks_key_is_a_fail() {
 	local home dotfiles mkt
-	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	_clip_write_core_plugin "$mkt"
 	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$mkt"
@@ -532,7 +535,8 @@ t_clip_install_plugin_mode_settings_hooks_key_is_a_fail() {
 
 t_clip_install_no_marketplace_checkout_prints_alternative() {
 	local home dotfiles
-	home=$(tmp_dir); dotfiles=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	_clip_cli_in "$home" "$home" install --dotfiles "$dotfiles" --marketplace "$home/nope"
 	assert_contains "$OUT" "no marketplace checkout" "no checkout: note printed"
@@ -545,7 +549,8 @@ t_clip_install_no_marketplace_checkout_prints_alternative() {
 # the dotfiles root and then FAIL on a settings.json that was never there.
 t_clip_install_no_dotfiles_refuses_instead_of_using_marketplace() {
 	local home mkt
-	home=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_core_plugin "$mkt"
 	_clip_cli_in "$home" "$home" install --marketplace "$mkt"
 	assert_rc 1 "no dotfiles: install exits 1"
@@ -559,7 +564,9 @@ _install_is_symlink_clip() { if [ -L "$1" ]; then printf 'yes'; else printf 'no'
 
 t_clip_install_dotfiles_env_var_is_honoured() {
 	local home dotfiles mkt
-	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	_clip_write_core_plugin "$mkt"
 	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2" DOTFILES="$3"; shift 3; unset FLOW_REPO; exec "$@"' \
@@ -572,7 +579,9 @@ t_clip_install_dotfiles_env_var_is_honoured() {
 # checkout has none: plugin mode seeds a minimal parseable one instead of FAIL.
 t_clip_install_plugin_mode_seeds_missing_settings() {
 	local home dotfiles mkt
-	home=$(tmp_dir); dotfiles=$(tmp_dir); mkt=$(tmp_dir)
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	mkt=$(tmp_dir)
 	_clip_write_stub_dotfiles "$dotfiles"
 	rm -f "$dotfiles/claude/.claude/settings.json"
 	_clip_write_core_plugin "$mkt"
@@ -612,7 +621,8 @@ t_clip_doctor_double_load_warns_when_marketplace_copy_also_enabled() {
 # on the pipe forever. Doctor must finish and WARN, not hang.
 t_clip_doctor_plugin_list_survives_claude_leaving_a_background_child() {
 	local home fakebin restricted_path block start end
-	home=$(tmp_dir); fakebin=$(tmp_dir)
+	home=$(tmp_dir)
+	fakebin=$(tmp_dir)
 	ln -s "$(command -v node)" "$fakebin/node"
 	cat >"$fakebin/claude" <<'EOF2'
 #!/usr/bin/env bash
@@ -639,6 +649,9 @@ t_clip_doctor_verbose_names_each_check() {
 	home=$(tmp_dir)
 	_clip_cli_in "$home" "$home" doctor --json --verbose
 	assert_contains "$ERR" "check plugin-list" "doctor --verbose names checks on stderr"
-	assert_contains "$ERR" "check skills-lint" "doctor --verbose names the skills-lint check"
+	assert_not_contains "$ERR" "check skills-lint" "doctor --verbose: skills-lint is skipped without --deep (B25)"
+
+	_clip_cli_in "$home" "$home" doctor --json --verbose --deep
+	assert_contains "$ERR" "check skills-lint" "doctor --verbose --deep names the skills-lint check"
 	rm -rf "$home"
 }

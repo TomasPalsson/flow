@@ -5,9 +5,10 @@
 // of lessons 1..N (see lib/lessons/*.js). See .claude/slices/2-brief.md for
 // the behaviors this file is judged by (test_tutorial.sh, B9-B18/B27/B28).
 //
-// Invocation: `node tutorial.js [--list] [--reset] [--lesson N] [--sandbox <dir>]`
-// bin/flow's own `tutorial` dispatch (a later slice) requires this file and
-// calls its `run(argv, home)` export instead of spawning a subprocess.
+// Invocation: `flow tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>]
+// [--force]`, or `node tutorial.js` with the same arguments. bin/flow's own
+// `tutorial` dispatch requires this file and calls its `run(argv, home)`
+// export instead of spawning a subprocess.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -106,9 +107,14 @@ function resetProgress(home) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sandbox — a disposable git repo plus a `flow` shim on `<sandbox>-bin`, so
-// every typed command can call `flow` without touching the real PATH.
+// Sandbox — a scratch git repo plus a `flow` shim in the repo's own
+// `.flow-tutorial-bin/`, so every typed command can call `flow` without
+// touching the real PATH. B3: the shim dir lives INSIDE the sandbox; a
+// sibling `<dir>-bin` would litter the parent directory and survive
+// `rm -rf <dir>`.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const SHIM_DIR_NAME = '.flow-tutorial-bin';
 
 function runGit(cwd, args) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -119,7 +125,7 @@ function runGit(cwd, args) {
 }
 
 function writeShim(sandboxDir) {
-  const binDir = `${sandboxDir}-bin`;
+  const binDir = path.join(sandboxDir, SHIM_DIR_NAME);
   fs.mkdirSync(binDir, { recursive: true });
   const shimPath = path.join(binDir, 'flow');
   const cliReal = fs.realpathSync(CLI_PATH);
@@ -142,8 +148,29 @@ function initSandboxRepo(sandboxDir) {
   runGit(sandboxDir, ['commit', '-q', '-m', 'init']);
 }
 
-function createSandbox(explicitDir) {
+// assertUsable(dir, force) — B3: an explicit --sandbox must not be pointed at
+// a directory that already has files in it; the tutorial writes and commits
+// there. A directory this tutorial created before (it carries the shim dir)
+// is a resume, not a collision.
+function assertUsable(dir, force) {
+  if (force) return;
+  let entries;
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return; // absent, or not a directory: createSandbox reports that instead
+  }
+  if (entries.length === 0 || entries.indexOf(SHIM_DIR_NAME) !== -1) return;
+  throw new TutorialError(
+    'SANDBOX_NOT_EMPTY',
+    `${dir} is not empty (${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}); ` +
+      'pick an empty directory, or pass --force to use this one anyway'
+  );
+}
+
+function createSandbox(explicitDir, force) {
   let sandboxDir;
+  if (explicitDir) assertUsable(path.resolve(explicitDir), force);
   try {
     if (explicitDir) {
       // Resolve against the current cwd right away and persist the absolute
@@ -259,14 +286,29 @@ async function interactiveSession(lessons, state, home, sandbox) {
 // CLI.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// valueFor(flag, next): the value of a flag that needs one. A missing value,
+// or a flag-shaped one (`flow tutorial --sandbox --force`), is a typo — taking
+// it literally would create and git-init a directory named `--force` and skip
+// the not-empty check entirely, so it is an error before anything is written.
+function valueFor(flag, next, noun) {
+  if (next === undefined || next === null) {
+    throw new TutorialError('MISSING_VALUE', `${flag} needs ${noun}, got nothing`);
+  }
+  if (String(next).startsWith('-')) {
+    throw new TutorialError('MISSING_VALUE', `${flag} needs ${noun}, got the flag '${next}'`);
+  }
+  return next;
+}
+
 function parseArgs(argv) {
-  const out = { list: false, reset: false, lesson: null, sandbox: null };
+  const out = { list: false, reset: false, lesson: null, sandbox: null, force: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--list') out.list = true;
     else if (a === '--reset') out.reset = true;
-    else if (a === '--lesson') out.lesson = argv[++i];
-    else if (a === '--sandbox') out.sandbox = argv[++i];
+    else if (a === '--force') out.force = true;
+    else if (a === '--lesson') out.lesson = valueFor('--lesson', argv[++i], 'a lesson number');
+    else if (a === '--sandbox') out.sandbox = valueFor('--sandbox', argv[++i], 'a path');
   }
   return out;
 }
@@ -297,7 +339,9 @@ async function run(argv, home) {
   const state = loadProgress(home, lessons.length);
   if (args.lesson !== null) state.cursor = resolveLessonArg(args.lesson, lessons.length);
 
-  const sandbox = createSandbox(args.sandbox || state.sandboxDir);
+  // Only an explicit --sandbox is checked for emptiness: a resumed sandbox
+  // (read back from the progress file) is expected to have files in it.
+  const sandbox = args.sandbox ? createSandbox(args.sandbox, args.force) : createSandbox(state.sandboxDir, true);
   state.sandboxDir = sandbox.sandboxDir;
   saveProgress(home, state);
 

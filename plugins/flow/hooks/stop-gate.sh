@@ -1,551 +1,532 @@
 #!/usr/bin/env bash
-# stop-gate.sh — Stop hook. Exact behavior: SPEC C10.
+# stop-gate.sh — Stop hook. Exact behaviour: SPEC C10 (decision table R0-R16).
 #
-# Refuses to let a turn end while the project's gates are red. "scoped"
-# mode (the default) runs only the tests related to what changed this turn
-# (test-changed) and occasionally promotes to a full check-all sweep;
-# "true" runs the full sweep every turn; "false" turns this off. A wedge
-# valve stops the same failure signature from blocking a session forever:
-# after 3 identical blocks it degrades to a non-blocking exit 2 instead.
+# Refuses to end a turn while THIS turn's change set is verifiably red, and
+# says so out loud whenever it could not check. First match wins:
+#
+#   R0 stop_hook_active / CC_NO_STOP_GATE / flow.off / not a git tree → silent
+#   R1 stopGate outside {true,false,"scoped"} → note, the gate did not run
+#   R2 background tasks still running → note · R3 nothing changed → silent
+#   R4 docs/config only (plan-lint iff the plan changed) → silent
+#   R5 source changed, no ecosystem → note once a session
+#   R6 the root manifest is gone and the root was written this turn → block
+#   R7 a gate could not run (missing tool, crash) → note, names the fix
+#   R8-R10  scoped run over this turn's files: green → silent, red → block
+#   R11-R13 a sweep is due (commits since the last one) → check-all --json
+#   R9/R12 a red proven older than this turn → note, no block
+#   R14 third identical block → soft · R15 fourth → release · R16 over budget
+#
+# "Cannot judge" is never "pass": every allow that skipped a check says so.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
 . "$HERE/lib/hookout.sh"
-hook_skip_if_off   # `flow off` wrote .claude/flow.off here: no judging hooks
+# shellcheck source=lib/specgate.sh
+. "$HERE/lib/specgate.sh"
+hook_skip_if_off # `flow off` wrote .claude/flow.off here: no judging hooks
 
-# --- C20 spec gate helpers (unit V7) -----------------------------------
-# _sg20_mtime <path> — portable last-modification epoch: GNU stat, then
-# BSD stat, then a python3 fallback. Empty string when none work.
-_sg20_mtime() {
-	_sm=$(stat -c %Y "$1" 2>/dev/null) # portable-ok
-	if [ -z "$_sm" ]; then
-		_sm=$(stat -f %m "$1" 2>/dev/null) # portable-ok
-	fi
-	if [ -z "$_sm" ] && have python3; then
-		_sm=$(python3 -c 'import os,sys
-print(int(os.path.getmtime(sys.argv[1])))' "$1" 2>/dev/null)
-	fi
-	printf '%s' "$_sm"
-}
+_started=$(date +%s)
 
-# _sg20_is_source <relpath> — rc 0 when relpath counts as a "source file"
-# under C20 (i.e. is NOT excluded).
-_sg20_is_source() {
-	_sp=$1
-	case "$_sp" in
-	.specs/* | .claude/* | docs/*) return 1 ;;
-	esac
-	case "$_sp" in
-	*.md | *.txt) return 1 ;;
-	esac
-	case "$_sp" in
-	*_test.* | *.test.* | *.spec.*) return 1 ;;
-	esac
-	case "$_sp" in
-	tests/* | */tests/* | __tests__/* | */__tests__/*) return 1 ;;
-	esac
-	case "$_sp" in
-	*.lock | package-lock.json | yarn.lock | pnpm-lock.yaml | Cargo.lock | Gemfile.lock | poetry.lock | go.sum | composer.lock) return 1 ;;
-	esac
-	case "$_sp" in
-	*/*) : ;;
-	.gitignore | .editorconfig) return 1 ;;
-	esac
-	return 0
-}
-
-# _pl_resolve — echo the plan-lint executable path: CC_SCRIPTS_DIR (default
-# the sibling scripts/ dir next to this hooks/ directory), falling back to
-# $HOME/.claude/scripts for a dotfiles-style deployment that set neither.
-_pl_resolve() {
-	_pl_dir="${CC_SCRIPTS_DIR:-$HERE/../scripts}"
-	_pl_bin="$_pl_dir/plan-lint"
-	if [ ! -e "$_pl_bin" ]; then
-		_pl_bin="$HOME/.claude/scripts/plan-lint"
-	fi
-	printf '%s' "$_pl_bin"
-}
-
-# _plan_lint_check <plan-file> — sets PL_AVAILABLE (0/1), PL_OK (0=OK,
-# 1=problems), PL_OUT (plan-lint's stdout). Caches the result per plan
-# mtime in ${TMPDIR:-/tmp}/claude-plan-ok-<8-char cksum of plan path> so
-# repeated calls in the same turn stay fast.
-_plan_lint_check() {
-	_pl_plan=$1
-	PL_AVAILABLE=1
-	PL_OK=1
-	PL_OUT=""
-	_pl_bin=$(_pl_resolve)
-	if [ ! -e "$_pl_bin" ]; then
-		PL_AVAILABLE=0
-		return 0
-	fi
-	_pl_mtime=$(_sg20_mtime "$_pl_plan")
-	_pl_hashnum=$(printf '%s' "$_pl_plan" | cksum | awk '{print $1}')
-	_pl_hash8=$(printf '%s' "$_pl_hashnum" | tail -c 8)
-	_pl_tmp="${TMPDIR:-/tmp}"
-	_pl_tmp="${_pl_tmp%/}"
-	_pl_cache="$_pl_tmp/claude-plan-ok-$_pl_hash8"
-	if [ -n "$_pl_mtime" ] && [ -f "$_pl_cache" ]; then
-		_pl_cached_mtime=$(sed -n '1p' "$_pl_cache" 2>/dev/null)
-		if [ "$_pl_cached_mtime" = "$_pl_mtime" ]; then
-			_pl_cached_status=$(sed -n '2p' "$_pl_cache" 2>/dev/null)
-			PL_OUT=$(tail -n +3 "$_pl_cache" 2>/dev/null)
-			if [ "$_pl_cached_status" = "OK" ]; then PL_OK=0; else PL_OK=1; fi
-			return 0
-		fi
-	fi
-	_pl_run_out=$(bash "$_pl_bin" "$_pl_plan" 2>/dev/null)
-	_pl_run_rc=$?
-	PL_OUT="$_pl_run_out"
-	if [ "$_pl_run_rc" -eq 0 ]; then
-		PL_OK=0
-		_pl_status="OK"
-	else
-		PL_OK=1
-		_pl_status="FAIL"
-	fi
-	if [ -n "$_pl_mtime" ]; then
-		{
-			printf '%s\n%s\n' "$_pl_mtime" "$_pl_status"
-			printf '%s\n' "$_pl_run_out"
-		} >"$_pl_cache" 2>/dev/null || true
-	fi
-	return 0
-}
-
-# _sg_approved_plan_ok <project-dir> — rc 0 when an approved, lint-clean
-# plan exists. Degrades to "ok" (do not deny) when plan-lint is
-# unavailable — a hook must never block on a missing tool it cannot judge.
-_sg_approved_plan_ok() {
-	_ap_plan="$1/.claude/feature-plan.local.md"
-	[ -f "$_ap_plan" ] || return 1
-	grep -Eq '^Approved: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$_ap_plan" 2>/dev/null || return 1
-	_plan_lint_check "$_ap_plan"
-	[ "$PL_AVAILABLE" -eq 0 ] && return 0
-	[ "$PL_OK" -eq 0 ] && return 0
-	return 1
-}
-# -------------------------------------------------------------------------
-
+# --- R0 ------------------------------------------------------------------
 [ "$(hook_field '.stop_hook_active')" = "true" ] && hook_ok
 [ "${CC_NO_STOP_GATE:-}" = "1" ] && hook_ok
-
 dir=$(hook_project_dir)
-cfg="$dir/.claude/flow.config.json"
-
-_stop_gate_mode="scoped"
-_full_every=900
-if have jq && [ -f "$cfg" ]; then
-	v=$(jq -r 'if has("stopGate") then (.stopGate|tostring) else empty end' "$cfg" 2>/dev/null)
-	[ -n "$v" ] && _stop_gate_mode="$v"
-	v=$(jq -r 'if has("stopGateFullEverySec") then (.stopGateFullEverySec|tostring) else empty end' "$cfg" 2>/dev/null)
-	[ -n "$v" ] && _full_every="$v"
-fi
-# NOTE (C20): stopGate:false disables only the test/lint sweep below, never
-# the C20 spec-gate block — the spec gate's PreToolUse counterpart already
-# runs regardless of stopGate, and C20 explicitly requires stop-gate.sh's
-# spec-gate additions to be "independent of stopGate". So the stopGate:false
-# short-circuit is applied further down, only once the spec-gate block has
-# had a chance to set _block.
-
 git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 || hook_ok
 
-# --- "changed this turn" (C3): union of files newer than the turn stamp
-# and every path git status --porcelain reports; both empty = nothing to do.
-_stamp=$(hook_stamp_path)
-_sg_changed=0
-_sg_newer=""
-if [ -f "$_stamp" ]; then
-	_sg_newer=$(find "$dir" -newer "$_stamp" -type f \
-		-not -path '*/.git/*' -not -path '*/node_modules/*' \
-		-not -path '*/.venv/*' -not -path '*/target/*' -not -path '*/dist/*' 2>/dev/null)
-	[ -n "$_sg_newer" ] && _sg_changed=1
-fi
+_tmp="${TMPDIR:-/tmp}"
+_tmp="${_tmp%/}"
+_toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
+[ -z "$_toplevel" ] && _toplevel="$dir"
+_repo_base=$(basename "$_toplevel")
+_hash_num=$(printf '%s' "$_toplevel" | cksum | awk '{print $1}')
+_hash8=$(printf '%s' "$_hash_num" | tail -c 8)
+_branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+[ -z "$_branch" ] && _branch="detached"
+_branch_safe=$(printf '%s' "$_branch" | tr -c 'A-Za-z0-9_-' '_')
+# FU-24: the sweep stamp holds the sha the last sweep ran at, not a clock.
+_sweep_stamp="$_tmp/claude-gates-${_repo_base}-${_hash8}"
+_baseline="$_tmp/claude-baseline-${_repo_base}-${_branch_safe}"
+
+_NOWEAKEN="Do not delete, skip, xfail, or weaken a test to make this pass, and do not lower a threshold in config. If a check is genuinely inapplicable here, say so explicitly and stop."
+_HATCH="(escape: CC_NO_STOP_GATE=1 for this session, stopGate:false in .claude/flow.config.json, or ask the user to run the gate.)"
+
+# _sg_q <text> — <text> as ONE single-quoted shell word. Every command this
+# hook prints must be runnable as printed, including from a directory whose
+# path contains a space or a quote.
+_sg_q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+_dirq=$(_sg_q "$dir")
+
+# _sg_clip <gate output> — the output block of a block reason: at most 25 lines
+# AND at most 300 characters per line, so the whole reason stays well under the
+# platform's hook-output cap. The two load-bearing parts (the no-weakening
+# sentence and the reproduce command) are printed AFTER this block, and an
+# unbounded gate — one 200-column line per assertion, say — would push exactly
+# those past the cap. Says so when it dropped anything: a clipped block
+# presented as the full output is a claim the hook cannot back.
+_sg_clip() {
+	_cl_n=$(printf '%s\n' "$1" | grep -c '')
+	_cl_max=$(printf '%s\n' "$1" | awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }')
+	printf '%s\n' "$1" | head -25 | cut -c1-300
+	if [ "$_cl_n" -gt 25 ] || [ "$_cl_max" -gt 300 ]; then
+		printf '… (clipped here to 25 lines x 300 chars — this is not all of it)\n'
+	fi
+}
+
+_budget=$(hook_config stopGateBudgetSec)
+case "$_budget" in '' | *[!0-9]*) _budget=150 ;; esac
+
+# _sg_over_budget — rc 0 once this hook has spent its wall-clock budget (R16).
+_sg_over_budget() {
+	_ob_now=$(date +%s)
+	[ $((_ob_now - _started)) -ge "$_budget" ]
+}
+
+# _sg_release_over_budget <clause> — R16: end the turn saying what the budget
+# cost. Checked BEFORE a phase starts (it never began) and again AFTER one that
+# would block (it ran long, so its verdict is not enforced): the knob bounds
+# the turn, not just the number of phases.
+_sg_release_over_budget() {
+	hook_note "stop gate exceeded its ${_budget}s budget: $1 Run: cd $_dirq && flow check"
+}
+
+# _sg_finish <sig> <name> <reason> — the R14/R15 ladder. First two IDENTICAL
+# blocks block; the third is soft (no hook-error styling); the fourth and later
+# end the turn with a note that states nothing was verified.
+#
+# <sig> is the failure's identity, not the gate's: a signature counted per gate
+# family would let a brand-new regression inherit an older failure's count and
+# walk out soft on its first ever block. Every caller folds the failing ids into
+# it. <name> is the readable half, and the only one a message shows.
+_sg_finish() {
+	_fi_n=$(hook_count "stop-gate:$1")
+	case "$_fi_n" in '' | *[!0-9]*) _fi_n=1 ;; esac
+	if [ "$_fi_n" -ge 4 ]; then
+		hook_note "ending the turn with $2 still red after $_fi_n blocks this session. Nothing was verified. Run: cd $_dirq && flow check"
+	fi
+	if [ "$_fi_n" -eq 3 ]; then
+		hook_soft "$3
+
+This is the 3rd identical block this session. Fix it, or state why it is out of scope and stop."
+	fi
+	hook_block "$3"
+}
+
+# _sg_in_list <needle> <newline-separated list> — rc 0 on an exact line match.
+_sg_in_list() { printf '%s\n' "$2" | grep -q -x -F -e "$1"; }
+
+# _sg_disjoint <newline-separated paths> — rc 0 when THIS turn's change set
+# shares no file with <paths>. An empty <paths> is disjoint from everything.
+_sg_disjoint() {
+	_dj_prev=$1
+	while IFS= read -r _dj_p; do
+		[ -z "$_dj_p" ] && continue
+		_sg_in_list "$_dj_p" "$_dj_prev" && return 1
+	done <<EOF
+$_rel_changed
+EOF
+	return 0
+}
+
+# _sg_baseline <newline-separated ids> — the R9/R12 record for this repo+branch
+# at this HEAD, and BL_KNOWN=1 when every id in it is a failure THIS turn
+# cannot have caused. That is only provable one way: the id was recorded red at
+# the end of an EARLIER turn whose change set shares no file with this one (or
+# it was already confirmed that way at this HEAD, which stays true until HEAD
+# moves). A red first seen in a turn that touched the code under it is this
+# turn's to answer for, and goes up the R10 -> R14 -> R15 ladder instead.
+# File: line 1 the HEAD sha, then "D <path>" (last observation's change set),
+# "O <id>" (last observation's red ids), "B <id>" (ids confirmed pre-existing).
+_sg_baseline() {
+	_bl_ids=$1
+	_bl_head=$(git -C "$dir" rev-parse HEAD 2>/dev/null)
+	[ -z "$_bl_head" ] && _bl_head="nohead"
+	_bl_prev_d=""
+	_bl_prev_o=""
+	_bl_conf=""
+	if [ -f "$_baseline" ] && [ "$(sed -n '1p' "$_baseline" 2>/dev/null)" = "$_bl_head" ]; then
+		_bl_body=$(tail -n +2 "$_baseline" 2>/dev/null)
+		_bl_prev_d=$(printf '%s\n' "$_bl_body" | sed -n 's/^D //p')
+		_bl_prev_o=$(printf '%s\n' "$_bl_body" | sed -n 's/^O //p')
+		_bl_conf=$(printf '%s\n' "$_bl_body" | sed -n 's/^B //p')
+	fi
+	_bl_older=0
+	_sg_disjoint "$_bl_prev_d" && _bl_older=1
+	BL_KNOWN=0
+	_bl_any=0
+	while IFS= read -r _bl_id; do
+		[ -z "$_bl_id" ] && continue
+		[ "$_bl_any" -eq 0 ] && BL_KNOWN=1
+		_bl_any=1
+		if _sg_in_list "$_bl_id" "$_bl_conf"; then continue; fi
+		if [ "$_bl_older" -eq 1 ] && _sg_in_list "$_bl_id" "$_bl_prev_o"; then
+			_bl_conf="$_bl_conf
+$_bl_id"
+			continue
+		fi
+		BL_KNOWN=0
+	done <<EOF
+$_bl_ids
+EOF
+	{
+		printf '%s\n' "$_bl_head"
+		printf '%s\n' "$_rel_changed" | sed -n 's/^\(..*\)$/D \1/p'
+		printf '%s\n' "$_bl_ids" | sed -n 's/^\(..*\)$/O \1/p'
+		printf '%s\n' "$_bl_conf" | sed -n 's/^\(..*\)$/B \1/p'
+	} >"$_baseline" 2>/dev/null || true
+}
+
+# _sg_red <name> <ids> <reason> — one red verdict, filtered through the
+# baseline: failures proven to predate this turn end it with a note (R9/R12),
+# everything else goes up the block ladder (R10/R13). The ladder counts <name>
+# TOGETHER WITH the failing ids, so "the lint gate is red" twice never softens
+# the first block of a different failure in the same gate.
+_sg_red() {
+	_sg_baseline "$2"
+	if [ "$BL_KNOWN" -eq 1 ]; then
+		hook_note "$(printf '%s' "$2" | grep -c .) failing check(s) were already failing before this turn ($1): they were red at the end of an earlier turn that touched none of the files you changed this turn. Not blocking; not fixed either."
+	fi
+	_sg_finish "$1|$(printf '%s\n' "$2" | sort | tr '\n' ',')" "$1" "$3"
+}
+
+# --- R1: an unrecognised stopGate is loud, never a silent default ---------
+_mode=$(hook_config stopGate)
+case "$_mode" in
+'') _mode="scoped" ;;
+true | false | scoped) ;;
+*) hook_note "stopGate=\"$_mode\" in .claude/flow.config.json is not true | false | \"scoped\" — the gate did not run this turn. Fix: set stopGate to one of those three." ;;
+esac
+
+# --- R2: work still in flight is not a turn to gate -----------------------
+_bg=$(hook_field '.background_tasks')
+case "$_bg" in
+'' | '[]' | '{}' | 'null') ;;
+*)
+	_bg_n=$(printf '%s' "$_bg" | jq -r 'if type=="array" then length else 1 end' 2>/dev/null)
+	case "$_bg_n" in '' | *[!0-9]*) _bg_n=1 ;; esac
+	_bg_kinds=$(printf '%s' "$_bg" | jq -r '[.[]? | (.description? // .type? // .status? // "task") | tostring] | unique | join(", ")' 2>/dev/null)
+	[ -z "$_bg_kinds" ] && _bg_kinds="unnamed"
+	hook_note "$_bg_n background task(s) still running ($_bg_kinds) — the gate did not run this turn; what they change is unverified."
+	;;
+esac
+
+# --- Δ: what THIS turn changed (C3/B6/FU-04) ------------------------------
+# find-newer over the turn stamp only. git status is consulted for exactly one
+# thing below (a manifest that disappeared), because a repo that was dirty
+# before the turn started is not this turn's doing. No turn stamp = no turn to
+# scope to = nothing to gate.
+_changed=$(hook_changed_since "$(hook_stamp_path)")
 _porcelain=$(git -C "$dir" status --porcelain 2>/dev/null)
-[ -n "$_porcelain" ] && _sg_changed=1
-[ "$_sg_changed" -eq 0 ] && hook_ok
 
-_block=0
-_sig=""
-_reason=""
-
-# --- C20 spec gate (unit V7): uses the C3 changed set above.
-# (a) always: if the plan file changed this turn, run plan-lint on it and
-#     block on failure with its output.
-# (b) when requireSpec is active on this branch: block when any source
-#     file changed this turn without an approved, lint-clean plan.
-# Wedge valve signature for both: "spec-gate".
-_sg20_plan_path="$dir/.claude/feature-plan.local.md"
-_sg20_plan_changed=0
-_sg20_source_changed=0
-_sg20_source_example=""
-
-_sg20_relpath() {
-	# One path per line: callers stream this into `while read` loops, so a
-	# missing newline glues consecutive files into one bogus path.
+# _sg_rel <abs> — one project-relative path per line.
+_sg_rel() {
 	case "$1" in
 	"$dir"/*) printf '%s\n' "${1#"$dir"/}" ;;
 	*) printf '%s\n' "$1" ;;
 	esac
 }
 
-# _sg20_expand_porcelain_path <relpath> — echoes one relpath per line. Git
-# collapses a brand-new UNTRACKED directory into a single "?? <dir>/"
-# porcelain line instead of listing the files inside it. Treating that
-# directory path itself as "the changed file" breaks both C20 checks this
-# unit owns: a lockfile-only new dir ("vendor/composer.lock") looks like an
-# opaque source path because "vendor/" does not end in "*.lock", and a plan
-# file created inside a brand-new ".claude/" is invisible to the
-# plan-changed check because ".claude/" != ".claude/feature-plan.local.md".
-# When relpath ends in "/" (the collapsed-directory marker), expand it to
-# every real file underneath (same excludes as the C3 find-newer scan);
-# otherwise relpath already names a single file, so echo it unchanged.
-_sg20_expand_porcelain_path() {
-	_ep_rel=$1
-	case "$_ep_rel" in
-	*/)
-		find "$dir/$_ep_rel" -type f \
-			-not -path '*/.git/*' -not -path '*/node_modules/*' \
-			-not -path '*/.venv/*' -not -path '*/target/*' -not -path '*/dist/*' 2>/dev/null |
-			while IFS= read -r _ep_f; do
-				_sg20_relpath "$_ep_f"
-			done
-		;;
-	*)
-		printf '%s\n' "$_ep_rel"
-		;;
-	esac
+_rel_changed=$(
+	while IFS= read -r _f; do
+		[ -n "$_f" ] && _sg_rel "$_f"
+	done <<EOF
+$_changed
+EOF
+)
+
+# _sg_manifest_gone — rc 0 when git status shows a ROOT project manifest that
+# disappeared: a plain delete, or a rename whose OLD side was the manifest (a
+# rename whose NEW side is one CREATES it). Exact basename: package.json.orig
+# never counts. Names it in MG_NAME.
+#
+# The index is not the working tree, so the porcelain line alone never proves
+# the manifest is gone: `git mv package.json package.json.bak` followed by a
+# fresh package.json, or `git rm --cached package.json`, both report a delete
+# while the manifest sits right there. R6 exists to catch a gate dodged by
+# removing what defines it; a manifest still on disk removed nothing, so a
+# path that still holds a REGULAR FILE is skipped here rather than blocked on a
+# false claim. A regular file and nothing else: `git rm package.json && mkdir
+# package.json` leaves an inode at the path but no manifest, and that is the
+# dodge this row exists to catch.
+_sg_manifest_gone() {
+	_mg=1
+	MG_NAME=""
+	while IFS= read -r _mg_line; do
+		[ -z "$_mg_line" ] && continue
+		_mg_st=${_mg_line:0:2}
+		_mg_path=${_mg_line:3}
+		case "$_mg_st" in
+		*R*) _mg_path=${_mg_path%% -> *} ;;
+		*D*) : ;;
+		*) continue ;;
+		esac
+		case "$_mg_path" in
+		\"*\") _mg_path=${_mg_path#\"} && _mg_path=${_mg_path%\"} ;;
+		esac
+		case "$_mg_path" in */*) continue ;; esac
+		case "$_mg_path" in
+		package.json | pyproject.toml | Cargo.toml | go.mod | deno.json)
+			[ -f "$dir/$_mg_path" ] && continue
+			_mg=0
+			[ -z "$MG_NAME" ] && MG_NAME="$_mg_path"
+			;;
+		esac
+	done <<EOF
+$_porcelain
+EOF
+	return "$_mg"
 }
 
-if [ -n "$_sg_newer" ]; then
-	while IFS= read -r _sg20_f; do
-		[ -z "$_sg20_f" ] && continue
-		_sg20_rel=$(_sg20_relpath "$_sg20_f")
-		[ "$_sg20_rel" = ".claude/feature-plan.local.md" ] && _sg20_plan_changed=1
-		if _sg20_is_source "$_sg20_rel"; then
-			_sg20_source_changed=1
-			[ -z "$_sg20_source_example" ] && _sg20_source_example="$_sg20_rel"
-		fi
-	done <<EOF
-$_sg_newer
+# _sg_root_touched — rc 0 when the project root DIRECTORY itself is newer than
+# the turn stamp. Removing a file rewrites its parent directory, so this is the
+# evidence that a deletion git reports could have happened during this turn;
+# without it, `git status` alone cannot date the deletion at all (B6/FU-04).
+_sg_root_touched() {
+	_rt_stamp=$(hook_stamp_path)
+	[ -f "$_rt_stamp" ] || return 1
+	[ -n "$(find "$dir" -maxdepth 0 -newer "$_rt_stamp" 2>/dev/null)" ]
+}
+
+_manifest_gone=0
+if _sg_manifest_gone && _sg_root_touched; then _manifest_gone=1; fi
+
+# --- R3: nothing changed under this turn ---------------------------------
+# A deleted manifest is a change no find-newer walk can see, so it is the one
+# thing that keeps an otherwise empty turn in the gate.
+[ -z "$_changed" ] && [ "$_manifest_gone" -eq 0 ] && hook_ok
+
+# --- what this turn touched: the plan, the docs, the source ---------------
+_plan=$(_sg_plan_path "$dir")
+_plan_rel=$(_sg_rel "$_plan")
+_plan_changed=0
+_source_changed=0
+_source_example=""
+_docs_only=1
+while IFS= read -r _rel; do
+	[ -z "$_rel" ] && continue
+	[ "$_rel" = "$_plan_rel" ] && _plan_changed=1
+	case "$_rel" in
+	*.md | *.mdx | *.txt | *.rst | *.adoc | docs/* | .specs/* | .claude/*) ;;
+	*) _docs_only=0 ;;
+	esac
+	if _sg20_is_source "$_rel"; then
+		_source_changed=1
+		[ -z "$_source_example" ] && _source_example="$_rel"
+	fi
+done <<EOF
+$_rel_changed
 EOF
+
+# --- C20 spec gate: no source change without an approved plan ------------
+if [ "$_source_changed" -eq 1 ] && _sg_require_spec_active "$dir" &&
+	! _sg_approved_plan_ok "$_plan"; then
+	_sg_finish "spec-gate:c20" "the spec gate" "Spec gate: $_source_example changed this turn, this branch ($_branch) requires an approved plan, and $_plan_rel is missing, has no 'Approved: <date>' line, or does not pass plan-lint. Nothing verified that change against a plan.
+(escape: set requireSpec:false in .claude/flow.config.json, CC_NO_SPEC_GATE=1 for this session, or ask the user to approve the plan.)"
 fi
 
-if [ -n "$_porcelain" ]; then
-	while IFS= read -r _sg20_pline; do
-		[ -z "$_sg20_pline" ] && continue
-		_sg20_rest=${_sg20_pline:3}
-		case "$_sg20_rest" in
-		*' -> '*) _sg20_rest=${_sg20_rest#*' -> '} ;;
-		esac
-		case "$_sg20_rest" in
-		\"*\") _sg20_rest=${_sg20_rest#\"} && _sg20_rest=${_sg20_rest%\"} ;;
-		esac
-		while IFS= read -r _sg20_expanded; do
-			[ -z "$_sg20_expanded" ] && continue
-			[ "$_sg20_expanded" = ".claude/feature-plan.local.md" ] && _sg20_plan_changed=1
-			if _sg20_is_source "$_sg20_expanded"; then
-				_sg20_source_changed=1
-				[ -z "$_sg20_source_example" ] && _sg20_source_example="$_sg20_expanded"
-			fi
-		done <<EOF
-$(_sg20_expand_porcelain_path "$_sg20_rest")
-EOF
-	done <<EOF
-$_porcelain
-EOF
+# stopGate:false switches off the test/lint ladder below; per C20 it never
+# switches off the spec gate above.
+[ "$_mode" = "false" ] && hook_ok
+
+# --- R6 ------------------------------------------------------------------
+if [ "$_manifest_gone" -eq 1 ]; then
+	_sg_finish "manifest-deleted:$MG_NAME" "the deleted $MG_NAME" "the project manifest $MG_NAME is gone from the working tree and the project root was written during this turn; a gate cannot be passed by removing the thing that defines it.
+$_HATCH"
 fi
 
-if [ "$_sg20_plan_changed" -eq 1 ] && [ -f "$_sg20_plan_path" ]; then
-	_plan_lint_check "$_sg20_plan_path"
+# --- R4: the plan is the one doc this gate reads --------------------------
+# Plan-lint runs only for the ACTIVE plan, and only when this turn touched it:
+# a stale plan left behind by another branch is not this turn's problem (FU-18).
+# It is a stop-gate row (10 §5 R4), not the C20 spec gate — so it sits BELOW the
+# stopGate:false exit above and prints the stop gate's hatches. CC_NO_SPEC_GATE
+# does not silence it and the message must not pretend otherwise.
+#
+# The reproduce line names the resolved plan-lint by absolute path: the script
+# ships in the plugin's scripts/ dir and is not on PATH, so a bare `plan-lint`
+# would be printed as a command that exits 127.
+if [ "$_plan_changed" -eq 1 ] && [ -f "$_plan" ]; then
+	_plan_lint_check "$_plan"
 	if [ "$PL_AVAILABLE" -eq 1 ] && [ "$PL_OK" -ne 0 ]; then
-		_block=1
-		_sig="spec-gate"
-		_reason="Gate failed: plan-lint (.claude/feature-plan.local.md)
-$PL_OUT
+		_sg_finish "plan-lint:$_plan_rel" "plan-lint ($_plan_rel)" "Gate failed: plan-lint ($_plan_rel)
+$(_sg_clip "$PL_OUT")
 
-Do not delete, skip, xfail, or weaken a test to make this pass, and do not lower a threshold in config. If a check is genuinely inapplicable here, say so explicitly and stop."
+$_NOWEAKEN
+To reproduce: cd $_dirq && bash $(_sg_q "$(_pl_resolve)") $(_sg_q "$_plan_rel")
+$_HATCH"
 	fi
 fi
 
-if [ "$_block" -eq 0 ] && [ "$_sg20_source_changed" -eq 1 ]; then
-	_sg20_require_spec="flow-branches"
-	if have jq && [ -f "$cfg" ]; then
-		_sg20_v=$(jq -r 'if has("requireSpec") then (.requireSpec|tostring) else empty end' "$cfg" 2>/dev/null)
-		[ -n "$_sg20_v" ] && _sg20_require_spec="$_sg20_v"
+# --- R4: docs and config only — nothing for a test runner to say ---------
+[ "$_docs_only" -eq 1 ] && hook_ok
+
+# --- R7 (tools): a gate that cannot run is never a pass -------------------
+_shared="${CC_SHARED_SCRIPTS:-$HERE/../skills/shared/scripts}"
+_check_all="$_shared/check-all"
+_test_changed="$_shared/test-changed"
+
+# _sg_note_once <key> <msg> — the once-a-session half of R5: "this project has
+# nothing to run" is a standing property of the repo, so say it once rather
+# than on every turn. A MISSING TOOL is not routed through here: it leaves the
+# turn unverified, and a silent unverified turn is exactly what this hook
+# exists to prevent, so R7 notes fire every time.
+_sg_note_once() {
+	hook_once "$1" || hook_ok
+	hook_note "$2"
+}
+
+if [ ! -e "$_check_all" ] && [ ! -e "$_test_changed" ]; then
+	hook_note "gate could not run — neither check-all nor test-changed is in $_shared. Gates were NOT checked this turn. Fix: run 'flow install', or set CC_SHARED_SCRIPTS to the directory that holds them."
+fi
+have node || hook_note "gate could not run — node is not on PATH, and check-all/test-changed are node scripts. Gates were NOT checked this turn. Fix: install node, or set stopGate:false in .claude/flow.config.json."
+have jq || hook_note "gate could not run — jq is not on PATH, so this hook cannot read the gates' JSON. Gates were NOT checked this turn. Fix: install jq, or set stopGate:false in .claude/flow.config.json."
+
+# _sg_json_ok <text> — rc 0 when <text> is one parseable JSON object.
+_sg_json_ok() { printf '%s' "$1" | jq -e 'type == "object"' >/dev/null 2>&1; }
+
+# --- the sweep (R5, R11-R13) ---------------------------------------------
+# _sg_sweep — CI=true check-all --json --continue, so the test gate runs even
+# when lint or format is red (C-C). Sets SW_STATE to
+# none|no-ecosystem|no-gates|crashed|pass|fail plus SW_* details. "pass" means
+# at least one gate actually ran and was green: a manifest whose every gate is
+# "skipped" verified nothing and must not be reported as checked.
+_sg_sweep() {
+	SW_STATE="none"
+	SW_NAMES=""
+	SW_IDS=""
+	SW_OUTPUT=""
+	SW_CMD=""
+	[ -e "$_check_all" ] || return 0
+	_sw_out=$(cd "$dir" && CI=true node "$_check_all" --json --continue 2>/dev/null)
+	_sw_rc=$?
+	# The stamp records that a sweep RAN, whatever it found (FU-24).
+	git -C "$dir" rev-parse HEAD >"$_sweep_stamp" 2>/dev/null || true
+	if ! _sg_json_ok "$_sw_out"; then
+		SW_STATE="crashed"
+		SW_CMD="cd $_dirq && node $(_sg_q "$_check_all") --json --continue"
+		SW_OUTPUT="exit $_sw_rc, no parseable JSON on stdout"
+		return 0
 	fi
-	[ "${CC_NO_SPEC_GATE:-}" = "1" ] && _sg20_require_spec="false"
-	_sg20_active=0
-	case "$_sg20_require_spec" in
-	true) _sg20_active=1 ;;
-	false) _sg20_active=0 ;;
-	*)
-		_sg20_branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
-		case "$_sg20_branch" in flow/*) _sg20_active=1 ;; esac
+	if [ -z "$(printf '%s' "$_sw_out" | jq -r '.ecosystem // empty' 2>/dev/null)" ]; then
+		SW_STATE="no-ecosystem"
+		SW_OUTPUT=$(printf '%s' "$_sw_out" | jq -r '.message // empty' 2>/dev/null)
+		return 0
+	fi
+	SW_NAMES=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="fail") | .name] | join(", ")' 2>/dev/null)
+	if [ -n "$SW_NAMES" ]; then
+		SW_STATE="fail"
+		SW_IDS=$(printf '%s' "$_sw_out" | jq -r '.gates[]? | select(.status=="fail") | "gate:" + .name' 2>/dev/null)
+		SW_OUTPUT=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="fail") | (.name + ":\n" + (.output // ""))] | join("\n")' 2>/dev/null)
+		SW_CMD=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="fail") | .cmd // empty] | first // empty' 2>/dev/null)
+		[ -n "$SW_CMD" ] || SW_CMD="node $(_sg_q "$_check_all") --continue"
+		return 0
+	fi
+	_sw_un=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="unavailable") | .name] | join(", ")' 2>/dev/null)
+	if [ -n "$_sw_un" ]; then
+		SW_STATE="crashed"
+		SW_CMD=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="unavailable") | .cmd // empty] | first // empty' 2>/dev/null)
+		[ -n "$SW_CMD" ] || SW_CMD="node $(_sg_q "$_check_all") --continue"
+		SW_OUTPUT="gate(s) $_sw_un could not be executed"
+		return 0
+	fi
+	_sw_ran=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | select(.status=="pass")] | length' 2>/dev/null)
+	case "$_sw_ran" in '' | *[!0-9]*) _sw_ran=0 ;; esac
+	if [ "$_sw_ran" -eq 0 ]; then
+		SW_STATE="no-gates"
+		SW_NAMES=$(printf '%s' "$_sw_out" | jq -r '[.gates[]? | .name] | join(", ")' 2>/dev/null)
+		SW_OUTPUT=$(printf '%s' "$_sw_out" | jq -r '.ecosystem // "unknown"' 2>/dev/null)
+		return 0
+	fi
+	SW_STATE="pass"
+}
+
+# _sg_run_sweep — the sweep plus its verdicts (R5/R7/R12/R13).
+_sg_run_sweep() {
+	_sg_over_budget && _sg_release_over_budget "the full sweep was still to run and was cut short, so gates were NOT verified this turn."
+	_sg_sweep
+	case "$SW_STATE" in
+	none)
+		# test-changed exists but check-all does not: there is no sweep to
+		# fall back on, and this turn would otherwise end verified by nothing.
+		hook_note "gate could not run — check-all is not in $_shared, so the full sweep could not run and nothing else verified this turn. Fix: run 'flow install', or set CC_SHARED_SCRIPTS to the directory that holds check-all."
+		;;
+	no-ecosystem)
+		[ "$_source_changed" -eq 1 ] || hook_ok
+		_sg_note_once "stop-gate-no-ecosystem" "no test/lint ecosystem here — source changed this turn and nothing verified it. Fix: add a test script (package.json / pyproject.toml / Cargo.toml / go.mod), or run 'flow init'."
+		;;
+	no-gates)
+		[ "$_source_changed" -eq 1 ] || hook_ok
+		_sg_note_once "stop-gate-no-gates" "no gate ran here — this is a $SW_OUTPUT project, but check-all skipped every gate ($SW_NAMES): there is no test or lint script to run. Source changed this turn and nothing verified it. Fix: add a test script to the manifest, or run 'flow init'."
+		;;
+	crashed)
+		hook_note "gate could not run — check-all in $dir: $SW_OUTPUT. Gates were NOT checked this turn. Fix: $SW_CMD"
+		;;
+	fail)
+		_sg_over_budget && _sg_release_over_budget "the full sweep overran it, so its red result ($SW_NAMES) is not enforced this turn and nothing was verified in time."
+		_sg_red "$SW_NAMES" "$SW_IDS" "Gate(s) failed: $SW_NAMES
+$(_sg_clip "$SW_OUTPUT")
+
+$_NOWEAKEN
+To reproduce: cd $_dirq && $SW_CMD
+$_HATCH"
 		;;
 	esac
-	if [ "$_sg20_active" -eq 1 ] && ! _sg_approved_plan_ok "$dir"; then
-		_sg20_branch_disp=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
-		_block=1
-		_sig="spec-gate"
-		_reason="Spec gate: this branch ($_sg20_branch_disp) has no approved plan (.claude/feature-plan.local.md with an 'Approved: <date>' line that passes plan-lint), and $_sg20_source_example changed this turn without one. Run /flow to spec and plan it, get the plan approved, then build. To edit without a plan, set requireSpec:false in .claude/flow.config.json or CC_NO_SPEC_GATE=1 for this session.
-revert the source change or get the plan approved."
-	fi
+	hook_ok
+}
+
+# _sg_sweep_due — rc 0 when a full sweep is owed: never swept this repo, or
+# HEAD moved since the last sweep (R11: commits, not the clock — a clock stamp
+# is absent on the first Stop of every session, so it swept far too often).
+_sg_sweep_due() {
+	[ -f "$_sweep_stamp" ] || return 0
+	_sd_sha=$(sed -n '1p' "$_sweep_stamp" 2>/dev/null)
+	case "$_sd_sha" in '' | *[!0-9a-f]*) return 0 ;; esac
+	_sd_n=$(git -C "$dir" rev-list --count "$_sd_sha..HEAD" 2>/dev/null)
+	case "$_sd_n" in '' | *[!0-9]*) return 0 ;; esac
+	[ "$_sd_n" -ge 1 ]
+}
+
+[ "$_mode" = "true" ] && _sg_run_sweep
+
+# --- R8-R10: the scoped run over exactly this turn's files ---------------
+if [ ! -e "$_test_changed" ]; then _sg_run_sweep; fi
+_sg_over_budget && _sg_release_over_budget "the scoped test run was still to run and was cut short, so gates were NOT verified this turn."
+
+_tc_out=$(cd "$dir" && CI=true CC_CHANGED_FILES="$_rel_changed" node "$_test_changed" --json 2>/dev/null)
+if ! _sg_json_ok "$_tc_out"; then
+	hook_note "gate could not run — test-changed in $dir printed no parseable JSON. Gates were NOT checked this turn. Fix: cd $_dirq && node $(_sg_q "$_test_changed") --json"
 fi
+_tc_status=$(printf '%s' "$_tc_out" | jq -r '.status // empty' 2>/dev/null)
+_tc_cmd=$(printf '%s' "$_tc_out" | jq -r '.test_cmd // empty' 2>/dev/null)
 
-# stopGate:false (C4) disables only the test/lint sweep below, per C20's
-# requirement that the spec-gate additions above run independently of it.
-# A spec-gate block already set above must still proceed to the wedge valve
-# and hook_block below, even when stopGate is false.
-[ "$_block" -eq 0 ] && [ "$_stop_gate_mode" = "false" ] && hook_ok
-
-# Hash/session stamps computed unconditionally: the wedge valve below (which
-# reads _gatesig_stamp) runs whether the block below came from a red gate or
-# from the C20 spec gate above.
-_toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
-[ -z "$_toplevel" ] && _toplevel="$dir"
-_tmp="${TMPDIR:-/tmp}"
-_tmp="${_tmp%/}"
-_hash_num=$(printf '%s' "$_toplevel" | cksum | awk '{print $1}')
-_hash8=$(printf '%s' "$_hash_num" | tail -c 8)
-_repo_base=$(basename "$_toplevel")
-_gates_stamp="$_tmp/claude-gates-${_repo_base}-${_hash8}"
-
-_session_id=$(hook_field '.session_id')
-[ -z "$_session_id" ] && _session_id="nosession"
-_session_id=$(printf '%s' "$_session_id" | tr -c 'A-Za-z0-9_-' '_')
-_gatesig_stamp="$_tmp/claude-gatesig-${_session_id}"
-
-if [ "$_block" -eq 0 ]; then
-
-	_shared="${CC_SHARED_SCRIPTS:-$HERE/../skills/shared/scripts}"
-	_check_all="$_shared/check-all"
-	_test_changed="$_shared/test-changed"
-	if [ ! -e "$_check_all" ] && [ ! -e "$_test_changed" ]; then
-		hook_ok
-	fi
-
-	# check-all/test-changed are node scripts and their JSON output is parsed
-	# with jq; degrade to allow (cannot judge) when either tool is missing.
-	have node || hook_ok
-	have jq || hook_ok
-
-	# _sg_is_manifest_basename <path> — true (rc 0) when <path>'s exact basename
-	# is one of the recognized project manifests. Directory components are
-	# stripped first so `foo/package.json.orig` never matches `package.json`
-	# (a plain substring check would false-positive on that and on things like
-	# `mypackage.json`).
-	_sg_is_manifest_basename() {
-		_mb_path=$1
-		# git quotes paths containing special/non-ASCII bytes in double quotes;
-		# strip a matching pair before taking the basename.
-		case "$_mb_path" in
-		\"*\") _mb_path=${_mb_path#\"} && _mb_path=${_mb_path%\"} ;;
-		esac
-		case "$_mb_path" in
-		*/*) _mb_base=${_mb_path##*/} ;;
-		*) _mb_base=$_mb_path ;;
-		esac
-		case "$_mb_base" in
-		package.json | pyproject.toml | Cargo.toml | go.mod | deno.json)
-			return 0
-			;;
-		*)
-			return 1
-			;;
-		esac
-	}
-
-	# _sg_manifest_deleted — true (rc 0) when this turn's git status shows a
-	# project-manifest file that disappeared: a plain delete of the manifest, or
-	# a rename whose OLD side was the manifest (the manifest no longer exists at
-	# that path). A rename whose NEW side is the manifest (e.g. `git mv foo.json
-	# package.json`) is the manifest being *created*, not deleted, even if the
-	# resulting file is still incomplete — that is check-all's job to judge, not
-	# this check, so it must not match on the new side. Matching is by exact
-	# basename, not substring, so `package.json.orig` never triggers this.
-	_sg_manifest_deleted() {
-		_md=1
-		while IFS= read -r pline; do
-			[ -z "$pline" ] && continue
-			_sg_status=${pline:0:2}
-			_sg_rest=${pline:3}
-			case "$_sg_status" in
-			*R*)
-				_sg_old=${_sg_rest%% -> *}
-				# Only a manifest at the repository ROOT defines the ecosystem; nested
-				# manifests (node_modules/x/package.json, vendored crates) never count.
-				case "$_sg_old" in */*) continue ;; esac
-				if _sg_is_manifest_basename "$_sg_old"; then
-					_md=0
-				fi
-				;;
-			*D*)
-				case "$_sg_rest" in */*) continue ;; esac
-				if _sg_is_manifest_basename "$_sg_rest"; then
-					_md=0
-				fi
-				;;
-			esac
-		done <<EOF
-$_porcelain
-EOF
-		return "$_md"
-	}
-
-	# _sg_run_full_sweep — runs `CI=true check-all --json` (no --continue, so it
-	# stops at the first red gate). Sets FS_NO_ECOSYSTEM, FS_BLOCK, FS_REASON,
-	# FS_SIG.
-	_sg_run_full_sweep() {
-		FS_NO_ECOSYSTEM=0
-		FS_BLOCK=0
-		FS_REASON=""
-		FS_SIG=""
-		_fs_out=$(cd "$dir" && CI=true node "$_check_all" --json 2>/dev/null)
-		if [ -z "$_fs_out" ]; then
-			# check-all exits before printing JSON when no ecosystem is detected.
-			FS_NO_ECOSYSTEM=1
-			return 0
-		fi
-		_fs_failed_count=$(printf '%s' "$_fs_out" | jq -r '[.gates[]? | select(.status=="fail")] | length' 2>/dev/null)
-		case "$_fs_failed_count" in '' | *[!0-9]*) _fs_failed_count=0 ;; esac
-		if [ "$_fs_failed_count" -eq 0 ]; then
-			return 0
-		fi
-		FS_BLOCK=1
-		FS_SIG=$(printf '%s' "$_fs_out" | jq -r '[.gates[] | select(.status=="fail") | .name] | join(",")' 2>/dev/null)
-		_fs_names=$(printf '%s' "$_fs_out" | jq -r '[.gates[] | select(.status=="fail") | .name] | join(", ")' 2>/dev/null)
-		_fs_outputs=$(printf '%s' "$_fs_out" | jq -r '[.gates[] | select(.status=="fail") | (.name + ":\n" + .output)] | join("\n\n")' 2>/dev/null)
-		FS_REASON="Gate(s) failed: $_fs_names
-$(printf '%s\n' "$_fs_outputs" | head -40)
-
-Do not delete, skip, xfail, or weaken a test to make this pass, and do not lower a threshold in config. If a check is genuinely inapplicable here, say so explicitly and stop."
-	}
-
-	# _sg_attempt_full_sweep <rewrite-stamp|""> — runs the full sweep. Returns 0
-	# when the turn may proceed (nothing to run, no ecosystem and no manifest
-	# deletion, or a clean pass); returns 1 and leaves _block/_sig/_reason set
-	# when the turn must be blocked. On a clean pass with the rewrite-stamp
-	# argument, rewrites the periodic full-sweep timer.
-	_sg_attempt_full_sweep() {
-		_rewrite=$1
-		if [ ! -e "$_check_all" ]; then
-			return 0
-		fi
-		_sg_run_full_sweep
-		if [ "$FS_NO_ECOSYSTEM" -eq 1 ]; then
-			if _sg_manifest_deleted; then
-				_block=1
-				_sig="manifest-deleted"
-				_reason="the project manifest disappeared this turn; a gate cannot be passed by removing the thing that defines it."
-				return 1
-			fi
-			[ "$_rewrite" = "rewrite_stamp" ] && { date +%s >"$_gates_stamp" 2>/dev/null || true; }
-			return 0
-		fi
-		if [ "$FS_BLOCK" -eq 1 ]; then
-			_block=1
-			_sig="$FS_SIG"
-			_reason="$FS_REASON"
-			return 1
-		fi
-		[ "$_rewrite" = "rewrite_stamp" ] && { date +%s >"$_gates_stamp" 2>/dev/null || true; }
-		return 0
-	}
-
-	# _sg_run_test_changed — runs `CI=true test-changed --json`. Sets TC_STATUS
-	# to green|red|fallthrough, plus TC_REASON/TC_SIG when red.
-	_sg_run_test_changed() {
-		TC_STATUS="fallthrough"
-		TC_REASON=""
-		TC_SIG=""
-		_tc_out=$(cd "$dir" && CI=true node "$_test_changed" --json 2>/dev/null)
-		[ -z "$_tc_out" ] && return 0
-		_tc_cmd=$(printf '%s' "$_tc_out" | jq -r '.test_cmd // empty' 2>/dev/null)
-		[ -z "$_tc_cmd" ] && return 0
-		_tc_passed=$(printf '%s' "$_tc_out" | jq -r '.passed' 2>/dev/null)
-		if [ "$_tc_passed" = "true" ]; then
-			TC_STATUS="green"
-			return 0
-		fi
-		TC_STATUS="red"
-		_tc_exit=$(printf '%s' "$_tc_out" | jq -r '.exit_code // empty' 2>/dev/null)
+case "$_tc_status" in
+unavailable)
+	# A resolved command that could not be executed is R7; no command at all
+	# means "no test runner configured here", which is the sweep's call (R5's).
+	[ -n "$_tc_cmd" ] || _sg_run_sweep
+	hook_note "gate could not run — $(printf '%s' "$_tc_out" | jq -r '.message // "test-changed could not execute the runner"' 2>/dev/null). Gates were NOT checked this turn. Fix: cd $_dirq && $_tc_cmd"
+	;;
+ran)
+	if [ "$(printf '%s' "$_tc_out" | jq -r '.passed' 2>/dev/null)" != "true" ]; then
+		_sg_over_budget && _sg_release_over_budget "the scoped test run overran it, so its red result is not enforced this turn and nothing was verified in time."
 		_tc_files=$(printf '%s' "$_tc_out" | jq -r '(.test_files // []) | join(", ")' 2>/dev/null)
-		TC_SIG="test-changed"
-		TC_REASON="Gate failed: test-changed ($_tc_cmd, exit $_tc_exit)
-test files: $_tc_files
+		_tc_ids=$(printf '%s' "$_tc_out" | jq -r 'if ((.test_files // []) | length) > 0 then (.test_files[] | "test:" + .) else "test:" + (.test_cmd // "suite") end' 2>/dev/null)
+		_sg_red "test-changed" "$_tc_ids" "Gate failed: test-changed ($_tc_cmd, exit $(printf '%s' "$_tc_out" | jq -r '.exit_code // empty' 2>/dev/null))
+test files: $(_sg_clip "$_tc_files")
+$(_sg_clip "$(printf '%s' "$_tc_out" | jq -r '.message // empty' 2>/dev/null)")
 
-Do not delete, skip, xfail, or weaken a test to make this pass, and do not lower a threshold in config. If a check is genuinely inapplicable here, say so explicitly and stop."
-	}
-
-	if [ "$_stop_gate_mode" = "true" ]; then
-		if _sg_attempt_full_sweep ""; then hook_ok; fi
-	elif [ "$_stop_gate_mode" = "scoped" ]; then
-		if [ ! -e "$_test_changed" ]; then
-			if _sg_attempt_full_sweep ""; then hook_ok; fi
-		else
-			_sg_run_test_changed
-			case "$TC_STATUS" in
-			fallthrough)
-				if _sg_attempt_full_sweep ""; then hook_ok; fi
-				;;
-			red)
-				_block=1
-				_sig="$TC_SIG"
-				_reason="$TC_REASON"
-				;;
-			green)
-				_now=$(date +%s)
-				_last=0
-				[ -f "$_gates_stamp" ] && _last=$(cat "$_gates_stamp" 2>/dev/null)
-				case "$_last" in '' | *[!0-9]*) _last=0 ;; esac
-				_elapsed=$((_now - _last))
-				if [ "$_elapsed" -gt "$_full_every" ]; then
-					if _sg_attempt_full_sweep "rewrite_stamp"; then hook_ok; fi
-				else
-					hook_ok
-				fi
-				;;
-			esac
-		fi
+$_NOWEAKEN
+To reproduce: cd $_dirq && $_tc_cmd
+$_HATCH"
 	fi
+	# R8/R11: the scoped run verified something and it was green. A sweep is
+	# owed only once per commit, so a clean turn stays silent and fast.
+	_sg_sweep_due && _sg_run_sweep
+	;;
+*)
+	# no-tests: the runner resolved nothing for these files, so nothing was
+	# verified. Silence is reserved for checked-and-green, so sweep — this is
+	# also where a repo with no ecosystem at all lands (R5).
+	_sg_run_sweep
+	;;
+esac
 
-fi
-# --- end C20 guard: skip the mode dispatch above when spec-gate already blocked ---
-
-# Nothing failed (the code above always exits via hook_ok on success).
-[ "$_block" -eq 0 ] && hook_ok
-
-# --- wedge valve: the same failure signature blocking 4+ times in this
-# session degrades from a JSON block to a plain exit 2. ---
-printf '%s\n' "$_sig" >>"$_gatesig_stamp"
-_sig_count=$(awk -v want="$_sig" '
-  { lines[NR] = $0 }
-  END {
-    c = 0
-    for (i = NR; i >= 1; i--) {
-      if (lines[i] == want) { c++ } else { break }
-    }
-    print c
-  }
-' "$_gatesig_stamp")
-case "$_sig_count" in '' | *[!0-9]*) _sig_count=1 ;; esac
-
-# Second identical block in a session: the same mistake twice is a /lesson
-# trigger (a guardrail, not another retry), so say so in the block reason.
-# This is the only counter for stop-gate: hookout's generic _lesson_nudge
-# skips reasons that already mention /lesson, so the number is never wrong.
-if [ "$_sig_count" -ge 2 ]; then
-	_reason="$_reason
-
-the same gate blocked this session $_sig_count times. If this is a recurring mistake rather than a one-off, suggest /lesson to the user in one line; do not run it unasked."
-fi
-
-if [ "$_sig_count" -ge 4 ]; then
-	hook_feedback "$_reason
-
-these gates were already failing before this turn's edits; fix them or say why they are out of scope."
-fi
-
-hook_block "$_reason"
+hook_ok

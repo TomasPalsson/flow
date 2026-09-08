@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# tool-stamp.sh — PreToolUse/Bash hook. Runs first, before rtk-rewrite.sh and
-# git-guard.sh (C5).
+# tool-stamp.sh — PreToolUse/Bash hook. Runs first, before git-guard.sh (C5).
 #
 # Touches a per-session "tool stamp" file that post-bash-write.sh (C19) uses
 # to find files a Bash command wrote through cat/sed/heredocs — the coverage

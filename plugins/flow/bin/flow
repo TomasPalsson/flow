@@ -75,6 +75,14 @@ function safeRead(p) {
   }
 }
 
+// shellQuote(s): s as a single POSIX shell word. Safe characters are left
+// alone so the common case stays readable; anything else is single-quoted.
+function shellQuote(s) {
+  const v = String(s);
+  if (v !== '' && /^[A-Za-z0-9_@%+=:,./-]+$/.test(v)) return v;
+  return `'${v.split("'").join("'\\''")}'`;
+}
+
 function have(cmd) {
   // Portable PATH walk — no dependency on `which` being installed (a hook
   // subprocess may run with a minimal PATH that lacks it). Windows-style
@@ -135,8 +143,13 @@ ${C.accent}Usage:${C.reset}
   flow <command> [options]
 
 ${C.accent}Commands:${C.reset}
-  doctor [--json] [--verbose]                      Diagnose the ~/.claude deployment
-                                                     (--verbose names each check as it runs)
+  doctor [--json] [--verbose] [--deep]              Diagnose the ~/.claude deployment
+                                                     (--verbose names each check as it runs;
+                                                      --deep adds the slow skills-lint check)
+                                                     Its gates-runnable check EXECUTES this
+                                                     project's own test/lint/format/typecheck
+                                                     scripts from the cwd (120s cap per gate),
+                                                     so their side effects happen for real
   init [--stack auto|node|python|rust|go] [--dry-run] [--force]
                                                      Scaffold REVIEW.md, PROGRESS.md,
                                                      CLAUDE.md, CI gate, lint thresholds
@@ -147,8 +160,12 @@ ${C.accent}Commands:${C.reset}
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json]                                     Print the next command to run, from
                                                      deterministic repo state only
-  off [<dir>]                                       Turn the judging hooks off for <dir>
-                                                     (default: cwd) and everything under it
+  tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]
+                                                     Walk the harness lessons in a scratch
+                                                     git repo
+  off [<dir>] [--unsafe]                            Turn the judging hooks off for <dir>
+                                                     (default: cwd) and everything under it;
+                                                     --unsafe also disables git-guard
   on [<dir>]                                        Turn them back on
 
 ${C.accent}Options:${C.reset}
@@ -168,17 +185,20 @@ const C4_DEFAULTS = {
   maxFileLines: 400,
   maxFuncLines: 60,
   stopGate: 'scoped',
-  stopGateFullEverySec: 900,
+  stopGateBudgetSec: 150,
   sizeGuard: true,
   formatOnEdit: true,
   ignore: ['migrations/', 'generated/', 'locales/', 'i18n/', '.generated.'],
   requireSpec: 'flow-branches',
 };
 
+// Every name here must be a hook file this repo actually ships (see
+// plugins/flow/hooks/): `flow doctor` tells the user to run `flow install`
+// when one is missing, and install can only link what exists in the source
+// tree. test_cli.sh asserts the two lists agree with the shipped hooks.
 const C5_HOOK_FILES = [
   'session-context.sh',
   'turn-stamp.sh',
-  'rtk-rewrite.sh',
   'git-guard.sh',
   'format-lint.sh',
   'size-guard.sh',
@@ -193,7 +213,7 @@ const C5_HOOK_FILES = [
 const C5_WIRING = {
   SessionStart: { matcher: null, files: ['session-context.sh'] },
   UserPromptSubmit: { matcher: null, files: ['turn-stamp.sh'] },
-  PreToolUse: { matcher: 'Bash', files: ['rtk-rewrite.sh', 'git-guard.sh'] },
+  PreToolUse: { matcher: 'Bash', files: ['git-guard.sh'] },
   PostToolUse: { matcher: 'Edit|Write|NotebookEdit', files: ['format-lint.sh', 'size-guard.sh', 'tamper-notice.sh'] },
   Stop: { matcher: null, files: ['stop-gate.sh'] },
   PreCompact: { matcher: null, files: ['pre-compact-backup.sh'] },
@@ -245,6 +265,41 @@ function hooksWiringProblems(hooksObj) {
 // actually invoked with (via --dotfiles), so a deployment from a non-default
 // checkout is checked against the root it was built from instead of always
 // being compared to $HOME/.dotfiles.
+// installSourceCandidates(name, dotfilesRoot) -> every path `flow install`
+// could link ~/.claude/<name> FROM, most-likely first. In plugin mode
+// skills/hooks/scripts come from the marketplace checkout and nowhere else
+// (cmdInstall step 1b); everything else comes from a dotfiles root, and a
+// bare `flow install` resolves that root by searching $DOTFILES, ~/.dotfiles,
+// ~/dotfiles and REPO_ROOT (dotfilesCandidates). The doctor's own root (from
+// `flow install --dotfiles <p>`'s step-7 recheck) is searched first when given.
+function installSourceCandidates(name, dotfilesRoot) {
+  const marketplaceRoot = resolveMarketplaceRoot([]);
+  if (isDir(path.join(marketplaceRoot, 'plugins', 'flow'))) {
+    if (name === 'skills') return [path.join(marketplaceRoot, 'plugins')];
+    if (name === 'hooks' || name === 'scripts') return [path.join(marketplaceRoot, 'plugins', 'flow', name)];
+  }
+  const roots = [];
+  if (dotfilesRoot) roots.push(path.resolve(dotfilesRoot));
+  for (const c of dotfilesCandidates([])) if (roots.indexOf(c) === -1) roots.push(c);
+  return roots.map((r) => path.join(r, 'claude', '.claude', name));
+}
+
+// installSourceGap(name, dotfilesRoot) -> a clause naming the source paths
+// when NONE of them exists, else ''. install SKIPS an item whose source is
+// absent, so such a symlink FAIL must not answer with `flow install --force`:
+// running it would leave the same FAIL standing. The claim "install has no
+// source" is only made when every root install would search comes up empty —
+// a machine whose dotfiles live at ~/dotfiles or $DOTFILES still gets the
+// `→ run: flow install --force` that actually fixes the FAIL.
+function installSourceGap(name, dotfilesRoot) {
+  const candidates = installSourceCandidates(name, dotfilesRoot);
+  for (const c of candidates) if (fs.existsSync(c)) return '';
+  const detail = candidates.length === 1
+    ? `${candidates[0]} does not exist`
+    : `none of ${candidates.join(', ')} exists`;
+  return `; install has no source for it either (${detail})`;
+}
+
 function doctorSymlinkChecks(push, dotfilesRoot) {
   const dotfilesClaude = path.join(dotfilesRoot || path.join(HOME, '.dotfiles'), 'claude', '.claude');
   // Resolve the expected prefix through any symlinked ancestor directories
@@ -279,6 +334,7 @@ function doctorSymlinkChecks(push, dotfilesRoot) {
   }
   for (const [name, missingSeverity] of items) {
     const p = path.join(HOME, '.claude', name);
+    const absent = installSourceGap(name, dotfilesRoot);
     let lst;
     try {
       lst = fs.lstatSync(p);
@@ -286,7 +342,7 @@ function doctorSymlinkChecks(push, dotfilesRoot) {
       lst = null;
     }
     if (!lst) {
-      push(`symlink:${name}`, missingSeverity, `${p} does not exist`);
+      push(`symlink:${name}`, missingSeverity, `${p} does not exist${absent}`, absent ? false : undefined);
       continue;
     }
     if (!lst.isSymbolicLink()) {
@@ -320,7 +376,7 @@ function doctorSymlinkChecks(push, dotfilesRoot) {
         else push(`symlink:${name}`, 'WARN', `${p} differs from ${src}: the harness rules in it may be missing here — diff them, then flow install --force replaces it (backup kept)`);
         continue;
       }
-      push(`symlink:${name}`, missingSeverity, `${p} exists but is not a symlink`);
+      push(`symlink:${name}`, missingSeverity, `${p} exists but is not a symlink${absent}`, absent ? false : undefined);
       continue;
     }
     let real;
@@ -337,7 +393,7 @@ function doctorSymlinkChecks(push, dotfilesRoot) {
     const underPlugin = real && (hasAncestorWith(real, ['.claude-plugin', 'plugin.json']) ||
       fs.existsSync(path.join(path.dirname(real), '.claude-plugin', 'marketplace.json')));
     if (!underDotfiles && !underPlugin) {
-      push(`symlink:${name}`, missingSeverity, `${p} -> ${real || '(broken link)'} (not under ${dotfilesClaude} or a marketplace plugin)`);
+      push(`symlink:${name}`, missingSeverity, `${p} -> ${real || '(broken link)'} (not under ${dotfilesClaude} or a marketplace plugin)${absent}`, absent ? false : undefined);
       continue;
     }
     push(`symlink:${name}`, 'PASS', `${p} -> ${real}`);
@@ -991,15 +1047,232 @@ function doctorPluginListCheck(push) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Project-facing doctor checks (B25, FU-16, R1): what is wrong with THIS repo's
+// harness configuration, not just with the deployment.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The type/enum contract for .claude/flow.config.json. `check` returns null
+// when the value is acceptable, else a description of what is expected.
+const CONFIG_SCHEMA = {
+  stopGate: (v) => (v === 'scoped' || v === true || v === false ? null : 'one of "scoped", true, false'),
+  requireSpec: (v) => (v === 'flow-branches' || v === true || v === false ? null : 'one of "flow-branches", true, false'),
+  sizeGuard: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
+  formatOnEdit: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
+  maxFileLines: (v) => (typeof v === 'number' && v > 0 ? null : 'a positive number'),
+  maxFuncLines: (v) => (typeof v === 'number' && v > 0 ? null : 'a positive number'),
+  stopGateBudgetSec: (v) => (typeof v === 'number' && v > 0 ? null : 'a positive number'),
+  shfmt: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
+  plan: (v) => (typeof v === 'string' && v !== '' ? null : 'a path to the active plan'),
+  ignore: (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? null : 'an array of path substrings'),
+  deny: (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? null : 'an array of command prefixes'),
+};
+
+function doctorConfigSchemaCheck(push) {
+  const p = path.join(process.cwd(), '.claude', 'flow.config.json');
+  const raw = safeRead(p);
+  if (raw === null) {
+    push('config-schema', 'PASS', 'no .claude/flow.config.json in this repo (defaults apply)');
+    return;
+  }
+  let cfg = null;
+  try {
+    cfg = JSON.parse(raw);
+  } catch (e) {
+    push('config-schema', 'FAIL', `${p} does not parse: ${e.message}`);
+    return;
+  }
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
+    push('config-schema', 'FAIL', `${p} must be a JSON object`);
+    return;
+  }
+  const bad = [];
+  const unknown = [];
+  for (const k of Object.keys(cfg)) {
+    if (!Object.prototype.hasOwnProperty.call(CONFIG_SCHEMA, k)) {
+      unknown.push(k);
+      continue;
+    }
+    const want = CONFIG_SCHEMA[k](cfg[k]);
+    if (want) bad.push(`${k} must be ${want} (got ${JSON.stringify(cfg[k])})`);
+  }
+  // One run reports everything wrong with the file: a type error must not hide
+  // the unknown keys until the user fixes it and runs again.
+  const unknownMsg = unknown.length ? `unknown key(s) ignored by every hook: ${unknown.join(', ')}` : '';
+  if (bad.length) push('config-schema', 'FAIL', unknownMsg ? `${bad.join('; ')}; ${unknownMsg}` : bad.join('; '));
+  else if (unknown.length) push('config-schema', 'WARN', unknownMsg);
+  else push('config-schema', 'PASS', `${p} matches the documented schema`);
+}
+
+// Events flow registers hooks on; a project that registers its own on the same
+// event runs both, and the project's can hide flow's decision.
+const FLOW_HOOK_EVENTS = ['SessionStart', 'SessionEnd', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'PreCompact'];
+
+function doctorProjectHooksCheck(push) {
+  const hits = [];
+  for (const rel of [path.join('.claude', 'settings.json'), path.join('.claude', 'hooks.json')]) {
+    const raw = safeRead(path.join(process.cwd(), rel));
+    if (raw === null) continue;
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    const hooksObj = parsed && typeof parsed.hooks === 'object' && parsed.hooks !== null ? parsed.hooks : parsed;
+    if (!hooksObj || typeof hooksObj !== 'object') continue;
+    for (const ev of FLOW_HOOK_EVENTS) {
+      if (Array.isArray(hooksObj[ev]) && hooksObj[ev].length) hits.push(`${rel}:${ev}`);
+    }
+  }
+  if (hits.length) {
+    push('project-hooks', 'WARN', `this project registers its own hooks on events flow also uses (${hits.join(', ')}) — both run; a project hook that exits 2 hides flow's own result`);
+  } else {
+    push('project-hooks', 'PASS', 'this project registers no hooks on flow-owned events');
+  }
+}
+
+// gates-runnable: can this repo's gates actually execute here? Runs
+// detect-project and check-all --json from the cwd (C-C shapes).
+function doctorGatesRunnableCheck(push) {
+  const cwd = process.cwd();
+  const detected = runDetectProject(cwd);
+  const checkAll = sharedScript('check-all');
+  if (!checkAll) {
+    push('gates-runnable', 'WARN', 'check-all not found; cannot verify this project\'s gates', 'flow install');
+    return;
+  }
+  const r = spawnSync('node', [checkAll, '--json', '--continue'], { cwd, encoding: 'utf8', timeout: 120000, killSignal: 'SIGKILL' });
+  if (r.signal) {
+    push('gates-runnable', 'WARN', `check-all --json was killed (${r.signal}) after 120s`);
+    return;
+  }
+  let parsed = null;
+  try {
+    parsed = JSON.parse(r.stdout || '');
+  } catch {
+    parsed = null;
+  }
+  if (!parsed) {
+    push('gates-runnable', 'WARN', `check-all --json printed no JSON (exit ${r.status}); gates could not be checked`, 'flow check');
+    return;
+  }
+  if (!parsed.ecosystem || parsed.error === 'no_project_file') {
+    push('gates-runnable', 'WARN', `no ecosystem detected in ${cwd}${detected && detected.language ? ` (detect-project says ${detected.language})` : ''}; no gates to run`);
+    return;
+  }
+  const gates = Array.isArray(parsed.gates) ? parsed.gates : [];
+  const broken = gates.filter((g) => g && g.status === 'unavailable');
+  if (broken.length) {
+    const named = broken.map((g) => `${g.name} (${g.message || 'unavailable'})`).join('; ');
+    // `flow check` is NOT offered here: it re-runs the very commands that just
+    // failed to start, so it cannot clear this FAIL. The only command that
+    // provably has to happen first is a dependency install, and only when the
+    // dependencies are demonstrably absent — otherwise this FAIL carries no
+    // `→ run:` at all (the spec's "where one exists" clause).
+    const depsMissing = fs.existsSync(path.join(cwd, 'package.json')) && !fs.existsSync(path.join(cwd, 'node_modules'));
+    if (depsMissing) {
+      const pkgMgr = (detected && detected.pkg_mgr) || 'npm';
+      push('gates-runnable', 'FAIL', `gate binary cannot run: ${named}; this project has a package.json but no node_modules/`, `${pkgMgr} install`);
+      return;
+    }
+    push('gates-runnable', 'FAIL', `gate binary cannot run: ${named}; no flow command starts a runner that is not installed — install it, or correct the script it names`, false);
+    return;
+  }
+  push('gates-runnable', 'PASS', `${parsed.ecosystem}: ${gates.length} gate(s), every runner executable`);
+}
+
+// live-hooks-match-cwd: editing hooks in a worktree while ~/.claude/hooks
+// points at another checkout means the edits do not affect this session.
+function doctorLiveHooksMatchCwdCheck(push) {
+  let hooksReal = null;
+  try {
+    hooksReal = fs.realpathSync(path.join(HOME, '.claude', 'hooks'));
+  } catch {
+    return; // nothing deployed; the symlink checks already say so
+  }
+  const hooksTop = gitToplevel(hooksReal);
+  const cwdTop = gitToplevel(process.cwd());
+  if (!hooksTop || !cwdTop) return;
+  if (physicalPath(hooksTop) === physicalPath(cwdTop)) {
+    push('live-hooks-match-cwd', 'PASS', `~/.claude/hooks resolves inside this checkout (${cwdTop})`);
+    return;
+  }
+  if (!isDir(path.join(cwdTop, 'plugins', 'flow', 'hooks'))) {
+    push('live-hooks-match-cwd', 'PASS', 'this checkout does not carry harness hooks; nothing to keep live');
+    return;
+  }
+  // The `→ run:` here repoints this machine's ~/.claude at THIS checkout —
+  // useful while working in a worktree, wrong to leave behind (the links dangle
+  // once the worktree is removed), so the detail states the consequence and the
+  // exact reversal rather than presenting the relink as the plain fix.
+  push(
+    'live-hooks-match-cwd',
+    'FAIL',
+    `edits here are not live until merged into ${hooksTop} (~/.claude/hooks resolves there, not to ${cwdTop}); ` +
+      `the run below repoints this machine at ${cwdTop} until you revert it with: flow install --marketplace ${hooksTop}`,
+    `flow install --marketplace ${shellQuote(cwdTop)}`
+  );
+}
+
+function hasForcePushDeny(settingsPath) {
+  const raw = safeRead(settingsPath);
+  if (raw === null) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    const deny = parsed && parsed.permissions && parsed.permissions.deny;
+    return Array.isArray(deny) && deny.some((d) => typeof d === 'string' && d.indexOf('git push --force') !== -1);
+  } catch {
+    return false;
+  }
+}
+
+function doctorPermissionsDenyCheck(push) {
+  const user = path.join(HOME, '.claude', 'settings.json');
+  const project = path.join(process.cwd(), '.claude', 'settings.json');
+  if (hasForcePushDeny(user) || hasForcePushDeny(project)) {
+    push('permissions-deny', 'PASS', 'a permissions.deny rule covers `git push --force`');
+    return;
+  }
+  push(
+    'permissions-deny',
+    'WARN',
+    `neither ${user} nor ${project} denies \`git push --force\` — git-guard still refuses it, but the permission layer would not`
+  );
+}
+
 // dotfilesRoot: see doctorSymlinkChecks above — forwarded through so a
 // `flow install --dotfiles <path>` recheck (C18 step 7) compares against
 // the root that install actually used, not always $HOME/.dotfiles.
 // --verbose (or FLOW_VERBOSE=1) names each check on stderr before it runs,
 // so a check that hangs (a subprocess that never returns) is identifiable.
 const VERBOSE = process.argv.includes('--verbose') || process.env.FLOW_VERBOSE === '1';
-function buildDoctorChecks(dotfilesRoot) {
+
+// A FAIL the user can act on names the command that fixes it. Checks that
+// pass an explicit fix win; otherwise the id decides.
+const DEFAULT_FIXES = [
+  [/^symlink:/, 'flow install --force'],
+  [/^settings:hooks-key$/, 'flow install'],
+  [/^plugin-hooks-json$/, 'flow install --force'],
+  [/^skills-lint$/, '~/.claude/scripts/skills-lint'],
+];
+
+// `explicit === false` means the check PROVED no command fixes this one, and
+// suppresses the id's default: a `→ run:` that cannot clear the FAIL is worse
+// than none (the spec only asks for one "where one exists").
+function fixCommandFor(id, explicit) {
+  if (explicit === false) return null;
+  if (explicit) return explicit;
+  for (const [re, cmd] of DEFAULT_FIXES) if (re.test(id)) return cmd;
+  return null;
+}
+
+function buildDoctorChecks(dotfilesRoot, deep) {
   const checks = [];
-  const push = (id, status, detail) => checks.push({ id, status, detail });
+  const push = (id, status, detail, fix) => {
+    const cmd = status === 'FAIL' ? fixCommandFor(id, fix) : null;
+    checks.push({ id, status, detail: cmd ? `${detail} → run: ${cmd}` : detail });
+  };
   const run = (name, fn) => {
     if (VERBOSE) process.stderr.write(`  check ${name}`);
     const t0 = Date.now();
@@ -1010,16 +1283,22 @@ function buildDoctorChecks(dotfilesRoot) {
   run('settings:hooks-key', () => doctorHooksKeyCheck(push));
   run('hooks-drift', () => doctorHooksDriftCheck(push));
   run('flow-config-overrides', () => doctorHarnessJsonOverridesCheck(push));
+  run('config-schema', () => doctorConfigSchemaCheck(push));
+  run('project-hooks', () => doctorProjectHooksCheck(push));
   run('thresholds-referenced', () => doctorThresholdsReferencedCheck(push));
   run('progress-md', () => doctorProgressCheck(push));
+  run('gates-runnable', () => doctorGatesRunnableCheck(push));
   run('tools', () => doctorToolChecks(push));
   run('skill-index-cost', () => doctorSkillIndexCostCheck(push));
-  run('skills-lint', () => doctorSkillsLintCheck(push));
+  // skills-lint walks every skill file: too slow for the default run (B25).
+  if (deep) run('skills-lint', () => doctorSkillsLintCheck(push));
   run('plugin-skills-flow', () => doctorPluginSkillsHarnessCheck(push));
   run('plugin-hooks-json', () => doctorPluginHooksJsonCheck(push));
   run('plugin-double-registration', () => doctorPluginDoubleRegistrationCheck(push));
   run('plugin-double-load', () => doctorPluginDoubleLoadCheck(push));
   run('local-bin-harness', () => doctorLocalBinHarnessCheck(push));
+  run('live-hooks-match-cwd', () => doctorLiveHooksMatchCwdCheck(push));
+  run('permissions-deny', () => doctorPermissionsDenyCheck(push));
   run('plugin-list', () => doctorPluginListCheck(push));
   return checks;
 }
@@ -1030,7 +1309,7 @@ function buildDoctorChecks(dotfilesRoot) {
 // is unchanged ($HOME/.dotfiles default).
 function cmdDoctor(argv, dotfilesRoot) {
   const jsonMode = argv.includes('--json');
-  const checks = buildDoctorChecks(dotfilesRoot);
+  const checks = buildDoctorChecks(dotfilesRoot, argv.includes('--deep'));
   const summary = { pass: 0, warn: 0, fail: 0 };
   for (const c of checks) {
     if (c.status === 'PASS') summary.pass++;
@@ -1058,53 +1337,110 @@ const STACKS = {
   node: {
     thresholdFile: '.flow/eslint.thresholds.mjs',
     thresholdForce: true,
-    thresholdContent:
-      "export default {\n" +
-      "  rules: {\n" +
-      "    'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],\n" +
-      "    'max-lines-per-function': ['error', { max: 60, skipBlankLines: true, skipComments: true }],\n" +
-      "    complexity: ['error', 10],\n" +
-      "    'max-params': ['error', 4],\n" +
-      "    'max-depth': ['error', 4],\n" +
+    linter: 'eslint',
+    defaults: { maxFileLines: 400, maxFuncLines: 60, complexity: 10, maxParams: 4, maxDepth: 4 },
+    // key -> the setting name written into thresholdContent, so a note about
+    // an unmeasured key names something the reader can find in the file.
+    settingNames: { maxFileLines: 'max-lines', maxFuncLines: 'max-lines-per-function', complexity: 'complexity', maxParams: 'max-params', maxDepth: 'max-depth' },
+    thresholdContent: (t) =>
+      'export default {\n' +
+      '  rules: {\n' +
+      `    'max-lines': ['error', { max: ${t.maxFileLines}, skipBlankLines: true, skipComments: true }],\n` +
+      `    'max-lines-per-function': ['error', { max: ${t.maxFuncLines}, skipBlankLines: true, skipComments: true }],\n` +
+      `    complexity: ['error', ${t.complexity}],\n` +
+      `    'max-params': ['error', ${t.maxParams}],\n` +
+      `    'max-depth': ['error', ${t.maxDepth}],\n` +
       '  },\n' +
       '};\n',
     thresholdInstruction:
       'Spread .flow/eslint.thresholds.mjs into your eslint flat config (import it and spread `rules`); harness never edits an existing eslint config.',
-    setupStep: ['      - uses: actions/setup-node@v4', '        with:', "          node-version: '20'"].join('\n'),
   },
   python: {
     thresholdFile: '.flow/ruff.thresholds.toml',
     thresholdForce: true,
-    thresholdContent:
+    linter: 'ruff',
+    defaults: { complexity: 10, branches: 12, args: 5, statements: 50 },
+    settingNames: { complexity: 'max-complexity', branches: 'max-branches', args: 'max-args', statements: 'max-statements' },
+    thresholdContent: (t) =>
       '[lint]\n' +
       'select = ["E", "F", "I", "N", "UP", "B", "S", "C90", "PL"]\n' +
       '\n' +
       '[lint.mccabe]\n' +
-      'max-complexity = 10\n' +
+      `max-complexity = ${t.complexity}\n` +
       '\n' +
       '[lint.pylint]\n' +
-      'max-branches = 12\n' +
-      'max-args = 5\n' +
-      'max-statements = 50\n',
+      `max-branches = ${t.branches}\n` +
+      `max-args = ${t.args}\n` +
+      `max-statements = ${t.statements}\n`,
     thresholdInstruction: 'Add `extend = ".flow/ruff.thresholds.toml"` to your ruff config to apply these thresholds.',
-    setupStep: ['      - uses: actions/setup-python@v5', '        with:', "          python-version: '3.12'"].join('\n'),
   },
   rust: {
     thresholdFile: 'clippy.toml',
     thresholdForce: false,
-    thresholdContent:
-      'too-many-lines-threshold = 60\n' + 'cognitive-complexity-threshold = 15\n' + 'too-many-arguments-threshold = 5\n',
+    linter: 'clippy',
+    defaults: { lines: 60, cognitive: 15, args: 5 },
+    settingNames: { lines: 'too-many-lines-threshold', cognitive: 'cognitive-complexity-threshold', args: 'too-many-arguments-threshold' },
+    thresholdContent: (t) =>
+      `too-many-lines-threshold = ${t.lines}\n` +
+      `cognitive-complexity-threshold = ${t.cognitive}\n` +
+      `too-many-arguments-threshold = ${t.args}\n`,
     thresholdInstruction: null,
-    setupStep: '      - uses: dtolnay/rust-toolchain@stable',
   },
   go: {
     thresholdFile: '.golangci.yml',
     thresholdForce: false,
-    thresholdContent: 'linters-settings:\n' + '  funlen:\n' + '    lines: 60\n' + '  gocyclo:\n' + '    min-complexity: 10\n',
+    linter: 'golangci-lint',
+    defaults: { lines: 60, complexity: 10 },
+    settingNames: { lines: 'funlen.lines', complexity: 'gocyclo.min-complexity' },
+    thresholdContent: (t) =>
+      'linters-settings:\n' + '  funlen:\n' + `    lines: ${t.lines}\n` + '  gocyclo:\n' + `    min-complexity: ${t.complexity}\n`,
     thresholdInstruction: null,
-    setupStep: ['      - uses: actions/setup-go@v5', '        with:', '          go-version-file: go.mod'].join('\n'),
   },
 };
+
+// ── CI setup step (FU-11): driven by the detected package manager, so the
+// workflow installs dependencies the way this repo actually does.
+const PY_SETUP = (v) => ['      - uses: actions/setup-python@v5', '        with:', `          python-version: '${v}'`].join('\n');
+const NODE_SETUP = ['      - uses: actions/setup-node@v4', '        with:', "          node-version: '20'"].join('\n');
+
+// pythonVersion: .python-version wins, else pyproject's requires-python lower
+// bound, else 3.12.
+function pythonVersion(cwd) {
+  const pinned = (safeRead(path.join(cwd, '.python-version')) || '').trim().split('\n')[0].trim();
+  if (/^\d+\.\d+/.test(pinned)) return pinned.match(/^\d+\.\d+/)[0];
+  const pyproject = safeRead(path.join(cwd, 'pyproject.toml')) || '';
+  const m = pyproject.match(/requires-python\s*=\s*["'][^"']*?(\d+\.\d+)/);
+  return m ? m[1] : '3.12';
+}
+
+function setupStepFor(stackKey, cwd, pkgMgr) {
+  if (stackKey === 'node') {
+    if (pkgMgr === 'bun') return ['      - uses: oven-sh/setup-bun@v2', '      - run: bun install --frozen-lockfile'].join('\n');
+    if (pkgMgr === 'pnpm') {
+      return ['      - uses: pnpm/action-setup@v4', '        with:', "          version: '9'", NODE_SETUP, '      - run: pnpm install --frozen-lockfile'].join('\n');
+    }
+    if (pkgMgr === 'yarn') return [NODE_SETUP, '      - run: yarn install --frozen-lockfile'].join('\n');
+    return [NODE_SETUP, '      - run: npm ci'].join('\n');
+  }
+  if (stackKey === 'python') {
+    const v = pythonVersion(cwd);
+    if (pkgMgr === 'uv') {
+      return ['      - uses: astral-sh/setup-uv@v5', '        with:', `          python-version: '${v}'`, '      - run: uv sync'].join('\n');
+    }
+    // FU-11 "start green": setup-python alone installs nothing, so the test
+    // gate fails on the first CI run. Install the way this repo declares its
+    // dependencies; with neither file present there is nothing to install.
+    if (fs.existsSync(path.join(cwd, 'requirements.txt'))) {
+      return [PY_SETUP(v), '      - run: pip install -r requirements.txt'].join('\n');
+    }
+    if (fs.existsSync(path.join(cwd, 'pyproject.toml'))) {
+      return [PY_SETUP(v), '      - run: pip install -e .'].join('\n');
+    }
+    return PY_SETUP(v);
+  }
+  if (stackKey === 'rust') return '      - uses: dtolnay/rust-toolchain@stable';
+  return ['      - uses: actions/setup-go@v5', '        with:', '          go-version-file: go.mod'].join('\n');
+}
 
 function runDetectProject(cwd) {
   const dp = detectProjectPath();
@@ -1141,9 +1477,204 @@ function resolveStackKey(stackArg, detected, cwd) {
   return null;
 }
 
-function renderGatesYml(tmplContent, stackKey, cmds) {
+// ─────────────────────────────────────────────────────────────────────────────
+// init: lint thresholds (FU-12) — write a thresholds file only when the
+// matching linter is actually installed here, and only with numbers at or
+// above what that linter reports for this codebase today, so `flow init`
+// never hands a repo a config that fails on its first run.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// measuredInt(msg, re) -> the integer the rule's own phrasing puts in group 1,
+// or null when the message does not carry one.
+//
+// The measurement must be read from a rule-specific position, never as "the
+// first integer in the string": lint messages name the offending symbol, and
+// identifiers carry digits of their own (sha256Digest, base64Decode, oauth2Login,
+// parse2, x509). Taking the first integer of
+//   "Function 'sha256Digest' has a complexity of 42. Maximum allowed is 10."
+// yields 256, which would write a complexity ceiling of 256; taking it from
+// "Function 'parse2' has too many lines (520)." yields 2, which is below the
+// default and silently discards a 520-line function. null here means UNMEASURED,
+// and the caller (initThresholdPlan) records that so `flow init` says the key
+// carries a default instead of claiming a measurement it never made.
+function measuredInt(msg, re) {
+  const m = String(msg).match(re);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function bump(maxima, key, value) {
+  if (value === null) return;
+  if (maxima[key] === undefined || value > maxima[key]) maxima[key] = value;
+}
+
+// eslint rule -> [threshold key, the pattern that captures the measured value].
+const ESLINT_RULES = {
+  'max-lines': ['maxFileLines', /too many lines \((\d+)\)/],
+  'max-lines-per-function': ['maxFuncLines', /too many lines \((\d+)\)/],
+  complexity: ['complexity', /complexity of (\d+)/],
+  'max-params': ['maxParams', /too many parameters \((\d+)\)/],
+  'max-depth': ['maxDepth', /nested too deeply \((\d+)\)/],
+};
+
+// ruff code -> [threshold key, pattern]. C901 names the function first
+// ("`sha256_digest` is too complex (42 > 10)"); the PLR codes do not name it,
+// but are anchored on their own wording all the same.
+const RUFF_RULES = {
+  C901: ['complexity', /is too complex \((\d+)/i],
+  PLR0912: ['branches', /too many branches \((\d+)/i],
+  PLR0913: ['args', /too many arguments[^(]*\((\d+)/i],
+  PLR0915: ['statements', /too many statements \((\d+)/i],
+};
+
+function parseEslint(out) {
+  const maxima = {};
+  let arr;
+  try {
+    arr = JSON.parse(out);
+  } catch {
+    return maxima;
+  }
+  if (!Array.isArray(arr)) return maxima;
+  for (const file of arr) {
+    for (const m of (file && file.messages) || []) {
+      const rule = ESLINT_RULES[m && m.ruleId];
+      if (rule) bump(maxima, rule[0], measuredInt(m.message, rule[1]));
+    }
+  }
+  return maxima;
+}
+
+function parseRuff(out) {
+  const maxima = {};
+  let arr;
+  try {
+    arr = JSON.parse(out);
+  } catch {
+    return maxima;
+  }
+  if (!Array.isArray(arr)) return maxima;
+  for (const d of arr) {
+    const rule = RUFF_RULES[d && d.code];
+    if (rule) bump(maxima, rule[0], measuredInt(d.message, rule[1]));
+  }
+  return maxima;
+}
+
+// clippy/golangci-lint report "(<actual>/<limit>)" or "(<actual> > <limit>)".
+// Each pattern anchors on the rule's own wording and captures the actual value
+// in group 1 — the same rule as measuredInt: never "the first integer on the
+// line", which a digit-bearing identifier would win.
+function parseTextLimits(out, patterns) {
+  const maxima = {};
+  for (const line of String(out).split('\n')) {
+    for (const [re, key] of patterns) {
+      bump(maxima, key, measuredInt(line, re));
+    }
+  }
+  return maxima;
+}
+
+// Where a stack's linter lives and how to make it report. `resolve` returns
+// { cmd, args } or null when the linter is not installed for this project.
+const LINTERS = {
+  node: {
+    resolve: (cwd) => {
+      const local = path.join(cwd, 'node_modules', '.bin', 'eslint');
+      if (fs.existsSync(local)) return { cmd: local, args: [] };
+      return have('eslint') ? { cmd: 'eslint', args: [] } : null;
+    },
+    args: ['--format', 'json', '.'],
+    okStatus: [0, 1],
+    parse: (stdout) => parseEslint(stdout),
+  },
+  python: {
+    resolve: (cwd) => {
+      const venv = path.join(cwd, '.venv', 'bin', 'ruff');
+      if (fs.existsSync(venv)) return { cmd: venv, args: [] };
+      if (fs.existsSync(path.join(cwd, 'uv.lock')) && have('uv')) return { cmd: 'uv', args: ['run', '--no-sync', 'ruff'] };
+      return have('ruff') ? { cmd: 'ruff', args: [] } : null;
+    },
+    args: ['check', '--select', 'C901,PLR0912,PLR0913,PLR0915', '--output-format', 'json', '.'],
+    okStatus: [0, 1],
+    parse: (stdout) => parseRuff(stdout),
+  },
+  rust: {
+    resolve: () => (have('cargo') && have('cargo-clippy') ? { cmd: 'cargo', args: ['clippy'] } : null),
+    args: ['--quiet', '--message-format', 'short'],
+    okStatus: [0, 101],
+    parse: (stdout, stderr) =>
+      parseTextLimits(`${stdout}\n${stderr}`, [
+        [/too many lines \((\d+)/, 'lines'],
+        [/cognitive complexity of \((\d+)/, 'cognitive'],
+        [/too many arguments \((\d+)/, 'args'],
+      ]),
+  },
+  go: {
+    resolve: () => (have('golangci-lint') ? { cmd: 'golangci-lint', args: ['run'] } : null),
+    args: [],
+    okStatus: [0, 1],
+    parse: (stdout, stderr) =>
+      parseTextLimits(`${stdout}\n${stderr}`, [
+        [/is too long \((\d+)/, 'lines'],
+        [/cyclomatic complexity (\d+)/, 'complexity'],
+      ]),
+  },
+};
+
+// measureLinter: run the stack's linter ONCE. { ok:true, maxima } or
+// { ok:false, why, kind } — the caller writes nothing and prints `why`.
+// `kind` is 'missing' when the linter is not installed (the only case where
+// "install it" is the fix) and 'error' when it IS installed but the run
+// failed, so the caller never prescribes installing a tool that is present.
+function measureLinter(stackKey, cwd) {
+  const spec = LINTERS[stackKey];
+  const name = STACKS[stackKey].linter;
+  const bin = spec.resolve(cwd);
+  if (!bin) return { ok: false, kind: 'missing', why: `${name} is not installed for this project` };
+  const r = spawnSync(bin.cmd, bin.args.concat(spec.args), {
+    cwd,
+    encoding: 'utf8',
+    timeout: 120000,
+    killSignal: 'SIGKILL',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (r.error) return { ok: false, kind: 'error', why: `${name} could not run: ${r.error.code || r.error.message}` };
+  if (r.signal) return { ok: false, kind: 'error', why: `${name} was killed (${r.signal}) after 120s` };
+  if (spec.okStatus.indexOf(r.status) === -1) {
+    const detail = ((r.stderr || r.stdout || '').trim().split('\n')[0] || '').slice(0, 160);
+    return { ok: false, kind: 'error', why: `${name} exited ${r.status}: ${detail}` };
+  }
+  return { ok: true, maxima: spec.parse(r.stdout || '', r.stderr || '') };
+}
+
+// initThresholdPlan: { write:true, content, raised, unmeasured } when the
+// linter ran, else { write:false, why }.
+//
+// FU-12 says thresholds land at or above the repo's CURRENT maximum, which
+// only holds for keys the linter actually reported. A linter run against the
+// repo's own config reports a rule only when that config enables it, so some
+// keys routinely come back with no measurement at all: those get the harness
+// default, and `unmeasured` names them so the caller can say so instead of
+// printing a default as if it were measured (the default may sit below what
+// the repo does today, and the gate would then start red).
+function initThresholdPlan(stackKey, cwd) {
   const stack = STACKS[stackKey];
-  const withSetup = tmplContent.replace('{{SETUP_STEP}}', stack.setupStep);
+  const measured = measureLinter(stackKey, cwd);
+  if (!measured.ok) return { write: false, why: measured.why, kind: measured.kind };
+  const thresholds = {};
+  const raised = [];
+  const unmeasured = [];
+  for (const key of Object.keys(stack.defaults)) {
+    const observed = measured.maxima[key];
+    if (observed === undefined) unmeasured.push(key);
+    thresholds[key] = observed !== undefined && observed > stack.defaults[key] ? observed : stack.defaults[key];
+    if (thresholds[key] !== stack.defaults[key]) raised.push(`${key} ${stack.defaults[key]}→${thresholds[key]}`);
+  }
+  return { write: true, content: stack.thresholdContent(thresholds), raised, unmeasured };
+}
+
+function renderGatesYml(tmplContent, stackKey, cmds, cwd) {
+  const withSetup = tmplContent.replace('{{SETUP_STEP}}', setupStepFor(stackKey, cwd, cmds.pkg_mgr || ''));
   const stepDefs = [
     { placeholder: '{{TYPECHECK_CMD}}', cmd: cmds.typecheck_cmd },
     { placeholder: '{{LINT_CMD}}', cmd: cmds.lint_cmd },
@@ -1184,12 +1715,155 @@ ${C.accent}Usage:${C.reset}
 ${C.accent}Options:${C.reset}
   --stack <s>   Force a stack instead of auto-detecting it (default: auto)
   --dry-run     Print what would be written; write nothing
-  --force       Overwrite files that already exist (CLAUDE.md is never overwritten)
+  --force       Overwrite files that already exist (CLAUDE.md is never overwritten;
+                  REVIEW.md/PROGRESS.md are copied to <name>.pre-flow.<epoch> first)
   -h, --help    Show this help message
 `);
 }
 
 const VALID_STACK_ARGS = ['auto', 'node', 'python', 'rust', 'go'];
+
+// The destructive commands `flow init` denies in the project's own
+// .claude/settings.json (FU-21). Written only when that file has no
+// "permissions" key of its own — an existing one is never clobbered.
+const INIT_DENY_RULES = [
+  'Bash(git push --force*)',
+  'Bash(git push -f*)',
+  'Bash(git reset --hard*)',
+  'Bash(git clean -f*)',
+  'Bash(git branch -D*)',
+  'Bash(git commit --no-verify*)',
+  'Bash(rm -rf /*)',
+  'Bash(rm -rf ~*)',
+];
+
+// planSettingsDeny: how (and whether) to add permissions.deny to the
+// project's .claude/settings.json. Merge, never clobber.
+function planSettingsDeny(cwd) {
+  const rel = path.join('.claude', 'settings.json');
+  const raw = safeRead(path.join(cwd, rel));
+  if (raw === null) {
+    return { path: rel, willWrite: true, reason: 'create (permissions.deny)', content: JSON.stringify({ permissions: { deny: INIT_DENY_RULES } }, null, 2) + '\n' };
+  }
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { path: rel, willWrite: false, reason: 'exists but does not parse, skip — add permissions.deny by hand', content: '' };
+  }
+  if (Object.prototype.hasOwnProperty.call(parsed, 'permissions')) {
+    return { path: rel, willWrite: false, reason: 'has its own permissions key, skip (never clobbered)', content: '' };
+  }
+  parsed.permissions = { deny: INIT_DENY_RULES };
+  return { path: rel, willWrite: true, reason: 'merge permissions.deny (your other keys untouched)', content: JSON.stringify(parsed, null, 2) + '\n' };
+}
+
+// initBackup: --force copies REVIEW.md/PROGRESS.md aside before overwriting.
+function initBackup(cwd, rel, epoch) {
+  if (rel !== 'REVIEW.md' && rel !== 'PROGRESS.md') return null;
+  const abs = path.join(cwd, rel);
+  if (!fs.existsSync(abs)) return null;
+  const backup = `${abs}.pre-flow.${epoch}`;
+  fs.copyFileSync(abs, backup);
+  return path.basename(backup);
+}
+
+// thresholdNotes: what `flow init` says about a thresholds file it wrote —
+// which keys it raised to a measured maximum, and which keys the linter did
+// not report at all (those carry the harness default and are stated as such,
+// because a default can sit below what this repo does today).
+function thresholdNotes(stack, thresholds) {
+  const notes = [];
+  if (thresholds.raised.length) {
+    notes.push(`${stack.thresholdFile}: raised to this repo's current maximum (${thresholds.raised.join(', ')}) so the gate starts green`);
+  }
+  if (thresholds.unmeasured.length) {
+    const named = thresholds.unmeasured.map((k) => stack.settingNames[k] || k);
+    const one = thresholds.unmeasured.length === 1;
+    notes.push(
+      `${stack.thresholdFile}: ${stack.linter} reported no ${named.join(', ')} today, so ${one ? 'that key is' : 'those keys are'} ` +
+        `the harness default, not a measurement — this repo may already exceed ${one ? 'it' : 'them'} and the gate can start red`
+    );
+  }
+  if (stack.thresholdInstruction) notes.push(stack.thresholdInstruction);
+  return notes;
+}
+
+// initStackActions: the stack-specific half of the plan — CI gate, lint
+// thresholds (only when the linter ran) and CLAUDE.md. Appends to `actions`
+// and `notes`.
+function initStackActions(ctx) {
+  const { cwd, stackKey, cmds, templates, plan, actions, notes } = ctx;
+  const stack = STACKS[stackKey];
+  plan('.github/workflows/gates.yml', renderGatesYml(readTemplate(templates, 'gates.yml.tmpl'), stackKey, cmds, cwd));
+
+  const thresholds = initThresholdPlan(stackKey, cwd);
+  if (thresholds.write) {
+    plan(stack.thresholdFile, thresholds.content, stack.thresholdForce);
+    notes.push(...thresholdNotes(stack, thresholds));
+  } else {
+    // The fix depends on WHY the linter produced no measurement: telling a
+    // user to install a linter that is already installed (it exited non-zero,
+    // or was killed) is advice the tool cannot back up.
+    const fix = thresholds.kind === 'missing'
+      ? 'install it and re-run flow init to measure real thresholds'
+      : 'fix the error above and re-run flow init to measure real thresholds';
+    notes.push(`no ${stack.thresholdFile} written: ${thresholds.why} — ${fix}`);
+  }
+
+  // CLAUDE.md: written only when absent, from CLAUDE.project.md, never forced.
+  const exists = fs.existsSync(path.join(cwd, 'CLAUDE.md'));
+  actions.push({
+    path: 'CLAUDE.md',
+    willWrite: !exists,
+    reason: exists ? 'exists, skip (never overwritten by init)' : 'create',
+    content: renderTemplate(readTemplate(templates, 'CLAUDE.project.md'), {
+      PROJECT_NAME: path.basename(cwd),
+      TEST_CMD: cmds.test_cmd || '(none detected)',
+      LINT_CMD: cmds.lint_cmd || '(none detected)',
+      TYPECHECK_CMD: cmds.typecheck_cmd || '(none detected)',
+      DEV_CMD: cmds.dev_cmd || '(none detected)',
+      PROTECTED_PATHS: '.claude/flow.config.json, .github/workflows/gates.yml, tests/',
+    }),
+  });
+}
+
+// initApply: write the planned files (honouring --force backups) and report.
+function initApply(cwd, actions, notes, opts) {
+  const { dryRun, force, stackKey } = opts;
+  const epoch = Math.floor(Date.now() / 1000);
+  const backups = [];
+  if (!dryRun) {
+    for (const a of actions) {
+      if (!a.willWrite) continue;
+      if (force) {
+        const b = initBackup(cwd, a.path, epoch);
+        if (b) backups.push(b);
+      }
+      const abs = path.join(cwd, a.path);
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, a.content);
+    }
+  }
+
+  const label = dryRun ? 'WOULD WRITE' : 'WROTE';
+  stdout.write(`\n${C.primary}${C.bold}flow init${C.reset} ${C.muted}(${stackKey || 'no stack'})${C.reset}\n`);
+  for (const a of actions) {
+    const tag = a.willWrite ? `${C.success}${label}${C.reset}` : `${C.muted}SKIP${C.reset}`;
+    stdout.write(`  ${tag} ${a.path}  ${C.muted}(${a.reason})${C.reset}\n`);
+  }
+  if (backups.length) stdout.write(`\n  kept your previous files as: ${backups.join(', ')}\n`);
+  stdout.write('\n');
+
+  const written = actions.filter((a) => a.willWrite).map((a) => a.path);
+  if (written.length) stdout.write(`git add ${written.join(' ')}\n`);
+  for (const n of notes) stdout.write(`${n}\n`);
+  if (!stackKey) stdout.write('no stack detected — governance files written, gates skipped\n');
+  return 0;
+}
 
 function cmdInit(argv) {
   const dryRun = argv.includes('--dry-run');
@@ -1208,84 +1882,26 @@ function cmdInit(argv) {
   const cwd = process.cwd();
   const detected = runDetectProject(cwd);
   const stackKey = resolveStackKey(stackArg, detected, cwd);
-  const cmds = detected || { test_cmd: '', lint_cmd: '', format_cmd: '', typecheck_cmd: '', dev_cmd: '', language: '' };
+  const cmds = detected || { test_cmd: '', lint_cmd: '', format_cmd: '', typecheck_cmd: '', dev_cmd: '', language: '', pkg_mgr: '' };
 
   const templates = templatesDir();
   const actions = [];
+  const notes = [];
 
-  function planFile(relPath, content, forceable) {
-    const abs = path.join(cwd, relPath);
-    const exists = fs.existsSync(abs);
-    let willWrite;
-    let reason;
-    if (!exists) {
-      willWrite = true;
-      reason = 'create';
-    } else if (force && forceable !== false) {
-      willWrite = true;
-      reason = 'overwrite (--force)';
-    } else {
-      willWrite = false;
-      reason = 'exists, skip';
-    }
-    actions.push({ path: relPath, willWrite, reason, content });
+  function plan(relPath, content, forceable) {
+    const exists = fs.existsSync(path.join(cwd, relPath));
+    const willWrite = !exists || (force && forceable !== false);
+    actions.push({ path: relPath, willWrite, reason: !exists ? 'create' : willWrite ? 'overwrite (--force)' : 'exists, skip', content });
   }
 
-  planFile('REVIEW.md', readTemplate(templates, 'REVIEW.md'));
-  planFile('PROGRESS.md', readTemplate(templates, 'PROGRESS.md'));
-  planFile('.claude/flow.config.json', JSON.stringify(C4_DEFAULTS, null, 2) + '\n');
+  plan('REVIEW.md', readTemplate(templates, 'REVIEW.md'));
+  plan('PROGRESS.md', readTemplate(templates, 'PROGRESS.md'));
+  plan('.claude/flow.config.json', JSON.stringify(C4_DEFAULTS, null, 2) + '\n');
+  actions.push(planSettingsDeny(cwd));
 
-  let stackObj = null;
-  if (stackKey) {
-    stackObj = STACKS[stackKey];
-    const gatesTmpl = readTemplate(templates, 'gates.yml.tmpl');
-    planFile('.github/workflows/gates.yml', renderGatesYml(gatesTmpl, stackKey, cmds));
-    planFile(stackObj.thresholdFile, stackObj.thresholdContent, stackObj.thresholdForce);
+  if (stackKey) initStackActions({ cwd, stackKey, cmds, templates, plan, actions, notes });
 
-    // CLAUDE.md: written only when absent, from CLAUDE.project.md, never forced.
-    const claudeMdAbs = path.join(cwd, 'CLAUDE.md');
-    const claudeMdExists = fs.existsSync(claudeMdAbs);
-    const projectName = path.basename(cwd);
-    const claudeMdContent = renderTemplate(readTemplate(templates, 'CLAUDE.project.md'), {
-      PROJECT_NAME: projectName,
-      TEST_CMD: cmds.test_cmd || '(none detected)',
-      LINT_CMD: cmds.lint_cmd || '(none detected)',
-      TYPECHECK_CMD: cmds.typecheck_cmd || '(none detected)',
-      DEV_CMD: cmds.dev_cmd || '(none detected)',
-      PROTECTED_PATHS: '.claude/flow.config.json, .github/workflows/gates.yml, tests/',
-    });
-    actions.push({
-      path: 'CLAUDE.md',
-      willWrite: !claudeMdExists,
-      reason: claudeMdExists ? 'exists, skip (never overwritten by init)' : 'create',
-      content: claudeMdContent,
-    });
-  }
-
-  if (!dryRun) {
-    for (const a of actions) {
-      if (!a.willWrite) continue;
-      const abs = path.join(cwd, a.path);
-      fs.mkdirSync(path.dirname(abs), { recursive: true });
-      fs.writeFileSync(abs, a.content);
-    }
-  }
-
-  const label = dryRun ? 'WOULD WRITE' : 'WROTE';
-  stdout.write(`\n${C.primary}${C.bold}flow init${C.reset} ${C.muted}(${stackKey || 'no stack'})${C.reset}\n`);
-  for (const a of actions) {
-    const tag = a.willWrite ? `${C.success}${label}${C.reset}` : `${C.muted}SKIP${C.reset}`;
-    stdout.write(`  ${tag} ${a.path}  ${C.muted}(${a.reason})${C.reset}\n`);
-  }
-  stdout.write('\n');
-
-  if (!stackKey) {
-    stdout.write('no stack detected — governance files written, gates skipped\n');
-  } else if (stackObj && stackObj.thresholdInstruction) {
-    stdout.write(stackObj.thresholdInstruction + '\n');
-  }
-
-  return 0;
+  return initApply(cwd, actions, notes, { dryRun, force, stackKey });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1315,14 +1931,17 @@ ${C.accent}Usage:${C.reset}
 ${C.accent}Options:${C.reset}
   --dotfiles <path>     Dotfiles repo root (default: $DOTFILES, $HOME/.dotfiles,
                          $HOME/dotfiles; a marketplace checkout never qualifies)
-  --marketplace <path>  Marketplace repo root (default: $FLOW_REPO, else
-                         $HOME/Desktop/Projects/flow); for each plugins/<name>
+  --marketplace <path>  Marketplace repo root (default: $FLOW_REPO, else the
+                         checkout this CLI runs from); for each plugins/<name>
                          found there, symlinks ~/.claude/skills/<name> to it
   --dry-run             Print every action; write nothing
   --force               Move a conflicting real file/dir aside, then link over it
   -h, --help            Show this help message
 
-Ends by running \`flow doctor\` and printing its summary.
+Ends by running \`flow doctor\` and printing its summary. That recheck includes
+doctor's gates-runnable check, which EXECUTES this project's own test/lint/
+format/typecheck scripts from the cwd (120s cap per gate) — run it from a
+directory whose gates you are willing to have run.
 `);
 }
 
@@ -1333,30 +1952,56 @@ Ends by running \`flow doctor\` and printing its summary.
 // A marketplace checkout never qualifies (it has no user config), so a plugin
 // CLI on a machine without a dotfiles checkout returns null instead of
 // silently installing from the wrong tree.
+// flagValue(argv, name) — the value after --<name>, or null when the flag is
+// absent. B24: a flag-shaped value (`--dotfiles --force`) is a typo, never a
+// path; it is reported by pathFlagError below instead of being resolved into
+// a directory named "--force".
+function flagValue(argv, name) {
+  const i = argv.indexOf(name);
+  if (i === -1) return null;
+  const v = argv[i + 1];
+  if (!v || v.charAt(0) === '-') return null;
+  return v;
+}
+
+// pathFlagError(argv) — a message when --dotfiles/--marketplace was given
+// without a usable path, else null.
+function pathFlagError(argv) {
+  for (const name of ['--dotfiles', '--marketplace']) {
+    const i = argv.indexOf(name);
+    if (i === -1) continue;
+    const v = argv[i + 1];
+    if (v === undefined) return `${name} needs a path (nothing followed it)`;
+    if (v.charAt(0) === '-') return `${name} needs a path, got the flag '${v}'`;
+  }
+  return null;
+}
+
 function dotfilesCandidates(argv) {
-  const di = argv.indexOf('--dotfiles');
   const out = [];
-  if (di !== -1 && argv[di + 1]) out.push(path.resolve(argv[di + 1]));
+  const explicit = flagValue(argv, '--dotfiles');
+  if (explicit) out.push(path.resolve(explicit));
   if (process.env.DOTFILES) out.push(path.resolve(process.env.DOTFILES));
   out.push(path.join(HOME, '.dotfiles'), path.join(HOME, 'dotfiles'), REPO_ROOT);
   return out;
 }
 function resolveDotfilesRoot(argv) {
-  const di = argv.indexOf('--dotfiles');
-  if (di !== -1 && argv[di + 1]) return path.resolve(argv[di + 1]);
+  const explicit = flagValue(argv, '--dotfiles');
+  if (explicit) return path.resolve(explicit);
   for (const c of dotfilesCandidates(argv)) {
     if (isDir(path.join(c, 'claude', '.claude'))) return c;
   }
   return null;
 }
 
-// Default marketplace root: --marketplace, else $FLOW_REPO, else
-// $HOME/Desktop/Projects/flow (C21 M3 / C18-style "install" extension).
+// Default marketplace root: --marketplace, else $FLOW_REPO, else REPO_ROOT —
+// the checkout this CLI itself is running from (B24: never a hardcoded
+// $HOME/Desktop/... path, which is wrong on every machine but one).
 function resolveMarketplaceRoot(argv) {
-  const mi = argv.indexOf('--marketplace');
-  if (mi !== -1 && argv[mi + 1]) return path.resolve(argv[mi + 1]);
+  const explicit = flagValue(argv, '--marketplace');
+  if (explicit) return path.resolve(explicit);
   if (process.env.FLOW_REPO) return path.resolve(process.env.FLOW_REPO);
-  return path.join(HOME, 'Desktop', 'Projects', 'flow');
+  return REPO_ROOT;
 }
 
 // One reported install action line: "<status> <path> <detail?>", where status
@@ -1378,6 +2023,13 @@ function makeInstallReporter(pushLine) {
 function installEnsureLink(opts) {
   const { linkPath, targetAbs, relative, force, dryRun, epoch, report } = opts;
   const desired = relative ? path.relative(path.dirname(linkPath), targetAbs) : targetAbs;
+
+  // B24: never create a link to something that is not there — a broken
+  // symlink in ~/.claude looks deployed and fails at hook time instead.
+  if (!fs.existsSync(targetAbs)) {
+    report('FAIL', linkPath, `link target ${targetAbs} does not exist; nothing was linked`);
+    return;
+  }
 
   let lst = null;
   try {
@@ -1509,49 +2161,6 @@ function installChmodFile(p, dryRun, report) {
   }
 }
 
-// Step 2b (C21 M3): marketplace plugin symlinks. For each plugins/<name>
-// under the marketplace repo, ensure ~/.claude/skills/<name> symlinks to
-// it — same relative/absolute rule and --force backup as the dotfiles
-// symlinks (installEnsureLink), keyed off whether the marketplace root is
-// exactly the default $HOME/Desktop/Projects/flow. A machine with no
-// marketplace checkout at all is not an error: print the copy-mode
-// alternative instead.
-function installMarketplaceSymlinks(argv, force, dryRun, epoch, report) {
-  const marketplaceRoot = resolveMarketplaceRoot(argv);
-  const marketplaceRelative = marketplaceRoot === path.join(HOME, 'Desktop', 'Projects', 'flow');
-  const marketplacePluginsDir = path.join(marketplaceRoot, 'plugins');
-  if (!isDir(marketplacePluginsDir)) {
-    stdout.write(
-      `\n  note: no marketplace checkout at ${marketplacePluginsDir} (pass --marketplace <path> or set FLOW_REPO); ` +
-        `alternative: claude plugin marketplace add TomasPalsson/flow && claude plugin install flow@flow\n`
-    );
-    return;
-  }
-  stdout.write(
-    `\n${C.primary}${C.bold}flow install: marketplace plugins${C.reset} ${C.muted}(${marketplaceRoot})${C.reset}\n`
-  );
-  let pluginNames = [];
-  try {
-    pluginNames = fs.readdirSync(marketplacePluginsDir).sort();
-  } catch {
-    pluginNames = [];
-  }
-  for (const name of pluginNames) {
-    const pluginDir = path.join(marketplacePluginsDir, name);
-    if (!isDir(pluginDir)) continue;
-    if (!fs.existsSync(path.join(pluginDir, '.claude-plugin', 'plugin.json'))) continue;
-    installEnsureLink({
-      linkPath: path.join(HOME, '.claude', 'skills', name),
-      targetAbs: pluginDir,
-      relative: marketplaceRelative,
-      force,
-      dryRun,
-      epoch,
-      report,
-    });
-  }
-}
-
 // chmod +x every regular file directly under <dir> whose name matches
 // <predicate>. Non-recursive — a nested tests/ directory is never entered
 // (satisfies "scripts/* (non-test)" without special-casing the name).
@@ -1571,6 +2180,11 @@ function installChmodDir(dir, predicate, dryRun, report) {
 function cmdInstall(argv) {
   const dryRun = argv.includes('--dry-run');
   const force = argv.includes('--force');
+  const flagErr = pathFlagError(argv);
+  if (flagErr) {
+    stderr.write(`${C.error}flow install: ${flagErr}${C.reset}\n`);
+    return 1;
+  }
   const dotfilesRoot = resolveDotfilesRoot(argv);
   if (dotfilesRoot === null) {
     stdout.write(
@@ -1667,8 +2281,9 @@ function cmdInstall(argv) {
     stdout.write(`  ${C.warning}warn ${localBin} is not on PATH${C.reset}\n`);
   }
 
-  // Step 2b: marketplace plugin symlinks (C21 M3) — see installMarketplaceSymlinks.
-  // (per-plugin symlinks superseded by step 1b: ~/.claude/skills -> <marketplace>/plugins)
+  // Step 2b: marketplace plugins (C21 M3). Per-plugin symlinks are superseded
+  // by step 1b, which links ~/.claude/skills -> <marketplace>/plugins wholesale;
+  // all that is left here is telling the user when no marketplace was found.
   if (!pluginMode) {
     stdout.write(
       `\n  note: no marketplace checkout at ${path.join(marketplaceRoot, 'plugins')} (pass --marketplace <path> or set FLOW_REPO); ` +
@@ -1806,22 +2421,157 @@ ${C.accent}Options:${C.reset}
 `);
 }
 
-// stripBackticks("`cmd`") -> "cmd"; anything else is returned unchanged.
-function stripBackticks(s) {
-  const m = s.match(/^`([^`]+)`$/);
-  return m ? m[1] : s;
+// Commands a resume bullet may name even when the tool is not installed on
+// this machine (the answer is still the right instruction to print). Anything
+// outside this list has to be resolvable on PATH via have().
+const RESUME_KNOWN_COMMANDS = [
+  'flow',
+  'git',
+  'make',
+  'just',
+  'task',
+  'npm',
+  'npx',
+  'pnpm',
+  'yarn',
+  'bun',
+  'bunx',
+  'node',
+  'deno',
+  'python',
+  'python3',
+  'uv',
+  'uvx',
+  'pytest',
+  'cargo',
+  'go',
+  'ruby',
+  'bundle',
+  'rake',
+  'php',
+  'composer',
+  'docker',
+  'kubectl',
+  'terraform',
+  'gradle',
+  'mvn',
+  'dotnet',
+  'swift',
+  'sh',
+  'bash',
+  'agents',
+  'claude',
+];
+
+// Destructive shapes the harness refuses to RECOMMEND. PROGRESS.md is an
+// ordinary file in the repo, so a backticked span in it is untrusted input;
+// printing `rm -rf /` as the session's first instruction is not acceptable
+// just because a bullet said so. These mirror what git-guard denies. The
+// match is coarse on purpose and can fire on an innocent cleanup command —
+// that is safe here because a rejected span is never dropped silently: the
+// caller prints which span it ignored and why, so the user can see it.
+const RESUME_DESTRUCTIVE = [
+  /(^|\s)rm\s+(-[A-Za-z]*\s+)*-[A-Za-z]*[rf]/,
+  /(^|\s)git\s+push\s+(.*\s)?(-f|--force)(\s|$)/,
+  /(^|\s)git\s+reset\s+(.*\s)?--hard(\s|$)/,
+  /(^|\s)git\s+clean\s+(.*\s)?-[A-Za-z]*f/,
+  /(^|\s)git\s+branch\s+(.*\s)?-D(\s|$)/,
+  /(^|\s)(sudo|dd|mkfs|shutdown|reboot|halt)(\s|$)/,
+  /(^|\s):\s*\(\)\s*\{/, // fork bomb
+];
+
+// isDestructiveResume: RESUME_DESTRUCTIVE against the span with quote
+// characters blanked out, so one level of quoting (`bash -c 'rm -rf /'`)
+// cannot hide the body from the scan.
+function isDestructiveResume(cmd) {
+  const unquoted = String(cmd).replace(/['"]/g, ' ');
+  return RESUME_DESTRUCTIVE.some((re) => re.test(unquoted));
+}
+
+// resumeCommandHead: the token that decides whether a span is runnable, after
+// stripping the two prefixes a resume bullet legitimately carries (git-guard
+// strips the same shapes before it resolves a command head):
+//   - leading `VAR=value` assignments — `PYTHONPATH=. pytest -k slow`
+//   - a leading `cd <dir> &&` / `cd <dir>;` hop — `cd frontend && npm test`
+// Both forms are runnable as written, so the head to test is the one after
+// them, not `PYTHONPATH=.` or `cd`.
+function resumeCommandHead(cmd) {
+  let s = String(cmd).trim();
+  for (let i = 0; i < 8; i++) {
+    const before = s;
+    s = s.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]*)\s+)+/, '');
+    s = s.replace(/^cd\s+(?:"[^"]*"|'[^']*'|[^\s;&]+)\s*(?:&&|;)\s*/, '');
+    if (s === before) break;
+  }
+  return s.split(/\s+/)[0] || '';
+}
+
+// isCommandShaped: C-D — `Next:` must be something the reader can type. A
+// backticked span in prose is very often a filename, a directory or an
+// identifier, so accept only:
+//   - a slash command (`/flow`, `/wrap`): one leading slash, no path parts;
+//   - a path-shaped head (contains `/`, or starts with `~`) that actually
+//     resolves to an executable FILE from the repo root;
+//   - a bare head that is a known harness/tool command or is on PATH.
+// `.skill-forge/` (trailing slash), `hookout.sh` and `notes.md` (bare names
+// that are not executables) are all rejected, and the caller reports the
+// rejection before falling through to the state-derived command.
+function isCommandShaped(cmd, root) {
+  const head = resumeCommandHead(cmd);
+  if (!head || head.startsWith('-')) return false;
+  if (head.endsWith('/')) return false;
+  if (/^\/[A-Za-z][A-Za-z0-9:_-]*$/.test(head)) return true;
+  if (head.indexOf('/') !== -1 || head.startsWith('~')) {
+    const abs = head.startsWith('~') ? path.join(HOME, head.slice(1)) : path.resolve(root, head);
+    try {
+      fs.accessSync(abs, fs.constants.X_OK);
+      return fs.statSync(abs).isFile();
+    } catch {
+      return false;
+    }
+  }
+  return RESUME_KNOWN_COMMANDS.indexOf(head) !== -1 || have(head);
+}
+
+// resumeCommand: how a `resume:` bullet's backticked span resolves.
+//
+// FU-09/C-D: the command is the BACKTICKED text only — a prose resume bullet
+// ("resume: finish the docs pass") yields null so the caller falls back to a
+// plan/state-derived command, because `Next:` must always be runnable.
+//
+// Returns { command } when the span is runnable; { span, reason } when a span
+// was found and rejected — the user wrote that instruction, so the caller
+// reports the drop instead of discarding it in silence; null when there is
+// nothing to drop (no span, or the untouched init-template placeholder).
+function resumeCommand(bullet, root) {
+  const m = bullet.match(/`([^`]+)`/);
+  if (!m) return null;
+  const cmd = m[1].trim();
+  if (cmd === '') return null;
+  if (/^<[^<>]*>$/.test(cmd)) return null; // `<the exact command…>`: the flow-templates placeholder, not an instruction
+  if (/^flow\s+next\b/.test(cmd)) return { span: cmd, reason: 'would loop straight back into flow next' };
+  if (isDestructiveResume(cmd)) return { span: cmd, reason: 'is destructive, so the harness will not recommend it' };
+  if (!isCommandShaped(cmd, root)) return { span: cmd, reason: 'is not runnable from here' };
+  return { command: cmd };
 }
 
 // readProgressResume: scans PROGRESS.md's "## Now" section (until the next
-// "## " heading) for a bullet that either starts with "resume:" or contains
-// a backticked command, per C23 state 2. Returns { command, bullet } (bullet
-// is the section's first bullet, verbatim, for the "Why" line) or null.
-function readProgressResume(progressPath) {
+// "## " heading) for a bullet that starts with "resume:" and names a runnable
+// command, per C23 state 2 / the G10 rule ("next for a `resume:` bullet is the
+// backticked command only").
+//
+// Returns { command, bullet } where bullet is the bullet that actually
+// supplied the command — the "Why" line must point at the text the answer
+// came from. When every resume bullet's span was rejected it returns
+// { ignored: { span, reason } } for the FIRST rejection, so the caller can
+// say which instruction it did not follow; null when no resume bullet named
+// anything at all.
+function readProgressResume(progressPath, root) {
   const raw = safeRead(progressPath);
   if (!raw) return null;
   const lines = raw.split('\n');
   let inNow = false;
-  let firstBullet = null;
+  let ignored = null;
   for (const line of lines) {
     const trimmed = line.trim();
     if (/^##\s/.test(trimmed)) {
@@ -1831,13 +2581,44 @@ function readProgressResume(progressPath) {
     }
     if (!inNow || trimmed === '') continue;
     const bullet = trimmed.replace(/^-+\s*/, '');
-    if (firstBullet === null) firstBullet = bullet;
-    const resumeMatch = bullet.match(/^resume:\s*(.+)$/i);
-    if (resumeMatch) return { command: stripBackticks(resumeMatch[1].trim()), bullet: firstBullet };
-    const backtickMatch = bullet.match(/`([^`]+)`/);
-    if (backtickMatch) return { command: backtickMatch[1], bullet: firstBullet };
+    if (!/^resume\s*:/i.test(bullet)) continue;
+    const r = resumeCommand(bullet, root);
+    if (r && r.command) return { command: r.command, bullet };
+    if (r && !ignored) ignored = { span: r.span, reason: r.reason };
   }
-  return null;
+  return ignored ? { ignored } : null;
+}
+
+// .claude/flow.json is committed content: `flow next` treats every string in
+// it as untrusted. A C0 control character (or DEL) cannot appear in a git
+// refname and does not belong in a path, so such a value is not the branch or
+// worktree it claims to be — and a newline in one would forge a second
+// `Next:` line inside session-context's block, which the model reads as an
+// instruction. Values carrying one are DROPPED, never repaired (a repaired
+// refname is still not a refname), and the drop is named in `why`.
+const CONTROL_CHARS_RE = /[\x00-\x1F\x7F]/;
+
+// sanitizeFlowJson(flow) -> { flow: <object without the poisoned keys>,
+// dropped: [key...] }.
+function sanitizeFlowJson(flow) {
+  const clean = {};
+  const dropped = [];
+  for (const key of Object.keys(flow)) {
+    const v = flow[key];
+    if (typeof v === 'string' && CONTROL_CHARS_RE.test(v)) {
+      dropped.push(key);
+      continue;
+    }
+    clean[key] = v;
+  }
+  return { flow: clean, dropped };
+}
+
+// oneLine(s): s with every control character collapsed to a space, so a
+// printed line is exactly one line. The last-resort guarantee that plain
+// `flow next` emits at most 2 lines (C-D / G6's 2-line Next: block).
+function oneLine(s) {
+  return String(s).replace(/[\x00-\x1F\x7F]+/g, ' ').replace(/\s+$/, '');
 }
 
 function readFlowJson(cwd) {
@@ -2011,139 +2792,217 @@ function gitDefaultBranch(dir) {
   return null;
 }
 
-// computeNext(cwd) -> { next, why (string|null), state }. Pure decision
-// logic, no printing — cmdNext formats it for --json or plain-text output.
-function computeNext(cwd) {
-  if (!isGitRepo(cwd)) {
-    return { next: 'cd into a project (flow init to set one up)', why: null, state: { gitRepo: false } };
+// physicalPath: the fully resolved path, or the input when it cannot be
+// resolved (B21-23: worktree comparisons must not fail over /var vs
+// /private/var or a symlinked checkout).
+function physicalPath(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
+// specPlanPath: the first `.specs/<dir>/plan.md` in the repo (relative), or
+// null. FU-09: evidence that a flow is in flight even when .claude/flow.json
+// is absent (a worktree that was cleaned up, or a plan written by hand).
+function specPlanPath(root) {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(path.join(root, '.specs')).sort();
+  } catch {
+    return null;
+  }
+  for (const e of entries) {
+    if (fs.existsSync(path.join(root, '.specs', e, 'plan.md'))) return path.join('.specs', e, 'plan.md');
+  }
+  return null;
+}
+
+// flowInFlight: { flow, planPath, evidence, ignored } when this repo is
+// mid-flow, else null. flow.json wins; otherwise a live workflow-state file
+// or a spec plan counts as evidence (FU-09). `ignored` is a one-clause note
+// when sanitizeFlowJson dropped poisoned keys, so the drop is visible.
+function flowInFlight(root) {
+  const raw = readFlowJson(root);
+  const clean = raw ? sanitizeFlowJson(raw) : null;
+  const flow = clean ? clean.flow : null;
+  const ignored = clean && clean.dropped.length
+    ? `ignored: control characters in .claude/flow.json ${clean.dropped.join(', ')}`
+    : null;
+  const defaultPlan = path.join(root, '.claude', 'feature-plan.local.md');
+  if (flow) {
+    // FU-18: `plan` points at the active plan; bare names live under .claude/.
+    const rel = typeof flow.plan === 'string' && flow.plan ? flow.plan : null;
+    const planPath = rel ? path.resolve(root, rel.indexOf('/') !== -1 ? rel : path.join('.claude', rel)) : defaultPlan;
+    return { flow, planPath, evidence: '.claude/flow.json', ignored };
+  }
+  if (fs.existsSync(path.join(root, '.claude', 'workflow-state.local.md'))) {
+    return { flow: {}, planPath: defaultPlan, evidence: '.claude/workflow-state.local.md' };
+  }
+  const specPlan = specPlanPath(root);
+  if (specPlan) {
+    return { flow: {}, planPath: fs.existsSync(defaultPlan) ? defaultPlan : path.join(root, specPlan), evidence: specPlan };
+  }
+  return null;
+}
+
+// nextForFlow: the in-flight-flow half of the decision table. Returns a
+// result, or null to fall through to the branch/dirty rules below.
+function nextForFlow(root, ctx, inFlight) {
+  const { branch, dirty } = ctx;
+  const { flow, planPath, evidence } = inFlight;
+  const base = { gitRepo: true, root, branch, dirty, flow, evidence };
+  const flowBranch = flow.branch || '';
+  const flowWorktree = flow.worktree || null;
+  if (flowWorktree && physicalPath(flowWorktree) !== physicalPath(root)) {
+    return {
+      // C-D: the answer must be runnable as printed, so a path with a space
+      // (or any other shell metacharacter) is quoted.
+      next: `agents ${shellQuote(flowWorktree)}`,
+      why: `this flow lives in ${flowWorktree} (branch ${flowBranch || 'unknown'})`,
+      state: Object.assign({ source: 'flow-worktree-mismatch' }, base),
+    };
+  }
+  if (flowBranch && flowBranch !== branch) {
+    return {
+      // C-D: `;`, `&`, `$` are legal in a refname, and this is run as printed.
+      next: `git checkout ${shellQuote(flowBranch)}`,
+      why: `this checkout is on ${branch || 'a detached HEAD'}; .claude/flow.json says ${flowBranch}`,
+      state: Object.assign({ source: 'flow-branch-mismatch' }, base),
+    };
+  }
+  if (!fs.existsSync(planPath)) {
+    return {
+      next: '/flow',
+      why: `spec exists (${flow.spec_dir || evidence}), plan not written`,
+      state: Object.assign({ source: 'flow-no-plan' }, base),
+    };
+  }
+  const planRaw = safeRead(planPath) || '';
+  if (!/^Approved:\s*\d{4}-\d{2}-\d{2}/m.test(planRaw)) {
+    return {
+      next: '/flow',
+      why: `${path.relative(root, planPath)} has no "Approved: <date>" line — review and approve it first`,
+      state: Object.assign({ source: 'flow-plan-unapproved' }, base),
+    };
+  }
+  const progress = computeSliceProgress(root, planRaw);
+  if (progress && progress.done < progress.total) {
+    return {
+      next: '/flow',
+      why: `${progress.done} of ${progress.total} slices done`,
+      state: Object.assign({ source: 'flow-slices-unfinished', progress }, base),
+    };
+  }
+  // All slices done (or computeSliceProgress found nothing to track at all —
+  // a plan with zero "## Slice N —" headings, which plan-lint would already
+  // have rejected before approval — treated the same way).
+  if (dirty) {
+    return { next: '/wrap', why: 'all slices done; tree is dirty — /wrap, then /ship', state: Object.assign({ source: 'flow-done-dirty' }, base) };
+  }
+  const defaultBranch = gitDefaultBranch(root);
+  if (!(branch === defaultBranch || branch === 'main' || branch === 'master')) {
+    return { next: '/ship', why: 'all slices done; tree is clean', state: Object.assign({ source: 'flow-done-clean' }, base) };
+  }
+  // Clean tree, back on the default branch: nothing left for this flow to
+  // drive — fall through to the generic suggestion.
+  return null;
+}
+
+// nextForFlowBranch: `flow/<slug>` with no in-flight flow — the shipped/
+// unpushed/no-spec cases.
+function nextForFlowBranch(root, ctx) {
+  const { branch, dirty } = ctx;
+  const base = { gitRepo: true, root, branch, dirty };
+  const specDir = findSpecDirForBranch(root, branch);
+  if (!specDir) {
+    return {
+      next: '/flow',
+      why: 'spec gate is active on this branch; /flow writes the spec and plan',
+      state: Object.assign({ source: 'flow-branch-no-plan' }, base),
+    };
+  }
+  if (dirty) {
+    return {
+      next: '/wrap',
+      why: `${specDir} is committed on ${branch}; tree is dirty`,
+      state: Object.assign({ source: 'flow-branch-shipped-dirty', specDir }, base),
+    };
+  }
+  if (gitPushed(root)) {
+    const defaultBranch = gitDefaultBranch(root) || 'main';
+    return {
+      next: 'gh pr view --web',
+      why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
+      state: Object.assign({ source: 'flow-branch-shipped', specDir }, base),
+    };
+  }
+  return {
+    next: '/ship',
+    why: `${specDir} is committed on ${branch} but not pushed`,
+    state: Object.assign({ source: 'flow-branch-unpushed', specDir }, base),
+  };
+}
+
+// nextFromState(root, ctx): the answer derived from repo state alone — the
+// in-flight flow, a flow/* branch, or the dirty/clean fallback. Split out of
+// computeNext so a PROGRESS.md resume bullet that had to be ignored can
+// annotate this answer instead of replacing it.
+function nextFromState(root, ctx) {
+  const inFlight = flowInFlight(root);
+  if (inFlight) {
+    const r = nextForFlow(root, ctx, inFlight);
+    // A dropped flow.json key changes the answer (the branch/worktree rules
+    // never fire for it), so the drop is stated rather than left silent.
+    if (r && inFlight.ignored) r.why = r.why ? `${r.why} · ${inFlight.ignored}` : inFlight.ignored;
+    if (r) return r;
+  } else if (/^flow\//.test(ctx.branch)) {
+    return nextForFlowBranch(root, ctx);
   }
 
-  const branch = gitBranch(cwd);
-  const dirty = gitDirty(cwd);
-  const toplevel = gitToplevel(cwd) || cwd;
+  const base = { gitRepo: true, root, branch: ctx.branch, dirty: ctx.dirty };
+  if (ctx.dirty) {
+    return { next: '/wrap', why: 'uncommitted changes; /wrap records them before you leave', state: Object.assign({ source: 'dirty-no-flow' }, base) };
+  }
+  return {
+    next: '/flow',
+    why: 'clean tree, no flow in progress; /flow starts one (or just ask for a one-sentence change)',
+    state: Object.assign({ source: 'clean-no-flow' }, base),
+  };
+}
 
-  const progressPath = path.join(cwd, 'PROGRESS.md');
-  const resume = fs.existsSync(progressPath) ? readProgressResume(progressPath) : null;
-  if (resume) {
+// computeNext(cwd) -> { next, why (string|null), state }. Pure decision logic,
+// no printing — cmdNext formats it for --json or plain-text output. `next` is
+// always a runnable command or a slash command (C-D), never prose.
+function computeNext(cwd) {
+  if (!isGitRepo(cwd)) {
+    return { next: 'flow init', why: `${cwd} is not a git repo`, state: { gitRepo: false, source: 'no-git-repo' } };
+  }
+  // B21: every piece of state below is read from the repo root, not from
+  // whatever subdirectory the command happened to be run in.
+  const root = gitToplevel(cwd) || cwd;
+  const ctx = { branch: gitBranch(root), dirty: gitDirty(root) };
+
+  const progressPath = path.join(root, 'PROGRESS.md');
+  const resume = fs.existsSync(progressPath) ? readProgressResume(progressPath, root) : null;
+  if (resume && resume.command) {
     return {
       next: resume.command,
       why: `PROGRESS.md · Now: ${resume.bullet}`,
-      state: { gitRepo: true, branch, dirty, source: 'progress-resume' },
+      state: { gitRepo: true, root, branch: ctx.branch, dirty: ctx.dirty, source: 'progress-resume' },
     };
   }
 
-  const flow = readFlowJson(cwd);
-  const planPath = path.join(cwd, '.claude', 'feature-plan.local.md');
-  const planExists = fs.existsSync(planPath);
-
-  if (flow) {
-    const flowBranch = flow.branch || '';
-    const flowWorktree = flow.worktree || null;
-    let mismatch = null;
-    if (flowWorktree && flowWorktree !== toplevel) mismatch = flowWorktree;
-    else if (flowBranch && flowBranch !== branch) mismatch = flowBranch;
-    if (mismatch) {
-      return {
-        next: `agents ${mismatch}`,
-        why: `this flow lives in ${mismatch} (branch ${flowBranch})`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-mismatch', flow },
-      };
-    }
-    if (!planExists) {
-      return {
-        next: '/flow',
-        why: `spec exists (${flow.spec_dir || ''}), plan not written`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-no-plan', flow },
-      };
-    }
-    const planRaw = safeRead(planPath) || '';
-    const approved = /^Approved:\s*\d{4}-\d{2}-\d{2}/m.test(planRaw);
-    if (!approved) {
-      return {
-        next: 'review and approve the plan (then /flow continues)',
-        why: null,
-        state: { gitRepo: true, branch, dirty, source: 'flow-plan-unapproved', flow },
-      };
-    }
-    const progress = computeSliceProgress(cwd, planRaw);
-    if (progress && progress.done < progress.total) {
-      return {
-        next: '/flow',
-        why: `${progress.done} of ${progress.total} slices done`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-slices-unfinished', flow, progress },
-      };
-    }
-    // All slices done (or computeSliceProgress found nothing to track at
-    // all — a plan with zero "## Slice N —" headings, which plan-lint
-    // would already have rejected before approval — treated the same way).
-    if (dirty) {
-      return {
-        next: '/wrap then /ship',
-        why: null,
-        state: { gitRepo: true, branch, dirty, source: 'flow-done-dirty', flow },
-      };
-    }
-    const defaultBranch = gitDefaultBranch(cwd);
-    const isDefault = branch === defaultBranch || branch === 'main' || branch === 'master';
-    if (!isDefault) {
-      return {
-        next: '/ship',
-        why: null,
-        state: { gitRepo: true, branch, dirty, source: 'flow-done-clean', flow },
-      };
-    }
-    // Flow tracked, all slices done, clean tree, back on the default branch:
-    // nothing left for this flow to drive — fall through to the generic
-    // no-flow suggestion below.
+  const result = nextFromState(root, ctx);
+  // A resume bullet the user wrote is never dropped in silence: say which
+  // span was ignored and why, so a wrong rejection is visible and fixable.
+  if (resume && resume.ignored) {
+    const drop = `PROGRESS.md's resume bullet names \`${resume.ignored.span}\`, which ${resume.ignored.reason} — ignored`;
+    result.why = result.why ? `${result.why} · ${drop}` : drop;
+    result.state = Object.assign({}, result.state, { resumeIgnored: resume.ignored });
   }
-
-  if (!flow && /^flow\//.test(branch) && !planExists) {
-    // A committed .specs/NNN-<slug> for this branch means the flow already
-    // ran and its run state was cleaned up after the PR (step 6) — never
-    // send the user back to "write a spec" for a shipped flow.
-    const specDir = findSpecDirForBranch(cwd, branch);
-    if (specDir && dirty) {
-      return {
-        next: '/wrap then /ship',
-        why: `${specDir} is committed on ${branch}; tree is dirty`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped-dirty', specDir },
-      };
-    }
-    if (specDir && gitPushed(cwd)) {
-      const defaultBranch = gitDefaultBranch(cwd) || 'main';
-      return {
-        next: 'gh pr view --web',
-        why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-shipped', specDir },
-      };
-    }
-    if (specDir) {
-      return {
-        next: '/ship',
-        why: `${specDir} is committed on ${branch} but not pushed`,
-        state: { gitRepo: true, branch, dirty, source: 'flow-branch-unpushed', specDir },
-      };
-    }
-    return {
-      next: '/flow <describe the feature>',
-      why: 'spec gate is active on this branch',
-      state: { gitRepo: true, branch, dirty, source: 'flow-branch-no-plan' },
-    };
-  }
-
-  if (dirty) {
-    return {
-      next: '/wrap before leaving, or continue',
-      why: null,
-      state: { gitRepo: true, branch, dirty, source: 'dirty-no-flow' },
-    };
-  }
-
-  return {
-    next: '/flow <feature> for a feature, or just ask for a one-sentence change',
-    why: null,
-    state: { gitRepo: true, branch, dirty, source: 'clean-no-flow' },
-  };
+  return result;
 }
 
 // flow off / flow on — a .claude/flow.off marker in <dir>. Every judging hook
@@ -2151,28 +3010,56 @@ function computeNext(cwd) {
 // exits 0 when the marker sits in the project dir or any ancestor; the
 // session-start hook says so on the first line. The marker is kept out of
 // git via .git/info/exclude (a local choice, never a tracked file).
+// Keep a marker out of git via .git/info/exclude — a local choice, never a
+// tracked file.
+function excludeMarkerLocally(dir, rel) {
+  const top = spawnSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
+  if (top.status !== 0) return;
+  const exclude = path.join(top.stdout.trim(), '.git', 'info', 'exclude');
+  try {
+    const cur = safeRead(exclude) || '';
+    if (cur.indexOf(rel) === -1) fs.appendFileSync(exclude, `${cur.endsWith('\n') || cur === '' ? '' : '\n'}${rel}\n`);
+  } catch { /* not fatal */ }
+}
+
+function writeMarker(dir, name, body) {
+  const marker = path.join(dir, '.claude', name);
+  if (fs.existsSync(marker)) return false;
+  fs.mkdirSync(path.dirname(marker), { recursive: true });
+  fs.writeFileSync(marker, body);
+  excludeMarkerLocally(dir, `.claude/${name}`);
+  return true;
+}
+
 function cmdOffOn(cmd, argv) {
   const dirArg = argv.find((a) => !a.startsWith('--'));
+  const unsafe = argv.includes('--unsafe');
   const dir = path.resolve(dirArg || process.cwd());
   if (!isDir(dir)) { stderr.write(`${C.error}flow ${cmd}: no such directory ${dir}${C.reset}\n`); return 2; }
-  const marker = path.join(dir, '.claude', 'flow.off');
+  const off = path.join(dir, '.claude', 'flow.off');
+  const unsafeMarker = path.join(dir, '.claude', 'flow.unsafe');
+  const stamp = new Date().toISOString();
   if (cmd === 'off') {
-    if (fs.existsSync(marker)) { stdout.write(`flow: already off in ${dir}\n`); return 0; }
-    fs.mkdirSync(path.dirname(marker), { recursive: true });
-    fs.writeFileSync(marker, `flow off — judging hooks disabled for this directory and everything under it.\nRun \`flow on\` here to re-enable. Written ${new Date().toISOString()}.\n`);
-    const top = spawnSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
-    if (top.status === 0) {
-      const exclude = path.join(top.stdout.trim(), '.git', 'info', 'exclude');
-      try {
-        const cur = safeRead(exclude) || '';
-        if (cur.indexOf('.claude/flow.off') === -1) fs.appendFileSync(exclude, `${cur.endsWith('\n') || cur === '' ? '' : '\n'}.claude/flow.off\n`);
-      } catch { /* not fatal */ }
+    const wroteOff = writeMarker(dir, 'flow.off',
+      `flow off — judging hooks disabled for this directory and everything under it.\nRun \`flow on\` here to re-enable. Written ${stamp}.\n`);
+    // C-B: git-guard is NOT silenced by flow.off; only `flow off --unsafe`
+    // writes the separate marker it honours.
+    const wroteUnsafe = unsafe && writeMarker(dir, 'flow.unsafe',
+      `flow off --unsafe — git-guard disabled for this directory and everything under it.\nRun \`flow on\` here to re-enable. Written ${stamp}.\n`);
+    if (!wroteOff && !wroteUnsafe) {
+      stdout.write(`flow: already off in ${dir}${unsafe ? ' (including git-guard)' : ''}\n`);
+      return 0;
     }
-    stdout.write(`flow: hooks OFF in ${dir} (marker ${marker}; \`flow on\` re-enables)\n`);
+    stdout.write(`flow: hooks OFF in ${dir} (marker ${off}; \`flow on\` re-enables)\n`);
+    if (unsafe) stdout.write(`flow: git-guard OFF too (marker ${unsafeMarker}) — destructive git commands are no longer refused here\n`);
+    else stdout.write(`flow: git-guard stays ON (it is not silenced by flow off; use \`flow off --unsafe\` to disable it too)\n`);
     return 0;
   }
-  if (!fs.existsSync(marker)) { stdout.write(`flow: already on in ${dir}\n`); return 0; }
-  fs.unlinkSync(marker);
+  let removed = 0;
+  for (const m of [off, unsafeMarker]) {
+    if (fs.existsSync(m)) { fs.unlinkSync(m); removed++; }
+  }
+  if (removed === 0) { stdout.write(`flow: already on in ${dir}\n`); return 0; }
   stdout.write(`flow: hooks ON in ${dir}\n`);
   return 0;
 }
@@ -2184,14 +3071,68 @@ function cmdNext(argv) {
     stdout.write(JSON.stringify({ next: result.next, why: result.why || '', state: result.state }, null, 2) + '\n');
     return 0;
   }
-  stdout.write(`Next: ${result.next}\n`);
-  if (result.why) stdout.write(`Why: ${result.why}\n`);
+  // Plain mode is read by session-context (G6) as a 2-line block, so it emits
+  // exactly one line per field no matter what any file on disk contains: a
+  // stray newline here would forge a third line the model reads as a `Next:`.
+  stdout.write(`Next: ${oneLine(result.next)}\n`);
+  if (result.why) stdout.write(`Why: ${oneLine(result.why)}\n`);
   return 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
+
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'tutorial', 'off', 'on'];
+
+// editDistance(a, b) — plain Levenshtein, used only to name the nearest known
+// command when the user mistypes one ("did you mean").
+function editDistance(a, b) {
+  let prev = [];
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+function nearestCommand(cmd) {
+  let best = null;
+  let bestD = Infinity;
+  for (const c of COMMANDS) {
+    const d = editDistance(cmd, c);
+    if (d < bestD) {
+      bestD = d;
+      best = c;
+    }
+  }
+  // Only a genuinely close typo gets a suggestion; anything else would be noise.
+  return bestD <= Math.max(2, Math.ceil(cmd.length / 3)) ? best : null;
+}
+
+// `flow tutorial` — lib/tutorial.js sits beside this file in the plugin layout.
+function cmdTutorial(argv) {
+  const p = path.join(path.dirname(CLI_REAL), 'lib', 'tutorial.js');
+  if (!fs.existsSync(p)) {
+    stderr.write(`${C.error}flow: ${p} not found (the tutorial ships with the flow plugin)${C.reset}\n`);
+    process.exit(1);
+  }
+  // eslint-disable-next-line global-require
+  const tutorial = require(p);
+  tutorial
+    .run(argv, HOME)
+    .then((code) => process.exit(code))
+    .catch((err) => {
+      const code = err && err.code ? err.code : 'ERROR';
+      stderr.write(`flow tutorial: ${code}: ${err.message}\n`);
+      process.exit(1);
+    });
+}
 
 function main() {
   const argv = process.argv.slice(2);
@@ -2223,9 +3164,14 @@ function main() {
   else if (cmd === 'check') process.exit(cmdCheck(rest));
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
   else if (cmd === 'next') process.exit(cmdNext(rest));
+  else if (cmd === 'tutorial') cmdTutorial(rest);
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
   else {
-    stderr.write(`${C.error}flow: unknown command '${cmd}'${C.reset}\n`);
+    const near = nearestCommand(cmd);
+    stderr.write(
+      `${C.error}flow: unknown command '${cmd}'${C.reset}` +
+        `${near ? ` — did you mean 'flow ${near}'?` : ` — did you mean one of: ${COMMANDS.join(', ')}?`}\n`
+    );
     printTopHelp();
     process.exit(1);
   }

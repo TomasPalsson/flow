@@ -39,6 +39,64 @@ t_wf_directory_scan_all_ok() {
 	assert_eq "$ok_count" "4" "wf: directory scan prints 4 OK lines"
 }
 
+t_wf_default_dir_uses_claude_plugin_root() {
+	local d fixdir
+	d=$(tmp_dir)
+	fixdir="$d/workflows"
+	mkdir -p "$fixdir"
+	cat >"$fixdir/plugin-root-sample.js" <<'EOF'
+export const meta = {
+  name: 'plugin-root-sample',
+  description: 'test workflow used only to verify default-dir resolution',
+};
+EOF
+	run_cmd env CLAUDE_PLUGIN_ROOT="$d" bash "$WF_LINT"
+	assert_rc 0 "wf: default dir honors CLAUDE_PLUGIN_ROOT rc0"
+	assert_contains "$OUT" "OK $fixdir/plugin-root-sample.js" "wf: default dir scans \${CLAUDE_PLUGIN_ROOT}/workflows"
+}
+
+t_wf_default_dir_fallback_skills_flow_workflows() {
+	local d copydir fakehome fixdir
+	d=$(tmp_dir)
+	copydir="$d/scriptcopy"
+	mkdir -p "$copydir"
+	cp "$WF_LINT" "$copydir/workflow-lint"
+	chmod +x "$copydir/workflow-lint"
+	fakehome="$d/home"
+	fixdir="$fakehome/.claude/skills/flow/workflows"
+	mkdir -p "$fixdir"
+	cat >"$fixdir/skills-flow-sample.js" <<'EOF'
+export const meta = {
+  name: 'skills-flow-sample',
+  description: 'test workflow used only to verify default-dir fallback',
+};
+EOF
+	run_cmd env CLAUDE_PLUGIN_ROOT= HOME="$fakehome" bash "$copydir/workflow-lint"
+	assert_rc 0 "wf: default dir falls back to ~/.claude/skills/flow/workflows rc0"
+	assert_contains "$OUT" "OK $fixdir/skills-flow-sample.js" "wf: default dir found the skills/flow/workflows fixture"
+}
+
+t_wf_default_dir_fallback_home_claude_workflows() {
+	local d copydir fakehome fixdir
+	d=$(tmp_dir)
+	copydir="$d/scriptcopy2"
+	mkdir -p "$copydir"
+	cp "$WF_LINT" "$copydir/workflow-lint"
+	chmod +x "$copydir/workflow-lint"
+	fakehome="$d/home2"
+	fixdir="$fakehome/.claude/workflows"
+	mkdir -p "$fixdir"
+	cat >"$fixdir/home-claude-sample.js" <<'EOF'
+export const meta = {
+  name: 'home-claude-sample',
+  description: 'test workflow used only to verify the final default-dir fallback',
+};
+EOF
+	run_cmd env CLAUDE_PLUGIN_ROOT= HOME="$fakehome" bash "$copydir/workflow-lint"
+	assert_rc 0 "wf: default dir falls back to ~/.claude/workflows rc0"
+	assert_contains "$OUT" "OK $fixdir/home-claude-sample.js" "wf: default dir found the ~/.claude/workflows fixture"
+}
+
 t_wf_help() {
 	run_cmd bash "$WF_LINT" --help
 	assert_rc 0 "wf: --help exits 0"

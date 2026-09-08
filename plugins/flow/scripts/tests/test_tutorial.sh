@@ -12,7 +12,7 @@ TUTORIAL_PATH="$SCAN_DIR/../bin/lib/tutorial.js"
 
 # The one-liner lesson 3's tryIt suggests: insert a `- resume: /flow` bullet
 # right under PROGRESS.md's "## Now" heading, then run `flow next`.
-TT_EDIT_AND_NEXT="awk '1;/^## Now\$/{print \"- resume: /flow\"}' PROGRESS.md > p.tmp && mv p.tmp PROGRESS.md && flow next"
+TT_EDIT_AND_NEXT="awk '1;/^## Now\$/{print \"- resume: \`/flow\`\"}' PROGRESS.md > p.tmp && mv p.tmp PROGRESS.md && flow next"
 
 # tt_in <dir> <home> <tutorial-args...>
 # Runs `node $TUTORIAL_PATH <args>` with cwd=<dir> and HOME=<home>, inheriting
@@ -42,8 +42,9 @@ tt_progress_path() {
 }
 
 # ---------------------------------------------------------------------------
-# B9 — sandbox creation: mkdtemp-style dir, one git commit of README.md, and
-# a `flow` shim on a sibling `<sandbox>-bin` dir.
+# B9/B3 — sandbox creation: mkdtemp-style dir, one git commit of README.md,
+# and a `flow` shim in the sandbox's OWN `.flow-tutorial-bin/` (never a
+# sibling `<sandbox>-bin` dir, which would litter the parent directory).
 # ---------------------------------------------------------------------------
 
 t_tt_sandbox_created_with_shim() {
@@ -57,14 +58,15 @@ t_tt_sandbox_created_with_shim() {
 	assert_rc 0 "t_tt_sandbox_created_with_shim rc"
 	assert_file_exists "$sandbox/.git" "t_tt_sandbox_created_with_shim git init"
 	assert_file_exists "$sandbox/README.md" "t_tt_sandbox_created_with_shim readme written"
-	assert_file_exists "$sandbox-bin/flow" "t_tt_sandbox_created_with_shim shim written"
-	run_cmd test -x "$sandbox-bin/flow"
+	assert_file_exists "$sandbox/.flow-tutorial-bin/flow" "t_tt_sandbox_created_with_shim shim written"
+	assert_file_missing "${sandbox}-bin" "t_tt_sandbox_created_with_shim no sibling -bin dir"
+	run_cmd test -x "$sandbox/.flow-tutorial-bin/flow"
 	assert_rc 0 "t_tt_sandbox_created_with_shim shim executable"
-	assert_contains "$(cat "$sandbox-bin/flow")" "exec" "t_tt_sandbox_created_with_shim shim execs the real cli"
+	assert_contains "$(cat "$sandbox/.flow-tutorial-bin/flow")" "exec" "t_tt_sandbox_created_with_shim shim execs the real cli"
 	run_cmd git -C "$sandbox" rev-list --count HEAD
 	assert_eq "$OUT" "1" "t_tt_sandbox_created_with_shim exactly one commit"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -106,7 +108,7 @@ t_tt_lesson1_renders_prompt() {
 	assert_contains "$OUT" "flow doctor" "t_tt_lesson1_renders_prompt mentions the command to try"
 	assert_contains "$OUT" "$sandbox \$ " "t_tt_lesson1_renders_prompt embeds a dollar prompt"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -126,7 +128,7 @@ t_tt_wrong_command_runs_but_does_not_advance() {
 	assert_contains "$OUT" "hello-from-sandbox" "t_tt_wrong_command_runs_but_does_not_advance command actually ran"
 	assert_eq "$(printf '%s' "$OUT" | grep -c 'Lesson 1/3')" "2" "t_tt_wrong_command_runs_but_does_not_advance still on lesson 1"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -145,7 +147,7 @@ t_tt_lesson1_advances_on_flow_doctor() {
 	assert_contains "$OUT" "lesson 1 passed" "t_tt_lesson1_advances_on_flow_doctor announces the pass"
 	assert_contains "$OUT" "Lesson 2/3" "t_tt_lesson1_advances_on_flow_doctor moved to lesson 2"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -171,7 +173,7 @@ t_tt_full_run_persists_progress() {
 	assert_contains "$(cat "$progress")" '"2": "done"' "t_tt_full_run_persists_progress lesson 2 done persisted"
 	assert_contains "$(cat "$progress")" '"3": "done"' "t_tt_full_run_persists_progress lesson 3 done persisted"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -194,7 +196,7 @@ t_tt_resumes_at_saved_cursor() {
 	assert_contains "$OUT" "Lesson 3/3" "t_tt_resumes_at_saved_cursor resumes at lesson 3"
 	assert_not_contains "$OUT" "Lesson 1/3" "t_tt_resumes_at_saved_cursor does not restart at lesson 1"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf1" "$stdinf2"
+	rm -rf "$home" "$dir" "$stdinf1" "$stdinf2"
 }
 
 # ---------------------------------------------------------------------------
@@ -249,7 +251,7 @@ t_tt_skip_and_back_semantics() {
 	assert_contains "$(cat "$progress")" '"1": "skipped"' "t_tt_skip_and_back_semantics status persisted as skipped"
 	assert_contains "$(cat "$progress")" '"cursor": 1' "t_tt_skip_and_back_semantics cursor back at 1 after b"
 
-	rm -rf "$home" "$dir" "$sandbox-bin" "$stdinf"
+	rm -rf "$home" "$dir" "$stdinf"
 }
 
 # ---------------------------------------------------------------------------
@@ -332,4 +334,122 @@ t_tt_sandbox_create_failed_errors() {
 	assert_contains "$ERR" "SANDBOX_CREATE_FAILED" "t_tt_sandbox_create_failed_errors reports the error code"
 
 	rm -rf "$home" "$dir"
+}
+
+# ---------------------------------------------------------------------------
+# B3 — `flow tutorial` is wired into the CLI itself (and into `flow --help`),
+# not only reachable as `node lib/tutorial.js`.
+# ---------------------------------------------------------------------------
+
+TT_CLI_PATH="$SCAN_DIR/../bin/flow"
+
+t_tt_flow_tutorial_subcommand_is_wired() {
+	local home dir
+	home=$(tmp_dir)
+	dir=$(tmp_dir)
+
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; shift 2; exec "$@"' \
+		_ "$dir" "$home" node "$TT_CLI_PATH" tutorial --list </dev/null
+	assert_rc 0 "t_tt_flow_tutorial_subcommand_is_wired rc"
+	assert_contains "$OUT" "1. " "t_tt_flow_tutorial_subcommand_is_wired lists lesson 1"
+	assert_eq "$(printf '%s' "$OUT" | grep -c 'not-started')" "3" "t_tt_flow_tutorial_subcommand_is_wired lists every lesson"
+
+	run_cmd node "$TT_CLI_PATH" --help
+	assert_contains "$OUT" "tutorial" "t_tt_flow_tutorial_subcommand_is_wired top help lists tutorial"
+
+	rm -rf "$home" "$dir"
+}
+
+# An unknown subcommand exits 1 and points at the nearest real one.
+t_tt_unknown_subcommand_suggests_a_command() {
+	run_cmd node "$TT_CLI_PATH" tutoral
+	assert_rc 1 "t_tt_unknown_subcommand_suggests_a_command rc"
+	assert_contains "$ERR" "unknown command 'tutoral'" "t_tt_unknown_subcommand_suggests_a_command names the input"
+	assert_contains "$ERR" "did you mean 'flow tutorial'" "t_tt_unknown_subcommand_suggests_a_command suggests the nearest"
+}
+
+# ---------------------------------------------------------------------------
+# B3 — --sandbox refuses a non-empty directory unless --force
+# ---------------------------------------------------------------------------
+
+t_tt_sandbox_refuses_non_empty_dir() {
+	local home dir sandbox stdinf
+	home=$(tmp_dir)
+	dir=$(tmp_dir)
+	sandbox="$dir/notempty"
+	mkdir -p "$sandbox"
+	printf 'my work\n' >"$sandbox/important.txt"
+
+	tt_in "$dir" "$home" --sandbox "$sandbox" </dev/null
+	assert_rc 1 "t_tt_sandbox_refuses_non_empty_dir rc"
+	assert_contains "$ERR" "SANDBOX_NOT_EMPTY" "t_tt_sandbox_refuses_non_empty_dir error code"
+	assert_file_missing "$sandbox/.git" "t_tt_sandbox_refuses_non_empty_dir nothing was initialised"
+	assert_eq "$(cat "$sandbox/important.txt")" "my work" "t_tt_sandbox_refuses_non_empty_dir existing file untouched"
+
+	stdinf=$(tt_stdin q)
+	tt_in "$dir" "$home" --sandbox "$sandbox" --force <"$stdinf"
+	assert_rc 0 "t_tt_sandbox_refuses_non_empty_dir --force rc"
+	assert_file_exists "$sandbox/.git" "t_tt_sandbox_refuses_non_empty_dir --force initialises anyway"
+
+	rm -rf "$home" "$dir" "$stdinf"
+}
+
+# Re-running with the same --sandbox is a resume, not a collision.
+t_tt_sandbox_reuses_its_own_dir_without_force() {
+	local home dir sandbox stdinf
+	home=$(tmp_dir)
+	dir=$(tmp_dir)
+	sandbox="$dir/again"
+	stdinf=$(tt_stdin q)
+
+	tt_in "$dir" "$home" --sandbox "$sandbox" <"$stdinf"
+	assert_rc 0 "t_tt_sandbox_reuses_its_own_dir_without_force first run rc"
+	tt_in "$dir" "$home" --sandbox "$sandbox" <"$stdinf"
+	assert_rc 0 "t_tt_sandbox_reuses_its_own_dir_without_force second run rc"
+	assert_not_contains "$ERR" "SANDBOX_NOT_EMPTY" "t_tt_sandbox_reuses_its_own_dir_without_force no false collision"
+
+	rm -rf "$home" "$dir" "$stdinf"
+}
+
+# ---------------------------------------------------------------------------
+# B3 — lesson 1 no longer claims the tutorial is isolated from the machine.
+# ---------------------------------------------------------------------------
+
+t_tt_lesson1_drops_the_isolation_claim() {
+	local home dir sandbox stdinf
+	home=$(tmp_dir)
+	dir=$(tmp_dir)
+	sandbox="$dir/sb-iso"
+	stdinf=$(tt_stdin q)
+
+	tt_in "$dir" "$home" --sandbox "$sandbox" <"$stdinf"
+	assert_contains "$OUT" "this is a scratch git repo, not a sandbox" "t_tt_lesson1_drops_the_isolation_claim says what it really is"
+	assert_not_contains "$OUT" "Nothing here can touch your real machine" "t_tt_lesson1_drops_the_isolation_claim no false isolation claim"
+
+	rm -rf "$home" "$dir" "$stdinf"
+}
+
+# ---------------------------------------------------------------------------
+# `--sandbox --force` is a typo, not a directory named "--force": the tutorial
+# must refuse it before it creates or git-inits anything.
+# ---------------------------------------------------------------------------
+
+t_tt_sandbox_rejects_a_flag_shaped_value() {
+	local home dir stdinf
+	home=$(tmp_dir)
+	dir=$(tmp_dir)
+	stdinf=$(tt_stdin q)
+
+	tt_in "$dir" "$home" --sandbox --force <"$stdinf"
+	assert_rc 1 "t_tt_sandbox_rejects_a_flag_shaped_value rc"
+	assert_contains "$ERR" "--sandbox needs a path, got the flag '--force'" \
+		"t_tt_sandbox_rejects_a_flag_shaped_value names the flag and the bad value"
+	assert_file_missing "$dir/--force" "t_tt_sandbox_rejects_a_flag_shaped_value writes no directory"
+
+	tt_in "$dir" "$home" --lesson --list <"$stdinf"
+	assert_rc 1 "t_tt_sandbox_rejects_a_flag_shaped_value lesson rc"
+	assert_contains "$ERR" "--lesson needs a lesson number, got the flag '--list'" \
+		"t_tt_sandbox_rejects_a_flag_shaped_value lesson names the flag"
+
+	rm -rf "$home" "$dir" "$stdinf"
 }

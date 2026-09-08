@@ -28,6 +28,14 @@ for (let i = 0; i < args.length; i++) {
       '  --dir <path>      Directory to analyse (default: cwd)',
       '  --format pretty   Human-readable indented output',
       '  --help            Show this help',
+      '',
+      'Fields:',
+      '  language    the primary language of this root',
+      '  languages   every language whose manifest sits at this root, node',
+      '              family first. A package.json root is reported',
+      '              "typescript" only when a tsconfig.json or a typescript',
+      '              dependency proves it, and "javascript" otherwise — the',
+      '              same rule `language` uses, so the two never disagree.',
     ].join('\n') + '\n');
     process.exit(0);
   }
@@ -123,6 +131,33 @@ function detectLanguage(root, pkgJson) {
     exists(path.join(root, 'requirements.txt'))
   ) return 'python';
   return '';
+}
+
+/**
+ * Every language whose manifest sits at this root, node family first.
+ *
+ * The node entry is `typescript` only on the evidence `language` uses — a
+ * tsconfig.json or a typescript dependency — and `javascript` otherwise. Spec
+ * G9's example writes a mixed root as `["typescript","python"]`; claiming
+ * typescript for a package.json with neither signal would both contradict this
+ * root's own `language` field and state something nothing here proves, so the
+ * evidence decides and the two fields always agree.
+ */
+function detectLanguages(root, pkgJson) {
+  const langs = [];
+  if (exists(path.join(root, 'package.json'))) {
+    const deps = pkgJson ? { ...pkgJson.dependencies, ...pkgJson.devDependencies } : {};
+    langs.push(exists(path.join(root, 'tsconfig.json')) || deps['typescript'] ? 'typescript' : 'javascript');
+  }
+  if (
+    exists(path.join(root, 'pyproject.toml')) ||
+    exists(path.join(root, 'setup.py')) ||
+    exists(path.join(root, 'setup.cfg')) ||
+    exists(path.join(root, 'requirements.txt'))
+  ) langs.push('python');
+  if (exists(path.join(root, 'Cargo.toml'))) langs.push('rust');
+  if (exists(path.join(root, 'go.mod'))) langs.push('go');
+  return langs;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -387,6 +422,69 @@ function listWorkspaceDirs(root, yaml) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 5b. Depth-1 roots (FU-03) — a repo whose real projects live one level down
+//     (api/, web/, infra/) and whose root carries no manifest at all.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PRUNE_DIRS = [
+  '.git', 'node_modules', '.venv', 'venv', 'target', 'dist', 'build', 'out',
+  '.next', '.nuxt', '.turbo', '.cache', 'coverage', '__pycache__', '.ruff_cache',
+  '.mypy_cache', '.pytest_cache', '.terraform', '.open-next', '.build',
+  '.serena', '.skill-forge', '.ultracode', '.flow-swarm',
+];
+
+const MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod'];
+
+function hasManifest(dir) {
+  return MANIFESTS.some(m => exists(path.join(dir, m)));
+}
+
+/** Commands for a directory, chosen by the manifest it carries. */
+function commandsFor(dir, pkgJson, mgr) {
+  if (pkgJson) return detectNodeCommands(dir, pkgJson, mgr || detectPackageManager(dir));
+  if (exists(path.join(dir, 'pyproject.toml'))) return detectPythonCommands(dir);
+  if (exists(path.join(dir, 'Cargo.toml'))) return detectRustCommands();
+  if (exists(path.join(dir, 'go.mod'))) return detectGoCommands(dir);
+  return null;
+}
+
+/** Depth-1 directories that are projects in their own right. */
+function scanDepth1Packages(root) {
+  const found = [];
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (e.name.startsWith('.') || PRUNE_DIRS.includes(e.name)) continue;
+    const dir = path.join(root, e.name);
+    // readdir reports a symlinked directory as a symlink, not a directory; a
+    // package reached through a link is still a package, so stat it.
+    if (!e.isDirectory() && !isDir(dir)) continue;
+    if (!hasManifest(dir)) continue;
+    const pkgJson = readPackageJson(dir);
+    const cmds = commandsFor(dir, pkgJson, '') || {};
+    const entry = {
+      dir: e.name,
+      language: detectLanguage(dir, pkgJson),
+      pkg_mgr: detectPackageManager(dir),
+      test_cmd: cmds.test_cmd || '',
+      e2e_cmd: cmds.e2e_cmd || '',
+      lint_cmd: cmds.lint_cmd || '',
+      format_cmd: cmds.format_cmd || '',
+      typecheck_cmd: cmds.typecheck_cmd || '',
+      dev_cmd: cmds.dev_cmd || '',
+    };
+    const framework = detectFramework(dir, pkgJson);
+    if (framework) entry.framework = framework;
+    found.push(entry);
+  }
+  return found;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 6. Project-local skills
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -410,12 +508,25 @@ function detect(root) {
   const pkgJson  = readPackageJson(root);
   let mgr        = detectPackageManager(root);
   const language = detectLanguage(root, pkgJson);
-  const { is_monorepo, packages } = detectMonorepo(root, pkgJson);
+  const languages = detectLanguages(root, pkgJson);
+  let { is_monorepo, packages } = detectMonorepo(root, pkgJson);
+
+  // FU-03: no manifest at the root and no workspace declaration — the projects
+  // are the depth-1 directories, each with its own commands.
+  let depth1 = null;
+  if (!hasManifest(root) && packages.length === 0) {
+    const found = scanDepth1Packages(root);
+    if (found.length > 0) {
+      depth1 = found;
+      is_monorepo = true;
+      packages = found;
+    }
+  }
 
   // Monorepo fallback: if root has no lock file, check workspace packages
   if (!mgr && is_monorepo) {
     for (const pkg of packages) {
-      const pkgMgr = detectPackageManager(path.join(root, pkg));
+      const pkgMgr = detectPackageManager(path.join(root, typeof pkg === 'string' ? pkg : pkg.dir));
       if (pkgMgr) { mgr = pkgMgr; break; }
     }
   }
@@ -439,7 +550,7 @@ function detect(root) {
   const hasAnyCmds = cmds.test_cmd || cmds.lint_cmd || cmds.format_cmd || cmds.typecheck_cmd || cmds.dev_cmd;
   let workspace_commands = {};
 
-  if (is_monorepo) {
+  if (is_monorepo && !depth1) {
     for (const pkg of packages) {
       const pkgDir = path.join(root, pkg);
       const pkgPkgJson = readPackageJson(pkgDir);
@@ -536,6 +647,17 @@ function detect(root) {
   const framework     = detectFramework(root, pkgJson);
   const project_skills = detectProjectSkills(root);
 
+  if (depth1) {
+    for (const p of depth1) {
+      const { dir, ...rest } = p;
+      workspace_commands[dir] = rest;
+      // FU-03: with no manifest at the root, the monorepo's languages are the
+      // languages of its depth-1 packages — otherwise `languages` would be
+      // empty in exactly the case the field exists to describe.
+      if (p.language && !languages.includes(p.language)) languages.push(p.language);
+    }
+  }
+
   const result = {
     pkg_mgr:       mgr,
     test_cmd:      cmds.test_cmd,
@@ -549,6 +671,7 @@ function detect(root) {
     framework,
     project_skills,
     language,
+    languages,
   };
 
   // Include per-package commands for monorepos

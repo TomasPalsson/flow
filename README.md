@@ -49,7 +49,7 @@ Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to
 | Subagent end | `subagent-log.sh` | logs the final message so a lost report is recoverable |
 | Permission / idle | `notify.sh` | desktop notification (notify-send / osascript) |
 
-Per-project knobs in `.claude/flow.config.json`: `maxFileLines`, `maxFuncLines`, `stopGate` (`scoped` | `true` | `false`), `stopGateFullEverySec`, `sizeGuard`, `formatOnEdit`, `ignore`, `codebaseMap`.
+Per-project knobs in `.claude/flow.config.json`: `maxFileLines`, `maxFuncLines`, `stopGate` (`scoped` | `true` | `false`), `stopGateBudgetSec`, `sizeGuard`, `formatOnEdit`, `ignore`, `codebaseMap`.
 
 ## The loop (instead of "throw a goal at /flow")
 

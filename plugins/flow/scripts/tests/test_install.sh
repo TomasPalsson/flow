@@ -8,16 +8,29 @@ set -u
 # TEST_ONLY=test_install.sh.
 CLI_PATH=""
 CLI_PATH=$(cd "$HERE/../../../.." && pwd -P)
-CLI_PATH="$CLI_PATH/bin/.local/bin/flow"; [ -x "$SCAN_DIR/../bin/flow" ] && CLI_PATH="$SCAN_DIR/../bin/flow"
+CLI_PATH="$CLI_PATH/bin/.local/bin/flow"
+[ -x "$SCAN_DIR/../bin/flow" ] && CLI_PATH="$SCAN_DIR/../bin/flow"
 
 # _install_cli <home-dir> <harness-args...>
 # Runs `node $CLI_PATH <args>` with HOME=<home-dir>, without touching this
 # test runner's own cwd. Sets RC/OUT/ERR via run_cmd.
+#
+# B24: the default marketplace root is now the repo this CLI runs from, which
+# IS a real marketplace — so every `install` call here pins --marketplace at a
+# path that does not exist, keeping these tests on the dotfiles-only path they
+# were written for. t_install_default_marketplace_root_is_the_cli_repo covers
+# the default explicitly. FLOW_REPO is unset for the same reason.
 _install_cli() {
 	local home
 	home=$1
 	shift
-	run_cmd bash -c 'export HOME="$1"; shift; exec "$@"' _ "$home" node "$CLI_PATH" "$@"
+	if [ "${1:-}" = "install" ]; then
+		case " $* " in
+		*" --marketplace "*) ;;
+		*) set -- "$@" --marketplace "$home/no-marketplace-here" ;;
+		esac
+	fi
+	run_cmd bash -c 'export HOME="$1"; unset FLOW_REPO; shift; exec "$@"' _ "$home" node "$CLI_PATH" "$@"
 }
 
 # _install_write_stub_dotfiles <dotfiles-dir> [hooks_key_present=1]
@@ -96,6 +109,10 @@ t_install_help_exits_0() {
 	_install_cli "$home" install --help
 	assert_rc 0 "t_install_help_exits_0 rc"
 	assert_contains "$OUT" "Usage:" "t_install_help_exits_0 usage-line"
+	# B24: the marketplace default is REPO_ROOT, so the help must not name one
+	# machine's home layout as the default.
+	assert_not_contains "$OUT" "Desktop/Projects" "t_install_help_exits_0 no-hardcoded-home-path"
+	assert_contains "$OUT" "checkout this CLI runs from" "t_install_help_exits_0 describes-the-real-default"
 
 	rm -rf "$home"
 }
@@ -428,7 +445,8 @@ t_install_identical_real_claude_md_is_linked_differing_is_kept() {
 	_install_cli "$home" install
 	assert_eq "$(_install_is_symlink "$home/.claude/CLAUDE.md")" "yes" "identical CLAUDE.md: replaced by the link"
 	assert_contains "$OUT" "was an identical copy" "identical CLAUDE.md: reported"
-	rm -f "$home/.claude/CLAUDE.md"; printf '# mine\n' >"$home/.claude/CLAUDE.md"
+	rm -f "$home/.claude/CLAUDE.md"
+	printf '# mine\n' >"$home/.claude/CLAUDE.md"
 	_install_cli "$home" install
 	assert_eq "$(cat "$home/.claude/CLAUDE.md")" "# mine" "differing CLAUDE.md: kept"
 	assert_not_contains "$OUT" "FAIL $home/.claude/CLAUDE.md" "differing CLAUDE.md: not a FAIL"
@@ -450,5 +468,72 @@ t_install_real_settings_json_is_kept_and_validated() {
 	assert_contains "$OUT" "ok $home/.claude/settings.json parses and has a hooks key" "real settings: the live file is what step 4 validates"
 	_install_cli "$home" doctor --json
 	assert_contains "$(printf '%s' "$OUT" | grep -A2 '"id": "symlink:settings.json"')" '"status": "PASS"' "real settings: doctor PASS"
+	rm -rf "$home"
+}
+
+# ---------------------------------------------------------------------------
+# B24 — the marketplace root defaults to the repo this CLI runs from, never a
+# hardcoded $HOME/Desktop/... path (which exists on exactly one machine).
+# ---------------------------------------------------------------------------
+
+t_install_default_marketplace_root_is_the_cli_repo() {
+	local home repo_root
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	repo_root=$(cd "$SCAN_DIR/../../.." && pwd -P)
+
+	# No --marketplace, no FLOW_REPO: the CLI's own checkout is the marketplace,
+	# so plugin mode engages and ~/.claude/skills points at its plugins dir.
+	run_cmd bash -c 'export HOME="$1"; unset FLOW_REPO; shift; exec "$@"' _ "$home" node "$CLI_PATH" install
+	assert_eq "$(readlink "$home/.claude/skills")" "$repo_root/plugins" \
+		"t_install_default_marketplace_root_is_the_cli_repo skills-link"
+	# The old default ($HOME/Desktop/Projects/flow) does not exist under this
+	# fake HOME, so it would have printed the "no marketplace checkout" note
+	# and linked nothing into the plugin.
+	assert_eq "$(readlink "$home/.claude/hooks")" "$repo_root/plugins/flow/hooks" \
+		"t_install_default_marketplace_root_is_the_cli_repo hooks-link"
+	assert_not_contains "$OUT" "no marketplace checkout" "t_install_default_marketplace_root_is_the_cli_repo found-a-marketplace"
+
+	rm -rf "$home"
+}
+
+# ---------------------------------------------------------------------------
+# B24 — a flag where a path belongs is a typo, not a directory name
+# ---------------------------------------------------------------------------
+
+t_install_rejects_flag_shaped_path_values() {
+	local home
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+
+	run_cmd bash -c 'export HOME="$1"; shift; exec "$@"' _ "$home" node "$CLI_PATH" install --dotfiles --force
+	assert_rc 1 "t_install_rejects_flag_shaped_path_values rc"
+	assert_contains "$ERR" "--dotfiles needs a path, got the flag '--force'" "t_install_rejects_flag_shaped_path_values message"
+	assert_file_missing "$home/.claude/skills" "t_install_rejects_flag_shaped_path_values wrote-nothing"
+
+	run_cmd bash -c 'export HOME="$1"; shift; exec "$@"' _ "$home" node "$CLI_PATH" install --marketplace
+	assert_rc 1 "t_install_rejects_flag_shaped_path_values marketplace-rc"
+	assert_contains "$ERR" "--marketplace needs a path" "t_install_rejects_flag_shaped_path_values marketplace-message"
+
+	rm -rf "$home"
+}
+
+# ---------------------------------------------------------------------------
+# B24 — a link is never created to a target that is not there: a broken
+# symlink in ~/.claude looks deployed and fails later, at hook time.
+# ---------------------------------------------------------------------------
+
+t_install_missing_link_target_is_reported_not_linked() {
+	local home
+	home=$(tmp_dir)
+	_install_write_stub_dotfiles "$home/.dotfiles"
+	rm -rf "$home/.dotfiles/claude/.claude/workflows"
+
+	_install_cli "$home" install
+	assert_rc 1 "t_install_missing_link_target_is_reported_not_linked rc"
+	assert_contains "$OUT" "link target $home/.dotfiles/claude/.claude/workflows does not exist" \
+		"t_install_missing_link_target_is_reported_not_linked names-the-target"
+	assert_file_missing "$home/.claude/workflows" "t_install_missing_link_target_is_reported_not_linked no-broken-symlink"
+
 	rm -rf "$home"
 }

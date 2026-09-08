@@ -49,7 +49,7 @@ t_core_session_context_output_capped_at_20_lines() {
   "maxFileLines": 200,
   "maxFuncLines": 30,
   "stopGate": true,
-  "stopGateFullEverySec": 60,
+  "stopGateBudgetSec": 60,
   "sizeGuard": false,
   "formatOnEdit": false,
   "ignore": ["custom/"]
@@ -81,6 +81,104 @@ t_core_session_context_progress_review_and_harness_override() {
 	assert_contains "$OUT" "note: REVIEW.md present" "t_core_session_context_progress_review_and_harness_override review-note"
 	assert_contains "$OUT" "note: harness override: maxFileLines=200" "t_core_session_context_progress_review_and_harness_override maxFileLines-override"
 	assert_contains "$OUT" "note: harness override: sizeGuard=false" "t_core_session_context_progress_review_and_harness_override sizeGuard-override"
+	rm -rf "$repo"
+}
+
+t_core_session_context_next_block_first() {
+	local repo first_line pre_lines line ok
+	repo=$(tmp_repo)
+	run_hook "$SCAN_DIR/session-context.sh" '{}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_core_session_context_next_block_first rc"
+	# Everything before "## Repo state" must be the Next:/Why: block (at most
+	# 2 lines) — this holds regardless of the exact prose `flow next` prints.
+	pre_lines=$(printf '%s\n' "$OUT" | sed -n '1,/^## Repo state$/p' | sed '$d')
+	first_line=$(printf '%s\n' "$pre_lines" | sed -n '1p')
+	case "$first_line" in
+	Next:*) _pass "t_core_session_context_next_block_first next-is-first-line" ;;
+	*) _fail "t_core_session_context_next_block_first next-is-first-line" "first line was: $first_line" ;;
+	esac
+	ok=1
+	while IFS= read -r line; do
+		[ -z "$line" ] && continue
+		case "$line" in
+		Next:* | Why:*) ;;
+		*) ok=0 ;;
+		esac
+	done <<EOF
+$pre_lines
+EOF
+	if [ "$ok" -eq 1 ]; then
+		_pass "t_core_session_context_next_block_first repo-state-follows-next"
+	else
+		_fail "t_core_session_context_next_block_first repo-state-follows-next" "non Next:/Why: line before repo state: $pre_lines"
+	fi
+	rm -rf "$repo"
+}
+
+t_core_session_context_next_survives_large_progress() {
+	local repo i out_lines
+	repo=$(tmp_repo)
+	: >"$repo/PROGRESS.md"
+	i=0
+	while [ "$i" -lt 40 ]; do
+		printf 'progress line %s\n' "$i" >>"$repo/PROGRESS.md"
+		i=$((i + 1))
+	done
+	run_hook "$SCAN_DIR/session-context.sh" '{}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_core_session_context_next_survives_large_progress rc"
+	case "$OUT" in
+	Next:*) _pass "t_core_session_context_next_survives_large_progress next-present" ;;
+	*) _fail "t_core_session_context_next_survives_large_progress next-present" "OUT did not start with Next:" ;;
+	esac
+	out_lines=$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')
+	if [ "$out_lines" -le 20 ]; then
+		_pass "t_core_session_context_next_survives_large_progress capped-at-20"
+	else
+		_fail "t_core_session_context_next_survives_large_progress capped-at-20" "got $out_lines lines"
+	fi
+	rm -rf "$repo"
+}
+
+t_core_session_context_template_progress_skipped() {
+	local repo tmpl
+	repo=$(tmp_repo)
+	tmpl="$SCAN_DIR/../flow-templates/PROGRESS.md"
+	{
+		cat "$tmpl"
+		printf '\n\n  \n'
+	} >"$repo/PROGRESS.md"
+	run_hook "$SCAN_DIR/session-context.sh" '{}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_core_session_context_template_progress_skipped rc"
+	assert_not_contains "$OUT" "## PROGRESS.md" "t_core_session_context_template_progress_skipped no-progress-section"
+	rm -rf "$repo"
+}
+
+t_core_session_context_progress_truncation_marker() {
+	local repo i
+	repo=$(tmp_repo)
+	: >"$repo/PROGRESS.md"
+	i=0
+	while [ "$i" -lt 40 ]; do
+		printf 'progress line %s\n' "$i" >>"$repo/PROGRESS.md"
+		i=$((i + 1))
+	done
+	run_hook "$SCAN_DIR/session-context.sh" '{}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_core_session_context_progress_truncation_marker rc"
+	assert_contains "$OUT" "## PROGRESS.md" "t_core_session_context_progress_truncation_marker progress-heading"
+	assert_contains "$OUT" "PROGRESS.md truncated;" "t_core_session_context_progress_truncation_marker marker-text"
+	assert_contains "$OUT" "more lines)" "t_core_session_context_progress_truncation_marker marker-suffix"
+	rm -rf "$repo"
+}
+
+t_core_session_context_branch_mismatch_wording() {
+	local repo cur
+	repo=$(tmp_repo)
+	cur=$(git -C "$repo" rev-parse --abbrev-ref HEAD)
+	mkdir -p "$repo/.claude"
+	printf '{"branch": "some-other-branch"}\n' >"$repo/.claude/flow.json"
+	run_hook "$SCAN_DIR/session-context.sh" '{}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_core_session_context_branch_mismatch_wording rc"
+	assert_contains "$OUT" "note: this checkout is on $cur; .claude/flow.json says some-other-branch — run: git checkout some-other-branch" "t_core_session_context_branch_mismatch_wording wording"
 	rm -rf "$repo"
 }
 
@@ -1133,6 +1231,19 @@ t_core_git_guard_backslash_stray_in_no_verify_denied() {
 # (unlike REVIEW.md/PROGRESS.md/step-file budgets), so a 33% overage shipped
 # invisibly. Enforce it from this unit's own test file, and pin the portable
 # (non-\0-dependent) awk RS the rewrite uses to slurp multi-line commands.
+#
+# G13 integration: the RS pin below used to require RS="" (paragraph mode).
+# That is the wrong separator: paragraph mode ends a record at a BLANK LINE,
+# so a heredoc body containing a blank line ("cat > d.sh <<'EOF' / set -e /
+# <blank> / git clean -fdx / EOF") was split into several records, the
+# heredoc-body removal in the first record never saw its terminator, and the
+# body's own lines became parts -> a written-not-executed script was denied,
+# violating spec 003 B16 (see t_gg_heredoc_body_with_blank_line_allowed in
+# test_git_guard.sh). The contract is a SINGLE-CHARACTER POSIX record
+# separator, so the whole command arrives as one record; \004 is used
+# because a Bash tool payload never contains it. RS="\0" stays banned: an
+# empty RS string is paragraph mode again in POSIX awk and NUL-as-RS is a
+# gawk extension.
 # ---------------------------------------------------------------------------
 
 t_core_git_guard_line_count_within_c22_budget() {
@@ -1145,16 +1256,28 @@ t_core_git_guard_line_count_within_c22_budget() {
 	fi
 }
 
-t_core_git_guard_awk_uses_portable_paragraph_mode_rs() {
+t_core_git_guard_awk_uses_portable_single_char_rs() {
 	local begin_line
 	begin_line=$(grep -m1 '^BEGIN{' "$SCAN_DIR/git-guard.sh")
-	assert_contains "$begin_line" 'RS=""' "t_core_git_guard_awk_uses_portable_paragraph_mode_rs uses RS=\"\""
-	assert_not_contains "$begin_line" 'RS="\0"' "t_core_git_guard_awk_uses_portable_paragraph_mode_rs no RS=\"\\0\" dependency"
+	assert_contains "$begin_line" 'RS=sprintf("%c",4)' "t_core_git_guard_awk_uses_portable_single_char_rs uses a single-char RS"
+	assert_not_contains "$begin_line" 'RS=""' "t_core_git_guard_awk_uses_portable_single_char_rs not paragraph mode"
+	assert_not_contains "$begin_line" 'RS="\0"' "t_core_git_guard_awk_uses_portable_single_char_rs no RS=\"\\0\" dependency"
+}
+
+# The structural pin above is only meaningful because of this behavioural
+# consequence: with a single-char RS the whole multi-line command is ONE awk
+# record, so the heredoc-body remover sees its terminator even when the body
+# contains a blank line and the body's commands never become parts (B16).
+t_core_git_guard_blank_line_heredoc_body_is_one_record_allowed() {
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"cat > d.sh <<'"'"'EOF'"'"'\nset -e\n\ngit clean -fdx\nEOF"}}'
+	assert_rc 0 "t_core_git_guard_blank_line_heredoc_body_is_one_record_allowed rc"
+	assert_eq "$OUT" "" "t_core_git_guard_blank_line_heredoc_body_is_one_record_allowed allowed"
 }
 
 # ---------------------------------------------------------------------------
-# Fix round 2 (fatal finding): the awk normaliser's RS="" (paragraph mode)
-# splits a command containing a blank line into multiple awk records; PARTS
+# Fix round 2 (fatal finding), kept as a regression guard: when the awk
+# normaliser still used RS="" (paragraph mode) it
+# split a command containing a blank line into multiple awk records; PARTS
 # accumulates parts from every record, but the ">200 parts" coarse-grep
 # fallback (C10 step 3: "the coarse grep of step 1 applies to the whole
 # text") used to run only against the LAST record's normalised text, so a

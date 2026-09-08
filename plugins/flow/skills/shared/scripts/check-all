@@ -2,6 +2,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -34,12 +35,19 @@ const FLAG_FIX = args.includes('--fix');
 const FLAG_JSON = args.includes('--json');
 const FLAG_HELP = args.includes('--help') || args.includes('-h');
 
+const ROOT = process.cwd();
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Help
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Under --json stdout must stay ANSI-free, help included (C-C). */
+function plain(text) {
+  return FLAG_JSON ? text.replace(/\u001b\[[0-9;]*m/g, '') : text;
+}
+
 function printHelp() {
-  stdout.write(`
+  stdout.write(plain(`
 ${C.primary}${C.bold}check-all${C.reset} ${C.muted}— run project quality gates in sequence${C.reset}
 
 ${C.accent}Usage:${C.reset}
@@ -52,27 +60,47 @@ ${C.accent}Options:${C.reset}
   -h, --help  Show this help message
 
 ${C.accent}Gates (in order):${C.reset}
-  typecheck → lint → format → test
+  typecheck → lint → format → test   ${C.muted}(--json puts test first)${C.reset}
+
+${C.accent}Gate names:${C.reset}
+  Every gate record carries ${C.text}kind${C.reset} (typecheck|lint|format|test) and a display
+  ${C.text}name${C.reset}. In a root with several ecosystems the first one keeps the plain
+  name and the others are suffixed ${C.text}<kind>:<ecosystem>${C.reset} (e.g. lint:python),
+  so select gates by ${C.text}kind${C.reset} — never by parsing the name.
+
+${C.accent}Gate status:${C.reset}
+  pass | fail | skipped ${C.muted}(nothing to run)${C.reset} | unavailable
+  ${C.muted}unavailable = no verdict: the command could not be executed, timed out,
+  or was killed by a signal. Never treat it as a failure.${C.reset}
 
 ${C.accent}Supported ecosystems:${C.reset}
   ${C.muted}•${C.reset} Node.js (package.json)
   ${C.muted}•${C.reset} Python (pyproject.toml)
   ${C.muted}•${C.reset} Rust (Cargo.toml)
   ${C.muted}•${C.reset} Go (go.mod / go.sum)
+  ${C.muted}A root with several of these gets the gates of each, additively.${C.reset}
 
 ${C.accent}Exit codes:${C.reset}
-  0  All gates passed or skipped
+  0  All gates passed, skipped or unavailable
   1  One or more gates failed
-`);
+`));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Project Detection
+// Small filesystem helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+function exists(p) {
+  try { fs.accessSync(p); return true; } catch { return false; }
+}
+
+function isDir(p) {
+  try { return fs.statSync(p).isDirectory(); } catch { return false; }
+}
 
 function findFile(names) {
   for (const name of names) {
-    if (fs.existsSync(path.join(process.cwd(), name))) return name;
+    if (exists(path.join(ROOT, name))) return name;
   }
   return null;
 }
@@ -85,214 +113,477 @@ function readJSON(filePath) {
   }
 }
 
+/**
+ * argv → a single line a shell re-parses into exactly this argv. The reported
+ * `cmd` is pasted into "To reproduce: cd <dir> && <cmd>" by the stop-gate, so a
+ * repo path or glob containing a space, a quote or a shell metacharacter has to
+ * survive the round trip instead of silently meaning something else.
+ */
+const SHELL_SAFE_ARG = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+function shellJoin(argv) {
+  return argv
+    .map(a => (SHELL_SAFE_ARG.test(a) ? a : `'${String(a).split("'").join("'\\''")}'`))
+    .join(' ');
+}
+
+/** Is <cmd> an executable file on PATH? (no subprocess) */
+function onPath(cmd) {
+  const dirs = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  for (const d of dirs) {
+    try {
+      fs.accessSync(path.join(d, cmd), fs.constants.X_OK);
+      return true;
+    } catch { /* keep looking */ }
+  }
+  return false;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Command Builders — returns null if gate should be skipped
+// Gate records — a gate either has a command to run or a reason it will not
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Node.js: read package.json scripts
-function buildNodeGates(pkgPath) {
-  const pkg = readJSON(pkgPath);
-  if (!pkg) return null;
+function gate(kind, cmd) { return { kind, cmd }; }
+function skipped(kind, message) { return { kind, cmd: null, message }; }
 
-  const scripts = pkg.scripts || {};
-  const gates = {};
+// ─────────────────────────────────────────────────────────────────────────────
+// Node.js: package manager + scripts
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // typecheck: prefer "typecheck", fall back to "tsc"
-  if (scripts.typecheck) {
-    gates.typecheck = ['npm', 'run', 'typecheck'];
-  } else if (scripts.tsc) {
-    gates.typecheck = ['npm', 'run', 'tsc'];
-  } else if (fs.existsSync(path.join(process.cwd(), 'tsconfig.json'))) {
-    // Has tsconfig but no explicit script — try npx tsc
-    const tscResult = spawnSync('npx', ['tsc', '--version'], { encoding: 'utf8' });
-    if (tscResult.status === 0) {
-      gates.typecheck = ['npx', 'tsc', '--noEmit'];
-    }
-  }
+function detectPkgMgr(root, pkg) {
+  const declared = pkg && typeof pkg.packageManager === 'string'
+    ? pkg.packageManager.split('@')[0].trim()
+    : '';
+  if (['bun', 'pnpm', 'yarn', 'npm'].includes(declared)) return declared;
 
-  // lint: prefer "lint", accept "lint:fix" base
-  if (scripts.lint) {
-    if (FLAG_FIX && scripts['lint:fix']) {
-      gates.lint = ['npm', 'run', 'lint:fix'];
-    } else if (FLAG_FIX) {
-      // Try adding --fix to the lint command
-      gates.lint = ['npm', 'run', 'lint', '--', '--fix'];
-    } else {
-      gates.lint = ['npm', 'run', 'lint'];
-    }
-  }
-
-  // format: prefer "format", accept "prettier"
-  if (scripts.format) {
-    if (FLAG_FIX) {
-      // format scripts typically write in-place already
-      gates.format = ['npm', 'run', 'format'];
-    } else {
-      // check-only mode: try format:check, then format --check
-      if (scripts['format:check']) {
-        gates.format = ['npm', 'run', 'format:check'];
-      } else {
-        gates.format = ['npm', 'run', 'format', '--', '--check'];
-      }
-    }
-  } else if (scripts.prettier) {
-    gates.format = FLAG_FIX
-      ? ['npm', 'run', 'prettier']
-      : ['npm', 'run', 'prettier', '--', '--check'];
-  }
-
-  // test: prefer "test", skip if only "test:watch"
-  if (scripts.test && !scripts.test.includes('watch')) {
-    const testScript = scripts.test;
-    // Only pass --passWithNoTests for jest/vitest, not generic scripts
-    const isJestOrVitest = /\b(jest|vitest)\b/.test(testScript);
-    gates.test = isJestOrVitest
-      ? ['npm', 'run', 'test', '--', '--passWithNoTests']
-      : ['npm', 'run', 'test'];
-  } else if (scripts.test) {
-    gates.test = ['npm', 'run', 'test'];
-  }
-
-  return gates;
-}
-
-// Python: pyproject.toml / setup.cfg — check tool presence
-function buildPythonGates() {
-  const gates = {};
-
-  // typecheck: mypy
-  const mypyResult = spawnSync('which', ['mypy'], { encoding: 'utf8' });
-  if (mypyResult.status === 0) {
-    gates.typecheck = ['mypy', '.'];
-  }
-
-  // lint: ruff
-  const ruffResult = spawnSync('which', ['ruff'], { encoding: 'utf8' });
-  if (ruffResult.status === 0) {
-    gates.lint = FLAG_FIX ? ['ruff', 'check', '--fix', '.'] : ['ruff', 'check', '.'];
-  }
-
-  // format: black (or ruff format)
-  const blackResult = spawnSync('which', ['black'], { encoding: 'utf8' });
-  if (blackResult.status === 0) {
-    gates.format = FLAG_FIX ? ['black', '.'] : ['black', '--check', '.'];
-  } else if (ruffResult.status === 0) {
-    gates.format = FLAG_FIX ? ['ruff', 'format', '.'] : ['ruff', 'format', '--check', '.'];
-  }
-
-  // test: pytest
-  const pytestResult = spawnSync('which', ['pytest'], { encoding: 'utf8' });
-  if (pytestResult.status === 0) {
-    gates.test = ['pytest'];
-  }
-
-  return gates;
-}
-
-// Rust: Cargo.toml
-function buildRustGates() {
-  const gates = {};
-
-  // typecheck: cargo check
-  gates.typecheck = ['cargo', 'check'];
-
-  // lint: cargo clippy
-  gates.lint = FLAG_FIX
-    ? ['cargo', 'clippy', '--fix', '--allow-dirty', '--allow-staged']
-    : ['cargo', 'clippy'];
-
-  // format: cargo fmt
-  gates.format = FLAG_FIX ? ['cargo', 'fmt'] : ['cargo', 'fmt', '--', '--check'];
-
-  // test: cargo test
-  gates.test = ['cargo', 'test'];
-
-  return gates;
-}
-
-// Go: go.mod
-function buildGoGates() {
-  const gates = {};
-
-  // typecheck: go build ./...
-  gates.typecheck = ['go', 'build', './...'];
-
-  // lint: golangci-lint (if installed)
-  const lintResult = spawnSync('which', ['golangci-lint'], { encoding: 'utf8' });
-  if (lintResult.status === 0) {
-    gates.lint = FLAG_FIX ? ['golangci-lint', 'run', '--fix'] : ['golangci-lint', 'run'];
-  }
-
-  // format: gofmt
-  gates.format = FLAG_FIX ? ['gofmt', '-w', '.'] : ['gofmt', '-l', '.'];
-
-  // test: go test ./...
-  gates.test = ['go', 'test', './...'];
-
-  return gates;
-}
-
-function buildDetectProjectGates(data) {
-  const gates = {};
-  if (data.typecheck_cmd) gates.typecheck = data.typecheck_cmd.split(' ');
-  if (data.lint_cmd) {
-    const parts = data.lint_cmd.split(' ');
-    if (FLAG_FIX && !parts.includes('--fix')) parts.push('--fix');
-    gates.lint = parts;
-  }
-  if (data.format_cmd) gates.format = data.format_cmd.split(' ');
-  if (data.test_cmd) gates.test = data.test_cmd.split(' ');
-  return gates;
-}
-
-function tryDetectProject() {
-  const detectPaths = [
-    path.join(process.cwd(), '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
-    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+  const locks = [
+    ['bun.lockb', 'bun'],
+    ['bun.lock', 'bun'],
+    ['pnpm-lock.yaml', 'pnpm'],
+    ['yarn.lock', 'yarn'],
+    ['package-lock.json', 'npm'],
   ];
-  for (const dp of detectPaths) {
-    if (fs.existsSync(dp)) {
-      try {
-        const result = spawnSync('node', [dp], { encoding: 'utf8', timeout: 5000 });
-        if (result.status === 0) {
-          const data = JSON.parse(result.stdout);
-          if (data.test_cmd || data.lint_cmd || data.typecheck_cmd) {
-            return { ecosystem: data.language || 'detected', gates: buildDetectProjectGates(data) };
-          }
-        }
-      } catch { /* fall through */ }
+  for (const [file, mgr] of locks) {
+    if (exists(path.join(root, file))) return mgr;
+  }
+  return 'npm';
+}
+
+/** `<mgr> run <script>` plus extra args, with npm's `--` separator. */
+function runScript(mgr, script, extra) {
+  const rest = extra && extra.length ? extra : [];
+  switch (mgr) {
+    case 'bun':  return ['bun', 'run', script, ...rest];
+    case 'pnpm': return ['pnpm', 'run', script, ...rest];
+    case 'yarn': return ['yarn', script, ...rest];
+    default:     return rest.length ? ['npm', 'run', script, '--', ...rest] : ['npm', 'run', script];
+  }
+}
+
+function tsBuildInfoPath(root) {
+  const slug = root.replace(/[^A-Za-z0-9]+/g, '_').slice(-60);
+  return path.join(os.tmpdir(), `check-all${slug}.tsbuildinfo`);
+}
+
+/** FU-13: only reach for tsc when something here can actually run it. */
+function resolveTsc(root, pkg) {
+  const local = path.join(root, 'node_modules', '.bin', 'tsc');
+  if (exists(local)) return [local];
+  const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  if (!deps.typescript && !isDir(path.join(root, 'node_modules'))) return null;
+  return ['npx', 'tsc'];
+}
+
+/** Resolve a JS tool to a runnable argv head, or null when it is not installed. */
+function resolveJsBin(root, name) {
+  const local = path.join(root, 'node_modules', '.bin', name);
+  if (exists(local)) return local;
+  if (onPath(name)) return name;
+  return null;
+}
+
+/**
+ * Anything a shell would re-parse into more than one command, or expand: the
+ * script is not a single command. Quotes are NOT listed here — they are handled
+ * by shellSplit, which strips them the way a shell does.
+ */
+const SHELL_OPERATOR = /[&|;`<>()]|\$\{/;
+
+/**
+ * argv for one simple command, honouring balanced '…' and "…" quoting so a
+ * quoted glob stays a single argument and its quote characters never reach the
+ * tool — `prettier --write "src/**\/*.ts"` must run as
+ * [prettier, --check, src/**\/*.ts], never with literal quotes in argv (which
+ * prettier reads as part of the pattern and then matches nothing).
+ * Returns null when the text quotes unevenly or uses backslash escapes: cases
+ * this splitter cannot honour, so the caller falls back to `skipped`.
+ */
+function shellSplit(text) {
+  if (text.includes('\\')) return null;
+  const out = [];
+  let cur = null;
+  let quote = '';
+  for (const ch of text) {
+    if (quote) {
+      if (ch === quote) quote = '';
+      else cur += ch;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      if (cur === null) cur = '';
+    } else if (/\s/.test(ch)) {
+      if (cur !== null) { out.push(cur); cur = null; }
+    } else {
+      cur = (cur === null ? '' : cur) + ch;
     }
+  }
+  if (quote) return null;
+  if (cur !== null) out.push(cur);
+  return out;
+}
+
+/**
+ * What a recognised formatter's arguments do: 'check' (reads only), 'write'
+ * (rewrites files in place), or null when this splitter cannot tell — which is
+ * every tool it does not know and every flag combination it has not been taught.
+ */
+function formatterMode(tool, rest) {
+  if (tool === 'prettier') {
+    if (rest.some(a => a === '--check' || a === '-c' || a === '--list-different' || a === '-l')) return 'check';
+    if (rest.includes('--write') || rest.includes('-w')) return 'write';
+    return null;
+  }
+  if (tool === 'biome') {
+    if (rest[0] !== 'format' && rest[0] !== 'check') return null;
+    return rest.some(a => a === '--write' || a === '--fix' || a === '--apply') ? 'write' : 'check';
+  }
+  if (tool === 'ruff') {
+    if (rest[0] !== 'format') return null;
+    return rest.some(a => a === '--check' || a === '--diff') ? 'check' : 'write';
   }
   return null;
 }
 
+/** The read-only argv for a recognised formatter invoked in write mode. */
+function checkArgsFor(tool, rest) {
+  if (tool === 'prettier') return rest.map(a => (a === '--write' || a === '-w' ? '--check' : a));
+  if (tool === 'biome') return rest.filter(a => a !== '--write' && a !== '--fix' && a !== '--apply');
+  if (tool === 'ruff') return ['format', '--check', ...rest.slice(1)];
+  return null;
+}
+
+/**
+ * FU-06: a user's `format` script may write in place — never append `--check` to
+ * it. This reads a SINGLE command whose head token (after stripping runner
+ * wrappers) is one of the three formatters whose check mode is unambiguous. A
+ * compound script (`eslint --fix . && prettier --write .`) is never picked
+ * apart: its first command would be run with its original write flags.
+ *
+ * Returns one of:
+ *   {mode:'check'}          the script is already read-only — run the script itself
+ *   {mode:'write', argv}    proven to write; <argv> is the derived check command
+ *   {mode:'write'}          proven to write and no installed tool to check with
+ *   {mode:null}             not recognised either way — nothing may be claimed
+ */
+function planFormatGate(root, script) {
+  const text = script.trim();
+  if (SHELL_OPERATOR.test(text)) return { mode: null };
+
+  const parts = shellSplit(text);
+  if (!parts || parts.length === 0) return { mode: null };
+  const wrappers = ['npx', 'bunx', 'pnpm', 'yarn', 'npm', 'bun', 'uv', 'run', 'exec', '--no-sync', '--'];
+  while (parts.length > 1 && wrappers.includes(parts[0])) parts.shift();
+
+  const tool = parts[0];
+  const mode = formatterMode(tool, parts.slice(1));
+  if (mode !== 'write') return { mode };
+
+  const head = tool === 'ruff' ? resolvePyTool(root, 'ruff') : (() => {
+    const bin = resolveJsBin(root, tool);
+    return bin ? [bin] : null;
+  })();
+  if (!head) return { mode: 'write' };
+  return { mode: 'write', argv: [...head, ...checkArgsFor(tool, parts.slice(1))] };
+}
+
+/** The format gate for a project whose only format entry point is a script. */
+function formatGateFromScript(root, mgr, scriptName, script) {
+  const plan = planFormatGate(root, script);
+  if (plan.mode === 'check') return gate('format', runScript(mgr, scriptName));
+  if (plan.argv) return gate('format', plan.argv);
+  if (plan.mode === 'write') return skipped('format', 'format script writes in place; add a format:check script');
+  return skipped('format', `format script was not recognised as a check-only command: ${script}; add a format:check script`);
+}
+
+function buildNodeGates(root) {
+  const pkg = readJSON(path.join(root, 'package.json')) || {};
+  const scripts = pkg.scripts || {};
+  const mgr = detectPkgMgr(root, pkg);
+  const gates = [];
+
+  // typecheck
+  if (scripts.typecheck) {
+    gates.push(gate('typecheck', runScript(mgr, 'typecheck')));
+  } else if (scripts.tsc) {
+    gates.push(gate('typecheck', runScript(mgr, 'tsc')));
+  } else if (exists(path.join(root, 'tsconfig.json'))) {
+    const tsc = resolveTsc(root, pkg);
+    if (tsc) {
+      gates.push(gate('typecheck', [...tsc, '--noEmit', '--tsBuildInfoFile', tsBuildInfoPath(root)]));
+    } else {
+      gates.push(skipped('typecheck', 'tsconfig.json but no typescript dependency and no node_modules; add typescript to devDependencies'));
+    }
+  }
+
+  // lint
+  if (scripts.lint) {
+    if (FLAG_FIX && scripts['lint:fix']) gates.push(gate('lint', runScript(mgr, 'lint:fix')));
+    else if (FLAG_FIX) gates.push(gate('lint', runScript(mgr, 'lint', ['--fix'])));
+    else gates.push(gate('lint', runScript(mgr, 'lint')));
+  }
+
+  // format
+  if (FLAG_FIX) {
+    if (scripts.format) gates.push(gate('format', runScript(mgr, 'format')));
+    else if (scripts.prettier) gates.push(gate('format', runScript(mgr, 'prettier')));
+  } else if (scripts['format:check']) {
+    gates.push(gate('format', runScript(mgr, 'format:check')));
+  } else if (scripts['check-format']) {
+    gates.push(gate('format', runScript(mgr, 'check-format')));
+  } else if (scripts.format || scripts.prettier) {
+    const name = scripts.format ? 'format' : 'prettier';
+    gates.push(formatGateFromScript(root, mgr, name, scripts[name]));
+  }
+
+  // test
+  if (scripts.test) {
+    const extra = /\b(jest|vitest)\b/.test(scripts.test) && !scripts.test.includes('watch')
+      ? ['--passWithNoTests']
+      : [];
+    gates.push(gate('test', runScript(mgr, 'test', extra)));
+  }
+
+  return gates;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Python: prefer the project's own environment over PATH
+// ─────────────────────────────────────────────────────────────────────────────
+
+function readText(p) {
+  try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
+}
+
+/**
+ * Is <tool> a package this uv project actually locks? `uv run --no-sync <tool>`
+ * on a tool the project does not have exits 2 with a spawn error, which would
+ * otherwise be read as a failing gate — so a gate is only built for a tool the
+ * lock file names.
+ */
+function uvLockHasTool(root, tool) {
+  const lock = readText(path.join(root, 'uv.lock'));
+  if (!lock) return false;
+  return new RegExp(`^name = "${tool}"$`, 'm').test(lock);
+}
+
+function resolvePyTool(root, tool) {
+  const venv = path.join(root, '.venv', 'bin', tool);
+  if (exists(venv)) return [venv];
+  if (uvLockHasTool(root, tool) && onPath('uv')) return ['uv', 'run', '--no-sync', tool];
+  if (onPath(tool)) return [tool];
+  return null;
+}
+
+function buildPythonGates(root) {
+  const gates = [];
+
+  const mypy = resolvePyTool(root, 'mypy');
+  if (mypy) gates.push(gate('typecheck', [...mypy, '.']));
+
+  const ruff = resolvePyTool(root, 'ruff');
+  if (ruff) gates.push(gate('lint', FLAG_FIX ? [...ruff, 'check', '--fix', '.'] : [...ruff, 'check', '.']));
+
+  const black = resolvePyTool(root, 'black');
+  if (black) {
+    gates.push(gate('format', FLAG_FIX ? [...black, '.'] : [...black, '--check', '.']));
+  } else if (ruff) {
+    gates.push(gate('format', FLAG_FIX ? [...ruff, 'format', '.'] : [...ruff, 'format', '--check', '.']));
+  }
+
+  const pytest = resolvePyTool(root, 'pytest');
+  if (pytest) gates.push(gate('test', pytest));
+
+  return gates;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rust / Go
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildRustGates() {
+  return [
+    gate('typecheck', ['cargo', 'check']),
+    gate('lint', FLAG_FIX
+      ? ['cargo', 'clippy', '--fix', '--allow-dirty', '--allow-staged']
+      : ['cargo', 'clippy']),
+    gate('format', FLAG_FIX ? ['cargo', 'fmt'] : ['cargo', 'fmt', '--', '--check']),
+    gate('test', ['cargo', 'test']),
+  ];
+}
+
+function buildGoGates(root) {
+  const gates = [gate('typecheck', ['go', 'build', './...'])];
+  const hasGolangci = ['.golangci.yml', '.golangci.yaml', '.golangci.toml', '.golangci.json']
+    .some(f => exists(path.join(root, f)));
+  if (hasGolangci && onPath('golangci-lint')) {
+    gates.push(gate('lint', FLAG_FIX ? ['golangci-lint', 'run', '--fix'] : ['golangci-lint', 'run']));
+  } else if (onPath('golangci-lint')) {
+    gates.push(gate('lint', FLAG_FIX ? ['golangci-lint', 'run', '--fix'] : ['golangci-lint', 'run']));
+  }
+  gates.push(gate('format', FLAG_FIX ? ['gofmt', '-w', '.'] : ['gofmt', '-l', '.']));
+  gates.push(gate('test', ['go', 'test', './...']));
+  return gates;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// detect-project fallback (repos whose commands live below the root)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildDetectProjectGates(data) {
+  const gates = [];
+  if (data.typecheck_cmd) gates.push(gate('typecheck', data.typecheck_cmd.split(' ')));
+  if (data.lint_cmd) {
+    const parts = data.lint_cmd.split(' ');
+    if (FLAG_FIX && !parts.includes('--fix')) parts.push('--fix');
+    gates.push(gate('lint', parts));
+  }
+  if (data.format_cmd) gates.push(gate('format', data.format_cmd.split(' ')));
+  if (data.test_cmd) gates.push(gate('test', data.test_cmd.split(' ')));
+  return gates;
+}
+
+/**
+ * Only detect-project's ROOT-level commands become gates. A depth-1 monorepo
+ * (no manifest at the root, projects in api/ and web/) therefore still reports
+ * `no_project_file` even though detect-project now lists its `packages` — every
+ * gate here runs with cwd = ROOT, and gating a sub-package needs a per-gate cwd
+ * plus a gate-naming rule beyond the frozen `<kind>:<ecosystem>` suffix. That
+ * interface is not specified, so check-all deliberately leaves such repos
+ * ungated rather than inventing one. See slice G9's report.
+ */
+function tryDetectProject() {
+  const detectPaths = [
+    path.join(ROOT, '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+    path.join(process.env.HOME || '', '.claude', 'skills', 'shared', 'scripts', 'detect-project'),
+  ];
+  for (const dp of detectPaths) {
+    if (!exists(dp)) continue;
+    try {
+      const result = spawnSync('node', [dp], { encoding: 'utf8', timeout: 5000, maxBuffer: 20 * 1024 * 1024 });
+      if (result.status === 0) {
+        const data = JSON.parse(result.stdout);
+        if (data.test_cmd || data.lint_cmd || data.typecheck_cmd) {
+          return { ecosystem: data.language || 'detected', gates: buildDetectProjectGates(data) };
+        }
+      }
+    } catch { /* fall through */ }
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ecosystem detection — additive when a root carries several manifests
+// ─────────────────────────────────────────────────────────────────────────────
+
 function detectGates() {
-  if (findFile(['package.json'])) {
-    const pkgPath = path.join(process.cwd(), 'package.json');
-    const gates = buildNodeGates(pkgPath);
-    if (gates && Object.keys(gates).length > 0) return { ecosystem: 'node', gates };
+  const ecosystems = [];
+  if (findFile(['package.json'])) ecosystems.push('node');
+  if (findFile(['pyproject.toml', 'setup.cfg', 'setup.py'])) ecosystems.push('python');
+  if (findFile(['Cargo.toml'])) ecosystems.push('rust');
+  if (findFile(['go.mod', 'go.sum'])) ecosystems.push('go');
+
+  if (ecosystems.length === 0) {
+    const detected = tryDetectProject();
+    if (detected) return detected;
+    return { ecosystem: null, gates: [] };
   }
-  if (findFile(['pyproject.toml', 'setup.cfg', 'setup.py'])) {
-    return { ecosystem: 'python', gates: buildPythonGates() };
+
+  const all = [];
+  for (const eco of ecosystems) {
+    let built = [];
+    if (eco === 'node') built = buildNodeGates(ROOT);
+    else if (eco === 'python') built = buildPythonGates(ROOT);
+    else if (eco === 'rust') built = buildRustGates();
+    else if (eco === 'go') built = buildGoGates(ROOT);
+    // The first ecosystem owns the plain gate names; the rest are suffixed so
+    // every gate keeps its own line instead of overwriting a namesake.
+    for (const g of built) {
+      all.push(eco === ecosystems[0] ? g : { ...g, kind: g.kind, suffix: eco });
+    }
   }
-  if (findFile(['Cargo.toml'])) {
-    return { ecosystem: 'rust', gates: buildRustGates() };
-  }
-  if (findFile(['go.mod', 'go.sum'])) {
-    return { ecosystem: 'go', gates: buildGoGates() };
-  }
-  // Fallback: use detect-project script (handles monorepos without root config)
-  const detected = tryDetectProject();
-  if (detected) return detected;
-  return { ecosystem: null, gates: {} };
+  return { ecosystem: ecosystems.join('+'), gates: all };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gate Runner
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GATE_ORDER = ['typecheck', 'lint', 'format', 'test'];
+const KIND_ORDER = ['typecheck', 'lint', 'format', 'test'];
 const MAX_OUTPUT_LINES = 20;
+const GATE_TIMEOUT_MS = 120000;
+
+/**
+ * How much of a gate's output this script keeps. The GATE is never bounded by
+ * it: output goes to a temp file, so only what can be reported is trimmed.
+ */
+const CAPTURE_TAIL_BYTES = 512 * 1024;
+
+/**
+ * The message on a gate kind this project has nothing for. It is JSON-only: the
+ * human view has always shown such a kind as a bare `– <kind>` line, and this
+ * slice must not add a line to it.
+ */
+const NOTHING_TO_RUN = 'nothing to run for this gate';
+
+function gateName(g) { return g.suffix ? `${g.kind}:${g.suffix}` : g.kind; }
+
+/** The last CAPTURE_TAIL_BYTES of a capture file, saying so when it cut. */
+function readTail(file) {
+  let size;
+  try { size = fs.statSync(file).size; } catch { return ''; }
+  if (size === 0) return '';
+  const start = Math.max(0, size - CAPTURE_TAIL_BYTES);
+  const buf = Buffer.alloc(size - start);
+  const fd = fs.openSync(file, 'r');
+  try { fs.readSync(fd, buf, 0, buf.length, start); } finally { fs.closeSync(fd); }
+  const text = buf.toString('utf8');
+  return start > 0 ? `... (first ${start} bytes of output not shown)\n${text}` : text;
+}
+
+/**
+ * spawnSync with the child's output captured through temp FILES, not pipes. A
+ * pipe capture is bounded by maxBuffer (1 MB by default): a gate that prints
+ * more is killed by THIS script and returns no exit code, so a genuinely
+ * failing lint or test suite would be reported `unavailable` — which the
+ * stop-gate does not block on — because of our own capture limit. A file has no
+ * such ceiling: every gate still reaches its own exit code.
+ */
+function spawnCaptured(argv, opts) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'check-all-'));
+  const outFile = path.join(dir, 'stdout');
+  const errFile = path.join(dir, 'stderr');
+  const outFd = fs.openSync(outFile, 'w');
+  const errFd = fs.openSync(errFile, 'w');
+  try {
+    const result = spawnSync(argv[0], argv.slice(1), { ...opts, stdio: ['ignore', outFd, errFd] });
+    result.stdout = readTail(outFile);
+    result.stderr = readTail(errFile);
+    return result;
+  } finally {
+    try { fs.closeSync(outFd); } catch { /* already closed */ }
+    try { fs.closeSync(errFd); } catch { /* already closed */ }
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* leave it to TMPDIR */ }
+  }
+}
 
 function truncateOutput(text) {
   if (!text) return '';
@@ -301,33 +592,125 @@ function truncateOutput(text) {
   return lines.slice(0, MAX_OUTPUT_LINES).join('\n') + `\n... (${lines.length - MAX_OUTPUT_LINES} more lines)`;
 }
 
-function runGate(name, cmd) {
+/** The tool `uv run [flags] <tool> …` is trying to start, or null. */
+function uvTargetTool(cmd) {
+  if (cmd[0] !== 'uv' || cmd[1] !== 'run') return null;
+  for (let i = 2; i < cmd.length; i++) {
+    if (!cmd[i].startsWith('-')) return cmd[i];
+  }
+  return null;
+}
+
+/**
+ * `uv run` reports a tool it cannot start as its own exit 2 plus a spawn error
+ * on stderr, not as 127/ENOENT — that is still "could not be executed", never a
+ * failing gate (C-C).
+ *
+ * The match is deliberately narrow: exit code exactly 2, the message on STDERR
+ * and at the start of a line, and naming the very tool this gate runs. A real
+ * test suite that fails (exit 1) while merely printing those words — an
+ * assertion message, a captured log — must stay `fail`, because reporting a red
+ * suite as `unavailable` would let the stop-gate pass a broken turn.
+ */
+function wrapperSpawnFailure(cmd, result) {
+  if (result.status !== 2) return false;
+  const tool = uvTargetTool(cmd);
+  if (!tool) return false;
+  const re = new RegExp('^error: Failed to spawn: `' + tool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`', 'm');
+  return re.test(result.stderr || '');
+}
+
+/**
+ * Why this spawn produced no exit code, or null when it produced one. A gate
+ * killed by a signal (the OOM killer, this script's own timeout) and a gate the
+ * OS refused to start never returned a verdict: reporting either as `fail`
+ * would block a turn over a suite that was never judged (C-C).
+ */
+function noVerdictReason(result, time_ms) {
+  const err = result.error;
+  if (err && err.code === 'ETIMEDOUT') return `timed out after ${time_ms}ms (gate limit ${GATE_TIMEOUT_MS}ms)`;
+  // ENOBUFS is this script's own capture limit, not the gate's doing: it also
+  // sets signal SIGTERM, so it has to be named BEFORE the signal branch or the
+  // message would blame a killer that never existed.
+  if (err && err.code === 'ENOBUFS') return `output exceeded this script's capture buffer after ${time_ms}ms; the gate was killed before it reported an exit code`;
+  if (result.signal) return `killed by ${result.signal} after ${time_ms}ms`;
+  if (err && err.code) return `cannot execute (${err.code})`;
+  if (err) return `cannot execute (${err.message})`;
+  return null;
+}
+
+function runGate(g) {
+  const name = gateName(g);
+  const cmd = g.cmd;
+  const display = shellJoin(cmd);
   const start = Date.now();
 
-  const result = spawnSync(cmd[0], cmd.slice(1), {
-    encoding: 'utf8',
-    stdio: 'pipe',
-    cwd: process.cwd(),
+  const result = spawnCaptured(cmd, {
+    cwd: ROOT,
     env: { ...process.env },
-    timeout: 120000,
+    timeout: GATE_TIMEOUT_MS,
   });
 
   const time_ms = Date.now() - start;
   const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
+  const enoent = (result.error && result.error.code === 'ENOENT') || result.status === 127;
 
-  // Go fmt -l outputs filenames of badly formatted files (non-empty = fail)
+  if (enoent || wrapperSpawnFailure(cmd, result)) {
+    return {
+      kind: g.kind,
+      name,
+      status: 'unavailable',
+      time_ms,
+      output: '',
+      cmd: display,
+      message: `cannot run: ${display}`,
+    };
+  }
+
+  const noVerdict = noVerdictReason(result, time_ms);
+  if (noVerdict) {
+    return {
+      kind: g.kind,
+      name,
+      status: 'unavailable',
+      time_ms,
+      output: truncateOutput(combined),
+      cmd: display,
+      message: `${noVerdict}: ${display}`,
+    };
+  }
+
+  // `gofmt -l` prints the badly formatted files and still exits 0.
   let failed = result.status !== 0;
-  if (name === 'format' && cmd[0] === 'gofmt' && !FLAG_FIX) {
+  if (g.kind === 'format' && cmd[0] === 'gofmt' && !FLAG_FIX) {
     failed = combined.trim().length > 0;
   }
 
   return {
+    kind: g.kind,
     name,
     status: failed ? 'fail' : 'pass',
     time_ms,
     output: failed ? truncateOutput(combined) : '',
-    cmd: cmd.join(' '),
+    cmd: display,
   };
+}
+
+/**
+ * The gates to report, in order. Under --json the test gate comes first so a
+ * red lint can never cost the caller its test result (FU-15); humans keep the
+ * cheap-to-slow reading order.
+ */
+function orderGates(found) {
+  const byKind = kind => found.filter(g => g.kind === kind);
+  const kinds = FLAG_JSON ? ['test', ...KIND_ORDER.filter(k => k !== 'test')] : KIND_ORDER;
+  const out = [];
+  for (const kind of kinds) {
+    const present = byKind(kind);
+    if (present.length === 0) out.push(skipped(kind, NOTHING_TO_RUN));
+    else out.push(...present);
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,6 +721,7 @@ function statusIcon(status) {
   if (status === 'pass')    return `${C.success}✓${C.reset}`;
   if (status === 'fail')    return `${C.error}✗${C.reset}`;
   if (status === 'skipped') return `${C.muted}–${C.reset}`;
+  if (status === 'unavailable') return `${C.warning}?${C.reset}`;
   return ' ';
 }
 
@@ -345,6 +729,7 @@ function statusColor(status) {
   if (status === 'pass')    return C.success;
   if (status === 'fail')    return C.error;
   if (status === 'skipped') return C.muted;
+  if (status === 'unavailable') return C.warning;
   return C.text;
 }
 
@@ -353,14 +738,16 @@ function printHeader(ecosystem) {
   stderr.write(`${C.border}${'─'.repeat(40)}${C.reset}\n`);
 }
 
-function printGateResult(gate) {
-  const icon = statusIcon(gate.status);
-  const col = statusColor(gate.status);
-  const timeStr = gate.status !== 'skipped' ? `${C.muted} ${gate.time_ms}ms${C.reset}` : '';
-  stderr.write(`  ${icon} ${col}${gate.name.padEnd(12)}${C.reset}${timeStr}\n`);
-  if (gate.status === 'fail' && gate.output) {
-    const lines = gate.output.split('\n');
-    for (const line of lines) {
+function printGateResult(g) {
+  const icon = statusIcon(g.status);
+  const col = statusColor(g.status);
+  const timeStr = g.status === 'pass' || g.status === 'fail' ? `${C.muted} ${g.time_ms}ms${C.reset}` : '';
+  stderr.write(`  ${icon} ${col}${g.name.padEnd(12)}${C.reset}${timeStr}\n`);
+  if (g.status !== 'pass' && g.message && g.message !== NOTHING_TO_RUN) {
+    stderr.write(`     ${C.muted}${g.message}${C.reset}\n`);
+  }
+  if (g.status === 'fail' && g.output) {
+    for (const line of g.output.split('\n')) {
       stderr.write(`     ${C.muted}${line}${C.reset}\n`);
     }
   }
@@ -372,12 +759,29 @@ function printSummary(summary) {
   if (summary.passed > 0)  parts.push(`${C.success}${summary.passed} passed${C.reset}`);
   if (summary.failed > 0)  parts.push(`${C.error}${summary.failed} failed${C.reset}`);
   if (summary.skipped > 0) parts.push(`${C.muted}${summary.skipped} skipped${C.reset}`);
+  if (summary.unavailable > 0) parts.push(`${C.warning}${summary.unavailable} unavailable${C.reset}`);
   stderr.write(`  ${parts.join(`${C.border} · ${C.reset}`)}\n\n`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
+
+function noProjectFile() {
+  // C-C: --json always yields exactly one JSON object on stdout, so a caller
+  // never has to guess what an empty stdout meant.
+  if (FLAG_JSON) {
+    stdout.write(JSON.stringify({
+      ecosystem: null,
+      gates: [],
+      error: 'no_project_file',
+      message: 'no package.json, pyproject.toml, Cargo.toml or go.mod here — nothing to gate',
+    }, null, 2) + '\n');
+    process.exit(0);
+  }
+  stderr.write(`${C.error}✗ No supported project file found (package.json, pyproject.toml, Cargo.toml, go.mod)${C.reset}\n`);
+  process.exit(1);
+}
 
 function main() {
   if (FLAG_HELP) {
@@ -386,66 +790,53 @@ function main() {
   }
 
   const { ecosystem, gates } = detectGates();
-
-  if (!ecosystem) {
-    stderr.write(`${C.error}✗ No supported project file found (package.json, pyproject.toml, Cargo.toml, go.mod)${C.reset}\n`);
-    process.exit(1);
-  }
+  if (!ecosystem) noProjectFile();
 
   if (!FLAG_JSON) printHeader(ecosystem);
 
+  const ordered = orderGates(gates);
   const results = [];
   let anyFailed = false;
+  let stopped = false;
 
-  for (const gateName of GATE_ORDER) {
-    const cmd = gates[gateName];
-
-    if (!cmd) {
-      const gate = { name: gateName, status: 'skipped', time_ms: 0, output: '' };
-      results.push(gate);
-      if (!FLAG_JSON) printGateResult(gate);
+  for (const g of ordered) {
+    if (stopped || !g.cmd) {
+      const rec = {
+        kind: g.kind,
+        name: gateName(g),
+        status: 'skipped',
+        time_ms: 0,
+        output: '',
+        ...(g.message ? { message: g.message } : {}),
+        ...(stopped && g.cmd ? { message: 'not run: an earlier gate failed (use --continue)' } : {}),
+      };
+      results.push(rec);
+      if (!FLAG_JSON) printGateResult(rec);
       continue;
     }
 
-    if (!FLAG_JSON) {
-      stderr.write(`  ${C.muted}⋯ ${gateName}...${C.reset}\r`);
-    }
+    if (!FLAG_JSON) stderr.write(`  ${C.muted}⋯ ${gateName(g)}...${C.reset}\r`);
 
-    const gate = runGate(gateName, cmd);
-    results.push(gate);
+    const rec = runGate(g);
+    results.push(rec);
+    if (!FLAG_JSON) printGateResult(rec);
 
-    if (!FLAG_JSON) printGateResult(gate);
-
-    if (gate.status === 'fail') {
+    if (rec.status === 'fail') {
       anyFailed = true;
-      if (!FLAG_CONTINUE) break;
-    }
-  }
-
-  // Fill remaining gates as skipped if we stopped early
-  if (!FLAG_CONTINUE && anyFailed) {
-    const ran = new Set(results.map(r => r.name));
-    for (const gateName of GATE_ORDER) {
-      if (!ran.has(gateName)) {
-        const gate = { name: gateName, status: 'skipped', time_ms: 0, output: '' };
-        results.push(gate);
-        if (!FLAG_JSON) printGateResult(gate);
-      }
+      if (!FLAG_CONTINUE) stopped = true;
     }
   }
 
   const summary = {
-    passed:  results.filter(r => r.status === 'pass').length,
-    failed:  results.filter(r => r.status === 'fail').length,
-    skipped: results.filter(r => r.status === 'skipped').length,
+    passed:      results.filter(r => r.status === 'pass').length,
+    failed:      results.filter(r => r.status === 'fail').length,
+    skipped:     results.filter(r => r.status === 'skipped').length,
+    unavailable: results.filter(r => r.status === 'unavailable').length,
   };
 
   if (!FLAG_JSON) printSummary(summary);
 
-  // Always write JSON to stdout
-  const output = { gates: results, summary };
-  stdout.write(JSON.stringify(output, null, 2) + '\n');
-
+  stdout.write(JSON.stringify({ ecosystem, gates: results, summary }, null, 2) + '\n');
   process.exit(anyFailed ? 1 : 0);
 }
 
