@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-# test_flow.sh — tests for U3 scripts-flow: new-spec, slice-brief,
-# review-package, slice-overlap. Sourced by tests/run.sh, which defines
+# test_flow.sh — tests for U3 scripts-flow: new-spec, task-brief,
+# review-package, flow-lint. Sourced by tests/run.sh, which defines
 # HERE (this dir) and SCAN_DIR (its parent, where the scripts live).
 # All t_flow_* functions run in the same shell as run.sh (no subshell),
 # so any test that changes directory restores it before returning.
+#
+# Spec 004 deleted slice-brief and slice-overlap; the t_flow_slice_brief_* and
+# t_flow_slice_overlap_* tests that lived here were not weakened but relocated
+# onto their replacements, which cover the same behaviours at task granularity:
+#   slice-brief   -> task-brief, tested by t_taskbrief_* in test_flow_lint.sh
+#                    (help, one-task cut with its phase, --design contract,
+#                     missing task exit 1, default out path, BASE recording)
+#   slice-overlap -> flow-lint, tested by t_flowlint_* in test_flow_lint.sh
+#                    ([P] overlap in a wave is an ERROR, overlap across waves
+#                     is ok, --waves output, fenced decoys, CRLF, --json)
 
 t_flow_new_spec_help() {
 	run_cmd "$SCAN_DIR/new-spec" --help
@@ -11,22 +21,10 @@ t_flow_new_spec_help() {
 	assert_contains "$OUT" "Usage: new-spec" "flow: new-spec --help usage text"
 }
 
-t_flow_slice_brief_help() {
-	run_cmd "$SCAN_DIR/slice-brief" --help
-	assert_rc 0 "flow: slice-brief --help rc0"
-	assert_contains "$OUT" "Usage: slice-brief" "flow: slice-brief --help usage text"
-}
-
 t_flow_review_package_help() {
 	run_cmd "$SCAN_DIR/review-package" --help
 	assert_rc 0 "flow: review-package --help rc0"
 	assert_contains "$OUT" "Usage: review-package" "flow: review-package --help usage text"
-}
-
-t_flow_slice_overlap_help() {
-	run_cmd "$SCAN_DIR/slice-overlap" --help
-	assert_rc 0 "flow: slice-overlap --help rc0"
-	assert_contains "$OUT" "Usage: slice-overlap" "flow: slice-overlap --help usage text"
 }
 
 t_flow_new_spec_creates_dir_and_branch() {
@@ -429,70 +427,6 @@ t_flow_new_spec_worktree_records_physical_path() {
 	cd "$prevdir" || true
 }
 
-t_flow_slice_brief_extracts_slice1() {
-	local outdir out content
-	outdir=$(tmp_dir)
-	out="$outdir/slice1.md"
-	run_cmd "$SCAN_DIR/slice-brief" "$HERE/fixtures/plan.md" 1 --out "$out"
-	assert_rc 0 "flow: slice-brief extracts slice 1 rc0"
-	assert_contains "$OUT" "$out" "flow: slice-brief prints the output path"
-	assert_file_exists "$out" "flow: slice-brief writes the output file"
-	content=$(cat "$out")
-	assert_contains "$content" "## Slice 1 — Login flow" "flow: slice-brief slice1 heading present"
-	assert_contains "$content" "### Slice 1 — RED" "flow: slice-brief slice1 RED present"
-	assert_contains "$content" "### Slice 1 — GREEN" "flow: slice-brief slice1 GREEN present"
-	assert_contains "$content" "### Slice 1 — REFACTOR" "flow: slice-brief slice1 REFACTOR present"
-	assert_not_contains "$content" "## Slice 2" "flow: slice-brief slice1 excludes slice2"
-}
-
-t_flow_slice_brief_slice2_fence_decoy_boundaries() {
-	local outdir out content
-	outdir=$(tmp_dir)
-	out="$outdir/slice2.md"
-	run_cmd "$SCAN_DIR/slice-brief" "$HERE/fixtures/plan.md" 2 --out "$out"
-	assert_rc 0 "flow: slice-brief extracts slice 2 rc0"
-	content=$(cat "$out")
-	assert_contains "$content" "## Slice 2 — Logout flow" "flow: slice-brief slice2 heading present"
-	assert_contains "$content" "## Slice 9 — decoy" "flow: slice-brief slice2 includes the fenced decoy line verbatim"
-	assert_contains "$content" "### Slice 2 — REFACTOR" "flow: slice-brief slice2 REFACTOR present after the fence"
-	assert_not_contains "$content" "## Slice 3" "flow: slice-brief slice2 excludes slice3 (fence did not shift the boundary)"
-}
-
-t_flow_slice_brief_appends_design_contract() {
-	local outdir out content
-	outdir=$(tmp_dir)
-	out="$outdir/slice2-with-design.md"
-	run_cmd "$SCAN_DIR/slice-brief" "$HERE/fixtures/plan.md" 2 --design "$HERE/fixtures/code-design.md" --out "$out"
-	assert_rc 0 "flow: slice-brief with --design rc0"
-	content=$(cat "$out")
-	assert_contains "$content" "## Contract for this slice — Slice 2" "flow: slice-brief appends the matching design contract"
-	assert_not_contains "$content" "## Contract for this slice — Slice 1" "flow: slice-brief does not append a non-matching contract"
-}
-
-t_flow_slice_brief_missing_slice_exit1() {
-	local outdir out
-	outdir=$(tmp_dir)
-	out="$outdir/missing.md"
-	run_cmd "$SCAN_DIR/slice-brief" "$HERE/fixtures/plan.md" 99 --out "$out"
-	assert_rc 1 "flow: slice-brief exits 1 for a missing slice"
-}
-
-t_flow_slice_brief_default_out_path() {
-	local prevdir d
-	prevdir=$(pwd)
-	d=$(tmp_dir)
-	cd "$d" || {
-		_fail "flow: slice-brief default-out setup cd"
-		cd "$prevdir" || true
-		return
-	}
-	run_cmd "$SCAN_DIR/slice-brief" "$HERE/fixtures/plan.md" 1
-	assert_rc 0 "flow: slice-brief default out rc0"
-	assert_contains "$OUT" ".claude/slices/1-brief.md" "flow: slice-brief prints the default out path"
-	assert_file_exists ".claude/slices/1-brief.md" "flow: slice-brief default out file exists"
-	cd "$prevdir" || true
-}
-
 t_flow_review_package_two_commits_writes_diff_no_stdout_leak() {
 	local repo prevdir base out content expected_lines
 	prevdir=$(pwd)
@@ -555,347 +489,9 @@ t_flow_review_package_default_out_path() {
 	cd "$prevdir" || true
 }
 
-t_flow_slice_overlap_clean_fixture_rc0() {
-	run_cmd "$SCAN_DIR/slice-overlap" "$HERE/fixtures/plan.md"
-	assert_rc 0 "flow: slice-overlap rc0 on non-overlapping fixture"
-	assert_eq "$OUT" "" "flow: slice-overlap prints nothing when there is no overlap"
-}
-
-t_flow_slice_overlap_fence_decoy_ignored() {
-	run_cmd "$SCAN_DIR/slice-overlap" "$HERE/fixtures/plan.md"
-	assert_not_contains "$OUT" "decoy" "flow: slice-overlap does not react to the fenced decoy heading"
-	assert_not_contains "$OUT" "Slice 9" "flow: slice-overlap does not create a bogus Slice 9 grouping"
-}
-
-t_flow_slice_overlap_fence_decoy_files_bullet_ignored() {
-	# The shared fixtures/plan.md's fenced decoy has no "- **Files**:" bullet,
-	# so a fence-unaware slice-overlap produces byte-identical (empty) output
-	# against it and the test above never actually exercises the fence logic.
-	# Build a fixture whose fenced decoy DOES carry a "- **Files**:" bullet
-	# naming a file already owned by the real slice, so fence-blindness would
-	# manufacture a bogus "Slice 1, Slice 9" overlap and flip both the exit
-	# code and the output.
-	local d f
-	d=$(tmp_dir)
-	f="$d/fence-files-plan.md"
-	cat >"$f" <<PLANEOF
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 — First thing
-
-- **Files**: src/real.py
-
-### Slice 1 — RED
-
-red
-
-### Slice 1 — GREEN
-
-green
-
-Fenced block with a decoy heading and a Files bullet that a naive
-line-scanner would misread as a second owner of src/real.py:
-
-\`\`\`text
-## Slice 9 — decoy
-- **Files**: src/real.py
-### Slice 9 — RED
-### Slice 9 — GREEN
-### Slice 9 — REFACTOR
-\`\`\`
-
-### Slice 1 — REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	run_cmd "$SCAN_DIR/slice-overlap" "$f"
-	assert_rc 0 "flow: slice-overlap ignores a fenced decoy Files bullet (rc0, no bogus overlap)"
-	assert_eq "$OUT" "" "flow: slice-overlap prints nothing when the only overlap candidate is fenced"
-}
-
-t_flow_slice_overlap_detects_real_overlap() {
-	local d f
-	d=$(tmp_dir)
-	f="$d/overlap-plan.md"
-	cat >"$f" <<PLANEOF
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 — First thing
-
-- **Files**: src/shared.py, src/one.py
-
-### Slice 1 — RED
-
-red
-
-### Slice 1 — GREEN
-
-green
-
-### Slice 1 — REFACTOR
-
-refactor
-
-## Slice 2 — Second thing
-
-- **Files**: src/shared.py, src/two.py
-- **Depends-on**: Slice 1
-
-### Slice 2 — RED
-
-red
-
-### Slice 2 — GREEN
-
-green
-
-### Slice 2 — REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	run_cmd "$SCAN_DIR/slice-overlap" "$f"
-	assert_rc 1 "flow: slice-overlap exits 1 when a file is shared"
-	assert_contains "$OUT" "src/shared.py: Slice 1, Slice 2" "flow: slice-overlap reports the shared file and owning slices"
-}
-
-t_flow_slice_overlap_json_output() {
-	local d f
-	d=$(tmp_dir)
-	f="$d/overlap-plan-json.md"
-	cat >"$f" <<PLANEOF
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 — First thing
-
-- **Files**: src/shared.py
-
-### Slice 1 — RED
-
-red
-
-### Slice 1 — GREEN
-
-green
-
-### Slice 1 — REFACTOR
-
-refactor
-
-## Slice 2 — Second thing
-
-- **Files**: src/shared.py
-
-### Slice 2 — RED
-
-red
-
-### Slice 2 — GREEN
-
-green
-
-### Slice 2 — REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	run_cmd "$SCAN_DIR/slice-overlap" "$f" --json
-	assert_rc 1 "flow: slice-overlap --json exits 1 on overlap"
-	assert_contains "$OUT" '"overlaps":[{"file":"src/shared.py","slices":["Slice 1","Slice 2"]}]' "flow: slice-overlap --json emits the expected structure"
-}
-
-t_flow_slice_overlap_repeated_file_within_one_slice_no_false_positive() {
-	local d f
-	d=$(tmp_dir)
-	f="$d/dup-within-slice-plan.md"
-	cat >"$f" <<PLANEOF
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 — Only thing
-
-- **Files**: src/a.py, src/a.py
-
-### Slice 1 — RED
-
-red
-
-### Slice 1 — GREEN
-
-green
-
-### Slice 1 — REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	run_cmd "$SCAN_DIR/slice-overlap" "$f"
-	assert_rc 0 "flow: slice-overlap rc0 when a single slice lists the same file twice"
-	assert_eq "$OUT" "" "flow: slice-overlap prints nothing for a file repeated within one slice's own Files list"
-}
-
-t_flow_slice_overlap_strips_crlf() {
-	# The shared file is the LAST token on each "- **Files**:" line, so an
-	# awk that does not strip a trailing \r from the whole line (only
-	# trims [ \t] from each split field) attaches the CR to this exact
-	# token on both slices, producing a byte-identical overlap key
-	# ("src/shared.py\r") on both sides — same rc=1, but the printed line
-	# carries the raw CR and never equals the clean assertion below. That
-	# distinguishes the fixed awk (line-level `sub(/\r$/, "", line)`) from
-	# the unfixed one, unlike a fixture where the shared file is first.
-	local d f lf
-	d=$(tmp_dir)
-	lf="$d/crlf-plan.lf.md"
-	f="$d/crlf-plan.md"
-	cat >"$lf" <<'PLANEOF'
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 - First thing
-
-- **Files**: src/one.py, src/shared.py
-
-### Slice 1 - RED
-
-red
-
-### Slice 1 - GREEN
-
-green
-
-### Slice 1 - REFACTOR
-
-refactor
-
-## Slice 2 - Second thing
-
-- **Files**: src/two.py, src/shared.py
-- **Depends-on**: Slice 1
-
-### Slice 2 - RED
-
-red
-
-### Slice 2 - GREEN
-
-green
-
-### Slice 2 - REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	awk '{ printf "%s\r\n", $0 }' "$lf" >"$f"
-	run_cmd "$SCAN_DIR/slice-overlap" "$f"
-	assert_rc 1 "flow: slice-overlap strips CRLF and still detects a real overlap"
-	assert_contains "$OUT" "src/shared.py: Slice 1, Slice 2" "flow: slice-overlap CRLF file overlap output has no trailing CR on the file name"
-	assert_not_contains "$OUT" "$(printf '\r')" "flow: slice-overlap output contains no raw CR byte"
-}
-
-t_flow_slice_overlap_strips_crlf_waves() {
-	# --waves runs the same OVERLAP_AWK gate first. Put the shared file
-	# LAST on Slice 1's line only (Slice 2's line ends in a different
-	# file), so an unfixed awk attaches a trailing CR to Slice 1's
-	# "src/shared.py" but leaves Slice 2's clean copy untouched: the two
-	# keys ("src/shared.py\r" vs "src/shared.py") would then look like
-	# DIFFERENT files, the overlap would be missed (rc 0), and --waves
-	# would wrongly compute waves for what is really one shared file.
-	# The fixed awk strips the CR before the Files bullet is parsed, so
-	# both copies collapse to the same key and the overlap gate blocks
-	# wave computation (rc 1) — a token position where the CR fix is
-	# load-bearing for the --waves entry point too.
-	local d f lf
-	d=$(tmp_dir)
-	lf="$d/crlf-waves-plan.lf.md"
-	f="$d/crlf-waves-plan.md"
-	cat >"$lf" <<'PLANEOF'
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | test_thing.py::test_it |
-
-## Slice 1 - First thing
-
-- **Files**: src/one.py, src/shared.py
-
-### Slice 1 - RED
-
-red
-
-### Slice 1 - GREEN
-
-green
-
-### Slice 1 - REFACTOR
-
-refactor
-
-## Slice 2 - Second thing
-
-- **Files**: src/shared.py, src/two.py
-- **Depends-on**: Slice 1
-
-### Slice 2 - RED
-
-red
-
-### Slice 2 - GREEN
-
-green
-
-### Slice 2 - REFACTOR
-
-refactor
-
-## Gate Phases
-
-- Phase 1: lint
-PLANEOF
-	awk '{ printf "%s\r\n", $0 }' "$lf" >"$f"
-	run_cmd "$SCAN_DIR/slice-overlap" "$f" --waves
-	assert_rc 1 "flow: slice-overlap --waves strips CRLF and still catches the overlap before computing waves"
-	assert_contains "$OUT" "src/shared.py: Slice 1, Slice 2" "flow: slice-overlap --waves CRLF overlap output has no trailing CR on the file name"
-	assert_not_contains "$OUT" "wave " "flow: slice-overlap --waves does not compute waves when the CRLF-hidden overlap is caught"
-}
-
 t_flow_scripts_are_well_formed() {
 	local scripts s
-	scripts="new-spec slice-brief review-package slice-overlap"
+	scripts="new-spec task-brief review-package flow-lint"
 	for s in $scripts; do
 		if [ -x "$SCAN_DIR/$s" ]; then
 			_pass "flow: $s is executable"

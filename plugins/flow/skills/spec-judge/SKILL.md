@@ -1,6 +1,6 @@
 ---
 name: spec-judge
-description: "Evaluate software/product spec quality across 8 dimensions, scoring out of 120 (IEEE 29148, INVEST, SMART, Wiegers, EARS). Produces score, letter grade A-F, Buildability ratio B:D:U, and Top 3 Improvements with quoted evidence. Calibrates against Small/Medium/Large tiers. Also runs ISSUE-BREAKDOWN MODE (caller passes MODE: issue-breakdown) scoring a tracer-bullet vertical-slice issue plan out of 100 across 5 dimensions: vertical integrity, AFK/HITL classification accuracy, dependency soundness, spec coverage, and INVEST granularity. Use when: (1) flow-spec or flow-to-issues invokes this as a refinement-loop subagent, (2) user runs /spec-judge directly on a path, (3) a PRD, SRS, requirements doc, or user-story spec needs pre-implementation quality audit, (4) user asks \"is this spec ready to build from?\", \"rate/score/judge this spec\", \"review spec\", \"audit requirements\", or \"score the slices\". Do NOT use for design docs, architecture docs, or code reviews — those are not specs."
+description: "Evaluate software/product spec quality across 8 dimensions, scoring out of 120 (IEEE 29148, INVEST, SMART, Wiegers, EARS). Produces score, letter grade A-F, Buildability ratio B:D:U, and Top 3 Improvements with quoted evidence. Calibrates against Small/Medium/Large tiers. Also runs ISSUE-BREAKDOWN MODE (caller passes MODE: issue-breakdown) scoring a tracer-bullet vertical-slice issue plan out of 100 across 5 dimensions: vertical integrity, AFK/HITL classification accuracy, dependency soundness, spec coverage, and INVEST granularity. Use when: (1) /flow:spec invokes this as a refinement-loop subagent, (2) user runs /spec-judge directly on a path, (3) a PRD, SRS, requirements doc, or user-story spec needs pre-implementation quality audit, (4) user asks \"is this spec ready to build from?\", \"rate/score/judge this spec\", \"review spec\", \"audit requirements\", or \"score the slices\". Do NOT use for design docs, architecture docs, or code reviews — those are not specs."
 ---
 
 # Spec Judge
@@ -629,7 +629,7 @@ Nine named patterns drawn from the practitioner anti-pattern catalog. Detect dur
 
 ## Issue-Breakdown Mode (Tracer-Bullet + AFK)
 
-When invoked on an **issue breakdown** (a `plan.md` / `issues/*.md` set produced by flow-to-issues) instead of a raw spec, switch to this rubric. The caller will say `MODE: issue-breakdown`. Score out of 100 across 5 dimensions. Be just as ruthless: a breakdown that scores high is one where an agent can pick up any AFK issue and ship it end-to-end without a human.
+When invoked on an **issue breakdown** (a task list such as a `TASKS.md`, or a legacy `plan.md` / `issues/*.md` set) instead of a raw spec, switch to this rubric. The caller will say `MODE: issue-breakdown`. Score out of 100 across 5 dimensions. Be just as ruthless: a breakdown that scores high is one where an agent can pick up any AFK issue and ship it end-to-end without a human.
 
 ### What a tracer-bullet vertical slice IS
 

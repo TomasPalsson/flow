@@ -122,7 +122,7 @@ Every deepening slice's `## Acceptance criteria` has exactly these three, and **
 - <adjacent modules a later slice handles — keeps blast radius small>
 ```
 
-`plan.md` subsection (append, identical format to flow-to-issues):
+`plan.md` subsection (append, identical format to the task list `/flow:spec` writes):
 
 ```markdown
 ### 05 — Caller deserializes a file with one call
@@ -149,5 +149,5 @@ Every deepening slice's `## Acceptance criteria` has exactly these three, and **
 
 **Slice 06** (AFK, depends-on #05): *"Caller lists users without passing a page-size tuning param."* Config-explosion signal: `list(pageSize, prefetch, cacheTtlMs)`. Same module as #05 → serialized so #05's characterization test pins the seam first.
 
-Both are behavior-preserving, both characterization-test-gated, both land in `.specs/<NNN>/issues/` for flow-swarm to pick up unchanged.
+Both are behavior-preserving, both characterization-test-gated, both land in `.specs/<NNN>/issues/` for /flow:next to pick up unchanged.
 

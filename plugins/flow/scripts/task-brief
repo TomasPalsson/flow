@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # task-brief — cut one task's brief out of a TASKS.md, for a fresh subagent.
 #
-# Task granularity (was slice-brief, which cut whole slices). Fence-aware:
+# Task granularity: one task, not a whole v1 slice. Fence-aware:
 # a task line inside a ``` or ~~~ fence is an example, never the task.
 #
 # Records BASE — git rev-parse --short HEAD at the moment the brief is
