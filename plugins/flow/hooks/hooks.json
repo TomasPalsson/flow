@@ -100,6 +100,12 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop-gate.sh",
             "timeout": 600,
             "statusMessage": "flow: running gates…"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/loop-gate.sh",
+            "timeout": 660,
+            "statusMessage": "flow: loop tick…"
           }
         ]
       }

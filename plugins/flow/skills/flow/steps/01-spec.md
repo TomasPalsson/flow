@@ -10,6 +10,7 @@ Run discovery **serially** — one question per turn, Anchor → Boundaries → 
 2. **Quantify every adjective.** "fast" / "secure" / "scalable" become a number with a unit and a measurement point.
 3. **Always ask the negative-scope question**: "what should this explicitly NOT do?"
 4. **Medium/Large only**: always ask "who maintains this after launch, and what do they know?" The answer changes the architecture and is structurally orphaned in every other tool.
+5. **If `.specs/NNN-*/PREP.md` exists with `Status: ready for spec`**, discovery is consolidate-mode from that file per flow-spec's PREP.md gate — never re-ask a `D-NN`, never load the question bank; step 0.5 already passed `--reuse .specs/NNN-<slug>` to `new-spec`, so the spec lands beside `PREP.md`.
 
 `${CLAUDE_PLUGIN_ROOT}/skills/flow-spec/references/question-bank.md` holds the 8-category taxonomy, the quantification probes and the "I don't know" fallback — **consult it when a line of questioning stalls**, not as a preamble.
 

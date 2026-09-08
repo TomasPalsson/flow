@@ -25,7 +25,7 @@ Read [`../orchestration.md`](../orchestration.md) — the one rule plus mode det
 
 ## 0.5 Spec dir + branch
 
-Run `${CLAUDE_PLUGIN_ROOT}/scripts/new-spec "<feature title>" --prefix flow/` (add `--worktree` unless `--no-worktree` was requested; add `--no-branch` when the user wants to stay on the current branch). It computes the next `NNN`, creates `.specs/NNN-slug/`, creates and checks out `flow/<slug>`, writes `.claude/flow.json`, and prints that JSON. Read the JSON back — `spec_dir` is where step 1 writes, `branch` is the PR head, and `git rev-parse HEAD` right after is the review **base** steps 4–5 diff against.
+Run `${CLAUDE_PLUGIN_ROOT}/scripts/new-spec "<feature title>" --prefix flow/` (add `--worktree` unless `--no-worktree` was requested; add `--no-branch` when the user wants to stay on the current branch). If `/flow:prep` ran first — a `.specs/NNN-<slug>/PREP.md` with `Status: ready for spec` and no `spec.md` beside it — add `--reuse .specs/NNN-<slug>` so no new number is allocated and the spec lands beside `PREP.md`. It computes the next `NNN`, creates `.specs/NNN-slug/`, creates and checks out `flow/<slug>`, writes `.claude/flow.json`, and prints that JSON. Read the JSON back — `spec_dir` is where step 1 writes, `branch` is the PR head, and `git rev-parse HEAD` right after is the review **base** steps 4–5 diff against.
 
 Write `.claude/workflow-state.local.md` with `type: flow`, the mode, size, `unattended` flag, detected commands, the base sha, the code-design path (once step 3 writes it), and an empty `## Progress` section.
 

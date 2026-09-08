@@ -23,7 +23,7 @@ This repo is a Claude Code **plugin marketplace**. `flow` is the core plugin; th
 ```
 .claude-plugin/marketplace.json
 plugins/
-├── flow/              hooks/ (+ hooks.json) · scripts/ · workflows/ · flow-templates/ · bin/flow · skills/ (flow suite, qa, audit, fix, ultracode, …)
+├── flow/              hooks/ (+ hooks.json) · scripts/ · workflows/ · flow-templates/ · bin/flow · skills/ (flow suite, loop, qa, audit, fix, ultracode, …)
 ├── design/            design, impeccable, ui-ux-pro-max, mobile-design, polish, showcase, ui-animation, explainer
 ├── finance/           alpha-hunt, portfolio, investment, etoro
 ├── aws/               aws-explore, aws-lambda-microvms, strands-agentcore, strands-steering-hooks, agui-strands, sst
@@ -45,9 +45,12 @@ Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to
 | Before a shell command | `git-guard.sh` | denies force-push, hard reset, `clean -f`, `branch -D`, `commit --no-verify`, `rm -rf` of roots; quote-aware; `--force-with-lease` allowed |
 | After every edit | `format-lint.sh` · `size-guard.sh` · `tamper-notice.sh` | formats; flags files > 400 lines / functions > 60 with a teaching message; puts newly added `.skip`/`xfail` or loosened thresholds on the record |
 | Turn end | `stop-gate.sh` | runs tests related to the change (full sweep every 15 min); refuses to end the turn while red; wedge valve after three identical failures; honours `stop_hook_active` |
+| Turn end, loop armed | `loop-gate.sh` | when `.claude/loop/loop.md` is active for this session, passes `flow loop tick --hook` through: the verifier decides whether the turn may end; caps, stall and wedge detectors bound it |
 | Compaction | `pre-compact-backup.sh`, `postcompact-context.sh` | transcript backup; "treat the summary as untrusted" reminder |
 | Subagent end | `subagent-log.sh` | logs the final message so a lost report is recoverable |
 | Permission / idle | `notify.sh` | desktop notification (notify-send / osascript) |
+
+**Loops.** `/flow:loop <goal> --verify "<cmd>"` runs a task until a deterministic verifier passes — never until the model says so. Two shapes: `session` (Stop hook, ≤ 8 iterations, you watch) and `fresh` (`flow loop run`: an outer loop of fresh `claude -p` sessions, capped by iterations, minutes, dollars, stall and wedge detectors, with a tamper veto on the test layer and `BLOCKED.md` as the model's only honest exit). Contract, log and learnings live under `.claude/loop/`. Research: [`docs/research/12-loop-engineering-2026.md`](docs/research/12-loop-engineering-2026.md); spec: `.specs/006-loop-engineering/spec.md`.
 
 Per-project knobs in `.claude/flow.config.json`: `maxFileLines`, `maxFuncLines`, `stopGate` (`scoped` | `true` | `false`), `stopGateBudgetSec`, `sizeGuard`, `formatOnEdit`, `ignore`, `codebaseMap`.
 
@@ -90,6 +93,7 @@ Tests: `bash plugins/flow/hooks/tests/run.sh` and `bash plugins/flow/scripts/tes
 | [04 Codebase maps and graphs](docs/research/04-codebase-maps-and-graphs.md) | graphify/GitNexus/Serena/LSP/repo-map/memory compared; the explorer brief is the measured win |
 | [05 Beads](docs/research/05-beads.md) | not adopted; which of its ideas were borrowed |
 | [06 Panel decisions](docs/research/06-adversary-panel-decisions.md) | 38 findings from seven adversary lenses, adjudicated before the build |
+| [12 Loop engineering 2026](docs/research/12-loop-engineering-2026.md) | Ralph loops and descendants at source level, Claude Code's autonomy primitives verified verbatim, 12 ranked principles, the exit stack (verifier → tamper veto → held-out → stall/wedge → caps), failure-mode register, economics, vendor landscape, citation defects |
 
 Raw per-dimension reports with independent source checks: [`docs/research/raw/`](docs/research/raw/).
 

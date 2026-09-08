@@ -30,6 +30,19 @@ git-guard.sh — PreToolUse/Bash hook.
 
 `hook_git_managed <file>` in `lib/hookout.sh`: true when the file sits inside a git work tree and is not git-ignored. `format-lint`, `size-guard`, `spec-gate` and `tamper-notice` (except for gate-config files, which are always in scope) skip anything else, so scratch scripts, files under `/tmp`, and ignored build output are never formatted, measured or gated. The ignore exemption is turn-scoped: it is voided only when the ignore file (`.gitignore`, `.git/info/exclude`) is newer than the turn stamp, and then only for files under that ignore file's directory (adding a path to `.gitignore` in the same turn as editing it does not dodge the hooks; an ignore rule already in place before the turn started still exempts). `CC_HOOKS_ALL_FILES=1` enforces everywhere for a session.
 
+## loop-gate.sh
+
+```
+loop-gate.sh — Stop hook. See spec 006 K-K.
+```
+
+Fast path: exits 0 immediately when `.claude/loop/loop.md` does not exist, so
+a project with no active `flow loop` contract never spawns node on Stop. When
+a contract exists, it runs `flow loop tick --hook --session <id>` and prints
+that command's stdout verbatim — the only thing it consumes or emits; all
+loop state-machine logic (block/allow, iteration caps, shape) lives in
+`flow loop tick`, never in the hook. Registered after `stop-gate.sh`.
+
 ## notify.sh
 
 ```

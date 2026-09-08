@@ -27,7 +27,7 @@
 - investment
 - portfolio
 
-## harness (28 skills)
+## harness (30 skills)
 
 - audit
 - better-plan
@@ -46,9 +46,11 @@
 - grill-me
 - grill-with-docs
 - lesson
+- loop
 - overkill
 - prompt-engineer
 - pr-reviewer
+- prep
 - qa
 - scrutinize-idea
 - shared

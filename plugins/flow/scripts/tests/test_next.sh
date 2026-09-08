@@ -951,3 +951,124 @@ t_next_resume_template_placeholder_is_silent() {
 
 	rm -rf "$home" "$proj"
 }
+
+# ---------------------------------------------------------------------------
+# C-prep — a PREP.md waiting on its spec, or still mid-interview, outranks
+# the generic no-flow fallback. No flow.json, no PROGRESS.md in any of these.
+# ---------------------------------------------------------------------------
+
+t_next_prep_ready() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-entry-tagging"
+	cat >"$proj/.specs/001-entry-tagging/PREP.md" <<'EOF'
+# Prep — Entry tagging
+Gathered: 2026-09-07 · Questions: 12 of 12 · Route: bounded · Status: ready for spec
+EOF
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: /flow:flow-spec
+Why: .specs/001-entry-tagging/PREP.md is ready for spec, no spec.md yet" "t_next_prep_ready exact"
+
+	rm -rf "$home" "$proj"
+}
+
+t_next_prep_interviewing() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-entry-tagging"
+	cat >"$proj/.specs/001-entry-tagging/PREP.md" <<'EOF'
+# Prep — Entry tagging
+Gathered: 2026-09-07 · Questions: 4 of 12 · Route: bounded · Status: interviewing
+EOF
+
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: /flow:prep
+Why: .specs/001-entry-tagging/PREP.md: interview 4 of 12 answered" "t_next_prep_interviewing exact"
+
+	rm -rf "$home" "$proj"
+}
+
+t_next_prep_with_spec_ignored() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-entry-tagging"
+	cat >"$proj/.specs/001-entry-tagging/PREP.md" <<'EOF'
+# Prep — Entry tagging
+Gathered: 2026-09-07 · Questions: 12 of 12 · Route: bounded · Status: ready for spec
+EOF
+	printf '# spec\n' >"$proj/.specs/001-entry-tagging/spec.md"
+
+	nx_cli_in "$proj" "$home" next
+	assert_not_contains "$OUT" "/flow:flow-spec" "t_next_prep_with_spec_ignored no-flow-spec"
+	assert_not_contains "$OUT" "/flow:prep" "t_next_prep_with_spec_ignored no-flow-prep"
+
+	rm -rf "$home" "$proj"
+}
+
+t_next_prep_done_in_chat_ignored() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-entry-tagging"
+	cat >"$proj/.specs/001-entry-tagging/PREP.md" <<'EOF'
+# Prep — Entry tagging
+Gathered: 2026-09-07 · Questions: 3 of 12 · Route: bounded · Status: done in chat
+EOF
+
+	nx_cli_in "$proj" "$home" next
+	assert_not_contains "$OUT" "/flow:flow-spec" "t_next_prep_done_in_chat_ignored no-flow-spec"
+	assert_not_contains "$OUT" "/flow:prep" "t_next_prep_done_in_chat_ignored no-flow-prep"
+
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# prep never outranks real state: a stale PREP.md in an unrelated dir must not
+# hijack a shipped flow branch (adversary finding, 2026-09-07)
+# ---------------------------------------------------------------------------
+
+t_next_prep_stale_does_not_hijack_shipped_branch() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	git -C "$proj" checkout -q -b flow/shipped-thing
+	mkdir -p "$proj/.specs/001-old-abandoned" "$proj/.specs/002-shipped-thing"
+	printf '# Prep — Old\nGathered: 2026-01-01 · Questions: 3 of 12 · Route: dispatch · Status: ready for spec\n' >"$proj/.specs/001-old-abandoned/PREP.md"
+	printf '# Spec\n' >"$proj/.specs/002-shipped-thing/spec.md"
+	git -C "$proj" add .specs >/dev/null
+	git -C "$proj" -c user.email=t@e.com -c user.name=t commit -q -m "spec"
+	printf 'x\n' >"$proj/dirty.txt"
+
+	# The shipped-dirty answer is `/wrap` (C-D: `Next:` is ONE runnable command;
+	# the older "/wrap then /ship" prose is what t_next_flow_branch_spec_committed_dirty
+	# pins today). What this test guards is unchanged: the shipped branch answers,
+	# the stale prep does not.
+	nx_cli_in "$proj" "$home" next
+	assert_contains "$OUT" "Next: /wrap" "stale prep does not outrank a shipped dirty flow branch"
+	assert_contains "$OUT" ".specs/002-shipped-thing is committed on flow/shipped-thing; tree is dirty" "shipped-branch answer, not a prep answer"
+	assert_not_contains "$OUT" "/flow:flow-spec" "stale prep does not supply the command"
+	assert_not_contains "$OUT" "001-old-abandoned" "stale prep dir is not mentioned"
+
+	rm -rf "$home" "$proj"
+}
+
+t_next_prep_prefers_branch_slug() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	git -C "$proj" checkout -q -b flow/entry-tagging
+	mkdir -p "$proj/.specs/001-entry-tagging" "$proj/.specs/002-other-thing"
+	printf 'Gathered: 2026-09-07 · Questions: 5 of 12 · Route: dispatch · Status: ready for spec\n' >"$proj/.specs/001-entry-tagging/PREP.md"
+	printf 'Gathered: 2026-09-07 · Questions: 1 of 12 · Route: dispatch · Status: interviewing\n' >"$proj/.specs/002-other-thing/PREP.md"
+
+	nx_cli_in "$proj" "$home" next
+	assert_contains "$OUT" "Next: /flow:flow-spec" "branch-matching prep wins over a newer unrelated prep"
+	assert_contains "$OUT" "001-entry-tagging" "branch-matching prep dir named"
+	assert_contains "$OUT" "2 preps without a spec" "multiple preps are counted in why"
+
+	rm -rf "$home" "$proj"
+}

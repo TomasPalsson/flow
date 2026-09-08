@@ -59,7 +59,9 @@ Size determines:
 
 ### Phase 2 — Discovery (Serial Questioning)
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/question-bank.md`](references/question-bank.md) before asking your first question. It contains the 8-category taxonomy, the recommended phrasings, the quantification probes, and the three-step "I don't know" fallback.
+**PREP.md gate (check before everything else).** If a `.specs/NNN-*/PREP.md` exists with `Status: ready for spec` and no `spec.md` beside it, that directory is the spec directory and the interview is already done — do NOT load `references/question-bank.md` at all. Consolidate from the file: every `D-NN` under `## Decisions` is copied verbatim into the spec and never re-asked (if the spec must contradict one, write `[NEEDS CLARIFICATION: conflicts with D-NN]` rather than asking); `## Not this` becomes Section 2.2 Non-Goals verbatim; `## Discretion` items are decided silently by the spec writer and never asked; `## Assumptions` land in the Assumptions table with their confidence; `## Verify` seeds the launch criteria / acceptance; `## Open` items become Open Questions (they already count toward the cap of 3). Gap questions are allowed ONLY for a category PREP.md left genuinely empty. The two consolidate-mode guards below become conditional: ask the negative-scope question only if `## Not this` is empty; run the quantification probe only on adjectives PREP.md did not already quantify. A PREP.md with `Status: interviewing` means prep is unfinished — tell the user to finish `/flow:prep` first and stop.
+
+**MANDATORY — READ ENTIRE FILE (unless the PREP.md gate above fired)**: Load [`references/question-bank.md`](references/question-bank.md) before asking your first question. It contains the 8-category taxonomy, the recommended phrasings, the quantification probes, and the three-step "I don't know" fallback.
 
 **Consolidate-mode gate (check FIRST).** If the spec request arrives with rich context already resolved — a long prior design conversation in this session, or an existing codebase you've explored — do NOT re-interview from scratch. Instead: (a) synthesize a draft answer to each of the 8 categories from the context you already have, (b) show the user a compact "here's what I already know" summary, (c) ask gap-filling questions ONLY for categories the context left genuinely unresolved. This is borrowed from the to-prd philosophy: consolidate resolved understanding rather than re-gathering it. Two guards are non-negotiable even in consolidate mode — you MUST still ask the negative-scope question (rule 5) and MUST still quantify every surviving adjective (rule 4); silent context rarely contains either. If context is thin or absent, skip this gate and run the full serial interview below.
 
@@ -87,6 +89,7 @@ Size determines:
 **Do NOT load `references/question-bank.md` in this phase** — it was loaded in Phase 2 and re-loading it duplicates ~10K tokens of context that won't be referenced again.
 
 **Where to write the spec**:
+- If the PREP.md gate fired, write `spec.md` beside that `PREP.md` in the same `.specs/NNN-<slug>/` directory — never allocate a new number.
 - Default: write to `.specs/<NNN>-<feature-slug>/spec.md`, where `<NNN>` is a zero-padded 3-digit sequence (`001`, `002`, …). Compute `<NNN>` by scanning `.specs/` for existing `NNN-*` directories and taking `max + 1` (or `001` if none / the dir doesn't exist yet). Create `.specs/` if absent.
 - If the project already uses a `specs/` or `.specify/` directory, follow that existing convention instead: `specs/<NNN>-<feature-slug>/spec.md`
 - Always tell the user the path before writing
@@ -264,3 +267,5 @@ Each rule states the prohibition AND the non-obvious failure mode it prevents. T
 - **NEVER** treat spec-judge's score as ground truth without sanity check — if the judge scores D3 (Testability) low but discovery produced legitimate ACs, the spec may need restructuring (move the ACs into the journey table) rather than content addition. Blind compliance with the judge can degrade quality.
 
 - **NEVER** rewrite the entire spec in response to judge feedback — wholesale rewrites fix the dimension the judge flagged while silently erasing coverage in dimensions that were already passing. The result is sideways motion or regression. Apply changes to the smallest scope that addresses the cited evidence: edit a single requirement, replace a single adjective, add a single missing section. Diff your edit against what was working before committing it.
+
+- **NEVER** re-ask a decision recorded as a `D-NN` in PREP.md — the user already made it; re-asking teaches them the file is decorative and the interview was wasted, and a second answer that differs silently forks the record. Contradict it only via a `[NEEDS CLARIFICATION: conflicts with D-NN]` marker.

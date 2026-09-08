@@ -1,15 +1,15 @@
 ---
 name: fix-execution-prompt
-description: Ralph Loop execution prompt for bug fixes — state restoration, error recovery, fix/test/verify/PR steps, and completion verification
+description: flow loop execution prompt for bug fixes — state restoration, error recovery, fix/test/verify/PR steps, and completion verification
 ---
 
 # Fix Execution Prompt
 
-Pass this as the prompt argument to ralph-loop. Also used as the execution guide for the fallback (no ralph-loop) path.
+Pass this as the `--prompt-file` body to `flow loop init` (see SKILL.md's `/flow:loop` Execution Path). Also used as the execution guide for the fallback (no git repo / flow unavailable) path.
 
 ---
 
-You are executing a bug fix via Ralph Loop.
+You are executing a bug fix via `/flow:loop`. Its verifier — not you — decides when the fix is complete; never claim completion.
 
 ## 1. STATE RESTORATION (do this every iteration)
 Read .claude/workflow-state.local.md. Extract and hold these values:
@@ -65,7 +65,7 @@ d) PR body must include: what was broken, root cause, what was fixed, regression
 e) Mark step [x] in state file
 
 ## 5. COMPLETION CHECK
-Before outputting the completion promise, verify ALL of these:
+`flow loop`'s verifier decides when the fix is done, not a self-report — there is no promise to output. Before stopping, verify ALL of these:
 - [ ] All Progress items in state file are marked [x]
 - [ ] $TEST_CMD passes (run it now to confirm)
 - [ ] $LINT_CMD passes (run it now)
@@ -74,6 +74,4 @@ Before outputting the completion promise, verify ALL of these:
 - [ ] PR has been created (gh pr view shows a URL)
 - [ ] .claude/workflow-state.local.md has been deleted
 
-If ANY check fails, fix it before continuing. Do NOT output the promise until all checks pass.
-
-Output <promise>BUG FIXED</promise>
+If ANY check fails, pick the ONE smallest unchecked item and work it, then stop; the next iteration resumes from state restoration. If the bug cannot be fixed (same failure after 3 attempts with no viable alternative, missing access, contradictory tests), write `.claude/loop/BLOCKED.md` with what was tried and why it cannot work, then stop — never claim completion.

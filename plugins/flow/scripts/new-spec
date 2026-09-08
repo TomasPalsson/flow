@@ -5,7 +5,7 @@ set -u
 
 usage() {
   cat <<'EOF'
-Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--worktree] [--json]
+Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--worktree] [--reuse <dir>/NNN-slug] [--json]
 
 Computes the next 3-digit spec number from existing <dir>/NNN-* entries
 (001 when none exist), slugifies <title> to lowercase ASCII [a-z0-9-]
@@ -15,6 +15,10 @@ and every local/remote branch's committed <dir>. Inside zellij
 (ZELLIJ_PANE_ID set), the pane is renamed to NNN-slug; failures are
 ignored.
 
+With --reuse <path>, no number is allocated and nothing is created:
+<path> must be an existing <dir>/NNN-slug (a /flow:prep directory holding
+PREP.md); NNN and slug are read from its name and everything else runs
+as usual, so spec.md lands beside PREP.md.
 Unless --no-branch is given, creates and checks out branch
 <prefix><slug> from the current HEAD. With --worktree, instead creates
 the branch in a sibling worktree at
@@ -130,6 +134,7 @@ DIR=".specs"
 PREFIX="flow/"
 NO_BRANCH=0
 WORKTREE=0
+REUSE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -152,6 +157,10 @@ while [ $# -gt 0 ]; do
   --worktree)
     WORKTREE=1
     shift
+    ;;
+  --reuse)
+    REUSE=$2
+    shift 2
     ;;
   --json)
     shift
@@ -188,23 +197,46 @@ if [ "$NO_BRANCH" -eq 0 ]; then
   fi
 fi
 
-NUMBER=$(next_number "$DIR")
-SLUG=$(slugify "$TITLE")
+if [ -n "$REUSE" ]; then
+  # --reuse: adopt an existing <dir>/NNN-slug (a /flow:prep directory) as the
+  # spec dir. Nothing is allocated and nothing is created, so the failure
+  # paths below must not remove it either.
+  if [ ! -d "$REUSE" ]; then
+    printf 'new-spec: --reuse %s is not a directory\n' "$REUSE" >&2
+    exit 1
+  fi
+  SPEC_DIR=${REUSE%/}
+  base=$(basename "$SPEC_DIR")
+  case "$base" in
+  [0-9][0-9][0-9]-?*) ;;
+  *)
+    printf 'new-spec: --reuse expects <dir>/NNN-slug, got %s\n' "$base" >&2
+    exit 1
+    ;;
+  esac
+  NUMBER=${base%%-*}
+  SLUG=${base#*-}
+  SPEC_DIR_CREATED=0
+else
+  NUMBER=$(next_number "$DIR")
+  SLUG=$(slugify "$TITLE")
 
-if [ -z "$SLUG" ]; then
-  printf 'new-spec: title must contain at least one ASCII letter or digit\n' >&2
-  exit 1
-fi
+  if [ -z "$SLUG" ]; then
+    printf 'new-spec: title must contain at least one ASCII letter or digit\n' >&2
+    exit 1
+  fi
 
-SPEC_DIR="$DIR/$NUMBER-$SLUG"
+  SPEC_DIR="$DIR/$NUMBER-$SLUG"
 
-# Create SPEC_DIR BEFORE any git mutation: if <dir> is not writable we fail
-# here with the repo untouched (no branch/worktree created). If the
-# subsequent branch/worktree step fails, we remove this now-empty
-# directory again so neither failure path leaves partial state.
-if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
-  printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
-  exit 1
+  # Create SPEC_DIR BEFORE any git mutation: if <dir> is not writable we fail
+  # here with the repo untouched (no branch/worktree created). If the
+  # subsequent branch/worktree step fails, we remove this now-empty
+  # directory again so neither failure path leaves partial state.
+  if ! mkdir -p "$SPEC_DIR" 2>/dev/null; then
+    printf 'new-spec: cannot create %s (not writable?)\n' "$SPEC_DIR" >&2
+    exit 1
+  fi
+  SPEC_DIR_CREATED=1
 fi
 
 BRANCH=""
@@ -227,7 +259,9 @@ if [ "$NO_BRANCH" -eq 0 ]; then
       if [ "$BRANCH_EXISTED" -eq 0 ]; then
         git branch -D "$BRANCH" >/dev/null 2>&1 || true
       fi
-      rmdir "$SPEC_DIR" 2>/dev/null || true
+      if [ "$SPEC_DIR_CREATED" -eq 1 ]; then
+        rmdir "$SPEC_DIR" 2>/dev/null || true
+      fi
       printf 'new-spec: git worktree add failed:\n%s\n' "$err" >&2
       exit 1
     fi
@@ -238,7 +272,9 @@ if [ "$NO_BRANCH" -eq 0 ]; then
     err=$(git checkout -b "$BRANCH" 2>&1 >/dev/null)
     rc=$?
     if [ "$rc" -ne 0 ]; then
-      rmdir "$SPEC_DIR" 2>/dev/null || true
+      if [ "$SPEC_DIR_CREATED" -eq 1 ]; then
+        rmdir "$SPEC_DIR" 2>/dev/null || true
+      fi
       printf 'new-spec: git checkout -b failed:\n%s\n' "$err" >&2
       exit 1
     fi
