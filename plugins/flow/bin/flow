@@ -2198,8 +2198,29 @@ function installEnsureLink(opts) {
 // identical real file → replaced by the link (nothing is lost); differing
 // real file (or a real directory) → kept unless --force, which moves it to
 // <name>.pre-harness.<epoch> first. Returns 'linked' | 'kept'.
+// samePhysicalPath(a, b): do these two paths name the same file on disk?
+// Compares the resolved PARENT plus the basename, because realpath on a
+// self-referential link throws ELOOP — which is exactly the case this guards.
+function samePhysicalPath(a, b) {
+  try {
+    return path.join(fs.realpathSync(path.dirname(a)), path.basename(a))
+      === path.join(fs.realpathSync(path.dirname(b)), path.basename(b));
+  } catch {
+    return false;
+  }
+}
+
 function installLinkEntry(opts) {
   const { dest, targetAbs, relative, force, dryRun, epoch, report } = opts;
+  // ~/.claude can itself be a symlink INTO the dotfiles, which makes dest and
+  // targetAbs the same file. Without this guard the "identical real file"
+  // branch below unlinks the source and symlinks it to itself: the content is
+  // destroyed and every reader gets ELOOP. It ate this machine's five agents,
+  // four commands and CLAUDE.md, and git was the only reason they came back.
+  if (samePhysicalPath(dest, targetAbs)) {
+    report('ok', dest, `is ${targetAbs} — the deployment already lives in the dotfiles; nothing to link`);
+    return 'linked';
+  }
   const desired = relative ? path.relative(path.dirname(dest), targetAbs) : targetAbs;
   let lst = null;
   try { lst = fs.lstatSync(dest); } catch { lst = null; }
