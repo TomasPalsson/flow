@@ -682,3 +682,79 @@ t_next_flow_off_marker_still_works() {
 	assert_file_missing "$proj/.claude/flow.off" "flow on removes it"
 	rm -rf "$home" "$proj"
 }
+
+# ---------------------------------------------------------------------------
+# the prep states must be reachable for the ACTIVE feature, not only when the
+# whole repo is empty (K-C puts them between rows 2 and 4)
+# ---------------------------------------------------------------------------
+
+t_next_prep_is_reachable_in_a_repo_that_has_other_features() {
+	# Field report: a repo with 28 spec folders, `flow use 013-...` on one that
+	# holds only a PREP.md, and the router answered "013 is empty — no spec.md
+	# and no TASKS.md". It was not empty; it held a finished interview. The
+	# prep branch was gated on the WHOLE repo having no spec anywhere, so it
+	# could never fire once a second feature existed.
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-already-specced # another feature, with a spec.md
+	mkdir -p "$proj/.specs/013-measure"
+	printf '# Prep — measure it\nStatus: ready for spec · Questions: 6 of 6\n' \
+		>"$proj/.specs/013-measure/PREP.md"
+	printf '013-measure\n' >"$proj/.specs/.current"
+
+	nx_cli_in "$proj" "$home" next --peek --json
+	assert_contains "$OUT" '"state": "prep-ready"' "a prep-only active feature is prep-ready, not no-project"
+	assert_contains "$OUT" '"command": "/flow:spec"' "and the answer is the spec door"
+	assert_not_contains "$OUT" "is empty" "the router never calls a folder with a PREP.md empty"
+	assert_contains "$OUT" '"slug": "013-measure"' "the prep state names the active feature"
+	rm -rf "$home" "$proj"
+}
+
+t_next_prep_interviewing_resumes_the_active_feature() {
+	# The worse half of the same bug: an unfinished interview got the WRONG
+	# command (/flow:spec instead of /flow:prep), so discovery restarted.
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-already-specced
+	mkdir -p "$proj/.specs/013-measure"
+	printf '# Prep\nStatus: interviewing · Questions: 2 of 6\n' \
+		>"$proj/.specs/013-measure/PREP.md"
+	printf '013-measure\n' >"$proj/.specs/.current"
+
+	nx_cli_in "$proj" "$home" next --peek --json
+	assert_contains "$OUT" '"state": "prep-interviewing"' "an unfinished interview resumes"
+	assert_contains "$OUT" '"command": "/flow:prep"' "and it resumes with /flow:prep, not /flow:spec"
+	assert_contains "$OUT" '2 of 6' "the interview position is reported"
+	rm -rf "$home" "$proj"
+}
+
+t_next_a_prep_with_no_status_line_still_routes_to_spec() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-already-specced
+	mkdir -p "$proj/.specs/013-measure"
+	printf '# Prep — measure it\n\nSome answers, no Status: line at all.\n' \
+		>"$proj/.specs/013-measure/PREP.md"
+	printf '013-measure\n' >"$proj/.specs/.current"
+
+	nx_cli_in "$proj" "$home" next --peek --json
+	assert_contains "$OUT" '"state": "prep-ready"' "a PREP.md with no Status: is still a prep, not an empty dir"
+	rm -rf "$home" "$proj"
+}
+
+t_next_a_genuinely_empty_active_feature_still_says_so() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-already-specced
+	mkdir -p "$proj/.specs/013-measure" # nothing in it at all
+	printf '013-measure\n' >"$proj/.specs/.current"
+
+	nx_cli_in "$proj" "$home" next --peek --json
+	assert_contains "$OUT" '"state": "no-project"' "a truly empty dir is still row 2"
+	assert_contains "$OUT" "no PREP.md" "and the why says which files are missing"
+	rm -rf "$home" "$proj"
+}

@@ -194,6 +194,32 @@ function resetCount(root) {
 // Sibling states: a prep waiting on its spec (docs/research/13 §5)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// prepState(root, slug) -> a prep-* result for ONE feature dir, or null.
+// K-C puts the prep states between rows 2 and 4, which means they must be
+// reachable for the ACTIVE feature — not only when the whole repo is empty.
+function prepState(root, slug, note) {
+  const dir = path.join(root, '.specs', slug);
+  if (!fs.existsSync(path.join(dir, 'PREP.md'))) return null;
+  if (fs.existsSync(path.join(dir, 'spec.md'))) return null;
+  const raw = safeRead(path.join(dir, 'PREP.md')) || '';
+  const statusMatch = raw.match(/Status:\s*([^·\n]+)/);
+  const qMatch = raw.match(/Questions:\s*(\d+)\s+of\s+(\d+)/);
+  const status = statusMatch ? statusMatch[1].replace(/\s+-\s.*$/, '').trim() : '';
+  const rel = path.join('.specs', slug);
+  const feature = { dir: rel, slug, route: null, base: null };
+  const more = note || '';
+  if (/^interviewing/.test(status)) {
+    return mk('prep-interviewing', '/flow:prep',
+      `${rel}/PREP.md: interview ${qMatch ? qMatch[1] : '?'} of ${qMatch ? qMatch[2] : '?'} answered${more}`,
+      { feature });
+  }
+  // "ready for spec", or a PREP.md with no Status: at all — either way the
+  // next step is the spec, and saying the folder "is empty" would be a lie.
+  return mk('prep-ready', '/flow:spec',
+    `${rel}/PREP.md is written, no spec.md yet${status ? ` (status: ${status})` : ''}${more}`,
+    { feature });
+}
+
 function findPrepWithoutSpec(root, branch, dirs) {
   const specsDir = path.join(root, '.specs');
   const hits = dirs.filter((e) => fs.existsSync(path.join(specsDir, e, 'PREP.md'))
@@ -325,14 +351,8 @@ function route(root, ctx, opts) {
     const prep = findPrepWithoutSpec(root, branch, dirs);
     if (prep) {
       const more = prep.count > 1 ? ` (${prep.count} preps without a spec; newest shown)` : '';
-      if (/^ready for spec/.test(prep.status)) {
-        return done(mk('prep-ready', '/flow:spec',
-          `${prep.dir}/PREP.md is ready for spec, no spec.md yet${more}`));
-      }
-      if (/^interviewing/.test(prep.status)) {
-        return done(mk('prep-interviewing', '/flow:prep',
-          `${prep.dir}/PREP.md: interview ${prep.asked} of ${prep.budget} answered${more}`));
-      }
+      const r = prepState(root, path.basename(prep.dir), more);
+      if (r) return done(r);
     }
     // ── 2 · no project. A dir new-spec just made is empty, not idle — say so
     // rather than reporting "nothing unchecked anywhere" at someone who is
@@ -374,8 +394,14 @@ function route(root, ctx, opts) {
   // ── 4 · drafting
   if (!fs.existsSync(tasksPath)) {
     if (!fs.existsSync(path.join(featureDir, 'spec.md'))) {
+      // A PREP.md is work: /flow:prep wrote it and /flow:spec consumes it.
+      // This used to be gated on the WHOLE repo having no spec anywhere, so
+      // in a repo with more than one feature the prep states could never fire
+      // and the router called a folder holding a finished interview "empty".
+      const prep = prepState(root, activeSlug, '');
+      if (prep) return done(prep);
       return done(mk('no-project', '/flow:spec',
-        `${feature.dir} is empty — no spec.md and no TASKS.md`, { feature }));
+        `${feature.dir} is empty — no PREP.md, no spec.md and no TASKS.md`, { feature }));
     }
     const notes = safeRead(path.join(featureDir, 'NOTES.md'));
     const answered = notes ? (notes.match(/^- /gm) || []).length : 0;
