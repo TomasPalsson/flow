@@ -6,15 +6,26 @@ Discovered from the plugin's `workflows/` at session start and registered as `fl
 
 export const meta = {
   name: 'build-slices',
-  description: 'Implement plan slices with brief, developer, review-package, adversarial review, and a bounded fix ladder',
-  whenToUse: 'Use in Workflow mode to implement one or more slices from a frozen plan end to end',
+  description: 'Implement TASKS.md tasks wave by wave with brief, developer, review-package, adversarial review, and a bounded fix ladder',
+  whenToUse: 'Use in Workflow mode when a wave has three or more ready [P] tasks in an approved TASKS.md',
   phases: [
-    { title: 'Brief', detail: 'slice-brief extracts the slice section (and design contract) into a brief file' },
-    { title: 'Implement', detail: 'a developer agent implements the slice from the brief only' },
+    { title: 'Schedule', detail: 'flow-lint --json validates TASKS.md and returns the dispatch waves' },
+    { title: 'Brief', detail: 'task-brief cuts one task (and its design contract) into a brief file' },
+    { title: 'Implement', detail: 'a developer agent implements the task from the brief only' },
     { title: 'Review', detail: 'review-package builds the diff; two adversary lenses check it' },
     { title: 'Fix', detail: 'bounded fix ladder on fatal/significant findings, then a recorded ruling' },
   ],
 }
+
+Args: `tasks` (path to the approved `TASKS.md`), `base`, `testCmd`, optional
+`design`, `ids` (build only these task ids), `waves` (skip stage 0 and use this
+schedule), `scriptsDir`, `reviewDir`. The schedule is **not** this workflow's to
+invent — `flow-lint --json` already proved `[P]` disjointness per wave, so stage
+0 runs the linter and uses its `waves` array verbatim; a plan with a lint ERROR
+returns `{lintOk: false}` before any developer agent starts. `/flow:next` calls
+it only when a wave has **three or more** ready `[P]` tasks; below that it
+dispatches fresh `developer` subagents inline, because a two-task workflow costs
+more than it schedules.
 
 ## flow:plan-review
 
@@ -57,6 +68,22 @@ export const meta = {
 
 # flow CLI
 
+The two-command surface (`/flow:spec`, `/flow:next`) leans on these. `flow next`
+is a pure query of disk — `$FLOW_SPEC` → `.specs/.current` → branch `flow/<slug>`,
+anchored at the git toplevel — and `flow tick` is the only thing that may write an
+`[x]`. Neither ever consults PROGRESS.md.
+
+Spec 004 adds four subcommands beside `next`; the fenced block below is `flow
+--help` verbatim (a doc-drift test asserts that), so they appear there once the
+CLI slice lands:
+
+| Subcommand | What it does |
+|---|---|
+| `flow lint [--waves] [--json]` | Parse the active `TASKS.md`: ERROR/WARN/INFO, every ERROR carrying its own `fix:` string, `[P]` disjointness proved per wave |
+| `flow tick <ID> [--dir <spec-dir>] [--by user]` | The only writer of `[x]` — it measures `git rev-parse --short HEAD` itself |
+| `flow use <NNN-slug>` | Write `.specs/.current` |
+| `flow publish` | Mirror unchecked tasks to GitHub issues. Off the pipeline; only when asked |
+
 ```
 
 flow — deterministic project harness CLI
@@ -80,8 +107,17 @@ Commands:
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
-  next [--json]                                     Print the next command to run, from
-                                                     deterministic repo state only
+  next [--json] [--force]                           Print the one thing to do next, from
+                                                     .specs/ and git alone (14 states; --json
+                                                     adds the gates as data)
+  lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
+                                                     [P] disjointness per wave, missing verify:,
+                                                     ticks that no commit backs
+  tick <ID> [--dir <d>] [--by user]                 The only writer of [x] — measures the sha
+                                                     rather than trusting a claim
+  use <NNN-slug>                                    Point .specs/.current at one feature
+  publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
+                                                     GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
   tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]

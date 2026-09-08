@@ -7,7 +7,8 @@
 #   R0 stop_hook_active / CC_NO_STOP_GATE / flow.off / not a git tree → silent
 #   R1 stopGate outside {true,false,"scoped"} → note, the gate did not run
 #   R2 background tasks still running → note · R3 nothing changed → silent
-#   R4 docs/config only (plan-lint iff the plan changed) → silent
+#   R4 docs/config only (flow-lint iff the active TASKS.md changed) → silent
+#   K-E an [x] in the active TASKS.md with no "— done:" sha → block
 #   R5 source changed, no ecosystem → note once a session
 #   R6 the root manifest is gone and the root was written this turn → block
 #   R7 a gate could not run (missing tool, crash) → note, names the fix
@@ -294,16 +295,16 @@ if _sg_manifest_gone && _sg_root_touched; then _manifest_gone=1; fi
 # thing that keeps an otherwise empty turn in the gate.
 [ -z "$_changed" ] && [ "$_manifest_gone" -eq 0 ] && hook_ok
 
-# --- what this turn touched: the plan, the docs, the source ---------------
-_plan=$(_sg_plan_path "$dir")
-_plan_rel=$(_sg_rel "$_plan")
-_plan_changed=0
+# --- what this turn touched: the tasks file, the docs, the source ---------
+_tasks=$(_sg_tasks_path "$dir")
+_tasks_rel=$(_sg_rel "$_tasks")
+_tasks_changed=0
 _source_changed=0
 _source_example=""
 _docs_only=1
 while IFS= read -r _rel; do
 	[ -z "$_rel" ] && continue
-	[ "$_rel" = "$_plan_rel" ] && _plan_changed=1
+	[ "$_rel" = "$_tasks_rel" ] && _tasks_changed=1
 	case "$_rel" in
 	*.md | *.mdx | *.txt | *.rst | *.adoc | docs/* | .specs/* | .claude/*) ;;
 	*) _docs_only=0 ;;
@@ -318,8 +319,9 @@ EOF
 
 # --- C20 spec gate: no source change without an approved plan ------------
 if [ "$_source_changed" -eq 1 ] && _sg_require_spec_active "$dir" &&
-	! _sg_approved_plan_ok "$_plan"; then
-	_sg_finish "spec-gate:c20" "the spec gate" "Spec gate: $_source_example changed this turn, this branch ($_branch) requires an approved plan, and $_plan_rel is missing, has no 'Approved: <date>' line, or does not pass plan-lint. Nothing verified that change against a plan.
+	! _sg_approved_tasks_ok "$_tasks"; then
+	_sg_finish "spec-gate:c20" "the spec gate" "Spec gate: $_source_example changed this turn and this branch ($_branch) requires an approved plan, but $(_sg_lint_objection "$_tasks" "$_tasks_rel")
+Nothing verified that change against a plan.
 (escape: set requireSpec:false in .claude/flow.config.json, CC_NO_SPEC_GATE=1 for this session, or ask the user to approve the plan.)"
 fi
 
@@ -333,26 +335,41 @@ if [ "$_manifest_gone" -eq 1 ]; then
 $_HATCH"
 fi
 
-# --- R4: the plan is the one doc this gate reads --------------------------
-# Plan-lint runs only for the ACTIVE plan, and only when this turn touched it:
-# a stale plan left behind by another branch is not this turn's problem (FU-18).
+# --- R4: TASKS.md is the one doc this gate reads --------------------------
+# flow-lint runs only for the ACTIVE feature's TASKS.md, and only when this turn
+# touched it: a stale TASKS.md left behind by another feature is not this turn's
+# problem, and the lint is not cheap enough to pay for on every turn.
 # It is a stop-gate row (10 §5 R4), not the C20 spec gate — so it sits BELOW the
 # stopGate:false exit above and prints the stop gate's hatches. CC_NO_SPEC_GATE
 # does not silence it and the message must not pretend otherwise.
 #
-# The reproduce line names the resolved plan-lint by absolute path: the script
-# ships in the plugin's scripts/ dir and is not on PATH, so a bare `plan-lint`
+# The reproduce line names the resolved flow-lint by absolute path: the script
+# ships in the plugin's scripts/ dir and is not on PATH, so a bare `flow-lint`
 # would be printed as a command that exits 127.
-if [ "$_plan_changed" -eq 1 ] && [ -f "$_plan" ]; then
-	_plan_lint_check "$_plan"
-	if [ "$PL_AVAILABLE" -eq 1 ] && [ "$PL_OK" -ne 0 ]; then
-		_sg_finish "plan-lint:$_plan_rel" "plan-lint ($_plan_rel)" "Gate failed: plan-lint ($_plan_rel)
-$(_sg_clip "$PL_OUT")
+if [ "$_tasks_changed" -eq 1 ] && [ -f "$_tasks" ]; then
+	_flow_lint_check "$_tasks"
+	if [ "$FL_AVAILABLE" -eq 1 ] && [ "$FL_OK" -ne 0 ]; then
+		_sg_finish "flow-lint:$_tasks_rel" "flow-lint ($_tasks_rel)" "Gate failed: flow-lint ($_tasks_rel)
+$(_sg_clip "$FL_OUT")
 
 $_NOWEAKEN
-To reproduce: cd $_dirq && bash $(_sg_q "$(_pl_resolve)") $(_sg_q "$_plan_rel")
+To reproduce: cd $_dirq && bash $(_sg_q "$(_fl_resolve)") $(_sg_q "$_tasks_rel")
 $_HATCH"
 	fi
+fi
+
+# --- K-E(1): a tick with no measured sha is not a tick --------------------
+# `flow tick <ID>` is the only writer of `[x]` and it appends the sha it
+# MEASURED, so a checked box with no `— done:` is a box someone typed — the
+# honour system this whole grammar exists to replace. One fence-aware awk pass
+# over the active TASKS.md, so it costs nothing to check every turn; it sits
+# below the `stopGate:false` exit and prints the stop gate's hatches, both of
+# which really do escape it.
+_sha_less=$(_sg_sha_less_tick "$_tasks")
+if [ -n "$_sha_less" ]; then
+	_sg_finish "tick-no-sha:$_sha_less" "the sha-less tick $_sha_less" "$_tasks_rel marks $_sha_less as [x] with no '— done: <sha>'. flow tick is the only writer of [x] and it records the sha it measured, so nothing here proves that work landed.
+fix: run flow tick $_sha_less (uncheck the box first — tick refuses an ID that is already checked)
+$_HATCH"
 fi
 
 # --- R4: docs and config only — nothing for a test runner to say ---------

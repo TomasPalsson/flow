@@ -1,73 +1,79 @@
-# harness (plugin)
+# flow (plugin)
 
 Core plugin of the `harness` marketplace: deterministic lifecycle hooks, a
-scripts toolbox, saved workflows, the `harness` CLI, and the skill set that
-implements `/flow` and its supporting agents.
+scripts toolbox, saved workflows, the `flow` CLI, and the skill set behind the
+two-command build surface.
+
+## The surface
+
+Two slash commands, and the CLI they lean on. There is no third door.
+
+| Command | What it does |
+|---|---|
+| **`/flow:spec <idea>`** | The only door. Computes the route (`bounded｜oneshot｜dispatch`) from intent gaps × irreversibles × footprint, runs ONE batched discovery turn, writes only what that route needs, points `.specs/.current` at it, lints it. Flags: `--amend "<change>"`, `--interview`, `--unattended`. |
+| **`/flow:next`** | The only build verb. Reads `flow next --json`, does exactly that one state's action, and ends with `Next: /clear, then /flow:next`. Flags: `--force`, `--escalate`, `--qa`, `--unattended`. |
+| `flow next [--json]` | The router. A pure query of disk → `{state, command, why, gates}`. |
+| `flow lint [--waves] [--json]` | Parses `TASKS.md`: ERROR/WARN/INFO, each ERROR with its own `fix:` string, `[P]` disjointness proved per wave. |
+| `flow tick <ID>` | The only writer of `[x]`. Measures the sha itself. |
+| `flow use <NNN-slug>` | Writes `.specs/.current`. Only needed with two features open. |
+| `flow publish` | Optional leaf: mirror unchecked tasks to GitHub issues. Never called by the pipeline. |
+
+Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
+`/flow:spec` consolidates from. Unattended runs are `/flow:loop`.
+
+## State on disk — six files, no transcript
+
+```
+.specs/
+  .current                     one line: 003-entry-tagging
+  .next-call-count             consecutive `flow next` calls; reset by any state change
+  LEDGER.md                    append-only: one line per shipped feature, plus every Ruling:
+  BLOCKED.md                   presence sentinel — the router stops while it exists
+  003-entry-tagging/
+    spec.md                    dispatch only, ~110 lines
+    design.md                  only when 2+ tasks share a name, id type, error shape or resource
+    TASKS.md                   plan + progress + resume + commit ledger. THE state
+    NOTES.md                   append-only: Discovered:, Ruling:, Amendment refs
+    PASS-<sha>.md              the machine half of done; a later commit invalidates it for free
+    verify/                    tracked evidence. A claim with no artifact here does not count
+    review/                    gitignored. Diffs only. Never a routing predicate
+  archive/2026-09-08-002-price-rules/
+```
+
+Position is recomputed from these files on every call, so `/clear`, a crash, a
+compaction and a `git checkout` all self-heal. Nothing lives in the transcript
+— which is why every `/flow:next` turn ends by recommending `/clear`.
 
 ## Layout
 
 ```
 plugins/flow/
 ├── .claude-plugin/plugin.json   name, version, description, skills: ["./skills/"]
-├── hooks/                       *.sh, lib/hookout.sh, tests/ moved from dotfiles;
-│                                 hooks/hooks.json (the manifest binding events to
-│                                 ${CLAUDE_PLUGIN_ROOT}-relative paths) is unit M2's job
-├── scripts/                     new-spec · slice-brief · review-package · slice-overlap
-│                                 plan-lint · skills-lint · workflow-lint · codebase-map · tests/
+├── hooks/                       lifecycle hooks + hooks.json manifest + tests/
+├── scripts/                     new-spec · flow-lint · task-brief · review-package ·
+│                                 skills-lint · workflow-lint · codebase-map · tests/
 ├── workflows/                   build-slices · review-diff · research-sweep · plan-review
 │                                 (registered as flow:<name> via the Workflow tool)
-├── flow-templates/           REVIEW.md · PROGRESS.md · CLAUDE.project.md · gates.yml.tmpl
-├── bin/flow                  the harness CLI (doctor · init · check · skills-lint · install ·
-│                                 loop) · bin/lib/loop/ (contract, tick, verify, tamper, CLI)
-└── skills/                      flow, flow-spec, flow-deepen, flow-handoff, flow-to-issues,
-                                  feature, spec-judge, shared, qa, audit, fix, loop, ultracode,
-                                  overkill, pr-reviewer, claude-md, skill-forge, skill-improver,
-                                  skill-judge, claude-improver, find-skills, prompt-engineer,
-                                  better-plan, grill-me, grill-with-docs, brainstorm,
-                                  develop-idea, scrutinize-idea, prep
+├── flow-templates/              spec.md · TASKS.md · REVIEW.md · PROGRESS.md ·
+│                                 CLAUDE.project.md · gates.yml.tmpl
+├── bin/flow                     the CLI · bin/lib/ (router, lint, tick, use, publish) ·
+│                                 bin/lib/loop/ (contract, tick, verify, tamper, CLI)
+└── skills/                      spec, next, prep, spec-judge, qa, audit,
+                                  flow-deepen, fix, loop, ultracode, overkill, pr-reviewer, claude-md,
+                                  skill-forge, skill-improver, skill-judge, claude-improver,
+                                  find-skills, prompt-engineer, better-plan, grill-me,
+                                  grill-with-docs, brainstorm, develop-idea, scrutinize-idea,
+                                  shared
 ```
 
-`shared/` is reference material and scripts consumed by other skills (`shared/scripts/`,
-`shared/*.md`); it has no `SKILL.md` of its own and is never loaded directly.
+The plugin namespaces a skill by its **directory** name: `skills/spec` is
+`/flow:spec`, `skills/next` is `/flow:next`. There is no `commands/` directory.
 
-## Status (this unit — M1, layout only)
+`shared/` is reference material and scripts consumed by other skills
+(`shared/scripts/`, `shared/*.md`); it has no `SKILL.md` and is never loaded
+directly.
 
-This unit performed the **copy** of hooks, scripts, workflows, flow-templates,
-the CLI binary and skills from `~/.dotfiles/claude/.claude/` into this repo,
-unchanged (`cp`/`rsync -a`, preserving file modes and the executable bit), with
-two narrow exceptions:
-
-- `rtk-fast.sh`, `rtk-rewrite.sh` and `.rtk-hook.sha256` under `hooks/` were
-  **not** copied, and spec 003 (FU-27/B12) has since deleted them from the
-  dotfiles side as well, together with their registration — nothing wires or
-  ships them any more. `__pycache__/` (a gitignored build artifact) was not
-  copied either.
-- `scripts/tests/test_agents.sh`, `test_commands.sh` and `test_explorer.sh`
-  were **not** copied, and the wrap.md-specific assertions inside
-  `test_spec_prose.sh` / `test_wave5_prose.sh` were removed: all of them
-  hard-depend on `claude/.claude/agents/` and `claude/.claude/commands/` as
-  siblings of `scripts/`, and per C21 those two directories "stay in the
-  dotfiles forever, never plugin content" — there is no layout in which that
-  relationship can exist inside this repo. The full tests still run, and
-  pass, against the real files in the dotfiles' own `scripts/tests/` suite.
-
-This unit did **not**:
-
-- rewrite any in-file references (`.claude/skills/...`, `~/.claude/scripts/...`,
-  `Workflow({name:'build-slices'})`, etc.) to `${CLAUDE_PLUGIN_ROOT}`-relative
-  paths, or write `hooks/hooks.json` (the event-to-script manifest) — both are
-  unit M2's job per the C21 unit map;
-- remove anything from the dotfiles tree — the dotfiles copies are still the
-  live, deployed source until the orchestrator (M4) verifies the plugin loads
-  and cuts over.
-
-Until M2/M3 land, files under `skills/**` and `hooks/**` still reference
-`~/.claude/...` and `.claude/...` paths (including `CC_SHARED_SCRIPTS`/
-`CC_SCRIPTS_DIR` defaults inside `stop-gate.sh`/`spec-gate.sh`), and
-`bin/flow`'s template resolution still expects the dotfiles layout as its
-fallback — do not treat this plugin as installable yet.
-
-## Live loading (once cut over)
+## Live loading
 
 `~/.claude/skills/flow -> ~/Desktop/Projects/flow/plugins/flow`
 (created by `flow install`) makes this plugin auto-load in place as

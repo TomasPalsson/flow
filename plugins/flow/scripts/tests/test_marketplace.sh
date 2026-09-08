@@ -12,8 +12,8 @@ REPO="${FLOW_REPO:-$HOME/Desktop/Projects/flow}"
 MKT_JSON="$REPO/.claude-plugin/marketplace.json"
 
 # bundle<space>skill pairs, per C21's target layout.
-_MKT_SKILL_LIST='flow flow
-flow flow-spec
+_MKT_SKILL_LIST='flow next
+flow spec
 flow flow-deepen
 flow flow-handoff
 flow flow-to-issues
@@ -158,7 +158,7 @@ t_mkt_no_skill_in_two_bundles() {
 }
 
 t_mkt_harness_plugin_has_flow_shared_feature() {
-	assert_file_exists "$REPO/plugins/flow/skills/flow" "t_mkt_harness_plugin_has_flow_shared_feature flow"
+	assert_file_exists "$REPO/plugins/flow/skills/next" "t_mkt_harness_plugin_has_flow_shared_feature next"
 	assert_file_exists "$REPO/plugins/flow/skills/shared" "t_mkt_harness_plugin_has_flow_shared_feature shared"
 	assert_file_exists "$REPO/plugins/flow/skills/feature" "t_mkt_harness_plugin_has_flow_shared_feature feature"
 }

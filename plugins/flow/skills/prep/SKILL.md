@@ -1,6 +1,6 @@
 ---
 name: prep
-description: "Grill the user about an idea BEFORE the spec, one open question at a time, and write the answers to .specs/NNN-<slug>/PREP.md — decisions, not-this, discretion, assumptions with confidence, one verify line — so /flow:flow-spec consolidates from it and never re-asks. Triggers: /prep, \"prep me\", \"grill me before the spec\", \"interview me about this idea\", \"let's decide before speccing\". Not for a plan that already exists (use /grill-me) and not for writing the spec (use /flow:flow-spec)."
+description: "Grill the user about an idea BEFORE the spec, one open question at a time, and write the answers to .specs/NNN-<slug>/PREP.md — decisions, not-this, discretion, assumptions with confidence, one verify line — so /flow:spec consolidates from it and never re-asks. Triggers: /prep, \"prep me\", \"grill me before the spec\", \"interview me about this idea\", \"let's decide before speccing\". Not for a plan that already exists (use /grill-me) and not for writing the spec (use /flow:spec)."
 disable-model-invocation: true
 argument-hint: "<idea in one or two sentences>"
 ---
@@ -89,7 +89,7 @@ Run `${CLAUDE_PLUGIN_ROOT}/scripts/prep-lint <path>`; fix every ERROR it
 prints (each carries its own `fix:`), then set `Status: ready for spec`
 (oneshot/dispatch) or `done in chat` (spike/bounded). End with exactly one of:
 
-- `Next: /flow:flow-spec` — "PREP.md is ready; the spec consolidates from it
+- `Next: /flow:spec` — "PREP.md is ready; the spec consolidates from it
   and will not re-ask a D-NN."
 - `Next: nothing to spec — bounded/spike, done in chat.`
 
@@ -100,11 +100,11 @@ prints (each carries its own `fix:`), then set `Status: ready for spec`
 - Never ask what the tree can answer — every re-asked fact is a wasted turn
   the user has to sit through.
 - Never write the spec yourself — prep hands off a file, not a draft; writing
-  the spec here duplicates flow-spec's job with none of its scoring.
+  the spec here duplicates /flow:spec's job with none of its scoring.
 - Never let a recommendation become a D-NN without the user's specific — a
   hypothesis the user didn't correct is still the model's guess, not a
   decision.
-- Never load `flow-spec`'s question bank — prep is the user-led door; the
+- Never load `/flow:spec`'s question bank — prep is the user-led door; the
   bank is the model-led one, and loading both re-interviews the user twice.
 - Never count an ungrillable question toward a decision — aesthetics
   questions dressed up as decisions are how sessions balloon without

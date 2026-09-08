@@ -54,8 +54,8 @@ t_prep_prose_prep_lint() {
 
 t_prep_prose_next_flow_spec() {
 	assert_contains "$(cat "$PREP_SKILL")" \
-		'Next: /flow:flow-spec' \
-		"SKILL.md ends the oneshot/dispatch route with Next: /flow:flow-spec"
+		'Next: /flow:spec' \
+		"SKILL.md ends the oneshot/dispatch route with Next: /flow:spec"
 }
 
 t_prep_prose_references_template_path() {

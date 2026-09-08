@@ -1,108 +1,113 @@
 ---
-name: flow
-description: "End-to-end build pipeline merging flow-spec + flow-feature + flow-deepen into one pass: idea → spec → harsh judge (once, no loop) → internal vertical-slice build plan (code design when slices share a seam) → TDD Red/Green/Refactor per slice → inline gates → quality swarm → browser verification → user approval (hard gate) → verified PR → optional architecture deepen. No GitHub issues, no AFK/HITL tags — spec decomposes into an internal build plan and builds straight through. Mode-aware: picks subagents, agent team, or deterministic Workflow in Phase 0; human gates never delegate. Pass `--unattended` to walk away — decision gates auto-resolve on flow's own recommendations, user verification defers to PR review, and the PR stays draft. Use when the user says /flow, \"build this end to end\", \"spec and build it\", \"idea to PR\", \"full pipeline\", \"spec then ship\", \"run it unattended\", \"build this without stopping me\", \"don't stop for me\", \"walk away\", or describes something to build and wants it carried all the way through in one go. Do NOT use for a spec with no intent to build (use /flow-spec), a bug fix (/fix), a whole-repo audit (/audit), or when the user explicitly wants tracked GitHub issues or an AFK-HITL plan (use /flow-to-issues)."
+name: next
+description: "The only build verb. Reads `flow next --json`, does exactly the one thing that state names, and stops: draft TASKS.md, build one wave of tasks through fresh developer subagents, run a phase's independent test, run the gates and write PASS-<sha>.md, open or promote the PR, archive a merged feature. Every turn ends with a /clear recommendation, and position is recomputed from disk so /clear, a crash or a compaction self-heals. Triggers: /flow:next, \"next\", \"keep building\", \"continue the build\", \"what's next\", \"ship it\". Flags: --force, --escalate, --qa, --unattended. Not for opening a feature (that is /flow:spec) and not for a bug (/flow:fix)."
 ---
 
-# Flow — Idea to Verified PR in One Pass
-
-`flow` fuses the `flow-*` skills into one linear pipeline you run once and walk away from. The seam the user never wanted is gone: **flow never creates GitHub issues**, no AFK/HITL tags, no per-issue handoff. The spec decomposes into an internal vertical-slice build plan and builds straight through.
+# /flow:next — do the one thing
 
 ```
-[0 Setup] → [1 Spec] → [2 Judge] → [3 Plan] → [4 Build] → [5 Verify] → [6 PR]
-                       opt-in      HARD GATE   TDD/slice   HARD GATE     ready
+flow next --json  →  one state  →  one action  →  "Next: /clear, then /flow:next"
 ```
 
-Architecture deepening is no longer a phase here — after the PR, point the user at `/flow-deepen`.
+**Read `flow next --json` FIRST, every turn, before reading anything else — including any plan you think you remember.** Its `state` decides what you do; you do that and nothing else. Nothing about your position lives in this transcript: `/clear`, a crash, a compaction and a `git checkout` all self-heal because the router recomputes from disk. That is why the turn ends with the `/clear` line.
 
-**This file is a router.** Read the next step file only when you reach that step; never load them all up front. Every fan-out phase runs through one orchestration mode — subagents, an agent team, or a deterministic Workflow — chosen once in step 0.
+## The state table — one row fires per turn
 
-## Run components by value, not by checklist
+| state | You do |
+|---|---|
+| `scan-failed` | STOP and print the errno. A `.specs/` you cannot read is never "clean". |
+| `blocked` | STOP. Print `.specs/BLOCKED.md` verbatim. The human deletes the file; `--force` bypasses. |
+| `disagreement` | STOP and print the completeness report — another approved feature has unchecked tasks. `--force` continues here. |
+| `looping` | STOP: five consecutive calls with no state change. `--force` continues. |
+| `invalid` | `flow lint` found an ERROR. Print the first one and its `fix:` verbatim, fix `TASKS.md`, then stop. |
+| `lying` | STOP: an `[x]` whose `done:` sha is not in `Base..HEAD` or whose commit touched none of its `files:`. Never re-tick over it. |
+| `loop-active` | An active `.claude/loop/loop.md` owns this repo. Print the router's command (`flow loop run` or `flow loop status`) and stop — it preempts every stop above. |
+| `no-project` | `Next: /flow:spec <idea>`. Nothing in flight. |
+| `prep-interviewing` | `Next: /flow:prep`. A `PREP.md` interview is unfinished; never spec over it. |
+| `prep-ready` | `Next: /flow:spec`. A `PREP.md` is ready and has no `spec.md` — `/flow:spec` reuses that directory. |
+| `ambiguous` | `Next: flow use <NNN-slug>`. **Never guess** which feature is live. |
+| `drafting` | Write `TASKS.md` (§Drafting below), then stop. |
+| `unapproved` | HARD GATE. Print the router's line verbatim and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. |
+| `building` | Build exactly the wave the router names (§Building). |
+| `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. |
+| `gating` | Run the `## Gates` (§Gates). |
+| `unverified` | HARD GATE. `Next: verify using verify/, reply "approved"`. On approval write `Verified: <YYYY-MM-DD> by user`. |
+| `stale-pass` | Commits landed after the newest `PASS-*`. Re-run the gates. |
+| `shippable` | Open the PR (§Ship). |
+| `shipped` | `Next: gh pr view --web`. Once merged, archive (§Ship). |
+| `idle` | `Next: /flow:spec <idea>, or just ask`. |
 
-Two kinds of step answer to different rules. This pipeline is the full menu, not a checklist to complete on every run.
+## Drafting
 
-- **Invariants** hold the moment their phase runs, at every size, no exceptions. Both human approval gates (plan approval, user verification) stay **in the main loop**; Red exits non-zero and Green exits zero, verified by *you* and not an agent's word; scanner ≠ fixer ≠ verifier; never edit a test to go green; any feature with UI gets browser-verified; any build whose slices share a seam gets a `code-design.md` — **two or more slices sharing a name, id type, error shape, module boundary, or shared resource** is the trigger, never file count and never the size tier, and the doc is skipped otherwise, including on every one-slice build; and flow never creates GitHub issues. Size and time pressure never excuse them.
-- **Scalable components** are selected by value and scaled to the size tier: the harsh judge, `showcase`, E2E tests, review breadth, the QA pass, `better-plan` rendering, code-design depth, and how heavy the orchestration mode is. Litmus per component: *"Would running this change what ships or catch a real defect here?"* If no, skip it — **and say you skipped it.** Running everything every time is the same bug as skipping an invariant: one weight applied to every step.
+Write `TASKS.md` per the grammar in [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md): a header (`Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`), `## Behaviors`, one `## Phase N — <title>` per phase with its `Goal:` and `Independent test:` lines, and `## Gates`. Every task line names `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` on a `CHK###`). `after:` is what computes the waves. Run `flow lint` and fix every ERROR before stopping. Never write `Approved:`.
 
-**Hooks own the mechanics.** The harness hooks format every edit, flag oversized files/functions, blocks destructive git, records test-weakening, and refuses to end a turn while gates are red. Treat their feedback as a check to satisfy, never noise to suppress. They do **not** enforce the invariants above — those are yours.
+## Building
 
-## Size
+The router hands you `wave: {ids, parallel}`. That wave, then stop.
 
-| | Small | Medium | Large |
-|---|---|---|---|
-| Files / scope | 1–3, single concern | 4–15, 1–2 areas | 15+, cross-cutting |
-| Spec discovery | 2–4 questions | 5–7 questions | full discovery (cap 10) |
-| Build slices | 1–3 | 3–6 | 6–12 |
-| Code design depth (when triggered) | sections 1–7 | sections 1–7 | sections 1–11 |
-| Example | config, copy, small refactor | component, endpoint | full-stack, subsystem |
+1. **Brief each task**: `${CLAUDE_PLUGIN_ROOT}/scripts/task-brief <TASKS.md> <ID>` (add `--design <design.md>` when the header names one). It records `Base:` — the sha measured **before** dispatch — into the brief. Never `HEAD~1`: a multi-commit task reviewed against `HEAD~1` silently drops all but the last commit.
+2. **Dispatch**: one fresh `developer` subagent per task, handed **only the brief path** and nothing else. Never make a subagent read the whole `TASKS.md`. Every ready `[P]` task in the wave goes out **in one message**, at most **4 in parallel**. **Wave N+1 never starts before wave N reports.**
+3. **Or run the Workflow**: when the wave has **≥3 ready `[P]` tasks**, run `Workflow({ name: 'flow:build-slices', ... })` instead — it does briefs, dispatch, review-package and the fix ladder deterministically. Below three, run the subagents inline: a two-task workflow costs more than it schedules.
+4. **Re-run the verify yourself.** Take the task's own `verify:` command out of `TASKS.md` and run it in this session. **The agent's report is never the gate** — its exit code is. A `verify:` whose test the runner never reported as *executed* (unregistered, filtered, skipped) counts as **missing, not passing**.
+5. **Review the diff**: `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <task-base>..HEAD` → the two lenses and the bounded fix ladder in [`review.md`](review.md). At the cap, write a `Ruling:` line into `NOTES.md` and move on.
+6. **Commit, then `flow tick <ID>` in the SAME turn.** `flow tick` is the only writer of `[x]` — it measures the sha itself and appends `— done: <sha>`. Typing an `[x]` by hand is the one thing the whole grammar exists to prevent, and the Stop hook blocks a sha-less `[x]` anyway.
+7. **Out-of-plan work stays out of the wave.** Anything a task turns up that is not in its brief goes into `NOTES.md` as one append-only line — `Discovered: <what> — <defer | fold into T0NN>` — never a silent extra commit. Folding it in means appending a **new** task ID at the next `--amend`, never widening the one in flight.
+8. **At a phase boundary**, before starting the next phase: **execute** that phase's `Independent test:` line and paste its output. Every task can pass its own `verify:` while the phase still does not work; this is the only check that catches it.
 
-Show the classification; let the user override with one word. **On override, recalculate the discovery budget to the new tier before step 1** — a Small→Large override that keeps the Small budget produces a Large spec no later phase can fix.
+The per-task loop each subagent runs — failing test → confirm it fails → minimum implementation → confirm it passes → commit — is [`execution-prompt.md`](execution-prompt.md). Hand it the brief; it owns RED/GREEN/REFACTOR and the exit-code gates.
 
-**Gate manifest rule**: before any work, state in one line how many times this run stops for the user and where. The user decides whether to stay before their attention is spent, not after.
+## Checkpoints
 
-## Unattended mode (`--unattended`)
+A `CHK###` is a human's eyes, not yours. Print the line verbatim, do the work it names (open the browser, take the screenshot, capture the console), write the artifacts into `.specs/<NNN-slug>/verify/` — **a verification claim with no file there does not count** — and stop. On the user's yes: `flow tick CHK### --by user`.
 
-`--unattended` auto-resolves human DECISION gates using recommendations flow already makes; every verification invariant still runs and evidence is still gathered for real. **It resolves decisions, not evidence.**
+## Gates
 
-| Gate | Attended | `--unattended` |
-|---|---|---|
-| 0 speccability guard | asks 3 grounding questions | **still blocks; run refuses to start** (cannot invent a problem statement) |
-| 1 discovery | serial interview | consolidate-mode, one batched offer, then proceed on recommendations recorded as Assumptions |
-| 2 judge decision | user picks fixes | auto-applies flow's own recommendation (ship-blockers only, rest carried as Assumptions) |
-| 3 plan approval | HARD GATE | auto-approved after the batched offer |
-| 3 showcase UI direction | user picks | takes recommended direction, records as Assumption |
-| 5 user verification | HARD GATE | **deferred, not skipped** — PR stays draft, evidence attached, user verifies at PR review |
-| 6 deepen offer | offered (`/flow-deepen`) | skipped, and the PR body says so |
+All `T###` done, `G###` open:
 
-**Batched-offer protocol**: ask ONE question early — *"Answer a few questions now, or Mr Claude proceeds on its recommendations?"* — then run `sleep 90` as a BACKGROUND Bash call (`run_in_background: true`) so the wait does not block the turn. The offer fires **once per run**, at the first gate needing input. Unanswered when it returns → the user has left: proceed on recommendations at this and every later gate, without re-offering. Answered → they are present: offer again at the next decision gate. Never a blocking `AskUserQuestion` in unattended mode except the speccability guard.
+1. `flow check --fix` — typecheck, lint, format, test. Fix the code, never the test.
+2. One whole-branch review over `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <Base>..HEAD` with a fresh reviewer, the anchored 0/25/50/75/100 blind re-score and the ≥80 keep rule from [`review.md`](review.md), and **one** fix dispatch for everything it finds — not one per finding.
+3. A converge pass: append any unmet work as **new** tasks, append-only, byte-for-byte no-op when clean.
+4. All green → write `.specs/<NNN-slug>/PASS-<HEAD-sha>.md` naming the gates, their commands and their exit codes. It is named after the tree it verified, so any later commit invalidates it for free and the router drops back to `gating`. Then `flow tick` each `G###`.
 
-Every auto-resolved decision is recorded as `Assumption (confidence: <level>)` in the spec (steps 1–2) or plan (step 3), and surfaced again in the PR body.
+`--qa` runs the `qa` skill as an extra gate before step 4. It is off the default path.
 
-## Step index — read ONE file when you reach it
+## Ship
 
-| Step | File | Read it when |
-|---|---|---|
-| 0 Setup | [steps/00-setup.md](steps/00-setup.md) | at the start of every run, including a resume |
-| 1 Spec | [steps/01-spec.md](steps/01-spec.md) | after setup states the mode and gate manifest |
-| 2 Judge | [steps/02-judge.md](steps/02-judge.md) | only when the run carries `--judge` |
-| 3 Plan | [steps/03-plan.md](steps/03-plan.md) | once a spec file exists |
-| 4 Build | [steps/04-build.md](steps/04-build.md) | after the plan is explicitly approved |
-| 5 Verify | [steps/05-verify.md](steps/05-verify.md) | after every slice's triplet lands |
-| 6 PR | [steps/06-pr.md](steps/06-pr.md) | after user verification clears (or is deferred) |
+`shippable` → `gh pr create --draft`, re-run G001–G00N against the PR head, then `gh pr ready`. Put every `Ruling:` line from `NOTES.md` into the PR body — a ruling that dies with the workspace was a decision made in secret. Under `--unattended` the PR **stays draft**: "user approved" is a precondition `gh pr ready` has not met.
 
-Supporting files, loaded only where a step tells you to: [planning.md](planning.md) (step 3), [review.md](review.md) (steps 4–5), [orchestration.md](orchestration.md) (step 0, then one mode file).
+`shipped` and merged → archive with `git mv .specs/<NNN-slug> .specs/archive/<YYYY-MM-DD>-<NNN-slug>` and append the `LEDGER.md` line. An atomic directory move has no field to desync, so "shipped" cannot be faked or forgotten.
 
-## Routing matrix
+## Flags
 
-| Work | Mode default | Model | Note |
-|---|---|---|---|
-| Codebase / spec research | parallel readers | `haiku` | read-only |
-| Spec discovery dialogue | main loop (interactive) | orchestrator | never delegated |
-| Harsh judge (×1, opt-in) | single agent / one stage | `sonnet` | follows a rubric |
-| Code design (step 3) | main loop | orchestrator | architecture and interface decisions are orchestrator-tier |
-| Design adversary lens | single agent / one stage | `sonnet` | different agent than the design's author |
-| Build plan decomposition | main loop | orchestrator | has full context |
-| Red / Green / Refactor per slice | subagent / team task / `build-slices` | `sonnet` (`agentType: developer`) | one slice per context; ready slices launch together, ≤ 4 per wave |
-| Slice review lenses | two adversaries / `review-diff` | `sonnet` (`agentType: adversary`) | both launched in one message; scanner ≠ fixer ≠ verifier |
-| Inline gates / browser / PR | main loop (CLI) | orchestrator | no LLM cost |
-| User verification | **main loop only** | — | HARD GATE, never delegated |
+| Flag | Effect |
+|---|---|
+| `--force` | Bypass one hard stop (`blocked`, `disagreement`, `looping`). Says which one it bypassed. |
+| `--escalate` | Ratchet the route up (`bounded` → `oneshot` → `dispatch`) and rewrite the header. One-way; a downgrade needs `--force` and a `Ruling:` line. |
+| `--qa` | Run the `qa` skill as an extra gate. |
+| `--unattended` | Auto-resolve DECISION gates on the recommendation already stated, recording each as an Assumption. It resolves decisions, **never evidence**: exit codes, the re-run `verify:`, browser evidence and the `verify/` artifacts are identical in both modes. The verification gate is **deferred, not skipped** — the PR stays draft. The `.next-call-count` gate is what bounds the loop. |
 
-In Workflow mode the build and review fan-outs become the saved `build-slices` and `review-diff` workflows and the model column is the per-`agent()` model; the **main loop only** rows still run outside the workflow.
+## Ending the turn
 
-## NEVER do
+**The last line of every turn is exactly:**
 
-- **NEVER create GitHub issues, AFK/HITL tags, or a tracked issue set.** A user who wanted issues asked for the wrong skill — point them to `/flow-to-issues`.
-- **NEVER run the harsh judge more than once, or loop on it.** Residual gaps after one pass trace to discovery, not drafting; a second run cannot fix them.
-- **NEVER soften the harsh judge to look clean.** Harsh means over-report — false positives are acceptable, silence is not.
-- **NEVER move a human gate into a subagent, agent team, or workflow.** Plan approval and user verification always run in the main loop; inferring approval from silence ships the agent's interpretation of "correct", not the user's.
-- **NEVER skip the orchestration-mode decision.** Large work as serial subagents wastes hours; a tiny change through a full Workflow wastes tokens.
-- **NEVER write implementation in a Red phase or a test in a Green phase**, and never accept an agent's "tests fail" without running `TEST_CMD` yourself. The exit code is the only ground truth.
-- **NEVER skip Browser Verification or the Refactor phase for any size.** Unit tests miss CSS, asset, runtime and a11y failures; "tests pass, ship it" is Test-First, not TDD.
-- **NEVER let a reviewer verify or fix its own findings.** Scanner ≠ fixer ≠ verifier: an agent that saw its own finding rationalizes it, and a self-confirmed auto-fix ships a real defect behind a false-clean gate.
-- **NEVER emit a deepening slice that changes an interface, external contract, or caller-visible symbol without the user's explicit decision.** That is a feature choice wearing a refactor's clothes.
-- **NEVER duplicate the referenced files into this skill.** `flow` references the kept originals (`flow-spec/`, `feature/`, `shared/`) as the single source of truth; copies rot the moment an original changes.
-- **NEVER start a build phase with a load-bearing assumption ungathered.** Guessed scope, users or criteria target the wrong feature; re-planning mid-build costs more than asking.
-- **NEVER add scope beyond the approved plan.** Agent scope-creep is invisible until PR review — log additions as follow-ups instead.
-- **NEVER treat the scalable components as a checklist to complete.** Select each by value and scale to size; the flip side is equally banned — the invariants are never skipped to save time.
-- **NEVER let `--unattended` weaken a verification invariant.** Exit codes, scanner ≠ fixer ≠ verifier, and browser verification are identical in both modes.
-- **NEVER promote an unattended run's PR to ready, or delete its verification evidence.** "User approved" is a precondition `gh pr ready` has not met; a ready PR with no human verification looks reviewed and is not.
-- **NEVER chain shell commands in a pipeline step** (`;`, `&&`, `||`, `|`). A chained command matches no pre-approval and parks the run on a permission prompt. Two facts are two calls.
+```
+Next: /clear, then /flow:next
+```
+
+The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: read .specs/003-entry-tagging/TASKS.md, reply "approved"`. One `Next:` line, always last, always one runnable token or one literal instruction.
+
+## NEVER
+
+- **NEVER** act on anything but the state `flow next --json` just returned. A plan you remember from before a `/clear` is a rumor; the disk is the state.
+- **NEVER** do two states in one turn, or "keep going" past the wave the router named. The count of turns is not the cost; a wrong second action is.
+- **NEVER** hand a subagent anything but its brief path. Never paste `design.md`, and never paste anything from it but that task's own `## Contract` block.
+- **NEVER** accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
+- **NEVER** type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.
+- **NEVER** start wave N+1 before wave N has reported, or dispatch two `[P]` tasks that share a file — `flow lint` already proved they do not, and a hand-added task can break that.
+- **NEVER** write `Approved:` or `Verified:` yourself, in any mode. Those two lines are the only stored facts nothing on disk implies, which is exactly why a human writes them.
+- **NEVER** skip a phase's `Independent test:` at the boundary, and never merely quote it. Execute it.
+- **NEVER** edit, skip, xfail or weaken a test to clear a finding or a gate. The Stop hook blocks the turn and the tamper notice records it anyway.
+- **NEVER** let a reviewer verify or fix its own finding. Scanner ≠ fixer ≠ verifier.
+- **NEVER** run `gh pr ready` on an unattended run, or delete verification evidence. A ready PR with no human verification looks reviewed and is not.
+- **NEVER** create GitHub issues. Work items live in `TASKS.md`; `flow publish` mirrors them only when someone asks for it.
+- **NEVER** end a turn without a last `Next:` line. Pickup after `/clear` comes from disk, and the line is what tells the user to clear.

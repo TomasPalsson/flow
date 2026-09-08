@@ -4,7 +4,9 @@
 # Deterministic "no build without an approved plan". Activated per-project via
 # .claude/flow.config.json "requireSpec" (default "flow-branches": only on
 # branches named flow/*), or CC_NO_SPEC_GATE=1 to disable for one session.
-# Denies editing a source file when no approved, lint-clean plan exists.
+# Denies editing a source file when the ACTIVE feature's .specs/<NNN-slug>/
+# TASKS.md is missing, unapproved, or not lint-clean — and says WHICH lint rule
+# failed and how to fix it, rather than "it did not pass".
 #
 # Everything this hook knows about plans and source files lives in
 # lib/specgate.sh, which the Stop half of the same gate (stop-gate.sh) sources
@@ -36,12 +38,13 @@ esac
 
 _sg20_is_source "$_rel" || hook_ok
 
-_plan=$(_sg_plan_path "$dir")
-_sg_approved_plan_ok "$_plan" && hook_ok
+_tasks=$(_sg_tasks_path "$dir")
+_sg_approved_tasks_ok "$_tasks" && hook_ok
 
-_plan_rel=$_plan
-case "$_plan_rel" in
-"$dir"/*) _plan_rel=${_plan_rel#"$dir"/} ;;
+_tasks_rel=$_tasks
+case "$_tasks_rel" in
+"$dir"/*) _tasks_rel=${_tasks_rel#"$dir"/} ;;
 esac
 _branch_disp=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
-hook_deny "Spec gate: $_rel is a source file, this branch ($_branch_disp) requires an approved plan, and $_plan_rel is missing, has no 'Approved: <date>' line, or does not pass plan-lint. Run /flow to spec and plan the work, get the plan approved, then build. (escape: set requireSpec:false in .claude/flow.config.json, CC_NO_SPEC_GATE=1 for this session, or ask the user to approve the plan.)"
+hook_deny "Spec gate: $_rel is a source file and this branch ($_branch_disp) requires an approved plan, but $(_sg_lint_objection "$_tasks" "$_tasks_rel")
+Get the plan approved and lint-clean, then build. (escape: set requireSpec:false in .claude/flow.config.json, CC_NO_SPEC_GATE=1 for this session, or ask the user to approve the plan.)"
