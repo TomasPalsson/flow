@@ -476,6 +476,21 @@ t_next_row13_idle() {
 	rm -rf "$home" "$proj"
 }
 
+t_next_an_empty_active_feature_is_not_idle() {
+	# new-spec --current makes the dir before /flow:spec fills it. Reporting
+	# "nothing unchecked anywhere" at someone three seconds into a feature is
+	# true and useless; row 2 names the dir instead.
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-x"
+	printf '001-x\n' >"$proj/.specs/.current"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "no-project"' "an empty but pointed-at feature is row 2"
+	assert_contains "$OUT" '.specs/001-x/ is empty' "and the why names the dir"
+	rm -rf "$home" "$proj"
+}
+
 # ---------------------------------------------------------------------------
 # sibling states: an active loop, and a prep waiting on its spec
 # ---------------------------------------------------------------------------

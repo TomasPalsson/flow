@@ -326,10 +326,18 @@ function route(root, ctx, opts) {
           `${prep.dir}/PREP.md: interview ${prep.asked} of ${prep.budget} answered${more}`));
       }
     }
-    // ── 2 · no project, or 13 · idle when features exist but hold no work
+    // ── 2 · no project. A dir new-spec just made is empty, not idle — say so
+    // rather than reporting "nothing unchecked anywhere" at someone who is
+    // three seconds into a feature.
     if (dirs.length === 0) {
       return done(mk('no-project', '/flow:spec', 'nothing in flight — no .specs/NNN-slug/ on disk'));
     }
+    if (activeSlug) {
+      return done(mk('no-project', '/flow:spec',
+        `.specs/${activeSlug}/ is empty — no spec.md and no TASKS.md yet`,
+        { feature: { dir: path.join('.specs', activeSlug), slug: activeSlug, route: null, base: null } }));
+    }
+    // ── 13 · idle: features on disk, none of them holding any work
     return done(mk('idle', '/flow:spec',
       `nothing unchecked anywhere (${dirs.length} feature ${dirs.length === 1 ? 'dir' : 'dirs'} on disk, none with a spec or tasks)`));
   }
