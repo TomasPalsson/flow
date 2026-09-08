@@ -1,0 +1,729 @@
+#!/usr/bin/env bash
+# flow-lint — validate a TASKS.md against the flow v2 grammar (spec 004 K-B).
+#
+# Folds plan-lint (grammar), slice-overlap ([P] disjointness) and the git
+# joins (done: sha reachable in Base..HEAD and touching the task's files:,
+# plus the ID-vanish diff against HEAD:) into one pass.
+#
+# Fence-aware: lines inside ``` or ~~~ fences are never headings or tasks,
+# so a fenced example in a spec can never become a routing predicate.
+set -u
+
+print_help() {
+  cat <<'EOF'
+Usage: flow-lint [<TASKS.md>] [--json] [--waves]
+
+Validates a TASKS.md against the flow v2 task grammar:
+
+  header   Spec: · Design: · Base: <sha> · Route: bounded|oneshot|dispatch
+           · Test: <cmd>          (optional Approved:/Verified: lines)
+  sections ## Behaviors, ## Phase N — <title>, ## Gates
+  task     - [ |x|~] <ID> [P]? <desc> — files: <p,p> — verify: <`cmd`|human: <obs>>
+                     [— after: <IDs>] [— dropped: <reason>] [— done: <sha>]
+  IDs      T### tasks · CHK### human checkpoints · G### gates
+
+ERRORS   [P] tasks whose files: intersect inside one wave; missing verify:;
+         an [x] whose done: sha is not in Base..HEAD or whose commit touched
+         none of its files:; an ID present at HEAD: and absent now; [~] with
+         no dropped:; unknown or cyclic after:; a malformed task line.
+WARNINGS a phase with no Goal: or no Independent test:; [x] with no done:.
+INFO     Route: oneshot with more than 5 tasks.
+
+Every ERROR carries a fix: string. --json prints the machine form
+{ok, errors, warnings, info, waves, tasks, header}. --waves prints the
+computed dispatch waves. Exit 1 when there is at least one ERROR.
+
+With no <TASKS.md>, resolves the active feature the way the router does:
+$FLOW_SPEC → .specs/.current → branch flow/<slug>.
+EOF
+}
+
+JSON=0
+WAVES=0
+FILE=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    print_help
+    exit 0
+    ;;
+  --json)
+    JSON=1
+    shift
+    ;;
+  --waves)
+    WAVES=1
+    shift
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'flow-lint: unknown option: %s\n' "$1" >&2
+    exit 2
+    ;;
+  *)
+    FILE=$1
+    shift
+    ;;
+  esac
+done
+[ -z "$FILE" ] && [ $# -gt 0 ] && FILE=$1
+
+TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null || true)
+
+# ---------- resolve the active TASKS.md the way the router does ----------
+resolve_file() {
+  [ -n "$FILE" ] && return 0
+  local root=${TOPLEVEL:-.} slug=""
+  if [ -n "${FLOW_SPEC:-}" ]; then
+    slug=$FLOW_SPEC
+  elif [ -f "$root/.specs/.current" ]; then
+    slug=$(head -1 "$root/.specs/.current" | tr -d '\r' | tr -d '[:space:]')
+  else
+    local br
+    br=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    case "$br" in
+    flow/*) slug=${br#flow/} ;;
+    esac
+  fi
+  [ -z "$slug" ] && return 1
+  if [ -f "$root/.specs/$slug/TASKS.md" ]; then
+    FILE="$root/.specs/$slug/TASKS.md"
+    return 0
+  fi
+  # branch slug may omit the NNN- prefix
+  local d
+  for d in "$root"/.specs/*-"$slug"; do
+    if [ -f "$d/TASKS.md" ]; then
+      FILE="$d/TASKS.md"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! resolve_file; then
+  printf 'flow-lint: no TASKS.md given and none resolvable (set $FLOW_SPEC, write .specs/.current, or pass a path)\n' >&2
+  exit 2
+fi
+
+if [ ! -f "$FILE" ]; then
+  if [ "$JSON" -eq 1 ]; then
+    printf '{"ok":false,"errors":[{"line":0,"id":"","rule":"file-missing","message":"file not found: %s","fix":"create it with new-spec, or pass the right path"}],"warnings":[],"info":[],"waves":[],"tasks":[],"header":{}}\n' "$FILE"
+  else
+    printf 'ERROR 0: [file-missing] file not found: %s\n  fix: create it with new-spec, or pass the right path\n' "$FILE"
+  fi
+  exit 1
+fi
+
+# ---------- json helpers ----------
+jstr() {
+  printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/'"$(printf '\t')"'/\\t/g')"
+}
+
+jlist() { # comma-separated -> json array of strings
+  local rest=$1 out="" item
+  while [ -n "$rest" ]; do
+    case "$rest" in
+    *,*)
+      item=${rest%%,*}
+      rest=${rest#*,}
+      ;;
+    *)
+      item=$rest
+      rest=""
+      ;;
+    esac
+    item=$(printf '%s' "$item" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    [ -z "$item" ] && continue
+    out="$out${out:+,}$(jstr "$item")"
+  done
+  printf '[%s]' "$out"
+}
+
+trim() { printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+
+# ---------- finding accumulators ----------
+ERRN=0
+ERRJ=""
+ERRT=""
+WARNN=0
+WARNJ=""
+WARNT=""
+INFON=0
+INFOJ=""
+INFOT=""
+
+add_err() { # line id rule message fix
+  ERRN=$((ERRN + 1))
+  ERRJ="$ERRJ${ERRJ:+,}{\"line\":$1,\"id\":$(jstr "$2"),\"rule\":$(jstr "$3"),\"message\":$(jstr "$4"),\"fix\":$(jstr "$5")}"
+  ERRT="$ERRT$(printf 'ERROR %s:%s [%s] %s\n  fix: %s\n' "$1" "$2" "$3" "$4" "$5")
+"
+}
+add_warn() { # line id rule message
+  WARNN=$((WARNN + 1))
+  WARNJ="$WARNJ${WARNJ:+,}{\"line\":$1,\"id\":$(jstr "$2"),\"rule\":$(jstr "$3"),\"message\":$(jstr "$4"),\"fix\":$(jstr "${5:-}")}"
+  WARNT="$WARNT$(printf 'WARN  %s:%s [%s] %s\n' "$1" "$2" "$3" "$4")${5:+
+  fix: $5}
+"
+}
+add_info() { # line id rule message
+  INFON=$((INFON + 1))
+  INFOJ="$INFOJ${INFOJ:+,}{\"line\":$1,\"id\":$(jstr "$2"),\"rule\":$(jstr "$3"),\"message\":$(jstr "$4"),\"fix\":$(jstr "${5:-}")}"
+  INFOT="$INFOT$(printf 'INFO  %s:%s [%s] %s\n' "$1" "$2" "$3" "$4")${5:+
+  fix: $5}
+"
+}
+
+# ---------- parse ----------
+EMD=' — ' # em dash separator, U+2014 with single spaces
+
+H_SPEC=""
+H_DESIGN=""
+H_BASE=""
+H_ROUTE=""
+H_TEST=""
+H_APPROVED=""
+H_VERIFIED=""
+H_TITLE=""
+
+T_ID=()
+T_STATE=()
+T_PAR=()
+T_FILES=()
+T_VERIFY=()
+T_AFTER=()
+T_DONE=()
+T_DROPPED=()
+T_PHASE=()
+T_LINE=()
+T_DESC=()
+T_KIND=()
+N=0
+
+SECTION=""
+PHASE=""
+PHASE_LINE=0
+PHASE_GOAL=0
+PHASE_ITEST=0
+SEEN_BEHAVIORS=0
+SEEN_GATES=0
+IN_FENCE=0
+FENCE_CH=""
+LN=0
+
+flush_phase() {
+  [ -z "$PHASE" ] && return 0
+  [ "$PHASE_GOAL" -eq 0 ] && add_warn "$PHASE_LINE" "" "phase-no-goal" "phase \"$PHASE\" has no Goal: line"
+  [ "$PHASE_ITEST" -eq 0 ] && add_warn "$PHASE_LINE" "" "phase-no-independent-test" "phase \"$PHASE\" has no Independent test: line"
+  return 0
+}
+
+read_header_fields() { # one physical line, fields may be joined by ·
+  local rest=$1 seg
+  while [ -n "$rest" ]; do
+    case "$rest" in
+    *·*)
+      seg=${rest%%·*}
+      rest=${rest#*·}
+      ;;
+    *)
+      seg=$rest
+      rest=""
+      ;;
+    esac
+    seg=$(trim "$seg")
+    case "$seg" in
+    Spec:*) H_SPEC=$(trim "${seg#Spec:}") ;;
+    Design:*) H_DESIGN=$(trim "${seg#Design:}") ;;
+    Base:*) H_BASE=$(trim "${seg#Base:}") ;;
+    Route:*) H_ROUTE=$(trim "${seg#Route:}") ;;
+    Test:*) H_TEST=$(trim "${seg#Test:}") ;;
+    Approved:*) H_APPROVED=$(trim "${seg#Approved:}") ;;
+    Verified:*) H_VERIFIED=$(trim "${seg#Verified:}") ;;
+    esac
+  done
+}
+
+while IFS= read -r raw || [ -n "$raw" ]; do
+  LN=$((LN + 1))
+  line=${raw%$'\r'}
+
+  # fence tracking
+  stripped=$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//')
+  case "$stripped" in
+  '```'* | '~~~'*)
+    ch=$(printf '%s' "$stripped" | cut -c1-3)
+    if [ "$IN_FENCE" -eq 0 ]; then
+      IN_FENCE=1
+      FENCE_CH=$ch
+    elif [ "$ch" = "$FENCE_CH" ]; then
+      IN_FENCE=0
+      FENCE_CH=""
+    fi
+    continue
+    ;;
+  esac
+  [ "$IN_FENCE" -eq 1 ] && continue
+
+  case "$line" in
+  '# '*)
+    H_TITLE=$(trim "${line#\# }")
+    continue
+    ;;
+  '## Behaviors'*)
+    flush_phase
+    PHASE=""
+    SECTION=behaviors
+    SEEN_BEHAVIORS=1
+    continue
+    ;;
+  '## Gates'*)
+    flush_phase
+    PHASE=""
+    SECTION=gates
+    SEEN_GATES=1
+    continue
+    ;;
+  '## Phase '*)
+    flush_phase
+    SECTION=phase
+    PHASE=$(trim "${line#\#\# }")
+    PHASE_LINE=$LN
+    PHASE_GOAL=0
+    PHASE_ITEST=0
+    continue
+    ;;
+  '## '*)
+    flush_phase
+    PHASE=""
+    SECTION=other
+    continue
+    ;;
+  esac
+
+  case "$stripped" in
+  'Goal:'*) [ -n "$PHASE" ] && PHASE_GOAL=1 ;;
+  'Independent test:'*) [ -n "$PHASE" ] && PHASE_ITEST=1 ;;
+  esac
+
+  # header fields live above the first section
+  if [ -z "$SECTION" ]; then
+    read_header_fields "$line"
+  else
+    case "$stripped" in
+    Approved:*) H_APPROVED=$(trim "${stripped#Approved:}") ;;
+    Verified:*) H_VERIFIED=$(trim "${stripped#Verified:}") ;;
+    esac
+  fi
+
+  # ---- task lines ----
+  case "$stripped" in
+  '- ['?'] '*) ;;
+  *) continue ;;
+  esac
+
+  st=$(printf '%s' "$stripped" | cut -c4)
+  case "$st" in
+  ' ' | x | '~') ;;
+  *)
+    add_err "$LN" "" "bad-state" "task state must be one of ' ', 'x', '~', got '$st'" "write '- [ ] ', '- [x] ' or '- [~] '"
+    continue
+    ;;
+  esac
+
+  # strip the fixed 6-char "- [S] " prefix (all ASCII, so byte == char here)
+  body=$(trim "${stripped:6}")
+
+  id=${body%% *}
+  case "$id" in
+  T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9] | G[0-9][0-9][0-9]) ;;
+  *)
+    add_err "$LN" "$id" "bad-id" "task id must be T###, CHK### or G###, got \"$id\"" "renumber the line, e.g. '- [ ] T00${LN} <description> — files: … — verify: …'"
+    continue
+    ;;
+  esac
+  rest=${body#"$id"}
+  rest=$(trim "$rest")
+
+  par=0
+  case "$rest" in
+  '[P] '*)
+    par=1
+    rest=$(trim "${rest#\[P\]}")
+    ;;
+  esac
+
+  # split the remainder on the em dash into keyed segments
+  desc=""
+  f_files=""
+  f_verify=""
+  f_after=""
+  f_done=""
+  f_dropped=""
+  has_verify=0
+  seg_rest="$rest"
+  first=1
+  while :; do
+    case "$seg_rest" in
+    *"$EMD"*)
+      seg=${seg_rest%%"$EMD"*}
+      seg_rest=${seg_rest#*"$EMD"}
+      ;;
+    *)
+      seg=$seg_rest
+      seg_rest=""
+      ;;
+    esac
+    seg=$(trim "$seg")
+    if [ "$first" -eq 1 ]; then
+      desc=$seg
+      first=0
+    else
+      case "$seg" in
+      files:*) f_files=$(trim "${seg#files:}") ;;
+      verify:*)
+        f_verify=$(trim "${seg#verify:}")
+        has_verify=1
+        ;;
+      after:*) f_after=$(trim "${seg#after:}") ;;
+      done:*) f_done=$(trim "${seg#done:}") ;;
+      dropped:*) f_dropped=$(trim "${seg#dropped:}") ;;
+      *) desc="$desc — $seg" ;;
+      esac
+    fi
+    [ -z "$seg_rest" ] && break
+  done
+
+  case "$id" in
+  T*) kind=task ;;
+  CHK*) kind=checkpoint ;;
+  *) kind=gate ;;
+  esac
+  [ "$SECTION" = gates ] && kind=gate
+
+  T_ID[$N]=$id
+  T_STATE[$N]=$st
+  T_PAR[$N]=$par
+  T_FILES[$N]=$f_files
+  T_VERIFY[$N]=$f_verify
+  T_AFTER[$N]=$f_after
+  T_DONE[$N]=$f_done
+  T_DROPPED[$N]=$f_dropped
+  T_PHASE[$N]=$PHASE
+  T_LINE[$N]=$LN
+  T_DESC[$N]=$desc
+  T_KIND[$N]=$kind
+  N=$((N + 1))
+
+  # ---- per-line rules ----
+  if [ "$has_verify" -eq 0 ] || [ -z "$f_verify" ]; then
+    add_err "$LN" "$id" "missing-verify" "$id has no verify:" "append ' — verify: \`<command>\`' (or ' — verify: human: <observable>') to the $id line"
+  fi
+  if [ "$st" = '~' ] && [ -z "$f_dropped" ]; then
+    add_err "$LN" "$id" "dropped-no-reason" "$id is [~] with no dropped: reason" "append ' — dropped: <why>' to the $id line, or restore it to '- [ ]'"
+  fi
+  if [ "$st" = 'x' ] && [ -z "$f_done" ] && [ "$kind" != gate ]; then
+    add_warn "$LN" "$id" "checked-no-sha" "$id is [x] with no done: sha" "run flow tick $id"
+  fi
+  if [ "$par" -eq 1 ] && [ -z "$f_files" ]; then
+    add_err "$LN" "$id" "parallel-no-files" "$id is [P] but declares no files:" "add ' — files: <path,path>' so flow lint can prove the wave is disjoint"
+  fi
+done <"$FILE"
+flush_phase
+
+[ "$SEEN_BEHAVIORS" -eq 0 ] && add_warn 0 "" "no-behaviors" "no ## Behaviors section"
+[ "$SEEN_GATES" -eq 0 ] && add_warn 0 "" "no-gates" "no ## Gates section"
+
+# ---------- waves ----------
+idx_of() { # id -> index, or -1
+  local want=$1 i=0
+  while [ "$i" -lt "$N" ]; do
+    if [ "${T_ID[$i]}" = "$want" ]; then
+      printf '%s' "$i"
+      return 0
+    fi
+    i=$((i + 1))
+  done
+  printf '%s' "-1"
+}
+
+WAVE=()
+i=0
+while [ "$i" -lt "$N" ]; do
+  WAVE[$i]=-1
+  i=$((i + 1))
+done
+
+# validate after: targets, seed wave 0
+i=0
+while [ "$i" -lt "$N" ]; do
+  if [ "${T_KIND[$i]}" = gate ] || [ "${T_STATE[$i]}" = '~' ]; then
+    WAVE[$i]=-2 # excluded from wave scheduling
+    i=$((i + 1))
+    continue
+  fi
+  deps=$(printf '%s' "${T_AFTER[$i]}" | tr ',' ' ')
+  ok=1
+  for d in $deps; do
+    d=$(trim "$d")
+    [ -z "$d" ] && continue
+    j=$(idx_of "$d")
+    if [ "$j" -lt 0 ]; then
+      add_err "${T_LINE[$i]}" "${T_ID[$i]}" "unknown-after" "${T_ID[$i]} depends on \"$d\", which is not a task in this file" "fix the after: list on ${T_ID[$i]}, or add the missing task"
+      ok=0
+    fi
+  done
+  if [ "$ok" -eq 0 ]; then
+    WAVE[$i]=-2 # dangling after: — already an ERROR, do not also report a cycle
+  elif [ -z "$(trim "${T_AFTER[$i]}")" ]; then
+    WAVE[$i]=0
+  fi
+  i=$((i + 1))
+done
+
+# level: wave = 1 + max(wave of deps); iterate to a fixed point
+pass=0
+while [ "$pass" -le "$N" ]; do
+  changed=0
+  i=0
+  while [ "$i" -lt "$N" ]; do
+    if [ "${WAVE[$i]}" -eq -1 ]; then
+      deps=$(printf '%s' "${T_AFTER[$i]}" | tr ',' ' ')
+      maxw=-1
+      ready=1
+      for d in $deps; do
+        d=$(trim "$d")
+        [ -z "$d" ] && continue
+        j=$(idx_of "$d")
+        if [ "$j" -lt 0 ]; then
+          ready=0
+          continue
+        fi
+        if [ "${WAVE[$j]}" -eq -2 ]; then continue; fi
+        if [ "${WAVE[$j]}" -lt 0 ]; then
+          ready=0
+          break
+        fi
+        [ "${WAVE[$j]}" -gt "$maxw" ] && maxw=${WAVE[$j]}
+      done
+      if [ "$ready" -eq 1 ]; then
+        WAVE[$i]=$((maxw + 1))
+        changed=1
+      fi
+    fi
+    i=$((i + 1))
+  done
+  [ "$changed" -eq 0 ] && break
+  pass=$((pass + 1))
+done
+
+i=0
+while [ "$i" -lt "$N" ]; do
+  if [ "${WAVE[$i]}" -eq -1 ]; then
+    add_err "${T_LINE[$i]}" "${T_ID[$i]}" "after-cycle" "${T_ID[$i]} is in an after: cycle (or depends on one)" "break the cycle: remove one after: entry so the dependency graph is acyclic"
+    WAVE[$i]=-2
+  fi
+  i=$((i + 1))
+done
+
+MAXW=-1
+i=0
+while [ "$i" -lt "$N" ]; do
+  [ "${WAVE[$i]}" -gt "$MAXW" ] && MAXW=${WAVE[$i]}
+  i=$((i + 1))
+done
+
+# ---------- [P] disjointness within a wave ----------
+files_intersect() { # "a, b" "b, c" -> 0 when they share a path
+  local a b x y
+  for x in $(printf '%s' "$1" | tr ',' '\n'); do
+    a=$(trim "$x")
+    [ -z "$a" ] && continue
+    for y in $(printf '%s' "$2" | tr ',' '\n'); do
+      b=$(trim "$y")
+      [ -z "$b" ] && continue
+      if [ "$a" = "$b" ]; then
+        printf '%s' "$a"
+        return 0
+      fi
+    done
+  done
+  return 1
+}
+
+w=0
+while [ "$w" -le "$MAXW" ]; do
+  i=0
+  while [ "$i" -lt "$N" ]; do
+    if [ "${WAVE[$i]}" -eq "$w" ] && [ "${T_PAR[$i]}" -eq 1 ]; then
+      j=$((i + 1))
+      while [ "$j" -lt "$N" ]; do
+        if [ "${WAVE[$j]}" -eq "$w" ] && [ "${T_PAR[$j]}" -eq 1 ]; then
+          if shared=$(files_intersect "${T_FILES[$i]}" "${T_FILES[$j]}"); then
+            add_err "${T_LINE[$j]}" "${T_ID[$j]}" "parallel-overlap" \
+              "${T_ID[$i]} and ${T_ID[$j]} are both [P] in wave $w and both own $shared" \
+              "drop [P] from ${T_ID[$j]}, or add ' — after: ${T_ID[$i]}' so they land in different waves"
+          fi
+        fi
+        j=$((j + 1))
+      done
+    fi
+    i=$((i + 1))
+  done
+  w=$((w + 1))
+done
+
+# ---------- git joins ----------
+GIT_OK=0
+if [ -n "$TOPLEVEL" ] && git rev-parse --verify -q HEAD >/dev/null 2>&1; then GIT_OK=1; fi
+
+if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
+  if ! git rev-parse --verify -q "$H_BASE^{commit}" >/dev/null 2>&1; then
+    add_warn 0 "" "base-unknown" "Base: $H_BASE is not a commit in this repo; skipping the done:-sha checks"
+  else
+    i=0
+    while [ "$i" -lt "$N" ]; do
+      sha=${T_DONE[$i]}
+      if [ "${T_STATE[$i]}" = 'x' ] && [ -n "$sha" ]; then
+        id=${T_ID[$i]}
+        ln=${T_LINE[$i]}
+        if ! git rev-parse --verify -q "$sha^{commit}" >/dev/null 2>&1; then
+          add_err "$ln" "$id" "done-sha-unknown" "TASKS.md claims $id done at $sha — no such commit in this repo" "uncheck $id and re-run it, or correct the sha to a real commit"
+        elif ! git merge-base --is-ancestor "$sha" HEAD >/dev/null 2>&1; then
+          add_err "$ln" "$id" "done-sha-unreachable" "TASKS.md claims $id done at $sha — not on this branch" "uncheck $id and run it here, or check out the branch that has $sha"
+        elif git merge-base --is-ancestor "$sha" "$H_BASE" >/dev/null 2>&1; then
+          add_err "$ln" "$id" "done-sha-before-base" "TASKS.md claims $id done at $sha, which is at or before Base: $H_BASE" "uncheck $id — nothing was committed for it since Base"
+        else
+          touched=$(git show --name-only --format= "$sha" 2>/dev/null)
+          hit=0
+          for p in $(printf '%s' "${T_FILES[$i]}" | tr ',' '\n'); do
+            p=$(trim "$p")
+            [ -z "$p" ] && continue
+            if printf '%s\n' "$touched" | grep -Fxq "$p"; then
+              hit=1
+              break
+            fi
+          done
+          if [ -z "$(trim "${T_FILES[$i]}")" ]; then
+            add_warn "$ln" "$id" "done-no-files" "$id is done at $sha but declares no files:, so the join cannot be checked"
+          elif [ "$hit" -eq 0 ]; then
+            add_err "$ln" "$id" "done-touches-nothing" "$id claims $sha, but that commit touched none of ${T_FILES[$i]}" "tick the task against the commit that changed its files: (flow tick $id), or fix files:"
+          fi
+        fi
+      fi
+      i=$((i + 1))
+    done
+  fi
+fi
+
+# ---------- ID-vanish diff against HEAD: ----------
+if [ "$GIT_OK" -eq 1 ]; then
+  rel=${FILE#"$TOPLEVEL"/}
+  case "$rel" in
+  /*) rel="" ;;
+  esac
+  if [ -n "$rel" ] && git cat-file -e "HEAD:$rel" 2>/dev/null; then
+    old_ids=$(git show "HEAD:$rel" 2>/dev/null |
+      sed -e 's/'"$(printf '\r')"'$//' -e 's/^[[:space:]]*//' |
+      grep -E '^- \[[ x~]\] ' |
+      sed -e 's/^- \[[ x~]\][[:space:]]*//' |
+      awk '{print $1}')
+    for oid in $old_ids; do
+      case "$oid" in
+      T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9] | G[0-9][0-9][0-9]) ;;
+      *) continue ;;
+      esac
+      if [ "$(idx_of "$oid")" -lt 0 ]; then
+        add_err 0 "$oid" "id-vanished" "$oid was in $rel at HEAD and is gone from the working copy" "TASKS.md is append-only: restore $oid and mark it '- [~] $oid … — dropped: <reason>' instead of deleting it"
+      fi
+    done
+  fi
+fi
+
+# ---------- header rules ----------
+case "$H_ROUTE" in
+bounded | oneshot | dispatch) ;;
+"") add_warn 0 "" "no-route" "no Route: in the header" "add 'Route: bounded|oneshot|dispatch' to the header line" ;;
+*) add_err 0 "" "bad-route" "Route: \"$H_ROUTE\" is not one of bounded, oneshot, dispatch" "set Route: to bounded, oneshot or dispatch" ;;
+esac
+[ -z "$H_BASE" ] && add_warn 0 "" "no-base" "no Base: sha in the header" "add 'Base: $(git rev-parse --short HEAD 2>/dev/null || echo '<sha>')' so done: shas can be checked"
+
+NTASK=0
+i=0
+while [ "$i" -lt "$N" ]; do
+  [ "${T_KIND[$i]}" = task ] && NTASK=$((NTASK + 1))
+  i=$((i + 1))
+done
+if [ "$H_ROUTE" = oneshot ] && [ "$NTASK" -gt 5 ]; then
+  add_info 0 "" "oneshot-too-big" "Route: oneshot with $NTASK tasks (>5)" "run /flow:next --escalate to move this feature to dispatch"
+fi
+
+# ---------- output ----------
+wave_ids() { # w -> "T002 T003"
+  local w=$1 i=0 out=""
+  while [ "$i" -lt "$N" ]; do
+    [ "${WAVE[$i]}" -eq "$w" ] && out="$out${out:+ }${T_ID[$i]}"
+    i=$((i + 1))
+  done
+  printf '%s' "$out"
+}
+
+if [ "$JSON" -eq 1 ]; then
+  wj=""
+  w=0
+  while [ "$w" -le "$MAXW" ]; do
+    ids=$(wave_ids "$w")
+    if [ -n "$ids" ]; then
+      inner=""
+      for wid in $ids; do inner="$inner${inner:+,}$(jstr "$wid")"; done
+      wj="$wj${wj:+,}[$inner]"
+    fi
+    w=$((w + 1))
+  done
+
+  tj=""
+  i=0
+  while [ "$i" -lt "$N" ]; do
+    case "${T_STATE[$i]}" in
+    x) sname="done" ;;
+    '~') sname="dropped" ;;
+    *) sname="open" ;;
+    esac
+    pbool=false
+    [ "${T_PAR[$i]}" -eq 1 ] && pbool=true
+    wv=${WAVE[$i]}
+    [ "$wv" -lt 0 ] && wv=null
+    tj="$tj${tj:+,}{\"id\":$(jstr "${T_ID[$i]}"),\"state\":$(jstr "$sname"),\"kind\":$(jstr "${T_KIND[$i]}"),\"parallel\":$pbool,\"wave\":$wv,\"files\":$(jlist "${T_FILES[$i]}"),\"verify\":$(jstr "${T_VERIFY[$i]}"),\"after\":$(jlist "${T_AFTER[$i]}"),\"done\":$(jstr "${T_DONE[$i]}"),\"dropped\":$(jstr "${T_DROPPED[$i]}"),\"phase\":$(jstr "${T_PHASE[$i]}"),\"line\":${T_LINE[$i]},\"description\":$(jstr "${T_DESC[$i]}")}"
+    i=$((i + 1))
+  done
+
+  okv=true
+  [ "$ERRN" -gt 0 ] && okv=false
+  printf '{"ok":%s,"file":%s,"errors":[%s],"warnings":[%s],"info":[%s],"waves":[%s],"tasks":[%s],"header":{"title":%s,"spec":%s,"design":%s,"base":%s,"route":%s,"test":%s,"approved":%s,"verified":%s}}\n' \
+    "$okv" "$(jstr "$FILE")" "$ERRJ" "$WARNJ" "$INFOJ" "$wj" "$tj" \
+    "$(jstr "$H_TITLE")" "$(jstr "$H_SPEC")" "$(jstr "$H_DESIGN")" "$(jstr "$H_BASE")" \
+    "$(jstr "$H_ROUTE")" "$(jstr "$H_TEST")" "$(jstr "$H_APPROVED")" "$(jstr "$H_VERIFIED")"
+elif [ "$WAVES" -eq 1 ]; then
+  w=0
+  while [ "$w" -le "$MAXW" ]; do
+    ids=$(wave_ids "$w")
+    [ -n "$ids" ] && printf 'wave %s: %s\n' "$w" "$ids"
+    w=$((w + 1))
+  done
+  [ -n "$ERRT" ] && printf '%s' "$ERRT"
+else
+  [ -n "$ERRT" ] && printf '%s' "$ERRT"
+  [ -n "$WARNT" ] && printf '%s' "$WARNT"
+  [ -n "$INFOT" ] && printf '%s' "$INFOT"
+  if [ "$ERRN" -eq 0 ] && [ "$WARNN" -eq 0 ] && [ "$INFON" -eq 0 ]; then
+    printf 'OK %s — %s tasks, %s waves\n' "${FILE##*/}" "$NTASK" "$((MAXW + 1))"
+  elif [ "$ERRN" -eq 0 ]; then
+    printf 'OK %s — %s tasks, %s waves (%s warnings, %s info)\n' "${FILE##*/}" "$NTASK" "$((MAXW + 1))" "$WARNN" "$INFON"
+  fi
+fi
+
+[ "$ERRN" -gt 0 ] && exit 1
+exit 0

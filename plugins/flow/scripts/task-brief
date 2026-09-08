@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# task-brief — cut one task's brief out of a TASKS.md, for a fresh subagent.
+#
+# Task granularity (was slice-brief, which cut whole slices). Fence-aware:
+# a task line inside a ``` or ~~~ fence is an example, never the task.
+#
+# Records BASE — git rev-parse --short HEAD at the moment the brief is
+# written, i.e. BEFORE dispatch — into the brief, so the per-task review runs
+# over <task-base>..HEAD and never over HEAD~1.
+set -u
+
+usage() {
+  cat <<'EOF'
+Usage: task-brief <TASKS.md> <ID> [--design <design.md>] [--out <path>]
+
+Writes a one-task brief containing:
+  Base: <short sha of HEAD, measured now — before the task is dispatched>
+  the task's phase heading with its Goal: and Independent test: lines
+  the task's own line, verbatim
+  any "## Contract" block in --design whose heading names <ID>
+
+Default --out is <dir-of-TASKS.md>/review/<ID>-brief.md (review/ is
+gitignored; a brief is a generated artifact and never a predicate).
+Prints the output path. Exit 1 when <ID> is not a task in <TASKS.md>.
+EOF
+}
+
+TASKS=""
+ID=""
+DESIGN=""
+OUT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --help | -h)
+    usage
+    exit 0
+    ;;
+  --design)
+    DESIGN=$2
+    shift 2
+    ;;
+  --out)
+    OUT=$2
+    shift 2
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -*)
+    printf 'task-brief: unknown option: %s\n' "$1" >&2
+    exit 2
+    ;;
+  *)
+    if [ -z "$TASKS" ]; then
+      TASKS=$1
+    elif [ -z "$ID" ]; then ID=$1; fi
+    shift
+    ;;
+  esac
+done
+
+if [ -z "$TASKS" ] || [ -z "$ID" ]; then
+  usage >&2
+  exit 2
+fi
+if [ ! -f "$TASKS" ]; then
+  printf 'task-brief: no such file: %s\n' "$TASKS" >&2
+  exit 1
+fi
+
+DIR=$(cd "$(dirname "$TASKS")" && pwd -P)
+[ -z "$OUT" ] && OUT="$DIR/review/$ID-brief.md"
+mkdir -p "$(dirname "$OUT")"
+
+BASE=$(git rev-parse --short HEAD 2>/dev/null || printf 'unknown')
+# header fields, one per line; the file's own Base: is dropped in favour of
+# the measured one above (a brief carries exactly one Base).
+HEADER=$(awk '
+  BEGIN { fence = 0 }
+  /^```/ || /^~~~/ { fence = !fence; next }
+  fence { next }
+  /^## / { exit }
+  {
+    line = $0
+    sub(/\r$/, "", line)
+    n = split(line, seg, " \xc2\xb7 ")
+    for (i = 1; i <= n; i++) {
+      f = seg[i]
+      gsub(/^[ \t]+|[ \t]+$/, "", f)
+      if (f ~ /^(Spec|Design|Route|Test|Approved|Verified):/) print f
+    }
+  }
+' "$TASKS")
+
+# the task line, its phase heading, and the phase Goal:/Independent test: lines
+BODY=$(awk -v id="$ID" '
+  BEGIN { fence = 0; phase = ""; goal = ""; itest = ""; found = 0 }
+  /^```/ || /^~~~/ { fence = !fence; next }
+  fence { next }
+  /^## Phase / { phase = $0; goal = ""; itest = ""; next }
+  /^## / { phase = ""; goal = ""; itest = ""; next }
+  /^Goal:/ { goal = $0; next }
+  /^Independent test:/ { itest = $0; next }
+  {
+    line = $0
+    sub(/\r$/, "", line)
+    if (line ~ /^- \[[ x~]\] /) {
+      rest = line
+      sub(/^- \[[ x~]\][ ]*/, "", rest)
+      split(rest, w, " ")
+      if (w[1] == id) {
+        if (phase != "") { print phase; if (goal != "") print goal; if (itest != "") print itest; print "" }
+        print "## Your task"
+        print line
+        found = 1
+        exit
+      }
+    }
+  }
+  END { if (!found) exit 3 }
+' "$TASKS") || {
+  printf 'task-brief: %s is not a task in %s\n' "$ID" "$TASKS" >&2
+  exit 1
+}
+
+CONTRACT=""
+if [ -n "$DESIGN" ] && [ -f "$DESIGN" ]; then
+  CONTRACT=$(awk -v id="$ID" '
+    BEGIN { fence = 0; inblk = 0 }
+    /^```/ || /^~~~/ { fence = !fence; if (inblk) print; next }
+    fence { if (inblk) print; next }
+    /^## / {
+      if (inblk) { inblk = 0 }
+      if ($0 ~ /^## Contract/ && index($0, id) > 0) { inblk = 1; print; next }
+      next
+    }
+    inblk { print }
+  ' "$DESIGN")
+fi
+
+{
+  printf '# Brief — %s\n' "$ID"
+  printf 'Base: %s\n' "$BASE"
+  printf 'Feature: %s\n' "$DIR"
+  [ -n "$HEADER" ] && printf '%s\n' "$HEADER"
+  printf '\n'
+  printf '%s\n' "$BODY"
+  if [ -n "$CONTRACT" ]; then
+    printf '\n'
+    printf '%s\n' "$CONTRACT"
+  fi
+  printf '\n## Rules\n'
+  printf 'Touch only the paths in files:. Failing test first, verify it fails, minimal\n'
+  printf 'implementation, verify it passes, commit. Do not tick the box — the\n'
+  printf 'orchestrator re-runs verify: and runs flow tick %s.\n' "$ID"
+} >"$OUT"
+
+printf '%s\n' "$OUT"
