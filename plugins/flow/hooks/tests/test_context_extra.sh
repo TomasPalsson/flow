@@ -38,14 +38,14 @@ t_ctx_extra_no_flow_json_no_note() {
 # or .claude/flow.json is the CLI's "no flow, clean tree" default line.
 #
 # Spec 003 C-D/G6: `next` is ALWAYS a runnable command or slash command,
-# never prose, and the Next: line comes FIRST in the block. The old prose
-# line "Next: /flow <feature> for a feature, or just ask ..." violated both,
-# so the prose moved to the Why: line and Next: is the bare slash command.
+# never prose, and the Next: line comes FIRST in the block. Spec 004 K-C
+# renames the empty-repo answer: `/flow:spec` is the only door, and the
+# router's row 2 ("no project") is what a fresh tmp_repo computes.
 t_ctx_extra_harness_next_line_appended() {
 	d=$(tmp_repo)
 	run_hook "$SCAN_DIR/session-context.sh" '{"session_id":"ctx-next"}' CLAUDE_PROJECT_DIR="$d"
 	assert_rc 0 "flow next line: rc 0"
 	first=$(printf '%s\n' "$OUT" | head -1)
-	assert_eq "$first" "Next: /flow" "flow next line: printed"
-	assert_contains "$OUT" "Why: clean tree, no flow in progress" "flow next line: why printed"
+	assert_eq "$first" "Next: /flow:spec" "flow next line: printed"
+	assert_contains "$OUT" "Why: nothing in flight" "flow next line: why printed"
 }
