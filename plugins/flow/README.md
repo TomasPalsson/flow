@@ -52,6 +52,9 @@ plugins/flow/
 ├── hooks/                       lifecycle hooks + hooks.json manifest + tests/
 ├── scripts/                     new-spec · flow-lint · task-brief · review-package ·
 │                                 skills-lint · workflow-lint · codebase-map · tests/
+├── agents/                      developer · adversary · triage · explorer · claim-check
+│                                (the subagent types the skills and workflows dispatch by
+│                                name; shipped here so the plugin stands alone)
 ├── workflows/                   build-slices · review-diff · research-sweep · plan-review
 │                                 (registered as flow:<name> via the Workflow tool)
 ├── flow-templates/              spec.md · TASKS.md · REVIEW.md · PROGRESS.md ·
