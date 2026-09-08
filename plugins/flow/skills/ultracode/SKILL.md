@@ -1,6 +1,6 @@
 ---
 name: ultracode
-description: "Maximum-scale multi-agent coding orchestration — turn a task into a Sonnet agent fleet (developer implementers + adversary reviewers) run through the Workflow tool with a spec gate, trial run, and adversarial verification. Use when the user says 'ultracode' or '/ultracode <task>', asks for an agent fleet/swarm, a massive parallel implementation, migration, audit, or refactor, says 'use sonnet agents like there is no tomorrow', 'fan out agents', 'maximum effort on this', or wants a big coding task done at fleet scale. Bare /ultracode (no args) arms ultracode posture for the rest of the session. Do NOT use for: a single feature needing TDD + user-verification gates (/feature), research-only fan-outs with no code written (/overkill, /deep-research), or critiquing an idea (/scrutinize-idea)."
+description: "Maximum-scale multi-agent coding orchestration — turn a task into a Sonnet agent fleet (developer implementers + adversary reviewers) run through the Workflow tool with a spec gate, trial run, and adversarial verification. Use when the user says 'ultracode' or '/ultracode <task>', asks for an agent fleet/swarm, a massive parallel implementation, migration, audit, or refactor, says 'use sonnet agents like there is no tomorrow', 'fan out agents', 'maximum effort on this', or wants a big coding task done at fleet scale. Bare /ultracode (no args) arms ultracode posture for the rest of the session. Do NOT use for: a single feature needing TDD + user-verification gates (/flow:next), research-only fan-outs with no code written (/overkill, /deep-research), or critiquing an idea (/scrutinize-idea)."
 user-invocable: true
 argument-hint: "[task to run at fleet scale — omit to arm posture for the session]"
 ---
@@ -109,7 +109,7 @@ LLM review alone plateaus near coin-flip at catching false success (AUROC ≤0.6
 - **Merge shards serially**, each merge seeing the previous shard's changes — surfacing conflicts incrementally instead of all-at-once at the end.
 - **Tests-pass is necessary, not sufficient.** The suite that failed to prevent the original bugs cannot certify their absence in new code. Pair it with something that catches what the suite structurally can't: new tests targeting the change's specific risk class, mutation testing, or sanitizers/fuzzing for memory/concurrency surfaces.
 - **Hardening is a separate phase**, not a formality inside "done": security review + fuzz/sanitizer passes for risky surfaces come after tests-green, before you call it shipped.
-- Ship per repo conventions. A unit that is really a user-facing feature belongs in `/feature`'s gates (TDD, browser + user verification) — hand it over rather than duplicating them here.
+- Ship per repo conventions. A unit that is really a user-facing feature belongs in `/flow:next`'s gates (TDD, browser + user verification) — hand it over rather than duplicating them here.
 
 ## Model escalation (workers)
 

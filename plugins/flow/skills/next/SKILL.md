@@ -31,7 +31,7 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 | `building` | Build exactly the wave the router names (§Building). |
 | `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. |
 | `gating` | Run the `## Gates` (§Gates). |
-| `unverified` | HARD GATE. `Next: verify using verify/, reply "approved"`. On approval write `Verified: <YYYY-MM-DD> by user`. |
+| `unverified` | HARD GATE. Print the router's line verbatim (`Next: read <feature-dir>/verify/, reply "approved"`) and stop. On approval write `Verified: <YYYY-MM-DD> by user`. |
 | `stale-pass` | Commits landed after the newest `PASS-*`. Re-run the gates. |
 | `shippable` | Open the PR (§Ship). |
 | `shipped` | `Next: gh pr view --web`. Once merged, archive (§Ship). |

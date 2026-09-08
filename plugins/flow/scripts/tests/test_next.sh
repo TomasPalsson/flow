@@ -182,7 +182,8 @@ t_next_row1c_five_calls_with_no_state_change() {
 		nx_cli_in "$proj" "$home" next >/dev/null 2>&1
 		i=$((i + 1))
 	done
-	nx_cli_in "$proj" "$home" next --json
+	# --peek: observing the counter must not move it (--json counts, F6)
+	nx_cli_in "$proj" "$home" next --peek --json
 	assert_contains "$OUT" '"consecutive_calls": 4' "the counter survives between calls"
 	nx_cli_in "$proj" "$home" next
 	assert_contains "$OUT" "consecutive flow next calls with no state change" "5 calls with no change stops"
@@ -207,7 +208,7 @@ t_next_row1c_counter_resets_on_a_state_change() {
 	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
 		'- [ ] T001 a — files: a.py — verify: `true`'
 	nx_cli_in "$proj" "$home" next >/dev/null 2>&1
-	nx_cli_in "$proj" "$home" next --json
+	nx_cli_in "$proj" "$home" next --peek --json
 	assert_contains "$OUT" '"consecutive_calls": 1' "a state change resets the counter"
 	rm -rf "$home" "$proj"
 }
@@ -564,9 +565,12 @@ t_next_identical_from_root_and_subdirectory() {
 	mkdir -p "$proj/src/lib/api"
 	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
 		'- [ ] T001 a — files: a.py — verify: `true`'
-	nx_cli_in "$proj" "$home" next --json
+	# --peek on both sides: --json now counts (F6), and the counter is
+	# per-invocation state, not a cwd-dependent answer — leaving it in would
+	# make the two reads differ for a reason that has nothing to do with cwd.
+	nx_cli_in "$proj" "$home" next --peek --json
 	root=$OUT
-	nx_cli_in "$proj/src/lib/api" "$home" next --json
+	nx_cli_in "$proj/src/lib/api" "$home" next --peek --json
 	sub=$OUT
 	assert_eq "$sub" "$root" "the router answers identically at the root and in src/lib/api"
 	rm -rf "$home" "$proj"
@@ -589,7 +593,13 @@ t_next_progress_md_never_outranks_the_router() {
 	rm -rf "$home" "$proj"
 }
 
-t_next_json_never_moves_the_counter() {
+# REWRITTEN (spec 004 F6, was t_next_json_never_moves_the_counter): the
+# read-only door is --peek, not --json. `flow next --json` is exactly what the
+# /flow:next skill runs every turn, so if --json did not count, row 1c could
+# never fire for the loop it exists to bound. The behaviour the old test
+# guarded — a passive observer can ask without tripping the loop stop — is
+# unchanged and asserted below; only the flag that buys it moved.
+t_next_peek_never_moves_the_counter() {
 	local home proj base i
 	home=$(tmp_dir)
 	proj=$(tmp_repo)
@@ -599,12 +609,42 @@ t_next_json_never_moves_the_counter() {
 		'- [ ] T001 a — files: a.py — verify: `true`'
 	i=0
 	while [ "$i" -lt 8 ]; do
+		nx_cli_in "$proj" "$home" next --peek >/dev/null 2>&1
+		i=$((i + 1))
+	done
+	nx_cli_in "$proj" "$home" next --peek --json
+	assert_contains "$OUT" '"consecutive_calls": 0' "--peek leaves the counter where it found it"
+	nx_cli_in "$proj" "$home" next
+	assert_contains "$OUT" "Next: /flow:next" "a hook or status line can ask with --peek without tripping the loop stop"
+	rm -rf "$home" "$proj"
+}
+
+# The skill reads `flow next --json`; that read IS the turn, so it counts.
+t_next_json_moves_the_counter_and_trips_row_1c() {
+	local home proj base i
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		'- [ ] T001 a — files: a.py — verify: `true`'
+	i=0
+	while [ "$i" -lt 4 ]; do
 		nx_cli_in "$proj" "$home" next --json >/dev/null 2>&1
 		i=$((i + 1))
 	done
-	nx_cli_in "$proj" "$home" next
-	assert_contains "$OUT" "Next: /flow:next" "hooks and doctor can ask with --json without tripping the loop stop"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "looping"' "five --json reads with no state change is row 1c"
+	assert_contains "$OUT" '"consecutive_calls": 5' "and --json counted every one of them"
+	assert_contains "$OUT" '/flow:next --force' "the loop stop names its own bypass"
 	rm -rf "$home" "$proj"
+}
+
+# session-context.sh prints the Next: banner at session start; that banner must
+# not be what drives the loop guard.
+t_next_session_context_hook_asks_with_peek() {
+	assert_contains "$(cat "$SCAN_DIR/../hooks/session-context.sh")" 'next --peek' \
+		"the session-start banner reads the router with --peek"
 }
 
 t_next_plain_output_is_one_line_per_field() {

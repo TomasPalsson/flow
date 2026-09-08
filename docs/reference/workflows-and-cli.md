@@ -107,9 +107,10 @@ Commands:
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
-  next [--json] [--force]                           Print the one thing to do next, from
+  next [--json] [--force] [--peek]                  Print the one thing to do next, from
                                                      .specs/ and git alone (14 states; --json
-                                                     adds the gates as data)
+                                                     adds the gates as data, --peek reads
+                                                     without moving the loop counter)
   lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
                                                      [P] disjointness per wave, missing verify:,
                                                      ticks that no commit backs

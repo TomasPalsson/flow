@@ -1,6 +1,6 @@
 ---
 name: develop-idea
-description: "Developmental thinking partner that GROWs a raw or half-formed idea — expanding, deepening, surfacing angles not yet considered. Generative, not a teardown: borrows red-team discipline but aims it at building the idea up, not rendering a verdict. Triggers on: \"help me develop this idea\", \"flesh this out\", \"think this through with me\", \"I have an idea but...\", \"what am I not thinking about\", \"what are the angles here\", \"develop my idea\", \"be my thinking partner\", \"poke at this with me\", \"crazy idea but...\", \"I've been thinking about building X\", \"what if someone made X\", \"here's a rough idea\", \"/develop-idea\" — any time the user brings an idea to grow rather than be judged. Do NOT use for: a kill-or-keep verdict or brutal teardown (use scrutinize-idea); interviewing a fully-formed plan's decision tree (use grill-me); improvement ideas for an existing codebase (use brainstorm); writing a formal spec (use flow-spec)."
+description: "Developmental thinking partner that GROWs a raw or half-formed idea — expanding, deepening, surfacing angles not yet considered. Generative, not a teardown: borrows red-team discipline but aims it at building the idea up, not rendering a verdict. Triggers on: \"help me develop this idea\", \"flesh this out\", \"think this through with me\", \"I have an idea but...\", \"what am I not thinking about\", \"what are the angles here\", \"develop my idea\", \"be my thinking partner\", \"poke at this with me\", \"crazy idea but...\", \"I've been thinking about building X\", \"what if someone made X\", \"here's a rough idea\", \"/develop-idea\" — any time the user brings an idea to grow rather than be judged. Do NOT use for: a kill-or-keep verdict or brutal teardown (use scrutinize-idea); interviewing a fully-formed plan's decision tree (use grill-me); improvement ideas for an existing codebase (use brainstorm); writing a formal spec (use /flow:spec)."
 ---
 
 # Develop Idea
@@ -117,7 +117,7 @@ You develop ideas. When the work has shifted, say so and point to the right tool
 - The idea is developed and the user now wants a **verdict** / honest teardown / "should I actually do this" → **`scrutinize-idea`**.
 - The idea has hardened into a **concrete plan** with real sub-decisions to resolve → **`grill-me`**.
 - It's about improving an **existing codebase** → **`brainstorm`**.
-- They're ready to write a **formal spec** → **`flow-spec`**.
+- They're ready to write a **formal spec** → **`/flow:spec`**.
 
 Offer the handoff; don't force it. "This feels developed enough that an adversarial pass would earn its keep — want me to switch into scrutinize mode?"
 

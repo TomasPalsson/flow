@@ -107,7 +107,9 @@ t_v2_use_resets_the_call_counter() {
 		i=$((i + 1))
 	done
 	v2_cli_in "$proj" "$home" use 002-b
-	v2_cli_in "$proj" "$home" next --json
+	# --peek: --json counts a real turn (F6), so observing the reset must not
+	# be the thing that moves the counter off 0.
+	v2_cli_in "$proj" "$home" next --peek --json
 	assert_contains "$OUT" '"consecutive_calls": 0' "switching feature resets the loop counter"
 	rm -rf "$home" "$proj"
 }
@@ -232,7 +234,8 @@ t_v2_tick_resets_the_call_counter() {
 		i=$((i + 1))
 	done
 	v2_cli_in "$proj" "$home" tick T002
-	v2_cli_in "$proj" "$home" next --json
+	# --peek: see the note in t_v2_use_resets_the_call_counter.
+	v2_cli_in "$proj" "$home" next --peek --json
 	assert_contains "$OUT" '"consecutive_calls": 0' "a tick is progress, so the loop counter resets"
 	rm -rf "$home" "$proj"
 }

@@ -4,3 +4,4 @@ __pycache__/
 plugins/harness
 .specs/*/review/
 .specs/.next-call-count
+.claude/worktrees/

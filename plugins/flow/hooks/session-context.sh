@@ -45,7 +45,9 @@ if [ -x "$HERE/../bin/flow" ]; then
 	_sc_next_cli="$HERE/../bin/flow"
 fi
 if [ -n "$_sc_next_cli" ]; then
-	_sc_next_out=$(cd "$dir" 2>/dev/null && "$_sc_next_cli" next 2>/dev/null || true)
+	# --peek: a session-start banner is a passive read. Without it the hook,
+	# not the /flow:next turn, is what drives the consecutive-call counter.
+	_sc_next_out=$(cd "$dir" 2>/dev/null && "$_sc_next_cli" next --peek 2>/dev/null || true)
 	if [ -n "$_sc_next_out" ]; then
 		while IFS= read -r _sc_next_line; do
 			_sc_print "$_sc_next_line"

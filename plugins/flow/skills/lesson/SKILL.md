@@ -78,5 +78,5 @@ Fix:  hooks/git-guard.sh treats newline and & as separators
 Green: 493 passed, 0 failed
 Adversary: 1 significant (`git push -f` via `sh -c`), added as test, now caught
 Ruling: multi-line push --force slipped past the guard — hook git-guard.sh + 4 tests — a false deny costs one manual retry
-Next: /flow --resume
+Next: /clear, then /flow:next
 ```

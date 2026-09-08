@@ -676,7 +676,12 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
           done
           trim_var "${T_FILES[$i]}"
           if [ -z "$R_TRIM" ]; then
-            add_warn "$ln" "$id" "done-no-files" "$id is done at $sha but declares no files:, so the join cannot be checked"
+            # Gates (G###) never declare files: — they assert a repo-wide
+            # property, not an owned path — so the missing join is by design.
+            case "$id" in
+            G*) : ;;
+            *) add_warn "$ln" "$id" "done-no-files" "$id is done at $sha but declares no files:, so the join cannot be checked" ;;
+            esac
           elif [ "$hit" -eq 0 ]; then
             add_err "$ln" "$id" "done-touches-nothing" "$id claims $sha, but that commit touched none of ${T_FILES[$i]}" "tick the task against the commit that changed its files: (flow tick $id), or fix files:"
           fi

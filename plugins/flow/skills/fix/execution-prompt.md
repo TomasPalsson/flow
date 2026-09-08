@@ -58,7 +58,7 @@ c) After verification: grep source files for [VERIFY] strings — remove any fou
 d) Mark step [x] in state file
 
 ### If current step is "PR creation":
-a) **MANDATORY — READ FIRST**: Load ${CLAUDE_PLUGIN_ROOT}/skills/shared/review.md in full
+a) **MANDATORY — READ FIRST**: Load ${CLAUDE_PLUGIN_ROOT}/skills/next/review.md in full
 b) Execute at tier: simple→quick, medium→standard, complex→full
 c) PR title format: `fix(<scope>): <description>`
 d) PR body must include: what was broken, root cause, what was fixed, regression test description

@@ -1,6 +1,6 @@
 ---
 name: claim-check
-description: Re-runs the evidence behind status claims made in the main session ("tests pass", "committed", "deployed", "gate green", "file exists") and returns CONFIRMED / UNSUPPORTED / NOT-CHECKABLE per claim, with the command it ran and its trimmed output. Read-only; never edits; never hunts for new problems beyond the claims handed to it. Spawn after a compaction, after a failed tool call, before trusting any "done" report, and before a /goal clears. Do NOT use for: reviewing a diff for defects (use adversary).
+description: Re-runs the evidence behind status claims made in the main session ("tests pass", "committed", "deployed", "gate green", "file exists") and returns CONFIRMED / UNSUPPORTED / NOT-CHECKABLE per claim, with the command it ran and its trimmed output. Read-only; never edits; never hunts for new problems beyond the claims handed to it. Spawn after a compaction, after a failed tool call, before trusting any "done" report, and before a gate clears. Do NOT use for: reviewing a diff for defects (use adversary).
 tools: Read, Grep, Glob, Bash
 model: sonnet
 maxTurns: 25

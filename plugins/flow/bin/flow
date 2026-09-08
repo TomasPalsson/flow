@@ -158,9 +158,10 @@ ${C.accent}Commands:${C.reset}
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
-  next [--json] [--force]                           Print the one thing to do next, from
+  next [--json] [--force] [--peek]                  Print the one thing to do next, from
                                                      .specs/ and git alone (14 states; --json
-                                                     adds the gates as data)
+                                                     adds the gates as data, --peek reads
+                                                     without moving the loop counter)
   lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
                                                      [P] disjointness per wave, missing verify:,
                                                      ticks that no commit backs
@@ -2549,14 +2550,15 @@ function printNextHelp() {
 ${C.primary}${C.bold}flow next${C.reset} ${C.muted}— print the next command to run${C.reset}
 
 ${C.accent}Usage:${C.reset}
-  flow next [--json] [--force]
+  flow next [--json] [--force] [--peek]
 
 ${C.accent}Options:${C.reset}
   --json        Print { state, state_no, command, why, after, gates, feature, wave }
-                instead of the plain Next:/Why:/Then: lines. Reading with --json
-                never moves the consecutive-call counter.
+                instead of the plain Next:/Why:/Then: lines.
   --force       Carry on past a hard stop: BLOCKED.md, another approved feature
                 with open tasks, or five calls with no state change.
+  --peek        Read the state without moving the consecutive-call counter, for
+                a hook or a status line. A real turn must not pass it.
   -h, --help    Show this help message
 
 ${C.accent}Position is recomputed from disk on every call${C.reset}
@@ -2714,9 +2716,11 @@ function cmdNext(argv) {
   const jsonMode = argv.includes('--json');
   const result = computeNext(process.cwd(), {
     force: argv.includes('--force'),
-    // `--json` is read by hooks, the status line and flow doctor; those must
-    // be able to ask without moving the loop counter (K-C gates-as-data).
-    count: !jsonMode,
+    // The /flow:next skill's own read is `flow next --json`, so --json MUST
+    // count or row 1c can never fire for the thing it exists to bound. The
+    // read-only door is --peek, for session-context.sh, a status line or any
+    // other passive observer (flow doctor asks in-process with count:false).
+    count: !argv.includes('--peek'),
   });
   if (jsonMode) {
     stdout.write(JSON.stringify({

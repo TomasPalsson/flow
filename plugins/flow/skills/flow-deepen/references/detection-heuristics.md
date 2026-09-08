@@ -1,6 +1,6 @@
 ---
 name: detection-heuristics
-description: The full deepening-opportunity detection catalogue for flow-deepen — the five smell families with greppable signals and before→after deepening moves, the AI "improve architecture" guardrails (with WHY each makes things worse), the AFK/HITL tag decision table, the three-part behavior-preserving acceptance-criteria pattern, the slice file template, and a worked example. Load this in full before Phase 2.
+description: The full deepening-opportunity detection catalogue for flow-deepen — the five smell families with greppable signals and before→after deepening moves, the AI "improve architecture" guardrails (with WHY each makes things worse), the AFK/HITL tag decision table, the three-part behavior-preserving acceptance-criteria pattern, the deepening task template, and a worked example. Load this in full before Phase 2.
 ---
 
 # Deepening detection heuristics
@@ -90,54 +90,35 @@ Every deepening slice's `## Acceptance criteria` has exactly these three, and **
 
 ---
 
-## Slice file template
+## Deepening task template
+
+A deepening is a `TASKS.md` line in the K-B grammar, nothing else. Append one `## Phase N — Deepening`
+section to the spec's `TASKS.md`, then one line per deepening under it:
 
 ```markdown
-# <NN> — <observable-behavior title, e.g. "Caller deserializes a file with one call">
-
-> Deepening slice of [spec](../spec.md) · **Tag**: `AFK`
-
-## What ships
-<Call-site-observable behavior. "Caller creates a user with one method call instead of three." NEVER "extract the repository interface" — that's horizontal.>
-
-## Tag rationale
-- **AFK** → "Behavior-preserving; characterization test required before the structural change; no design decision hidden."
-- **HITL** → "Needs a human for: <the named decision>."
-
-## Depends on
-- #<NN> — <title>   (serialize same-module slices; "none" otherwise)
-
-## Deepening rationale
-- Family: <shallow module / interface leakage / poor locality / layer mismatch / tests coupled to internals>
-- Detection signal: <the grep/heuristic that found it>
-- Before → after at the call site: <3 constructor calls → 1 factory call>
-- Churn note: <high-churn module → high payoff>
-
-## Acceptance criteria
-- [ ] Characterization-test-first: <part 1 verbatim>
-- [ ] Seam observability: <part 2, byte-for-byte>
-- [ ] Interface reduction: <part 3, measurable at the call site>
-
-## Out of scope
-- <adjacent modules a later slice handles — keeps blast radius small>
+## Phase N — Deepening
+Goal: <the anti-pattern family + the detection signal that found it + the before→after at the call site>.
+Independent test: `<the suite>` — green byte-for-byte with no new test case added.
+- [ ] T014 Caller deserializes a file with one factory call, not 3 — files: src/io/deserializer.ts, tests/io/deserializer.char.test.ts — verify: `npm test -- tests/io/deserializer.char.test.ts`
+- [ ] T015 UserStore returns StoreError, callers drop the db import — files: src/store/user.ts, tests/store/user.char.test.ts — verify: `npm test -- tests/store/user.char.test.ts` — after: T014
+- [ ] CHK016 human-decide — client shape: one method + options object (recommended) vs two methods — verify: human: user picks a shape
 ```
 
-`plan.md` subsection (append, identical format to flow-to-issues):
+Line rules that `flow lint` enforces, so get them right in the draft:
 
-```markdown
-### 05 — Caller deserializes a file with one call
-- **Tag**: AFK — behavior-preserving; characterization test required before structural change
-- **depends-on**: —
-- **Deepening rationale**: classitis 3-class chain (ObjectInputStream/BufferedInputStream/FileInputStream); high-churn
-- **Acceptance criteria**:
-  - Characterization test pins current deserialize output before any change; suite stays green
-  - Deepened path produces byte-for-byte identical output for every fixture input
-  - Caller goes from 3 constructor calls to 1 factory call (`Deserializer.fromFile(path)`)
-- **Demoable result**: callers deserialize with one factory call; buffering hidden
-
-```
-
-`issues.md` row: `| 05 | Caller deserializes a file with one call | AFK | — | local |`
+- The **description** states call-site-observable behavior ("caller creates a user with one method call
+  instead of three"), never a layer ("extract the repository interface") — that is horizontal.
+- **`files:`** is a comma-separated list with no globs, and it must include the characterization test file.
+  Two `[P]` tasks in the same wave whose `files:` intersect are an ERROR.
+- **`verify:`** is the characterization test's own command. A `verify:` that requires a NEW behavioral
+  test case to pass is feature work, not a deepening.
+- **`after:`** serializes same-module tasks so the earlier one pins the seam. Only tag `[P]` when the
+  `files:` are genuinely disjoint.
+- **HITL** deepenings are `CHK###` lines with `verify: human: <observable>`, placed before the `T###`
+  that depends on the decision. Everything else is a plain `T###`.
+- The three-part behavior-preserving pattern (characterization-test-first → byte-for-byte seam
+  observability → measurable interface reduction) lives in the phase `Goal:` and the descriptions.
+  Anything that does not fit on the line goes in `NOTES.md`, never in a parallel file.
 
 ---
 
@@ -145,9 +126,9 @@ Every deepening slice's `## Acceptance criteria` has exactly these three, and **
 
 **Detected**: `UserStore.ts` (churn 9 in 6 months — high) has `find/save/delete/list`, each a one-line forward to `db.*` of the same name. Signal: same-named method chain + ratio 14 LOC ÷ 4 methods. The merged feature work added three call sites that all go `new UserStore(db).find()` then immediately `db`-shaped error handling.
 
-**Slice 05** (AFK): *"Caller fetches a user with one call and store-level errors, not raw db errors."* Characterization test pins current `find()` output and the current error shape first → byte-for-byte preserved → caller drops the db import and the per-call error branch (interface reduction). Deepening: `UserStore` aggregates db exceptions into one `StoreError` at its boundary and the pass-through methods gain real behavior (or collapse). depends-on: none.
+**T014** (AFK → plain task): *"Caller fetches a user with one call and store-level errors, not raw db errors."* Characterization test pins current `find()` output and the current error shape first → byte-for-byte preserved → caller drops the db import and the per-call error branch (interface reduction). Deepening: `UserStore` aggregates db exceptions into one `StoreError` at its boundary and the pass-through methods gain real behavior (or collapse). No `after:`.
 
-**Slice 06** (AFK, depends-on #05): *"Caller lists users without passing a page-size tuning param."* Config-explosion signal: `list(pageSize, prefetch, cacheTtlMs)`. Same module as #05 → serialized so #05's characterization test pins the seam first.
+**T015** (AFK, `— after: T014`): *"Caller lists users without passing a page-size tuning param."* Config-explosion signal: `list(pageSize, prefetch, cacheTtlMs)`. Same module as T014 → serialized so T014's characterization test pins the seam first, and neither line may carry `[P]`.
 
-Both are behavior-preserving, both characterization-test-gated, both land in `.specs/<NNN>/issues/` for flow-swarm to pick up unchanged.
+Both are behavior-preserving, both characterization-test-gated, and both land as lines in `.specs/<NNN>/TASKS.md` for /flow:next to build unchanged.
 

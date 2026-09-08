@@ -256,6 +256,39 @@ t_flowlint_tick_at_an_unknown_sha() {
 	rm -rf "$d"
 }
 
+# A ticked G### gate declares no files: BY DESIGN — a gate asserts a repo-wide
+# property, not an owned path — so the [x]->sha->files: join has nothing to check
+# and warning about it fires on every finished feature. A ticked T### with no
+# files: is still worth a warn: there the omission is an accident.
+t_flowlint_done_gate_without_files_is_not_warned() {
+	local d base sha_a
+	d=$(tmp_repo)
+	(
+		cd "$d" || exit 1
+		mkdir -p src .specs/001-x
+		base=$(git rev-parse --short HEAD)
+		printf 'a\n' >src/a.py
+		git add -A && git commit -qm a
+		sha_a=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — x\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [x] T001 make a — files: src/a.py — verify: `true` — done: %s\n' "$sha_a"
+			printf -- '- [x] T009 no paths — verify: `true` — done: %s\n' "$sha_a"
+			printf '\n## Gates\n'
+			printf -- '- [x] G001 gates green — verify: `true` — done: %s\n' "$sha_a"
+		} >.specs/001-x/TASKS.md
+	) >/dev/null 2>&1
+	OUT=$(cd "$d" && bash "$FLOW_LINT" .specs/001-x/TASKS.md 2>&1)
+	RC=$?
+	assert_rc 0 "a clean file with a ticked gate exits 0"
+	assert_not_contains "$OUT" "G001 is done" "a ticked gate with no files: is not warned about"
+	assert_contains "$OUT" "done-no-files" "a ticked task with no files: still warns"
+	assert_contains "$OUT" "T009 is done" "and the warn names the task, not the gate"
+	rm -rf "$d"
+}
+
 t_flowlint_vanished_id_is_error() {
 	local d
 	d=$(_lying_repo)

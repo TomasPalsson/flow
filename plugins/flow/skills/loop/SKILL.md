@@ -1,6 +1,6 @@
 ---
 name: loop
-description: "Run a task in an unattended loop until a deterministic verifier passes — never until the model says so. Use WHENEVER the user says /flow:loop, /loop-until, 'loop until', 'keep going until the tests pass', 'ralph', 'ralph loop', 'run this overnight', 'grind through the backlog', 'iterate until green', 'don't stop until', 'autonomous loop', 'unattended', 'loop engineering', or hands over a task with a runnable check and wants to walk away. Two shapes: in-session (Stop hook, ≤ 8 iterations, you watch) and fresh (outer loop of fresh `claude -p` sessions via `flow loop run`, capped by iterations/minutes/dollars/stall). Do NOT use for: polling on a timer (/loop 5m), a goal only a reader can judge (/goal), a one-shot fix (/fix), or a feature with human decisions inside it (/flow)."
+description: "Run a task in an unattended loop until a deterministic verifier passes — never until the model says so. Use WHENEVER the user says /flow:loop, /loop-until, 'loop until', 'keep going until the tests pass', 'ralph', 'ralph loop', 'run this overnight', 'grind through the backlog', 'iterate until green', 'don't stop until', 'autonomous loop', 'unattended', 'loop engineering', or hands over a task with a runnable check and wants to walk away. Two shapes: in-session (Stop hook, ≤ 8 iterations, you watch) and fresh (outer loop of fresh `claude -p` sessions via `flow loop run`, capped by iterations/minutes/dollars/stall). Do NOT use for: polling on a timer (/loop 5m), a goal only a reader can judge, a one-shot fix (/fix), or a feature with human decisions inside it (/flow:next)."
 user-invocable: true
 argument-hint: "<goal> --verify \"<cmd>\" [--fresh] [--max-iterations N] [--max-minutes N] [--max-usd N] [--worktree]"
 ---
@@ -39,7 +39,7 @@ The verifier is one shell command, exit 0 = goal met, run by the harness with `C
 3. **Compose with `&&`.** "Tests pass AND lint clean AND no TODOs" is one command. Put the fastest, most-discriminating check first.
 4. **No network, no prompts, no state outside the repo.** The same command must give the same answer twice.
 
-If the goal cannot be written as a command, write the closest command you can and keep the judgement for a human gate at the end; do not put an LLM judge in the exit path (use `/goal` when the evidence is conversational).
+If the goal cannot be written as a command, write the closest command you can and keep the judgement for a human gate at the end; do not put an LLM judge in the exit path.
 
 ## Step 3 — Write the per-iteration prompt and the task list
 

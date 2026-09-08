@@ -60,4 +60,4 @@ A `suspect` run is not fixed inside the loop. The finding is reported verbatim a
 | docs build | `mkdocs build --strict` / `bun run docs:build` |
 | browser flow works | `bunx playwright test tests/e2e/checkout.spec.ts` (start the server inside the command; bound it) |
 
-When no command approximates the goal, the loop is the wrong tool: use `/goal` (a model judges the transcript) or split the goal until a command exists.
+When no command approximates the goal, the loop is the wrong tool: keep the judgement for a human gate at the end, or split the goal until a command exists.

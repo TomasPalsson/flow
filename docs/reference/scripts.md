@@ -28,22 +28,20 @@ Does not check working-tree dirtiness. Exit 1 only when a branch is
 requested outside a git repository, or <dir> is not writable.
 ```
 
-## slice-brief
+## task-brief
 
 ```
-Usage: slice-brief <plan-file> <N> [--design <code-design.md>] [--out <path>]
+Usage: task-brief <TASKS.md> <ID> [--design <design.md>] [--out <path>]
 
-Extracts the "## Slice N — ..." section from <plan-file> (through the
-line before the next top-level "## " heading; fence-aware per the plan
-grammar — a line inside a ``` or ~~~ fence is never a heading).
+Writes a one-task brief containing:
+  Base: <short sha of HEAD, measured now — before the task is dispatched>
+  the task's phase heading with its Goal: and Independent test: lines
+  the task's own line, verbatim
+  any "## Contract" block in --design whose heading names <ID>
 
-When --design is given and contains a matching
-"## Contract for this slice — Slice N" block, appends that block.
-
-Writes the result to --out (default .claude/slices/<N>-brief.md,
-directory created) and prints the output path.
-
-Exit 1 if the slice heading is not found in <plan-file>.
+Default --out is <dir-of-TASKS.md>/review/<ID>-brief.md (review/ is
+gitignored; a brief is a generated artifact and never a predicate).
+Prints the output path. Exit 1 when <ID> is not a task in <TASKS.md>.
 ```
 
 ## review-package
@@ -63,57 +61,33 @@ Prints the output path, then the line count of the written file.
 Exit 1 if a ref does not resolve. The diff is never printed to stdout.
 ```
 
-## slice-overlap
+## flow-lint
 
 ```
-Usage: slice-overlap <plan-file> [--json] [--waves]
+Usage: flow-lint [<TASKS.md>] [--json] [--waves]
 
-Parses every slice's "- **Files**:" list (fence-aware per the plan
-grammar — a line inside a ``` or ~~~ fence is never a heading, and never
-contributes to a slice's file list). Prints one line per file owned by
-2 or more slices as:
-  <file>: Slice A, Slice B
+Validates a TASKS.md against the flow v2 task grammar:
 
-Exit 1 if any overlap is found, 0 otherwise.
---json prints {"overlaps":[{"file":"..","slices":["Slice A","Slice B"]}]}.
+  header   Spec: · Design: · Base: <sha> · Route: bounded|oneshot|dispatch
+           · Test: <cmd>          (optional Approved:/Verified: lines)
+  sections ## Behaviors, ## Phase N — <title>, ## Gates
+  task     - [ |x|~] <ID> [P]? <desc> — files: <p,p> — verify: <`cmd`|human: <obs>>
+                     [— after: <IDs>] [— dropped: <reason>] [— done: <sha>]
+  IDs      T### tasks · CHK### human checkpoints · G### gates
 
---waves computes dependency waves per "- **Depends-on**:" (a slice is
-ready when every Depends-on slice is done): prints one line per wave
-  wave <k>: Slice A, Slice B
-Overlap detection runs first and is unchanged: when an overlap exists,
---waves prints the same overlap output (plain or --json) described
-above and exits 1 without computing waves. Otherwise, --waves --json
-prints {"waves":[[1],[2,3]]} (raw slice numbers, one array per wave).
-A dependency cycle prints "INVALID: dependency cycle among Slice A,
-Slice B" and exits 1.
-```
+ERRORS   [P] tasks whose files: intersect inside one wave; missing verify:;
+         an [x] whose done: sha is not in Base..HEAD or whose commit touched
+         none of its files:; an ID present at HEAD: and absent now; [~] with
+         no dropped:; unknown or cyclic after:; a malformed task line.
+WARNINGS a phase with no Goal: or no Independent test:; [x] with no done:.
+INFO     Route: oneshot with more than 5 tasks.
 
-## plan-lint
+Every ERROR carries a fix: string. --json prints the machine form
+{ok, errors, warnings, info, waves, tasks, header}. --waves prints the
+computed dispatch waves. Exit 1 when there is at least one ERROR.
 
-```
-Usage: plan-lint <plan-file>
-
-Validates a feature-plan.local.md file against the plan grammar (C7):
-  - required top-level headings, in order:
-      ## Behavior Inventory
-      one or more ## Slice <N> — <title>
-      ## Gate Phases
-  - the Behavior Inventory section contains a table with the header row
-      | Behavior | Slice | Verified by |
-    a separator row, and at least one data row
-  - every slice has ### Slice <N> — RED / GREEN / REFACTOR sub-headings
-  - every "- **Depends-on**: Slice <M>" refers to an existing,
-    lower-numbered slice
-  - optional "## Discovered" section (C17): only after the last
-    ## Slice <N> and before ## Gate Phases; each bullet must read
-    "- <what> — discovered in Slice <N> — <defer|fold into Slice M>"
-    and name an existing slice. Its absence is never reported.
-
-Lines inside ``` or ~~~ fences are never treated as headings, bullets,
-or table rows.
-
-Prints "OK" when the plan is clean, or one MISSING/INVALID line per
-problem found. Exit 1 if any problem is found, 0 otherwise.
+With no <TASKS.md>, resolves the active feature the way the router does:
+$FLOW_SPEC → .specs/.current → branch flow/<slug>.
 ```
 
 ## skills-lint

@@ -1,15 +1,17 @@
 # Progress
 
 ## Now
-- resume: spec 003 (harness bug fixes) built and verified in this worktree, uncommitted: hooks 1163/0, scripts 1540/0, field re-probe on finance/terraform/prr green. Decide: commit + merge to main; then whether to run spec 004 (flow v2) and 005 (lesson v2) inline, with Sonnet-only agents, or later
+- resume: spec 004 (flow v2) built in this worktree, uncommitted — `/flow:spec` + `/flow:next` are the only two doors, `.specs/NNN-slug/TASKS.md` is the whole build state, `flow next|lint|tick|use|publish` is the CLI. F1-F6 landed (flow-lint, task-brief, router, hooks retarget, skills rename, deletions, integration). F6's end-to-end dry run walked a throwaway node repo through states 5 -> 6 (wave 0) -> tick -> 6 (wave 1) -> 8 -> PASS -> 9 -> Verified -> 11, caught a lying tick in both `flow lint` and `flow next`, proved `flow next` byte-identical from root and subdir, and confirmed spec-gate/stop-gate deny-and-name-the-objection. Suites at baseline: hooks 1236/8, scripts 1815/57, zero failures attributable to spec 004. Decide: commit + merge to main
+- resume: spec 003 (harness bug fixes) built and verified in this worktree, uncommitted: hooks 1163/0, scripts 1540/0, field re-probe on finance/terraform/prr green. Decide: commit + merge to main
 - resume: `flow next` — loop engineering landed on this branch (spec 006; 19 commits since 093f969): merge to main, then dogfood `/flow:loop` on one real backlog
 - decide whether `.skill-forge/` (research workspaces: design-v2, loop) is gitignored or kept
 
 ## Next
+- Dogfood `/flow:spec` then `/flow:next` on one real feature end to end; confirm every turn really ends with `Next: /clear, then /flow:next`
 - Dogfood `/flow:loop --fresh` overnight on a real project (candidates: any of the ~20 `.claude/` projects under ~/Desktop/Projects; none has run `flow init` yet) and tune the defaults (30 iterations / 480 min / stall 3) from the log
-- Merge order with the sibling worktrees: this branch touches `hooks.json` (one Stop entry), `bin/flow` (dispatch/doctor/next/init deltas) and `skills/fix`; worktree A (harness audit + spec 004 flow v2) rewrites `hookout.sh` and plans `flow goal` — build `flow goal` on `flow loop run` rather than a second driver
+- Merge order with the sibling worktrees: this branch touches `hooks.json` (one Stop entry), `bin/flow` (dispatch/doctor/next/init deltas) and `skills/fix`; the harness-audit worktree plans `flow goal` — build `flow goal` on `flow loop run` rather than a second driver
 - Optional: `checkwash` as an opt-in verifier prefix in the loop skill once it has a held-out false-positive number
-- `/flow:prep` shipped on branch `prep-skill` (skill + prep-lint + flow-spec gate + `flow next` + `new-spec --reuse`); dogfood it once on a real idea, then fold into the sibling worktree's `/flow:spec`/`/flow:next` redesign (docs/research/11) where prep becomes the `--interview` door
+- `/flow-deepen` now appends a `## Phase N — Deepening` section to the spec's `TASKS.md` (F6 retargeted it off the dead `issues/` contract). Nothing has exercised that path yet — dogfood it once on a shipped spec
 - Dogfood `/design:vary` on one real surface (a persuade page and an operate page); tune roll.mjs tunables (GLOBAL_WINDOW 8 / PROJECT_WINDOW 3 / ticket weights) from what repeats
 - Decide the fate of the old `design` skill (plugins/design/skills/design): retire, or keep as a fallback
 - Corroborate the 7 `confidence: verify` world cards (japanese-editorial, italian-rationalist, apothecary-label, museum-gallery, sports-broadcast, editorial-newspaper, japanese-consumer-electronics-80s) or drop them
@@ -37,4 +39,4 @@
 - Ruling: `.vary/recent.json` (per-project roll memory) is gitignored by roll.mjs, never committed — ephemeral session state, not a design decision — if wrong, teams lose shared anti-repeat memory (reversible)
 
 ## Blocked / open questions
-- new-spec: `.claude/flow.json`, `feature-plan.local.md`, `workflow-state.local.md` and `slices/` are written into the main checkout even under `--worktree`, so two parallel flows clobber each other (seen 2026-09-05); write them into the worktree instead and teach `flow next` / the `agents` alias to look there
+- new-spec: `.claude/flow.json` is written into the main checkout even under `--worktree`, so two parallel flows clobber each other (seen 2026-09-05); write it into the worktree instead. (`feature-plan.local.md`, `workflow-state.local.md` and `.claude/slices/` were the other half of this report and are gone as of spec 004 — the state is `.specs/NNN-slug/TASKS.md`, which `--worktree` does place correctly. Open question: does `flow next` still need `.claude/flow.json` at all now that resolution is `$FLOW_SPEC` → `.specs/.current` → branch?)
