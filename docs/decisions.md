@@ -40,7 +40,7 @@ Every component that was considered, with the verdict and the downside that was 
 | Third-person persona at 21 lines | Cut to 2 lines | Instruction count degrades compliance independently of tokens |
 | `cleanupPeriodDays: 14` | Left to the developer | Would delete resumable sessions |
 | Renaming the harness | Keep "harness" | Developer's call |
-| A mistake-to-guardrail command | `/lesson` skill (test → hook/lint → script → skill → CLAUDE.md) with `lesson-sites` and `lesson-record`; stop gate nudges from the second identical block; CLAUDE.md names the trigger | `/aside` only filed notes; the ladder now runs every time, and the ruling lands in PROGRESS.md |
+| A mistake-to-guardrail command | `/lesson` skill: `flow lesson propose` decides the rung (rule/test/script/note) and drafts the guardrail, `flow lesson lock` writes it; a locked rule is data — `.claude/flow.rules/<slug>.md`, read by one `flow-rules.sh` hook — so it never touches `hooks.json`; the model runs it itself on a correction, no hook nudge | `/aside` only filed notes; the ladder now runs every time, and the ruling lands in `.specs/LEDGER.md` |
 
 ## Open items, in priority order
 

@@ -57,6 +57,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/flow-rules.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -90,6 +100,16 @@
             "statusMessage": "flow: checking bash-written files…"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/flow-rules.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -106,6 +126,15 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/loop-gate.sh",
             "timeout": 660,
             "statusMessage": "flow: loop tick…"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/flow-rules.sh",
+            "timeout": 10
           }
         ]
       }

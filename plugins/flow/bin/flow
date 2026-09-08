@@ -171,6 +171,9 @@ ${C.accent}Commands:${C.reset}
                                                      GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
+  lesson <subcommand> [options]                     Turn one mistake into a guardrail:
+                                                     propose decides the rung, lock writes
+                                                     it (flow lesson --help)
   tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]
                                                      Walk the harness lessons in a scratch
                                                      git repo
@@ -2745,7 +2748,7 @@ function cmdNext(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'tutorial', 'off', 'on'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'lesson', 'tutorial', 'off', 'on'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -2807,9 +2810,9 @@ function main() {
 
   const rest = argv.slice(1);
 
-  // `loop` owns its own --help / <subcommand> --help handling (K-C); never
-  // route it through the generic top-help interception below.
-  if (cmd !== 'loop' && (rest.includes('--help') || rest.includes('-h'))) {
+  // `loop` (K-C) and `lesson` (005 D-6) own their own --help / <subcommand>
+  // --help handling; never route them through the generic interception below.
+  if (cmd !== 'loop' && cmd !== 'lesson' && (rest.includes('--help') || rest.includes('-h'))) {
     if (cmd === 'init') {
       printInitHelp();
     } else if (cmd === 'install') {
@@ -2833,6 +2836,7 @@ function main() {
   else if (cmd === 'use') process.exit(require('./lib/use.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }));
   else if (cmd === 'publish') process.exit(require('./lib/publish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
+  else if (cmd === 'lesson') process.exit(require('./lib/lesson.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'tutorial') cmdTutorial(rest);
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
   else {

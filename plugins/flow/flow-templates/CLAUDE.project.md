@@ -11,6 +11,7 @@
 - Minimum code that solves the problem; no speculative abstractions or flags.
 - Surgical changes only; every edited line traces to the request.
 - Define verifiable success criteria first; for bugs, write the reproducing test first.
+- When the user corrects a mistake, run `/lesson` before resuming the work.
 
 ## Verify before done
 Run the test command above before calling anything done. For UI work, load

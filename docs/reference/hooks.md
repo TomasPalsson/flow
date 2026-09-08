@@ -8,6 +8,16 @@ Lifecycle hooks in `plugins/flow/hooks/`, registered by the plugin's `hooks/hook
 codebase-map.sh — SessionStart hook (also fires on compact, per the
 ```
 
+## flow-rules.sh
+
+```
+flow-rules.sh — PreToolUse/PostToolUse/Stop hook. Spec 005 D-4/D-5.
+```
+
+The rule engine behind `/lesson`: reads every `.claude/flow.rules/<slug>.md` (hookify-shaped frontmatter — `event`/`tool`/`pattern`/`action`/`enabled`/`created`/`source`/`hits`), walking project stores from `hook_project_dir` up to the git toplevel and then `~/.claude/flow.rules/`; a slug already claimed by a nearer store wins. `deny` denies on PreToolUse only and degrades to `warn` elsewhere; `warn` is `hook_feedback` on PostToolUse and `hook_block` on Stop; `note` is always `hook_note`. Increments the rule file's `hits:` under a `mkdir` lock and appends `.claude/flow.rules/.hits.log`. One hook, registered once in `hooks.json`; a locked lesson never edits `hooks.json` or needs `flow doctor`. Fails open on a malformed rule file, naming it in a once-per-session `hook_note`.
+
+`pattern` is an ERE stored **raw**: `flow lesson` never quotes it and the hook never dequotes it, so a pattern that begins or ends with a `"` is enforced exactly as written (a hand-quoted `pattern: "x"` matches a literal `"x"`). An empty `pattern:`, or a bare `*`, matches on `event` + `tool` alone — the shape a Stop rule needs. Only values that would stop being scalars (`tool: "*"`) or are free prose (`source`) are quoted.
+
 ## format-lint.sh
 
 ```

@@ -120,6 +120,9 @@ Commands:
                                                      GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
+  lesson <subcommand> [options]                     Turn one mistake into a guardrail:
+                                                     propose decides the rung, lock writes
+                                                     it (flow lesson --help)
   tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]
                                                      Walk the harness lessons in a scratch
                                                      git repo
