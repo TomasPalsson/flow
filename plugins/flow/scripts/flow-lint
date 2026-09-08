@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # flow-lint — validate a TASKS.md against the flow v2 grammar (spec 004 K-B).
 #
-# Folds plan-lint (grammar), slice-overlap ([P] disjointness) and the git
-# joins (done: sha reachable in Base..HEAD and touching the task's files:,
+# Folds the v1 plan grammar linter, the v1 [P]-disjointness checker and the
+# git joins (done: sha reachable in Base..HEAD and touching the task's files:,
 # plus the ID-vanish diff against HEAD:) into one pass.
 #
 # Fence-aware: lines inside ``` or ~~~ fences are never headings or tasks,
@@ -119,8 +119,19 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # ---------- json helpers ----------
+TAB=$(printf '\t')
+# jstr_var writes $R_JS; jstr echoes. The emitters call this a dozen times per
+# task, and on a slow-fork machine every command substitution is ~15ms.
+R_JS=""
+jstr_var() {
+  R_JS=${1//\\/\\\\}
+  R_JS=${R_JS//\"/\\\"}
+  R_JS=${R_JS//"$TAB"/\\t}
+  R_JS="\"$R_JS\""
+}
 jstr() {
-  printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/'"$(printf '\t')"'/\\t/g')"
+  jstr_var "$1"
+  printf '%s' "$R_JS"
 }
 
 jlist() { # comma-separated -> json array of strings
@@ -136,14 +147,49 @@ jlist() { # comma-separated -> json array of strings
       rest=""
       ;;
     esac
-    item=$(printf '%s' "$item" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    trim_var "$item"
+    item=$R_TRIM
     [ -z "$item" ] && continue
-    out="$out${out:+,}$(jstr "$item")"
+    jstr_var "$item"
+    out="$out${out:+,}$R_JS"
   done
   printf '[%s]' "$out"
 }
 
-trim() { printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+# trim / lstrip write to $R_TRIM rather than echoing, because a command
+# substitution is a fork and these run per line and per field. flow-lint used
+# to spend all of its time in `printf | sed`: on a machine where sed costs
+# ~110ms (a shim, a scanned binary, a slow FS) that pushed a 200-line TASKS.md
+# past the router's 30s timeout, and every state read scan-failed.
+R_TRIM=""
+trim_var() {
+  R_TRIM=$1
+  while :; do
+    case "$R_TRIM" in
+    [[:space:]]*) R_TRIM=${R_TRIM#?} ;;
+    *) break ;;
+    esac
+  done
+  while :; do
+    case "$R_TRIM" in
+    *[[:space:]]) R_TRIM=${R_TRIM%?} ;;
+    *) break ;;
+    esac
+  done
+}
+lstrip_var() {
+  R_TRIM=$1
+  while :; do
+    case "$R_TRIM" in
+    [[:space:]]*) R_TRIM=${R_TRIM#?} ;;
+    *) break ;;
+    esac
+  done
+}
+trim() {
+  trim_var "$1"
+  printf '%s' "$R_TRIM"
+}
 
 # ---------- finding accumulators ----------
 ERRN=0
@@ -234,15 +280,16 @@ read_header_fields() { # one physical line, fields may be joined by ·
       rest=""
       ;;
     esac
-    seg=$(trim "$seg")
+    trim_var "$seg"
+    seg=$R_TRIM
     case "$seg" in
-    Spec:*) H_SPEC=$(trim "${seg#Spec:}") ;;
-    Design:*) H_DESIGN=$(trim "${seg#Design:}") ;;
-    Base:*) H_BASE=$(trim "${seg#Base:}") ;;
-    Route:*) H_ROUTE=$(trim "${seg#Route:}") ;;
-    Test:*) H_TEST=$(trim "${seg#Test:}") ;;
-    Approved:*) H_APPROVED=$(trim "${seg#Approved:}") ;;
-    Verified:*) H_VERIFIED=$(trim "${seg#Verified:}") ;;
+    Spec:*) trim_var "${seg#Spec:}"; H_SPEC=$R_TRIM ;;
+    Design:*) trim_var "${seg#Design:}"; H_DESIGN=$R_TRIM ;;
+    Base:*) trim_var "${seg#Base:}"; H_BASE=$R_TRIM ;;
+    Route:*) trim_var "${seg#Route:}"; H_ROUTE=$R_TRIM ;;
+    Test:*) trim_var "${seg#Test:}"; H_TEST=$R_TRIM ;;
+    Approved:*) trim_var "${seg#Approved:}"; H_APPROVED=$R_TRIM ;;
+    Verified:*) trim_var "${seg#Verified:}"; H_VERIFIED=$R_TRIM ;;
     esac
   done
 }
@@ -252,10 +299,11 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line=${raw%$'\r'}
 
   # fence tracking
-  stripped=$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//')
+  lstrip_var "$line"
+  stripped=$R_TRIM
   case "$stripped" in
   '```'* | '~~~'*)
-    ch=$(printf '%s' "$stripped" | cut -c1-3)
+    ch=${stripped:0:3} # ASCII fence marker, so byte == char here
     if [ "$IN_FENCE" -eq 0 ]; then
       IN_FENCE=1
       FENCE_CH=$ch
@@ -270,7 +318,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
 
   case "$line" in
   '# '*)
-    H_TITLE=$(trim "${line#\# }")
+    trim_var "${line#\# }"
+    H_TITLE=$R_TRIM
     continue
     ;;
   '## Behaviors'*)
@@ -290,7 +339,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   '## Phase '*)
     flush_phase
     SECTION=phase
-    PHASE=$(trim "${line#\#\# }")
+    trim_var "${line#\#\# }"
+    PHASE=$R_TRIM
     PHASE_LINE=$LN
     PHASE_GOAL=0
     PHASE_ITEST=0
@@ -314,8 +364,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
     read_header_fields "$line"
   else
     case "$stripped" in
-    Approved:*) H_APPROVED=$(trim "${stripped#Approved:}") ;;
-    Verified:*) H_VERIFIED=$(trim "${stripped#Verified:}") ;;
+    Approved:*) trim_var "${stripped#Approved:}"; H_APPROVED=$R_TRIM ;;
+    Verified:*) trim_var "${stripped#Verified:}"; H_VERIFIED=$R_TRIM ;;
     esac
   fi
 
@@ -325,7 +375,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   *) continue ;;
   esac
 
-  st=$(printf '%s' "$stripped" | cut -c4)
+  st=${stripped:3:1} # the checkbox char in the fixed "- [S] " prefix
   case "$st" in
   ' ' | x | '~') ;;
   *)
@@ -335,7 +385,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   esac
 
   # strip the fixed 6-char "- [S] " prefix (all ASCII, so byte == char here)
-  body=$(trim "${stripped:6}")
+  trim_var "${stripped:6}"
+  body=$R_TRIM
 
   id=${body%% *}
   case "$id" in
@@ -346,13 +397,15 @@ while IFS= read -r raw || [ -n "$raw" ]; do
     ;;
   esac
   rest=${body#"$id"}
-  rest=$(trim "$rest")
+  trim_var "$rest"
+  rest=$R_TRIM
 
   par=0
   case "$rest" in
   '[P] '*)
     par=1
-    rest=$(trim "${rest#\[P\]}")
+    trim_var "${rest#\[P\]}"
+    rest=$R_TRIM
     ;;
   esac
 
@@ -377,20 +430,22 @@ while IFS= read -r raw || [ -n "$raw" ]; do
       seg_rest=""
       ;;
     esac
-    seg=$(trim "$seg")
+    trim_var "$seg"
+    seg=$R_TRIM
     if [ "$first" -eq 1 ]; then
       desc=$seg
       first=0
     else
       case "$seg" in
-      files:*) f_files=$(trim "${seg#files:}") ;;
+      files:*) trim_var "${seg#files:}"; f_files=$R_TRIM ;;
       verify:*)
-        f_verify=$(trim "${seg#verify:}")
+        trim_var "${seg#verify:}"
+        f_verify=$R_TRIM
         has_verify=1
         ;;
-      after:*) f_after=$(trim "${seg#after:}") ;;
-      done:*) f_done=$(trim "${seg#done:}") ;;
-      dropped:*) f_dropped=$(trim "${seg#dropped:}") ;;
+      after:*) trim_var "${seg#after:}"; f_after=$R_TRIM ;;
+      done:*) trim_var "${seg#done:}"; f_done=$R_TRIM ;;
+      dropped:*) trim_var "${seg#dropped:}"; f_dropped=$R_TRIM ;;
       *) desc="$desc — $seg" ;;
       esac
     fi
@@ -438,16 +493,20 @@ flush_phase
 [ "$SEEN_GATES" -eq 0 ] && add_warn 0 "" "no-gates" "no ## Gates section"
 
 # ---------- waves ----------
-idx_of() { # id -> index, or -1
+# idx_of sets $R_IDX instead of echoing: it is called inside the wave
+# levelling loop, so a fork here is O(tasks^3) subshells.
+R_IDX=-1
+idx_of() { # id -> $R_IDX, or -1
   local want=$1 i=0
+  R_IDX=-1
   while [ "$i" -lt "$N" ]; do
     if [ "${T_ID[$i]}" = "$want" ]; then
-      printf '%s' "$i"
+      R_IDX=$i
       return 0
     fi
     i=$((i + 1))
   done
-  printf '%s' "-1"
+  return 1
 }
 
 WAVE=()
@@ -465,21 +524,24 @@ while [ "$i" -lt "$N" ]; do
     i=$((i + 1))
     continue
   fi
-  deps=$(printf '%s' "${T_AFTER[$i]}" | tr ',' ' ')
+  deps=${T_AFTER[$i]//,/ }
   ok=1
   for d in $deps; do
-    d=$(trim "$d")
+    trim_var "$d"
+    d=$R_TRIM
     [ -z "$d" ] && continue
-    j=$(idx_of "$d")
+    idx_of "$d"
+    j=$R_IDX
     if [ "$j" -lt 0 ]; then
       add_err "${T_LINE[$i]}" "${T_ID[$i]}" "unknown-after" "${T_ID[$i]} depends on \"$d\", which is not a task in this file" "fix the after: list on ${T_ID[$i]}, or add the missing task"
       ok=0
     fi
   done
+  trim_var "${T_AFTER[$i]}"
   if [ "$ok" -eq 0 ]; then
     WAVE[$i]=-2 # dangling after: — already an ERROR, do not also report a cycle
-  elif [ -z "$(trim "${T_AFTER[$i]}")" ]; then
-    WAVE[$i]=0
+  elif [ -z "$R_TRIM" ]; then
+    WAVE[$i]=0  # no after: at all — this task is in wave 0
   fi
   i=$((i + 1))
 done
@@ -491,13 +553,15 @@ while [ "$pass" -le "$N" ]; do
   i=0
   while [ "$i" -lt "$N" ]; do
     if [ "${WAVE[$i]}" -eq -1 ]; then
-      deps=$(printf '%s' "${T_AFTER[$i]}" | tr ',' ' ')
+      deps=${T_AFTER[$i]//,/ }
       maxw=-1
       ready=1
       for d in $deps; do
-        d=$(trim "$d")
+        trim_var "$d"
+        d=$R_TRIM
         [ -z "$d" ] && continue
-        j=$(idx_of "$d")
+        idx_of "$d"
+    j=$R_IDX
         if [ "$j" -lt 0 ]; then
           ready=0
           continue
@@ -539,11 +603,13 @@ done
 # ---------- [P] disjointness within a wave ----------
 files_intersect() { # "a, b" "b, c" -> 0 when they share a path
   local a b x y
-  for x in $(printf '%s' "$1" | tr ',' '\n'); do
-    a=$(trim "$x")
+  for x in ${1//,/ }; do
+    trim_var "$x"
+    a=$R_TRIM
     [ -z "$a" ] && continue
-    for y in $(printf '%s' "$2" | tr ',' '\n'); do
-      b=$(trim "$y")
+    for y in ${2//,/ }; do
+      trim_var "$y"
+      b=$R_TRIM
       [ -z "$b" ] && continue
       if [ "$a" = "$b" ]; then
         printf '%s' "$a"
@@ -599,15 +665,17 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
         else
           touched=$(git show --name-only --format= "$sha" 2>/dev/null)
           hit=0
-          for p in $(printf '%s' "${T_FILES[$i]}" | tr ',' '\n'); do
-            p=$(trim "$p")
+          for p in ${T_FILES[$i]//,/ }; do
+            trim_var "$p"
+            p=$R_TRIM
             [ -z "$p" ] && continue
             if printf '%s\n' "$touched" | grep -Fxq "$p"; then
               hit=1
               break
             fi
           done
-          if [ -z "$(trim "${T_FILES[$i]}")" ]; then
+          trim_var "${T_FILES[$i]}"
+          if [ -z "$R_TRIM" ]; then
             add_warn "$ln" "$id" "done-no-files" "$id is done at $sha but declares no files:, so the join cannot be checked"
           elif [ "$hit" -eq 0 ]; then
             add_err "$ln" "$id" "done-touches-nothing" "$id claims $sha, but that commit touched none of ${T_FILES[$i]}" "tick the task against the commit that changed its files: (flow tick $id), or fix files:"
@@ -643,7 +711,7 @@ if [ "$GIT_OK" -eq 1 ]; then
       T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9] | G[0-9][0-9][0-9]) ;;
       *) continue ;;
       esac
-      if [ "$(idx_of "$oid")" -lt 0 ]; then
+      if ! idx_of "$oid"; then
         add_err 0 "$oid" "id-vanished" "$oid was in $rel at HEAD and is gone from the working copy" "TASKS.md is append-only: restore $oid and mark it '- [~] $oid … — dropped: <reason>' instead of deleting it"
       fi
     done
@@ -703,7 +771,23 @@ if [ "$JSON" -eq 1 ]; then
     [ "${T_PAR[$i]}" -eq 1 ] && pbool=true
     wv=${WAVE[$i]}
     [ "$wv" -lt 0 ] && wv=null
-    tj="$tj${tj:+,}{\"id\":$(jstr "${T_ID[$i]}"),\"state\":$(jstr "$sname"),\"kind\":$(jstr "${T_KIND[$i]}"),\"parallel\":$pbool,\"wave\":$wv,\"files\":$(jlist "${T_FILES[$i]}"),\"verify\":$(jstr "${T_VERIFY[$i]}"),\"after\":$(jlist "${T_AFTER[$i]}"),\"done\":$(jstr "${T_DONE[$i]}"),\"dropped\":$(jstr "${T_DROPPED[$i]}"),\"phase\":$(jstr "${T_PHASE[$i]}"),\"line\":${T_LINE[$i]},\"description\":$(jstr "${T_DESC[$i]}")}"
+    jstr_var "${T_ID[$i]}"
+    j_id=$R_JS
+    jstr_var "$sname"
+    j_state=$R_JS
+    jstr_var "${T_KIND[$i]}"
+    j_kind=$R_JS
+    jstr_var "${T_VERIFY[$i]}"
+    j_verify=$R_JS
+    jstr_var "${T_DONE[$i]}"
+    j_done=$R_JS
+    jstr_var "${T_DROPPED[$i]}"
+    j_dropped=$R_JS
+    jstr_var "${T_PHASE[$i]}"
+    j_phase=$R_JS
+    jstr_var "${T_DESC[$i]}"
+    j_desc=$R_JS
+    tj="$tj${tj:+,}{\"id\":$j_id,\"state\":$j_state,\"kind\":$j_kind,\"parallel\":$pbool,\"wave\":$wv,\"files\":$(jlist "${T_FILES[$i]}"),\"verify\":$j_verify,\"after\":$(jlist "${T_AFTER[$i]}"),\"done\":$j_done,\"dropped\":$j_dropped,\"phase\":$j_phase,\"line\":${T_LINE[$i]},\"description\":$j_desc}"
     i=$((i + 1))
   done
 

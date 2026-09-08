@@ -98,10 +98,18 @@ function runLint(root, tasksPath, env) {
   const r = spawnSync('bash', [script, tasksPath, '--json'], {
     cwd: root,
     encoding: 'utf8',
-    timeout: 30000,
+    timeout: 60000,
   });
   const out = (r.stdout || '').trim();
-  if (!out) return { crash: `flow-lint produced no output (${(r.stderr || '').split('\n')[0] || `exit ${r.status}`})` };
+  if (!out) {
+    // Name the actual failure. A bare "produced no output" sent one debugging
+    // session hunting a parse bug in flow-lint when the real answer was
+    // ETIMEDOUT on a machine with very slow process spawning.
+    const why = r.error
+      ? `${r.error.code || r.error.message}${r.error.code === 'ETIMEDOUT' ? ` after 60s — run \`bash ${script} ${tasksPath} --json\` by hand to see where it stalls` : ''}`
+      : (r.stderr || '').split('\n')[0] || `exit ${r.status}${r.signal ? ` (${r.signal})` : ''}`;
+    return { crash: `flow-lint produced no output: ${why}` };
+  }
   try {
     return { json: JSON.parse(out) };
   } catch {

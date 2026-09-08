@@ -366,3 +366,65 @@ t_taskbrief_defaults_into_review_dir() {
 	assert_file_exists "$d/003-x/review/T001-brief.md" "the default brief lands in review/"
 	rm -rf "$d"
 }
+
+# ---------------------------------------------------------------------------
+# flow-lint — cost. The router spawns this on every call, under a timeout.
+# ---------------------------------------------------------------------------
+
+t_flowlint_a_large_tasks_file_stays_cheap() {
+	# flow-lint used to fork `printf | sed` per LINE and `printf | cut` per
+	# task. On a machine where spawning costs ~110ms (a shim, a scanned
+	# binary, a slow FS) a 60-task TASKS.md took over a minute, the router hit
+	# its spawn timeout, and EVERY state read scan-failed — while running
+	# flow-lint by hand looked fine. This test is the fork budget: it fails
+	# long before a reintroduced per-line fork can kill the router again.
+	local d f i n t0 t1 ms
+	d=$(tmp_dir)
+	f="$d/TASKS.md"
+	{
+		printf '# Tasks — big\n'
+		printf 'Spec: spec.md · Base: none · Route: dispatch · Test: `true`\n'
+		printf 'Approved: 2026-09-08 by user\n\n'
+		printf '## Behaviors\n| ID | G/W/T | Task | Proven by |\n|--|--|--|--|\n| B1 | g | T001 | t |\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		i=1
+		while [ "$i" -le 60 ]; do
+			n=$(printf '%03d' "$i")
+			if [ "$i" -eq 1 ]; then
+				printf -- '- [ ] T%s first — files: f%s.py — verify: `true`\n' "$n" "$i"
+			else
+				printf -- '- [ ] T%s [P] a — files: f%s.py — verify: `true` — after: T001\n' "$n" "$i"
+			fi
+			i=$((i + 1))
+		done
+		printf '\n## Gates\n- [ ] G001 clean — verify: `true`\n'
+	} >"$f"
+
+	t0=$(_flowlint_ms)
+	run_cmd bash "$FLOW_LINT" "$f"
+	t1=$(_flowlint_ms)
+	assert_rc 0 "a 60-task TASKS.md lints clean"
+	assert_contains "$OUT" "60 tasks, 2 waves" "and finds every task and both waves"
+	if [ "$t0" = "0" ]; then
+		printf '  skip no millisecond clock available\n'
+		return 0
+	fi
+	ms=$((t1 - t0))
+	# ~0.5s on a normal machine; the pre-fix code took 60s+ on a slow-fork one.
+	if [ "$ms" -lt 15000 ]; then
+		_pass "60 tasks lint in under 15s (took ${ms}ms)"
+	else
+		_fail "60 tasks lint in under 15s (took ${ms}ms)" "a per-line or per-task fork is back; the router will time out"
+	fi
+	rm -rf "$d"
+}
+
+# _flowlint_ms — epoch milliseconds, or 0 when neither python3 nor a
+# nanosecond `date` is available (BSD date has no %N).
+_flowlint_ms() {
+	if command -v python3 >/dev/null 2>&1; then
+		python3 -c 'import time; print(int(time.time() * 1000))'
+	else
+		printf '0'
+	fi
+}
