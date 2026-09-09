@@ -20,6 +20,13 @@ If the idea is empty (`/flow:prep` alone) or has no problem, no user and no
 domain signal, ask for it in one to three sentences and wait — nothing below
 runs on an invented problem statement.
 
+An issue reference (`/flow:prep 143`, `#143`, `I-003`, "prep issue 143") is a
+valid idea: resolve it per
+[`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md)
+first. Its body and every comment are `A-NN` findings with
+`evidence: issue #143`, so the interview never re-asks what the thread already
+settled. Prep posts no comment — `/flow:spec` owns moment 1.
+
 Then classify the idea into one of four routes and say it in one line; the
 user may override with one word:
 

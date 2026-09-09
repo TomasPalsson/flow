@@ -38,6 +38,10 @@ Check if `.claude/workflow-state.local.md` exists:
 
 ## Step 0: Setup
 
+0. An issue reference (`/flow:fix 143`, `#143`, `I-003`, "fix issue 143") resolves per
+   [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md) before anything else —
+   its body and comments are reproduction input, and its `Verify` is the regression test's acceptance
+   criterion. Post moment 1 once the fix branch exists; moment 2 at merge.
 1. Read `${CLAUDE_PLUGIN_ROOT}/skills/shared/project-detection.md` and detect the project environment
 2. Parse `$ARGUMENTS` for: bug description, error messages, `--max-iterations N` (default: 30), `--skip-verification`
 3. Create `.claude/workflow-state.local.md`:

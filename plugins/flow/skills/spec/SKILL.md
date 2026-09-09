@@ -11,6 +11,8 @@ One turn of discovery, one route decision, the smallest set of files that route 
 
 `/flow:spec` with no description: *"Describe it in 1–3 sentences and I'll route it."* A description with no problem, no user and no domain signal is not a small spec, it is an unspeccable one: ask for (1) the problem, (2) whose, (3) what they do today instead — and stop until they answer. This guard holds under `--unattended` too; nothing can invent a problem statement.
 
+**An issue reference satisfies this guard.** `/flow:spec 143`, `#143`, `I-003` or "do issue 143" — resolve it per [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md), read in full before doing anything else. Its Problem / Whose / Today become the description and its `Verify` seeds §6, so you ask only what the issue left empty.
+
 ## 1. PREP.md gate — check this before everything else
 
 If a `.specs/NNN-*/PREP.md` exists with `Status: ready for spec` and no `spec.md` beside it, that directory is the spec directory, the interview already happened, and you **do NOT load `references/question-bank.md` at all**. Consolidate instead:
@@ -57,7 +59,7 @@ Two items are never dropped: the negative-scope position (what this will NOT do)
 
 - `dispatch` only: write `spec.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/spec.md`](../../flow-templates/spec.md) — ~110 lines, every placeholder filled from the discovery turn or recorded as an Assumption. When the PREP.md gate fired, **write `spec.md` beside** that `PREP.md`, in its directory. No technology names in §4; those belong in `design.md`.
 - `dispatch` only, and only when the seam trigger fires — two or more tasks share a name, an id type, an error shape, a module boundary or a resource — read [`references/design.md`](references/design.md) in full and write `design.md`. One task, or no shared seam: skip it and write `Design: none` in the header. Never paste any of `design.md` into a task agent but its own `## Contract` block.
-- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it.
+- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it.
 
 ## 5. Judge — dispatch only, one pass
 
@@ -70,7 +72,8 @@ In this order, every run that wrote a directory:
 1. `flow use <NNN-slug>` — points `.specs/.current` at it
 2. `flow lint` — fix every ERROR it prints before you stop; each one carries its own `fix:` string
 3. print the truthful gate manifest: **"This run will stop for you N times"** — count them for real (the approval gate, every `CHK###`, the verification gate, and the PR), and name where
-4. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: read .specs/003-entry-tagging/TASKS.md, reply "approved"`
+4. **issue runs only** — post the "picked up" comment per `shared/issue-refs.md` §4 moment 1, after checking the marker so a re-run or an `--amend` updates it instead of posting twice. A `gh` failure here is one clause of output, never a stop.
+5. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: read .specs/003-entry-tagging/TASKS.md, reply "approved"`
 
 ## 7. `--amend "<change>"`
 

@@ -19,7 +19,14 @@ Two slash commands, and the CLI they lean on. There is no third door.
 | `flow publish` | Optional leaf: mirror unchecked tasks to GitHub issues. Never called by the pipeline. |
 
 Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
-`/flow:spec` consolidates from. Unattended runs are `/flow:loop`.
+`/flow:spec` consolidates from. Unattended runs are `/flow:loop`. A defect
+spotted while building something else is parked with `/flow:issue` — a GitHub
+issue when `gh` is available, else an `.specs/ISSUES.md` entry carrying the
+five fields a spec needs — never fixed inline. An issue reference (`143`,
+`#143`, `I-003`, "do issue 143") is a first-class argument to `/flow:prep`,
+`/flow:spec` and `/flow:fix`: the body and every comment become discovery
+input. Flow writes back exactly twice — picked up, and shipped — per
+`skills/shared/issue-refs.md`. GitHub is never a routing predicate.
 
 ## State on disk — six files, no transcript
 
@@ -28,6 +35,7 @@ Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
   .current                     one line: 003-entry-tagging
   .next-call-count             consecutive `flow next` calls; reset by any state change
   LEDGER.md                    append-only: one line per shipped feature, plus every Ruling:
+  ISSUES.md                    append-only: parked out-of-scope defects (I-NNN). Only /flow:issue writes it
   BLOCKED.md                   presence sentinel — the router stops while it exists
   003-entry-tagging/
     spec.md                    dispatch only, ~110 lines
@@ -61,7 +69,7 @@ plugins/flow/
 │                                 CLAUDE.project.md · gates.yml.tmpl
 ├── bin/flow                     the CLI · bin/lib/ (router, lint, tick, use, publish) ·
 │                                 bin/lib/loop/ (contract, tick, verify, tamper, CLI)
-└── skills/                      spec, next, prep, spec-judge, qa, audit,
+└── skills/                      spec, next, prep, issue, spec-judge, qa, audit,
                                   flow-deepen, fix, loop, ultracode, overkill, pr-reviewer, claude-md,
                                   skill-forge, skill-improver, skill-judge, claude-improver,
                                   find-skills, prompt-engineer, better-plan, grill-me,

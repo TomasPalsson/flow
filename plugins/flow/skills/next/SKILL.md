@@ -51,7 +51,7 @@ The router hands you `wave: {ids, parallel}`. That wave, then stop.
 4. **Re-run the verify yourself.** Take the task's own `verify:` command out of `TASKS.md` and run it in this session. **The agent's report is never the gate** — its exit code is. A `verify:` whose test the runner never reported as *executed* (unregistered, filtered, skipped) counts as **missing, not passing**.
 5. **Review the diff**: `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <task-base>..HEAD` → the two lenses and the bounded fix ladder in [`review.md`](review.md). At the cap, write a `Ruling:` line into `NOTES.md` and move on.
 6. **Commit, then `flow tick <ID>` in the SAME turn.** `flow tick` is the only writer of `[x]` — it measures the sha itself and appends `— done: <sha>`. Typing an `[x]` by hand is the one thing the whole grammar exists to prevent, and the Stop hook blocks a sha-less `[x]` anyway.
-7. **Out-of-plan work stays out of the wave.** Anything a task turns up that is not in its brief goes into `NOTES.md` as one append-only line — `Discovered: <what> — <defer | fold into T0NN>` — never a silent extra commit. Folding it in means appending a **new** task ID at the next `--amend`, never widening the one in flight.
+7. **Out-of-plan work stays out of the wave.** Anything a task turns up that is not in its brief goes into `NOTES.md` as one append-only line — `Discovered: <what> — <defer | fold into T0NN>` — never a silent extra commit. A `defer` that is a real defect and not just a note goes to `/flow:issue`, which files it and writes the `→ I-NNN` back onto that line; otherwise it is archived with the feature and lost. Folding it in means appending a **new** task ID at the next `--amend`, never widening the one in flight.
 8. **At a phase boundary**, before starting the next phase: **execute** that phase's `Independent test:` line and paste its output. Every task can pass its own `verify:` while the phase still does not work; this is the only check that catches it.
 
 The per-task loop each subagent runs — failing test → confirm it fails → minimum implementation → confirm it passes → commit — is [`execution-prompt.md`](execution-prompt.md). Hand it the brief; it owns RED/GREEN/REFACTOR and the exit-code gates.
@@ -75,7 +75,7 @@ All `T###` done, `G###` open:
 
 `shippable` → `gh pr create --draft`, re-run G001–G00N against the PR head, then `gh pr ready`. Put every `Ruling:` line from `NOTES.md` into the PR body — a ruling that dies with the workspace was a decision made in secret. Under `--unattended` the PR **stays draft**: "user approved" is a precondition `gh pr ready` has not met.
 
-`shipped` and merged → archive with `git mv .specs/<NNN-slug> .specs/archive/<YYYY-MM-DD>-<NNN-slug>` and append the `LEDGER.md` line. An atomic directory move has no field to desync, so "shipped" cannot be faked or forgotten.
+`shipped` and merged → archive with `git mv .specs/<NNN-slug> .specs/archive/<YYYY-MM-DD>-<NNN-slug>` and append the `LEDGER.md` line. When `TASKS.md` carried an `Issue:` line, this is also the one place moment 2 fires — post the shipped comment and close the issue per [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md) §4, marker checked first. Never close an issue whose feature did not merge. An atomic directory move has no field to desync, so "shipped" cannot be faked or forgotten.
 
 ## Flags
 
