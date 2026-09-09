@@ -5,3 +5,4 @@ plugins/harness
 .specs/*/review/
 .specs/.next-call-count
 .claude/worktrees/
+.claude/*.local.md

@@ -1,77 +1,50 @@
 ---
 name: fix-execution-prompt
-description: flow loop execution prompt for bug fixes — state restoration, error recovery, fix/test/verify/PR steps, and completion verification
+description: The per-iteration body for a /flow:fix --loop run — restores from git and the diagnosis file, makes one smallest change toward the red test, commits, stops
 ---
 
 # Fix Execution Prompt
 
-Pass this as the `--prompt-file` body to `flow loop init` (see SKILL.md's `/flow:loop` Execution Path). Also used as the execution guide for the fallback (no git repo / flow unavailable) path.
+Written to `.claude/loop/prompt.md` by `/flow:fix --loop`, with every `${CLAUDE_PLUGIN_ROOT}` substituted for a real absolute path as it is written — the fresh `claude -p` sessions that read this file have no plugin context.
+
+This body owns **the fix and nothing else**. Verification and the PR happen back in the main session, where a human exists. Everything after the `---` is the prompt.
 
 ---
 
-You are executing a bug fix via `/flow:loop`. Its verifier — not you — decides when the fix is complete; never claim completion.
+You are one iteration of a bug fix. The harness runs the verifier and decides when this is done. You cannot end the loop and you have no completion phrase — work, commit, stop.
 
-## 1. STATE RESTORATION (do this every iteration)
-Read .claude/workflow-state.local.md. Extract and hold these values:
-- COMPLEXITY: [simple/medium/complex] — governs verification tier
-- CATEGORY: [frontend/backend/integration/infrastructure] — governs approach
-- CURRENT_STEP: first unchecked item in Progress section
-- TEST_CMD, LINT_CMD, FORMAT_CMD: from Project Environment
+## 1. Restore (every iteration)
 
-Then read .claude/fix-diagnosis.local.md for the root cause and fix approach.
-If all Progress items are checked, jump to COMPLETION CHECK.
+Position comes from disk, not from memory:
 
-## 2. ERROR RECOVERY (know this BEFORE starting work)
-- Same test failure after 3 fix attempts → STOP. You may be fixing the wrong root cause. Report to user with the 3 approaches you tried and what each produced. Ask whether to continue or re-diagnose.
-- Fix breaks existing tests → revert to last good commit (`git stash` or `git checkout -- <files>`), analyze WHY the existing test broke, adjust approach
-- Regression test itself is wrong (testing buggy behavior) → document this in the state file, write correct test asserting correct behavior
-- Fix requires changing files outside diagnosed scope → document the additional file and reasoning in the state file's Progress section, then proceed
-- State file corrupted or missing → recreate from git log and diagnosis file, continue from last known good commit
+- `.claude/fix-diagnosis.local.md` — the root cause, the affected files with line ranges, the fix approach, the sibling call sites, the risk. **This is your brief.**
+- `git log --oneline <base>..HEAD` — what previous iterations already did. The base is in `.claude/loop/loop.md`.
+- `.claude/loop/LEARNINGS.md` — patterns first. What has already been tried and failed.
+- The verifier tail the harness handed you — what is red right now.
 
-## 3. RULES
-- Follow CLAUDE.md conventions
-- Use commands from state file's Project Environment (NOT hardcoded)
-- ONLY modify files identified in the diagnosis, plus test files. If you must touch additional files, document why in the state file.
-- Commit after fix implementation, and again after regression test, using conventional commit format
-- Update .claude/workflow-state.local.md after each completed step
+The first commit on this branch is the reproduction test. **Never edit it.** It is the thing being satisfied.
 
-## 4. EXECUTE CURRENT STEP
+## 2. Do exactly one thing
 
-### If current step is "Fix implementation":
-a) Implement the fix from the diagnosis — minimal, targeted changes only
-b) Run $TEST_CMD — all existing tests must still pass
-c) Run $LINT_CMD && $FORMAT_CMD — code must be clean
-d) Commit: `fix(<scope>): <what was fixed>`
-e) Mark step [x] in state file
+Make the **one smallest change** that moves the verifier. Then run the verifier yourself, commit on green with a message naming the change, append one dated line to `LEARNINGS.md`, and stop.
 
-### If current step is "Regression test":
-a) Write a test that WOULD HAVE CAUGHT this bug — it should fail on the old code and pass on the new code
-b) Verify: `git stash && $TEST_CMD` should show the NEW test failing. Then `git stash pop`.
-c) Run full $TEST_CMD — all tests pass including the new one
-d) Commit: `test(<scope>): add regression test for <bug>`
-e) Mark step [x] in state file
+- Change the shared entry point the diagnosis names, not every caller. The diagnosis lists the sibling call sites; a patch that fixes only the reported path and leaves siblings broken is the most common way a fix is wrong.
+- **Read only the ranges the diagnosis names.** Widen only when a read fails to explain the failure, and write down why in `LEARNINGS.md`. Over-broad reading measurably lowers fix accuracy.
+- Only files named in the diagnosis, plus test files. If you must touch another, append a line to `LEARNINGS.md` saying which and why, then proceed.
+- Follow CLAUDE.md. Use the literal commands the verifier already names — never `"$TEST_CMD"`, which expands to nothing.
 
-### If current step is "Verification":
-a) **MANDATORY — READ FIRST**: Load ${CLAUDE_PLUGIN_ROOT}/skills/shared/verification.md in full
-b) Execute at tier: simple→quick, medium→standard, complex→full
-c) After verification: grep source files for [VERIFY] strings — remove any found, commit
-d) Mark step [x] in state file
+## 3. When it goes wrong
 
-### If current step is "PR creation":
-a) **MANDATORY — READ FIRST**: Load ${CLAUDE_PLUGIN_ROOT}/skills/next/review.md in full
-b) Execute at tier: simple→quick, medium→standard, complex→full
-c) PR title format: `fix(<scope>): <description>`
-d) PR body must include: what was broken, root cause, what was fixed, regression test description
-e) Mark step [x] in state file
+| Situation | Do |
+|---|---|
+| Same failure 2 iterations running | Stop repairing this frame. Append what you ruled out to `LEARNINGS.md` and try the diagnosis's *second* candidate cause. |
+| Your change broke an existing test | `git checkout -- <files>`. Work out **why that test broke** before trying again — it usually means the root cause is wider than diagnosed. Append the finding. |
+| An existing test asserts the old buggy behaviour | Do not delete it. Rewrite it to assert the *correct* behaviour and say so in the commit message. |
+| The reproduction test itself looks wrong | Do not edit it — it is the contract. Write `.claude/loop/BLOCKED.md` explaining why it cannot be satisfied, and stop. |
+| The bug cannot be fixed — wrong premise, missing access, contradictory tests | Write `.claude/loop/BLOCKED.md` (what you tried, why it cannot work) and stop. The run ends `stopped: blocked`, which is a true statement. |
 
-## 5. COMPLETION CHECK
-`flow loop`'s verifier decides when the fix is done, not a self-report — there is no promise to output. Before stopping, verify ALL of these:
-- [ ] All Progress items in state file are marked [x]
-- [ ] $TEST_CMD passes (run it now to confirm)
-- [ ] $LINT_CMD passes (run it now)
-- [ ] No [VERIFY] strings remain in source files (grep for them)
-- [ ] Regression test exists and is specific to this bug
-- [ ] PR has been created (gh pr view shows a URL)
-- [ ] .claude/workflow-state.local.md has been deleted
+## 4. Never
 
-If ANY check fails, pick the ONE smallest unchecked item and work it, then stop; the next iteration resumes from state restoration. If the bug cannot be fixed (same failure after 3 attempts with no viable alternative, missing access, contradictory tests), write `.claude/loop/BLOCKED.md` with what was tried and why it cannot work, then stop — never claim completion.
+- **Never** edit, skip, xfail or weaken any test, or the verifier, to go green. The tamper check reads the test layer and marks a green run `suspect`.
+- **Never** claim the fix is complete. There is no phrase that ends this loop; the verifier's exit code does.
+- **Never** open a PR or run the verification workflow from inside the loop. Both belong to the main session.
