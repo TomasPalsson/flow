@@ -30,6 +30,36 @@ Gathered: 2026-09-09 · Questions: 2 of 12 · Route: dispatch · Status: ready f
   user-confirmed - the user cut the interview short at Q2.
 
 ## Open
-- Q: does opencode have ANY event that can block turn end? If not, stop-gate.sh has no host and the
-  port delivers deny-hooks only. -> settled by the in-flight research, not by the spec.
-- Q: are hooks awaited, so a shim can synchronously run a subprocess and act on its exit code? -> same research.
+- Q: does the deny actually reach the model as a readable tool error inside a live opencode session,
+  and does the turn continue afterwards? -> needs an authenticated opencode; `opencode auth list`
+  reports 0 credentials on this machine. Everything short of a live model call is verified.
+
+## Answered since
+- A-09 opencode has NO hook that can block turn end. `session.idle` is published after the agent loop
+  has already broken, and the `event` hook is fire-and-forget (`void hook["event"]?.(...)`), so it
+  cannot delay or veto. Upstream issue #16626 (session.stopping) is open and unimplemented. The shim
+  ships a best-effort idle re-prompt; the real gate for unattended work is an outer loop driving
+  `opencode run --session <id>` — evidence: packages/opencode/src/plugin/index.ts, session/prompt.ts
+  runLoop, session/status.ts — confidence: high
+- A-10 `tool.execute.before` IS awaited, so a throw denies the tool before it executes and the reason
+  reaches the model as the tool error. This is a real deny and it is now verified end to end against
+  the actual git-guard.sh — evidence: packages/opencode/src/session/tools.ts L100-130 +
+  plugins/flow/opencode/flow.test.ts — confidence: high
+- A-11 `tool.execute.after` must NEVER throw: it fires after the write has landed, so a throw tells
+  the model the tool failed while the change sits on disk. Append to `output.output` instead —
+  evidence: packages/opencode/src/session/tools.ts L107-129 — confidence: high
+- A-12 Plugin load errors and hook throws are swallowed and only logged, so a broken flow plugin fails
+  OPEN (no enforcement at all) — the opposite of a bash hook's loud non-zero exit — evidence:
+  packages/opencode/src/plugin/index.ts L220-260 — confidence: high
+- A-13 One plugin instance serves every session in a directory, so all shim state is keyed by
+  sessionID; a shared counter would let sibling sessions trip each other's wedge valve — evidence:
+  packages/opencode/src/plugin/index.ts (InstanceState factory) — confidence: high
+- A-14 format-lint.sh is redundant under opencode: edit/write/patch format natively before the tool
+  returns. Use the `formatter` config key — evidence: tool/edit.ts L112, tool/write.ts L65 — high
+- A-15 `permission.ask` is declared in the Hooks type but has zero trigger call sites; do not build
+  the guard on it — evidence: packages/plugin/src/index.ts L261 — confidence: high
+- A-16 Under headless `opencode run` without `--auto`, every permission request is AUTO-REJECTED, so
+  a shipped `"ask"` rule becomes a hard deny in unattended mode — evidence:
+  packages/opencode/src/cli/cmd/run.ts L800-819 — confidence: high
+- A-17 The repo moved: github.com/sst/opencode now serves github.com/anomalyco/opencode, default
+  branch `dev` — evidence: gh api repos/sst/opencode — confidence: high
