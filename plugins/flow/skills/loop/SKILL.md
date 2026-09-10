@@ -32,6 +32,8 @@ Facts that shape every decision below (verified against the vendor docs on 2026-
 
 **MANDATORY — READ ENTIRE FILE**: load [`references/verifier-design.md`](references/verifier-design.md) before writing the command. Do not load `loop-prompt.md` yet; it is Step 3's file.
 
+If the goal is a UI behaviour or a visual target, also load [`references/browser-verifier.md`](references/browser-verifier.md) — three named traps there each produce a verifier that cannot fail.
+
 The verifier is one shell command, exit 0 = goal met, run by the harness with `CI=true` from the repo root, bounded by `verify_timeout` (600 s). Rules that decide whether the loop can work at all:
 
 1. **It must be red now.** `flow loop init` runs it once and refuses a green verifier ("nothing to loop"). If the goal is already met, the answer is not a loop.
