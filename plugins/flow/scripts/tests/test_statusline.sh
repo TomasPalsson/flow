@@ -641,7 +641,10 @@ t_statusline_never_waits() {
 
 	assert_eq "$rc" "0" "a render exits 0 even with the router stubbed to sleep 10s"
 	assert_contains "$out" "API" "and still prints a usable line"
-	if [ "$ms" -lt 5000 ]; then fast=1; else fast=0; fi
+	# 1000ms, not 5000: at 5000 this would still pass if the render had waited
+	# 4.9s of the 10s stub, which is the exact failure it exists to catch.
+	# Observed here is ~48ms, so this leaves 20x of headroom for a loaded CI box.
+	if [ "$ms" -lt 1000 ]; then fast=1; else fast=0; fi
 	assert_eq "$fast" "1" "the render returned in ${ms}ms, nowhere near the 10s stub (§5 budget, FR-13)"
 
 	rm -rf "$proj" "$tmp" "$home" "$stubdir" "$binpath"
