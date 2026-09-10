@@ -18,7 +18,7 @@ Spec: spec.md · Design: design.md · Base: bf6b270 · Route: dispatch · Test: 
 | B11 (P1) | Given a settings file naming a status line command that does not resolve, when doctor runs, then the `statusline` check does not report PASS (FR-10) | T002 | t_statusline_doctor |
 | B12 (P2) | Given `--no-color` or `NO_COLOR=1`, when the line renders, then it contains no escape sequences (FR-11) | T001 | t_statusline_no_color |
 | B13 (P0) | Given the slug `002-cross-worktree-spec-numbers-zellij-pane`, when the line renders, then the segment is ≤ 40 chars and still ends in the full badge (FR-12) | T001 | t_statusline_elide |
-| B14 (P0) | Given a router stubbed to sleep 10 s, when the line renders, then it returns in under 100 ms (FR-13) | T003 | t_statusline_never_waits |
+| B14 (P0) | Given a router stubbed to sleep 10 s, when the line renders, then it still returns, inside the §5 budget (FR-13) | T003 | t_statusline_never_waits |
 | B15 (P0) | Given a state change, when a later render happens with no command typed, then the badge is current within one cache period (FR-14) | T003 | t_statusline_refreshes |
 | B16 (P0) | Given ten renders fired back to back against a cold cache, when they run, then at most one refresh child is alive (FR-15) | T003 | t_statusline_one_refresh |
 | B17 (P0) | Given a cache entry older than 60 s, when the line renders, then the segment carries a trailing `~` (FR-16) | T001 | t_statusline_stale_marker |
@@ -36,8 +36,8 @@ Independent test: `plugins/flow/bin/flow statusline --print` — valid JSON, wit
 ## Phase 3 — Proof and docs
 Goal: a reviewer other than the author can prove every MUST, including the two that only a hostile fixture can prove — that a render never waits, and that ten renders never become ten routers.
 Independent test: `TEST_ONLY=test_statusline.sh plugins/flow/scripts/tests/run.sh` — green.
-- [ ] T003 Fixture-driven tests: all 21 states, the `✋`/`human_gate` parity assertion, the four fault injections, the three install paths, the zero-writes tree hash, the 10 s-stub latency assertion, and the single-refresh lock assertion (B4, B5, B14, B15, B16) — files: plugins/flow/scripts/tests/test_statusline.sh — verify: `TEST_ONLY=test_statusline.sh plugins/flow/scripts/tests/run.sh` — after: T002
-- [ ] T004 [P] Document the subcommand, the cache and its staleness marker in the plugin README and the CLI reference — files: plugins/flow/README.md, docs/reference/workflows-and-cli.md — verify: `grep -q "flow statusline" plugins/flow/README.md docs/reference/workflows-and-cli.md` — after: T002
+- [x] T003 Fixture-driven tests: all 21 states, the `✋`/`human_gate` parity assertion, the four fault injections, the three install paths, the zero-writes tree hash, the 10 s-stub latency assertion, and the single-refresh lock assertion (B4, B5, B14, B15, B16) — files: plugins/flow/scripts/tests/test_statusline.sh — verify: `TEST_ONLY=test_statusline.sh plugins/flow/scripts/tests/run.sh` — after: T002 — done: eaf333b
+- [x] T004 [P] Document the subcommand, the cache and its staleness marker in the plugin README and the CLI reference — files: plugins/flow/README.md, docs/reference/workflows-and-cli.md — verify: `grep -q "flow statusline" plugins/flow/README.md docs/reference/workflows-and-cli.md` — after: T002 — done: e670855
 - [ ] CHK001 human-verify the installed line reads correctly at a real human gate and the refresh never stalls the terminal — files: plugins/flow/bin/lib/statusline.js — verify: human: user installs it, drives one build turn to an unapproved or checkpoint state, and confirms the `✋` badge and slug are legible and that typing never lags — after: T003
 
 ## Gates
