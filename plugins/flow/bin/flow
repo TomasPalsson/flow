@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { spawnSync } = require('node:child_process');
+const { spawnSync, spawn } = require('node:child_process');
 
 const { stdout, stderr } = process;
 
@@ -179,6 +179,14 @@ ${C.accent}Commands:${C.reset}
                                                      (default: cwd) and everything under it;
                                                      --unsafe also disables git-guard
   on [<dir>]                                        Turn them back on
+  statusline [--refresh] [--install] [--print] [--no-color]
+                                                     Render the Claude Code status line — the
+                                                     flow segment is a cached, never-waiting
+                                                     mirror of \`flow next --peek\`; --install
+                                                     wires it into ~/.claude/settings.json,
+                                                     --print emits the snippet with nothing
+                                                     written, --refresh fills the cache (run by
+                                                     the render itself, not by hand)
 
 ${C.accent}Options:${C.reset}
   -h, --help   Show this help message
@@ -1321,6 +1329,57 @@ function doctorPermissionsDenyCheck(push) {
   );
 }
 
+// statuslineCommandResolves: `have()` walks PATH by basename and cannot
+// resolve an absolute path, which a hand-edited statusLine command may be.
+function statuslineCommandResolves(bin) {
+  if (path.isAbsolute(bin)) {
+    try {
+      fs.accessSync(bin, fs.constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return have(bin);
+}
+
+// FR-10 / spec §2.1: "A flow doctor check that the configured status line
+// command resolves and exits 0." No statusLine configured at all is PASS —
+// this check only speaks about one that IS configured.
+function doctorStatuslineCheck(push) {
+  const settingsPath = path.join(HOME, '.claude', 'settings.json');
+  const raw = safeRead(settingsPath);
+  if (raw === null) {
+    push('statusline', 'PASS', 'no statusLine configured');
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    push('statusline', 'PASS', `${settingsPath} does not parse — unrelated to this check`);
+    return;
+  }
+  const command = parsed && parsed.statusLine && typeof parsed.statusLine.command === 'string'
+    ? parsed.statusLine.command : null;
+  if (!command) {
+    push('statusline', 'PASS', 'no statusLine configured');
+    return;
+  }
+  const bin = command.trim().split(/\s+/)[0];
+  if (!statuslineCommandResolves(bin)) {
+    push('statusline', 'FAIL', `configured statusLine command '${command}' does not resolve — '${bin}' is not on PATH`);
+    return;
+  }
+  const res = spawnSync(command, { shell: true, encoding: 'utf8', input: '{}', timeout: 5000 });
+  if (res.error || res.status !== 0) {
+    const how = res.status === null || res.status === undefined ? `signal ${res.signal}` : `status ${res.status}`;
+    push('statusline', 'FAIL', `configured statusLine command '${command}' did not exit 0 (${how})`);
+    return;
+  }
+  push('statusline', 'PASS', `configured statusLine command '${command}' resolves and exits 0`);
+}
+
 // dotfilesRoot: see doctorSymlinkChecks above — forwarded through so a
 // `flow install --dotfiles <path>` recheck (C18 step 7) compares against
 // the root that install actually used, not always $HOME/.dotfiles.
@@ -1381,6 +1440,7 @@ function buildDoctorChecks(dotfilesRoot, deep) {
   run('local-bin-harness', () => doctorLocalBinHarnessCheck(push));
   run('live-hooks-match-cwd', () => doctorLiveHooksMatchCwdCheck(push));
   run('permissions-deny', () => doctorPermissionsDenyCheck(push));
+  run('statusline', () => doctorStatuslineCheck(push));
   run('plugin-list', () => doctorPluginListCheck(push));
   return checks;
 }
@@ -2746,10 +2806,228 @@ function cmdNext(argv) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// statusline — spec 008-flow-statusline: a cached, read-only mirror of
+// `flow next --peek`, rendered for Claude Code's statusLine hook. The render
+// path (no flags) NEVER calls the router and NEVER waits on the refresh
+// child — see design.md §7. `lib/statusline.js` owns every render function;
+// this section only wires stdin, the cache path, the refresh child and the
+// pid lock around it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function statuslineRepoRoot(cwd) {
+  return gitToplevel(cwd) || cwd;
+}
+
+// --no-color, NO_COLOR, or stdout not being a real terminal each turn colour
+// off (design.md §5, "colour decision" row) — only an interactive terminal
+// with neither set gets ANSI.
+function statuslineColorEnabled(argv) {
+  if (argv.includes('--no-color')) return false;
+  if (process.env.NO_COLOR) return false;
+  return process.stdout.isTTY === true;
+}
+
+function statuslineReadStdin() {
+  try {
+    return fs.readFileSync(0, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+// Detached, stdio-ignored, unref'd: a render that spawns this must be free
+// to exit 0 immediately — the child never holds the render's event loop open
+// and its own exit or failure is never observed by anyone.
+function statuslineSpawnRefresh(repoRoot) {
+  try {
+    const child = spawn(process.execPath, [CLI_REAL, 'statusline', '--refresh'], {
+      cwd: repoRoot,
+      env: process.env,
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  } catch {
+    // a failed spawn just leaves the cache as it was — never blocks a render
+  }
+}
+
+function cmdStatuslineRender(argv) {
+  const raw = statuslineReadStdin();
+  let input = null;
+  try {
+    input = JSON.parse(raw);
+  } catch {
+    input = null;
+  }
+  const statusline = require('./lib/statusline.js');
+  const repoRoot = statuslineRepoRoot(process.cwd());
+  const entry = statusline.readCache(repoRoot);
+  const line = statusline.renderLine(input, entry, { color: statuslineColorEnabled(argv) });
+  stdout.write(`${line}\n`);
+  const age = entry ? Date.now() - entry.at : Infinity;
+  if (age >= statusline.CACHE_FRESH_MS) statuslineSpawnRefresh(repoRoot);
+  return 0;
+}
+
+const STATUSLINE_LOCK_MAX_AGE_MS = 60000;
+
+function statuslineLockHolderAlive(raw) {
+  const pid = parseInt((raw || '').trim(), 10);
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function statuslineTryTakeLock(lockPath) {
+  try {
+    const fd = fs.openSync(lockPath, 'wx');
+    fs.writeFileSync(fd, String(process.pid));
+    fs.closeSync(fd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// A lock is stale — and gets cleared, once, then retaken — when its pid is
+// no longer alive or it is older than the cap (design.md §5: "a stale lock
+// is a hazard, not a theoretical one: the refresh child can be killed with
+// the terminal").
+function statuslineLockIsStale(lockPath) {
+  try {
+    const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
+    return ageMs > STATUSLINE_LOCK_MAX_AGE_MS || !statuslineLockHolderAlive(safeRead(lockPath));
+  } catch {
+    return true;
+  }
+}
+
+function statuslineReleaseLock(lockPath) {
+  try {
+    fs.unlinkSync(lockPath);
+  } catch {
+    // already gone — releasing an absent lock is not an error
+  }
+}
+
+// FR-15: ten renders firing back to back must produce at most one live
+// refresh. `wx` is the lock — a second refresh that loses the race sees
+// EEXIST and, if the holder is a live pid under the age cap, backs off
+// silently rather than running a second router.
+function statuslineAcquireLock(lockPath) {
+  try {
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  } catch {
+    return false;
+  }
+  if (statuslineTryTakeLock(lockPath)) return true;
+  if (!statuslineLockIsStale(lockPath)) return false;
+  statuslineReleaseLock(lockPath);
+  return statuslineTryTakeLock(lockPath);
+}
+
+function cmdStatuslineRefresh() {
+  const statusline = require('./lib/statusline.js');
+  const repoRoot = statuslineRepoRoot(process.cwd());
+  const lockPath = `${statusline.cachePath(repoRoot)}.lock`;
+  if (!statuslineAcquireLock(lockPath)) return 0;
+  try {
+    // Non-goals §2.2 / §1.2 "hidden stakeholders": a repo with no .specs/ at
+    // all must stay silent about flow, always — router.js's own `no-project`
+    // state does not distinguish "no .specs/ dir" from "empty .specs/ dir"
+    // (featureDirs treats ENOENT as zero dirs), so that distinction is made
+    // here, before the cache is ever written, rather than in the render.
+    if (!isDir(path.join(repoRoot, '.specs'))) return 0;
+    let result = null;
+    try {
+      result = computeNext(repoRoot, { count: false });
+    } catch {
+      result = null;
+    }
+    if (result) statusline.writeCache(repoRoot, result);
+  } finally {
+    statuslineReleaseLock(lockPath);
+  }
+  return 0;
+}
+
+function cmdStatuslinePrint() {
+  const statusline = require('./lib/statusline.js');
+  stdout.write(`${JSON.stringify(statusline.SETTINGS_SNIPPET, null, 2)}\n`);
+  return 0;
+}
+
+// planStatuslineInstall mirrors planSettingsDeny's shape one level up (read,
+// parse, refuse on an existing key, merge otherwise) but deliberately shares
+// no code with it (design.md §6): planSettingsDeny writes the project's
+// .claude/settings.json and merges permissions.deny; this writes the user's
+// global settings.json and merges statusLine, and their refusal rules
+// differ — an existing statusLine key refuses (--force overrides), while an
+// existing permissions key always refuses, unconditionally.
+function planStatuslineInstall(settingsPath, force, snippet) {
+  const raw = safeRead(settingsPath);
+  if (raw === null) {
+    return { willWrite: true, backupOf: null, content: `${JSON.stringify({ statusLine: snippet }, null, 2)}\n` };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return { willWrite: false, error: `${settingsPath} does not parse (${e.message})` };
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { willWrite: false, error: `${settingsPath} is not a JSON object` };
+  }
+  if (Object.prototype.hasOwnProperty.call(parsed, 'statusLine') && !force) {
+    return { willWrite: false, existing: parsed.statusLine };
+  }
+  parsed.statusLine = snippet;
+  return { willWrite: true, backupOf: raw, content: `${JSON.stringify(parsed, null, 2)}\n` };
+}
+
+function cmdStatuslineInstall(argv) {
+  const statusline = require('./lib/statusline.js');
+  const settingsPath = path.join(HOME, '.claude', 'settings.json');
+  const plan = planStatuslineInstall(settingsPath, argv.includes('--force'), statusline.SETTINGS_SNIPPET);
+  if (plan.error) {
+    stderr.write(`${C.error}flow statusline --install: ${plan.error} — nothing written${C.reset}\n`);
+    stdout.write(`Paste this by hand under "statusLine" in ${settingsPath}:\n${JSON.stringify(statusline.SETTINGS_SNIPPET, null, 2)}\n`);
+    return 1;
+  }
+  if (!plan.willWrite) {
+    stderr.write(
+      `${C.error}flow statusline --install: ${settingsPath} already has a statusLine (${JSON.stringify(plan.existing)}) — pass --force to replace it${C.reset}\n`
+    );
+    return 1;
+  }
+  let backup = null;
+  if (plan.backupOf !== null) {
+    backup = `${settingsPath}.pre-flow-statusline.${Math.floor(Date.now() / 1000)}`;
+    fs.writeFileSync(backup, plan.backupOf);
+  }
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, plan.content);
+  stdout.write(`flow statusline: installed into ${settingsPath}${backup ? ` (backup: ${backup})` : ' (created)'}\n`);
+  return 0;
+}
+
+function cmdStatusline(argv) {
+  if (argv.includes('--refresh')) return cmdStatuslineRefresh();
+  if (argv.includes('--install')) return cmdStatuslineInstall(argv);
+  if (argv.includes('--print')) return cmdStatuslinePrint();
+  return cmdStatuslineRender(argv);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'tutorial', 'off', 'on'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'tutorial', 'off', 'on', 'statusline'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -2839,6 +3117,7 @@ function main() {
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'tutorial') cmdTutorial(rest);
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
+  else if (cmd === 'statusline') process.exit(cmdStatusline(rest));
   else {
     const near = nearestCommand(cmd);
     stderr.write(
