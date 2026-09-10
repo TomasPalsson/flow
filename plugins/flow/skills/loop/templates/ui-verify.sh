@@ -26,7 +26,12 @@ HEALTH=${HEALTH:-/}
 BOOT=${BOOT:-60}
 BASE_URL=${BASE_URL:-"http://127.0.0.1:$PORT"}
 export BASE_URL
-FLOW_UI_SCORE=${FLOW_UI_SCORE:-plugins/flow/scripts/ui-score}
+# ui-score ships inside the flow plugin, NOT in your project, so a path
+# relative to the repo root only resolves when the loop runs in the flow repo
+# itself. Derive it from whatever `flow` is on PATH (it is a symlink into the
+# plugin), so this works from any project. Override FLOW_UI_SCORE if `flow`
+# is not on PATH. Only used by variant (b) below.
+FLOW_UI_SCORE=${FLOW_UI_SCORE:-"$(dirname "$(readlink -f "$(command -v flow)" 2>/dev/null || command -v flow)")/../scripts/ui-score"}
 # Every agent-browser call below carries --session "$SESSION". agent-browser
 # sessions are machine-global daemons, not per-invocation processes: without
 # --session, this script's `open` and a sibling loop's (or a leftover manual)

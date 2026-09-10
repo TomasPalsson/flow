@@ -1,4 +1,4 @@
-# 14 — Browser and visual verification for unattended loops, 2026
+# 15 — Browser and visual verification for unattended loops, 2026
 
 How to give `/flow:loop` a UI goal — "the checkout confirmation renders after payment", "make this page match that target" — and get an exit code an agent cannot argue with. Written 9 September 2026 from a 6-angle research sweep (12 agents, every angle adversarially re-measured, 24 claims struck or downgraded), plus direct probes of `agent-browser` 0.23.4, Playwright, `odiff`, `axe`, Lighthouse and `chrome-devtools-mcp` on this machine, and reads of flow's own `verify.js` and `tamper.js`. Design adjudicated 10 September 2026 across three competing proposals (laziest-that-works, cannot-be-gamed, headline-feature), with the winning claim reproduced end to end before it was scored. Peer document: [`12-loop-engineering-2026.md`](12-loop-engineering-2026.md) — the loop mechanics are settled there and are not repeated here. What it produced in this repo: §10.
 
