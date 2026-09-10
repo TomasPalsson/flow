@@ -1,12 +1,13 @@
 # Tasks — Flow statusline
-Spec: spec.md · Design: design.md · Base: 14f8844 · Route: dispatch · Test: `plugins/flow/scripts/tests/run.sh`
+Approved: 2026-09-10 by user
+Spec: spec.md · Design: design.md · Base: bf6b270 · Route: dispatch · Test: `plugins/flow/scripts/tests/run.sh`
 
 ## Behaviors
 | ID | Given / When / Then | Task | Proven by |
 |----|---------------------|------|-----------|
 | B1 (P0) | Given the §4.1 FR-01 fixture stdin, when the line renders, then the model segment is exactly `Opus 5 \| ✨ MAX \| 📊 ctx 34%` (FR-01) | T001 | t_statusline_model_segment |
 | B2 (P0) | Given a cache entry for any of the 21 state names, when the line renders, then the slug and that state's §4.2 glyph and label appear (FR-02) | T001 | t_statusline_all_states |
-| B3 (P0) | Given a cache entry at row 6, when the line renders, then the wave number appears (FR-03) | T001 | t_statusline_wave |
+| B3 (P0) | Given a cache entry at row 6, when the line renders, then the running task IDs appear — `▸ T001` for one, `▸ T003 +1` for two (FR-03) | T001 | t_statusline_wave |
 | B4 (P0) | Given the §4.2 table, when the `✋` set is compared to the router's `human_gate` set, then they are equal (FR-04) | T003 | t_statusline_human_gate_parity |
 | B5 (P0) | Given a `.specs/` tree, when the line renders 50 times, then the tree is byte-identical including `.next-call-count` (FR-05) | T003 | t_statusline_never_writes |
 | B6 (P0) | Given a cwd with no `.specs/`, when the line renders, then only the model segment is printed and the exit code is 0 (FR-06) | T002 | t_statusline_no_project |

@@ -8,7 +8,7 @@
 
 **Problem**: The harness knows exactly where a build is — feature, wave, state, which gate is waiting on a human — and shows it once, in the SessionStart hook, then lets it scroll away. Ten messages later the operator re-runs `flow next` purely to remember what they were doing.
 
-**Solution**: A `flow statusline` subcommand that renders the whole Claude Code status line: the existing model / plan / context segment, plus a flow segment carrying the active feature slug, the router state, and the wave.
+**Solution**: A `flow statusline` subcommand that renders the whole Claude Code status line: the existing model / plan / context segment, plus a flow segment carrying the active feature slug, the router state, and the task IDs of the running wave.
 
 **Who it's for**: The harness operator — one person driving a `/flow:spec` → `/flow:next` build in a terminal, who is also the person the human gates block.
 
@@ -39,7 +39,7 @@
 ### 2.1 In scope
 
 - Render the complete status line from Claude Code's stdin JSON plus the router's state.
-- A flow segment naming the active feature, the router state, and — during a build — the wave.
+- A flow segment naming the active feature, the router state, and — during a build — which task IDs are running.
 - Visual distinction for the three human gates and the row-0 / row-1 alarm states.
 - A cache, refreshed out of band, so that a render never waits on the router.
 - Opt-in installation of the `statusLine` block into `~/.claude/settings.json`, with a backup.
@@ -61,7 +61,7 @@
 
 | Path | Given | When | Then |
 |------|-------|------|------|
-| Happy | `.specs/.current` points at `008-flow-statusline`, wave 1 has unchecked tasks | Any turn renders | The line ends `🌊 008-flow-statusline · ▸ wave 1` |
+| Happy | `.specs/.current` points at `008-flow-statusline`, wave 1 has unchecked tasks | Any turn renders | The line ends `🌊 008-flow-statusline · ▸ T001` |
 | Error | The `flow` binary is not on PATH | Any turn renders | The line shows the model segment alone; exit code 0; no error text and no empty bar |
 | Edge | The router returns row 5 `unapproved` | Any turn renders | The flow segment reads `✋ approve` in the warning colour — the operator can see they are the blocker without reading scrollback |
 
@@ -99,7 +99,7 @@ Journey 2 covers the same glance when the cache is cold, stale, or the router is
 |----|----------|-------------|------------|
 | FR-01 | MUST | The Operator MUST see the model name, a plan badge, and the context percentage, rendered from the status line stdin JSON | Given stdin `{"model":{"display_name":"Opus 5"},"rate_limits":{},"context_window":{"used_percentage":34}}`, the model segment is exactly `Opus 5 \| ✨ MAX \| 📊 ctx 34%`; with `rate_limits` absent the badge is `⚡ API`; with any of the three fields absent that field alone is dropped |
 | FR-02 | MUST | The Operator MUST see the active feature slug and a state badge whenever the router reports a state carrying a feature | Every one of the 21 state names in §4.2 renders the glyph and label that table gives it, asserted literally |
-| FR-03 | MUST | The Operator MUST see the wave number while the router reports `building` | A fixture at row 6 renders `▸ wave 1` |
+| FR-03 | MUST | The Operator MUST see which task IDs are running while the router reports `building` | A fixture at row 6 with `wave.ids` `["T001"]` renders `▸ T001`; one with `["T003","T004"]` renders `▸ T003 +1` |
 | FR-04 | MUST | The Operator MUST be able to distinguish a state that is waiting on them from one that is not, without reading the state name | Rows 5, 7 and 9 render the `✋` marker and the warning colour; no other row does |
 | FR-05 | MUST | A render MUST NOT modify any file | A test snapshots the `.specs/` tree, renders 50 times, and asserts a byte-identical tree including `.next-call-count` |
 | FR-06 | MUST | The Operator MUST get the model segment alone, with exit code 0, when no flow project is present | A fixture cwd with no `.specs/` renders the model segment and nothing else |
@@ -116,7 +116,7 @@ Journey 2 covers the same glance when the cache is cold, stale, or the router is
 
 ### 4.2 State badges
 
-> This table is the whole rendering contract for FR-02 and FR-04. `wave N` is the only badge that interpolates.
+> This table is the whole rendering contract for FR-02 and FR-04. The `building` row is the only badge that interpolates.
 
 | Row | State name | Glyph | Label | Tone |
 |-----|-----------|-------|-------|------|
@@ -133,7 +133,7 @@ Journey 2 covers the same glance when the cache is cold, stale, or the router is
 | 3 | `ambiguous` | ? | pick a feature | warn |
 | 4 | `drafting` | ✎ | drafting | info |
 | 5 | `unapproved` | ✋ | approve | warn |
-| 6 | `building` | ▸ | wave N | info |
+| 6 | `building` | ▸ | the first id in `wave.ids`, plus ` +N` when the wave holds more; `building` when `wave.ids` is absent or empty | info |
 | 7 | `checkpoint` | ✋ | checkpoint | warn |
 | 8 | `gating` | ⚙ | gates | info |
 | 9 | `unverified` | ✋ | verify | warn |

@@ -45,7 +45,7 @@ const BADGES = {
   ambiguous: { glyph: '?', label: 'pick a feature', tone: 'warn' },
   drafting: { glyph: '✎', label: 'drafting', tone: 'info' },
   unapproved: { glyph: '✋', label: 'approve', tone: 'warn' },
-  building: { glyph: '▸', label: 'wave N', tone: 'info' },
+  building: { glyph: '▸', label: 'building', tone: 'info' },
   checkpoint: { glyph: '✋', label: 'checkpoint', tone: 'warn' },
   gating: { glyph: '⚙', label: 'gates', tone: 'info' },
   unverified: { glyph: '✋', label: 'verify', tone: 'warn' },
@@ -109,8 +109,11 @@ function flowSegment(entry, opts) {
     const result = entry.result;
     const badge = badgeFor(result.state);
     let label = badge.label;
-    if (result.state === 'building' && result.wave && Array.isArray(result.wave.ids)) {
-      label = 'wave ' + result.wave.ids.length;
+    // The router publishes the wave's task ids but no wave ordinal, so the
+    // badge names what is running rather than inventing an index (NOTES.md).
+    if (result.state === 'building' && result.wave && Array.isArray(result.wave.ids) && result.wave.ids.length) {
+      const ids = result.wave.ids;
+      label = ids.length > 1 ? ids[0] + ' +' + (ids.length - 1) : ids[0];
     }
     const stale = typeof entry.at === 'number' && (Date.now() - entry.at) > CACHE_STALE_MS ? '~' : '';
     const badgeText = badge.glyph + ' ' + label;
