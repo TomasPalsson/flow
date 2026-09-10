@@ -70,7 +70,7 @@ Anything not listed is a bug. `lib/statusline.js` never imports `lib/router.js` 
 | refresh lock | the same directory, `<sha1>.lock`, created with `wx` and carrying the child pid | `cachePath` + `.lock` | the refresh child only |
 | router result | the detached `flow statusline --refresh` child | written to the cache file, never returned | the next render |
 | settings path | `bin/flow`, as `path.join(process.env.HOME, '.claude', 'settings.json')` | argument | the `--install` path and the doctor check |
-| colour decision | `bin/flow`, from `--no-color`, `NO_COLOR` and tty | `opts.color` | every render function |
+| colour decision | `bin/flow`, from `--no-color` and `NO_COLOR` only — **never** from `isTTY`, because Claude Code always pipes this command's stdout and a tty test would silence FR-04's colour exactly where it is needed | `opts.color` | every render function |
 
 `HOME` is read once, in `bin/flow`, and never inside `lib/statusline.js`. The tests set `HOME` and `TMPDIR` to fixture directories; a function that resolves either path itself makes that impossible.
 

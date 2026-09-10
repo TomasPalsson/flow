@@ -2818,13 +2818,14 @@ function statuslineRepoRoot(cwd) {
   return gitToplevel(cwd) || cwd;
 }
 
-// --no-color, NO_COLOR, or stdout not being a real terminal each turn colour
-// off (design.md §5, "colour decision" row) — only an interactive terminal
-// with neither set gets ANSI.
+// Only --no-color and NO_COLOR turn colour off. Deliberately NOT gated on
+// isTTY: Claude Code always pipes a status line command's stdout, so a tty
+// test would mean the FR-04 human-gate colour never once renders where it
+// matters. The harness renders the ANSI it is handed.
 function statuslineColorEnabled(argv) {
   if (argv.includes('--no-color')) return false;
   if (process.env.NO_COLOR) return false;
-  return process.stdout.isTTY === true;
+  return true;
 }
 
 function statuslineReadStdin() {
