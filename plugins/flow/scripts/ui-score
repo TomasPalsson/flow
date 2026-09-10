@@ -1,0 +1,347 @@
+#!/usr/bin/env python3
+"""ui-score — capture a baseline for a page, then score a running page against
+it: structure gates (must-have selectors, visible, right text) AND a pixel
+diff, per viewport. A conjunction of gates, never a weighted average — see
+plugins/flow/skills/loop/references/browser-verifier.md §4 for why.
+
+  ui-score capture --target <dir> --url <url> [--viewports 1280,480] [--height 900]
+  ui-score capture --target <dir> --from-image <png> --viewports <W>
+  ui-score score   --target <dir> --url <url>
+
+`capture` runs once, out of band, never inside a loop's --verify. `score` is
+the one a loop verifier runs; it never boots the server itself. --from-image
+seeds a baseline from a design mock instead of a live page: exactly one
+viewport (a mock has one width), 'must' is written empty because a PNG
+cannot tell you its selectors, and `score` REFUSES an empty 'must' with
+exit 2 — a pixel-only target is not a verifier.
+
+Exit codes: 0 = every gate passed. 1 = a gate failed. 2 = harness broke (no
+target dir, missing baseline PNG, app not up, agent-browser or Pillow
+missing) — never report a harness break as a gate failure.
+"""
+import argparse
+import atexit
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+SEED_SELECTORS = ["h1", "h2", "nav", "main", "button", "a"]
+
+# Every ab() call carries --session SESSION: agent-browser sessions are
+# machine-global daemons, not per-invocation processes, so without this a
+# second loop, a sibling ui-verify.sh run, or a stray manual `agent-browser`
+# command lands on the same tab and ui-score scores whatever page someone
+# else last opened. SESSION embeds this process's pid so concurrent ui-score
+# runs never collide -- and for exactly that reason it must NEVER be printed:
+# flow's wedge detector sha1s this script's stdout, and a changing pid in
+# that output would defeat it.
+SESSION = "ui-score-%d" % os.getpid()
+
+# ponytail: stops the browser from reusing a cached body when re-opening the
+# SAME url (measured: a 304 on an unchanged Last-Modified/ETag serves the
+# previous page's DOM even after `reload`). It cannot help when the SERVER
+# itself answers 304 for content that genuinely changed (a wrong
+# ETag/Last-Modified) -- that's a server bug, fixed by a correct server, not
+# more client-side code here.
+NOCACHE_HEADERS = '{"Cache-Control":"no-cache","Pragma":"no-cache"}'
+
+
+def die(msg, code):
+    print("ui-score: " + msg)
+    sys.exit(code)
+
+
+def ab(args):
+    """Run 'agent-browser --session SESSION --json <args>'; return parsed
+    'data', or None if the call reported success:false (or produced no
+    parseable JSON at all). --session pins every call to THIS process's own
+    session (see SESSION above) so it can never land on someone else's tab.
+    Never trust the exit code alone — agent-browser's own 'is'/'get count'
+    subcommands exit 0 for a query that answered "false"/"0"."""
+    r = subprocess.run(
+        ["agent-browser", "--session", SESSION, "--json"] + list(args),
+        capture_output=True,
+        text=True,
+    )
+    try:
+        parsed = json.loads(r.stdout)
+    except ValueError:
+        return None
+    if not parsed.get("success"):
+        return None
+    return parsed.get("data")
+
+
+def _close_session():
+    """atexit hook: closes THIS process's agent-browser session on every
+    exit path (a normal return, a die()'s sys.exit, an uncaught exception) so
+    a long-running loop does not accumulate browser daemons."""
+    ab(["close"])
+
+
+def pixel_pct(baseline_path, actual_path, tolerance):
+    """Returns (pct, actual_size, expected_size). pct is None when sizes differ."""
+    from PIL import Image, ImageChops
+
+    a = Image.open(baseline_path).convert("RGB")
+    b = Image.open(actual_path).convert("RGB")
+    if a.size != b.size:
+        return None, b.size, a.size
+    diff = ImageChops.difference(a, b).convert("L")
+    bad = diff.point(lambda v: 255 if v > tolerance else 0).histogram()[255]
+    w, h = a.size
+    return 100.0 * bad / (w * h), None, None
+
+
+def cmd_capture(args):
+    if bool(args.url) == bool(args.from_image):
+        die("capture needs exactly one of --url or --from-image", 2)
+    if args.from_image:
+        return cmd_capture_from_image(args)
+    return cmd_capture_url(args)
+
+
+def cmd_capture_from_image(args):
+    """Seed a target from a design mock: resize to the one requested
+    viewport width, preserving aspect ratio, and write an empty-'must'
+    expect.json — a PNG cannot tell you its selectors."""
+    viewports = [int(v) for v in args.viewports.split(",")]
+    if len(viewports) != 1:
+        die("--from-image takes exactly one --viewports value (a mock has one width)", 2)
+    if not os.path.isfile(args.from_image):
+        die("no such image: " + args.from_image, 2)
+    from PIL import Image
+
+    w = viewports[0]
+    mock = Image.open(args.from_image)
+    h = round(mock.height * w / mock.width)
+    os.makedirs(args.target, exist_ok=True)
+    png_path = os.path.join(args.target, "{}.png".format(w))
+    mock.resize((w, h), Image.LANCZOS).save(png_path)
+    print("wrote " + png_path)
+    print("# height {} came from the mock aspect ratio".format(h))
+
+    expect_path = os.path.join(args.target, "expect.json")
+    if not os.path.isfile(expect_path):
+        expect = {
+            "viewports": [w],
+            "height": h,
+            "maxMismatchPct": 2.0,
+            "tolerance": 12,
+            "must": [],
+        }
+        with open(expect_path, "w") as f:
+            json.dump(expect, f, indent=2)
+            f.write("\n")
+        print("wrote " + expect_path)
+        print("# 'must' is EMPTY -- score exits 2 until you add the 3-5 selectors that define this page")
+    return 0
+
+
+def cmd_capture_url(args):
+    viewports = [int(v) for v in args.viewports.split(",")]
+    os.makedirs(args.target, exist_ok=True)
+
+    # No-cache headers before the first open (see NOCACHE_HEADERS): without
+    # this, re-capturing against an unchanged Last-Modified/ETag can bake in
+    # a stale screenshot of whatever page the browser had cached.
+    if ab(["set", "headers", NOCACHE_HEADERS]) is None:
+        die("agent-browser set headers failed", 2)
+
+    written = []
+    for w in viewports:
+        if ab(["set", "viewport", str(w), str(args.height)]) is None:
+            die("agent-browser set viewport failed", 2)
+        if ab(["open", args.url]) is None:
+            die("cannot reach {} — start the server, then re-run".format(args.url), 2)
+        png_path = os.path.join(args.target, "{}.png".format(w))
+        if ab(["screenshot", png_path]) is None:
+            die("screenshot failed", 2)
+        written.append(png_path)
+
+    expect_path = os.path.join(args.target, "expect.json")
+    wrote_expect = False
+    if not os.path.isfile(expect_path):
+        must = []
+        for sel in SEED_SELECTORS:
+            data = ab(["get", "count", sel])
+            count = data.get("count", 0) if data else 0
+            if count >= 1:
+                entry = {"sel": sel, "min": 1}
+                if sel == "h1":
+                    text = ab(["get", "text", sel])
+                    entry["text"] = (text.get("text", "") if text else "").strip()
+                must.append(entry)
+        expect = {
+            "viewports": viewports,
+            "height": args.height,
+            "maxMismatchPct": 2.0,
+            "tolerance": 12,
+            "must": must,
+        }
+        with open(expect_path, "w") as f:
+            json.dump(expect, f, indent=2)
+            f.write("\n")
+        written.append(expect_path)
+        wrote_expect = True
+
+    for p in written:
+        print("wrote " + p)
+    if wrote_expect:
+        print("# trim 'must' to the 3-5 selectors that define this page, not a picture of it")
+    print("next: ui-score score --target {} --url {}".format(args.target, args.url))
+    return 0
+
+
+def _check_structure(m):
+    """Runs one 'must' entry's gates against the currently open page. Returns
+    (line, failed)."""
+    sel = m["sel"]
+    minimum = m.get("min", 1)
+    text = m.get("text")
+
+    count_data = ab(["get", "count", sel])
+    count = count_data.get("count", 0) if count_data else 0
+    if count < minimum:
+        return "  {}: MISSING (count {}, need {})".format(sel, count, minimum), True
+
+    box = ab(["get", "box", sel])
+    if not box or box.get("width", 0) <= 0 or box.get("height", 0) <= 0:
+        return "  {}: NOT VISIBLE (0x0 box)".format(sel), True
+
+    if text is not None:
+        text_data = ab(["get", "text", sel])
+        got = (text_data.get("text", "") if text_data else "").strip()
+        want = text.strip()
+        if got != want:
+            return '  {}: TEXT "{}" != "{}"'.format(sel, got, want), True
+
+    return "  {}: ok".format(sel), False
+
+
+def _need_capture(msg, args):
+    die(
+        "{} — run 'ui-score capture --target {} --url {}' first".format(msg, args.target, args.url),
+        2,
+    )
+
+
+def cmd_score(args):
+    if not os.path.isdir(args.target):
+        _need_capture("no such target dir: " + args.target, args)
+    expect_path = os.path.join(args.target, "expect.json")
+    if not os.path.isfile(expect_path):
+        _need_capture("missing " + expect_path, args)
+    with open(expect_path) as f:
+        try:
+            expect = json.load(f)
+        except json.JSONDecodeError as e:
+            die("expect.json is not valid JSON: {}".format(e), 2)
+
+    viewports = expect["viewports"]
+    height = expect.get("height", 900)
+    tolerance = expect.get("tolerance", 12)
+    max_pct = expect.get("maxMismatchPct", 2.0)
+    must = expect.get("must", [])
+    if not must:
+        die(
+            "expect.json has an empty 'must' list -- a pixel-only target is not a "
+            "verifier; add the 3-5 selectors that define this page",
+            2,
+        )
+
+    # No-cache headers before the first open (see NOCACHE_HEADERS): without
+    # this, an unchanged validator on the target url can 304 and hand back
+    # whatever page the browser had cached, scoring the wrong build as a PASS.
+    if ab(["set", "headers", NOCACHE_HEADERS]) is None:
+        die("agent-browser set headers failed", 2)
+
+    lines = []
+    fail_count = 0
+    for w in viewports:
+        baseline_path = os.path.join(args.target, "{}.png".format(w))
+        if not os.path.isfile(baseline_path):
+            _need_capture("missing " + baseline_path, args)
+
+        if ab(["set", "viewport", str(w), str(height)]) is None:
+            die("agent-browser set viewport failed", 2)
+        if ab(["open", args.url]) is None:
+            die("cannot reach {} — the app is not up".format(args.url), 2)
+
+        lines.append("== viewport {} ==".format(w))
+        for m in must:
+            line, failed = _check_structure(m)
+            lines.append(line)
+            if failed:
+                fail_count += 1
+
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".png")
+        os.close(tmp_fd)
+        try:
+            if ab(["screenshot", tmp_path]) is None:
+                die("screenshot failed", 2)
+            try:
+                pct, actual_size, expected_size = pixel_pct(baseline_path, tmp_path, tolerance)
+            except ImportError:
+                die("pip install pillow", 2)
+            except OSError as e:
+                die("cannot read baseline/screenshot image: {}".format(e), 2)
+        finally:
+            os.remove(tmp_path)
+
+        if pct is None:
+            lines.append("  pixel: SIZE {}x{} != {}x{}".format(*actual_size, *expected_size))
+            fail_count += 1
+        elif pct > max_pct:
+            lines.append("  pixel: FAIL {:.2f}% > {:.2f}%".format(pct, max_pct))
+            fail_count += 1
+        else:
+            lines.append("  pixel: ok ({:.2f}% <= {:.2f}%)".format(pct, max_pct))
+
+    print("\n".join(lines))
+    if fail_count:
+        print("ui-score: FAIL ({} gate(s))".format(fail_count))
+        return 1
+    print("ui-score: PASS")
+    return 0
+
+
+# ponytail: no scrollWidth overflow gate here (it would need 'agent-browser
+# eval'). Scoring at two viewports (--viewports 1280,480) already catches the
+# same class of failure (content that only breaks at one width); upgrade path
+# is an 'agent-browser eval' call if that ever proves insufficient.
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="ui-score")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--target", required=True)
+
+    cap = sub.add_parser("capture", parents=[common])
+    cap.add_argument("--url")
+    cap.add_argument("--from-image")
+    cap.add_argument("--viewports", default="1280,480")
+    cap.add_argument("--height", type=int, default=900)
+
+    sco = sub.add_parser("score", parents=[common])
+    sco.add_argument("--url", required=True)
+
+    args = parser.parse_args()
+
+    if not (args.cmd == "capture" and args.from_image):
+        if shutil.which("agent-browser") is None:
+            die("agent-browser not found on PATH — install it first", 2)
+        atexit.register(_close_session)
+
+    if args.cmd == "capture":
+        return cmd_capture(args)
+    return cmd_score(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -25,6 +25,8 @@ The verifier is the loop. A weak one turns every other safeguard into theatre: t
 
 - Put the check that the *current* task moves first; the full suite last. The verifier tail (40 lines) is what the next iteration reads — the first failure should be the relevant one.
 - Bound the runtime below `verify_timeout` (default 600 s). A verifier that times out reads as a failure with `verify timed out`, which wedges the loop on the timeout rather than on the work.
+- "Compose with `&&`" above is for pure test commands only — it is wrong for anything that boots a server. `sh -c 'a && b'` never `exec`s into `b`, so the timeout's `SIGTERM` lands on the `sh -c` wrapper, not on the server `b` started; the server outlives the deadline and serves the next iteration. Such a verifier is one simple command: `sh tests/ui/verify.sh`. See `browser-verifier.md` §1(b).
+- Quote the verify string itself with single quotes on the `--verify` command line. A double-quoted string containing a command substitution (`"...$(...)..."`) expands in the *caller's* shell before `flow` ever sees it, silently baking in a constant — e.g. today's date, a PID, a hostname — that `verify_sha` then freezes as if it were the command.
 - Prefer commands that print a structured summary at the end (test counts, the failing test names). The wedge detector hashes the first 60 lines with hashes and durations masked, so a verifier whose output is stable for the same failure is a verifier whose wedges get caught.
 
 ## 3. What the loop checks on top of a green verifier (the tamper veto)
@@ -37,6 +39,7 @@ The verifier is the loop. A weak one turns every other safeguard into theatre: t
 | a new `.skip(`, `.only(`, `it.todo(`, `xfail`, `@pytest.mark.skip`, `#[ignore]`, `t.Skip(` in a test file | added lines in `git diff <base>` |
 | `stopGate: false` or a lowered `max*`/`complexity`/`threshold` in gate config | same regex as `tamper-notice.sh` |
 | the verifier string in the contract changed | cksum recorded at init |
+| the target directory, or a script named by the verify string, changed | sha1 over file bytes recorded at init |
 
 A `suspect` run is not fixed inside the loop. The finding is reported verbatim and a human decides — the whole point is that the loop cannot argue itself past this check.
 
@@ -58,6 +61,7 @@ A `suspect` run is not fixed inside the loop. The finding is reported verbatim a
 | artefact exists and works | `<build> && test -s dist/x && node dist/x --version` |
 | backlog empty | `node -e "const t=require('./.claude/loop/tasks.json');process.exit(t.items.every(i=>i.passes)?0:1)" && <suite>` — the JSON is the model's to edit, so pair it with the suite and the tamper veto |
 | docs build | `mkdocs build --strict` / `bun run docs:build` |
-| browser flow works | `bunx playwright test tests/e2e/checkout.spec.ts` (start the server inside the command; bound it) |
+| browser flow works | `sh tests/ui/verify.sh` (copy from `templates/ui-verify.sh`) — [browser-verifier.md](browser-verifier.md) |
+| page matches a design target | `plugins/flow/scripts/ui-score score --target .loop-target --url ...` — [browser-verifier.md](browser-verifier.md) |
 
 When no command approximates the goal, the loop is the wrong tool: keep the judgement for a human gate at the end, or split the goal until a command exists.

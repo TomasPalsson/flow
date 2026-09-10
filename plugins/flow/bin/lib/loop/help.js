@@ -27,7 +27,11 @@ const SUB_HELP = {
   [--prompt-file <path> | --prompt "<text>"] [--session <id>]
   [--max-iterations N] [--max-minutes N] [--max-usd N] [--stall-after N]
   [--verify-timeout S] [--permission-mode M] [--model M] [--max-turns N]
-  [--allow-green] [--force]
+  [--allow-green] [--force] [--target <dir>]
+
+  --target <dir>   byte-freeze <dir> into the contract (target_sha); tamper
+                    check fires if it changes. Use for a ui-score baseline
+                    dir, e.g. --target .loop-target
 
 Usage:
   flow loop init "<goal>" --verify "<cmd>"
