@@ -306,6 +306,18 @@ flow statusline [--refresh] [--install] [--print] [--no-color]
   pipes the command's stdout, so a tty check would mean the colour never
   renders where it matters.
 
+The badge is the router's state, one glyph plus a label, per the table in
+the spec's §4.2. The one worth knowing by sight is **`✋`**: it marks the
+three rows where the router is waiting on a person rather than on work —
+`✋ approve` (row 5), `✋ checkpoint` (row 7), `✋ verify` (row 9) — and
+nothing else ever renders it. `⛔` and `⚠` are the row-0/row-1 alarms,
+`▸ T001` names the task ids of the wave being built, and `⇧ ship` means
+the PR is the only thing left.
+
+```
+Opus 5 | ✨ MAX | 📊 ctx 34%  🌊 008-flow-statusline · ✋ approve
+```
+
 `flow doctor`'s `statusline` check resolves the configured
 `statusLine.command` on PATH and runs it once with `{}` on stdin, failing
 if it does not exit 0.
