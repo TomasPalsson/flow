@@ -128,6 +128,14 @@ Commands:
                                                      (default: cwd) and everything under it;
                                                      --unsafe also disables git-guard
   on [<dir>]                                        Turn them back on
+  statusline [--refresh] [--install] [--print] [--no-color]
+                                                     Render the Claude Code status line — the
+                                                     flow segment is a cached, never-waiting
+                                                     mirror of `flow next --peek`; --install
+                                                     wires it into ~/.claude/settings.json,
+                                                     --print emits the snippet with nothing
+                                                     written, --refresh fills the cache (run by
+                                                     the render itself, not by hand)
 
 Options:
   -h, --help   Show this help message
@@ -265,3 +273,39 @@ Usage:
 ```
 
 Prints the last N `loop.log` lines verbatim (default 20).
+
+## flow statusline
+
+A cached, read-only mirror of `flow next --peek`, rendered for Claude
+Code's `statusLine` hook (spec `.specs/008-flow-statusline/spec.md`). The
+render path (no flags) never calls the router and never waits: it reads
+whatever `<tmpdir>/flow-statusline/<sha1 of repo root>.json` holds, prints
+one line, and only then — if that entry is missing or at least 5s old —
+spawns a detached, lock-guarded `flow statusline --refresh` child to fill
+it for the *next* call. A cache entry older than 60s still renders, with a
+trailing `~` on its badge.
+
+```
+flow statusline [--refresh] [--install] [--print] [--no-color]
+```
+
+- No flags: reads the Claude Code JSON payload from stdin, prints
+  `<model> | <plan> | <ctx%>` plus, once a cache entry exists,
+  `  🌊 <slug> · <badge>` for the router's state.
+- `--install` merges `{"type":"command","command":"flow statusline"}` into
+  `~/.claude/settings.json`'s `statusLine`, backing up any prior file
+  first; refuses (exit 1) if a `statusLine` is already configured, unless
+  `--force`.
+- `--print` emits that same snippet to stdout — nothing is written — for
+  pasting into `settings.json` by hand.
+- `--refresh` fills the cache by running the router once; only the render
+  path (or the doctor check below) ever spawns it, not meant to be run by
+  hand.
+- `--no-color`, or `NO_COLOR` in the environment, drops the ANSI tone
+  around the flow badge. Neither is gated on `isTTY`: Claude Code always
+  pipes the command's stdout, so a tty check would mean the colour never
+  renders where it matters.
+
+`flow doctor`'s `statusline` check resolves the configured
+`statusLine.command` on PATH and runs it once with `{}` on stdin, failing
+if it does not exit 0.
