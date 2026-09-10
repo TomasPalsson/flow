@@ -31,7 +31,7 @@ Independent test: `node -e "require('./plugins/flow/bin/lib/statusline.js')"` pl
 ## Phase 2 — The subcommand and the refresh child
 Goal: `flow statusline` is wired, never waits, never fails, holds one lock, and can install itself into the user's settings on request.
 Independent test: `plugins/flow/bin/flow statusline --print` — valid JSON, with no `.specs/` in the cwd.
-- [ ] T002 `statusline` subcommand, `--refresh` with the pid lock, `--install`, `--print`, `--no-color`, and the `statusline` doctor check (B6, B7, B8, B9, B10, B11) — files: plugins/flow/bin/flow — verify: `plugins/flow/bin/flow statusline --print` — after: T001
+- [x] T002 `statusline` subcommand, `--refresh` with the pid lock, `--install`, `--print`, `--no-color`, and the `statusline` doctor check (B6, B7, B8, B9, B10, B11) — files: plugins/flow/bin/flow — verify: `plugins/flow/bin/flow statusline --print` — after: T001 — done: 8771971
 
 ## Phase 3 — Proof and docs
 Goal: a reviewer other than the author can prove every MUST, including the two that only a hostile fixture can prove — that a render never waits, and that ten renders never become ten routers.
