@@ -61,7 +61,7 @@
 
 | Path | Given | When | Then |
 |------|-------|------|------|
-| Happy | `.specs/.current` points at `008-flow-statusline`, wave 1 has unchecked tasks | Any turn renders | The line ends `🌊 008-flow-statusline · ▸ T001` |
+| Happy | `.specs/.current` points at `008-flow-statusline`, wave 1 has unchecked tasks | Any turn renders | The line ends `🌊 008-flow-statusline \| ▸ T001` |
 | Error | The `flow` binary is not on PATH | Any turn renders | The line shows the model segment alone; exit code 0; no error text and no empty bar |
 | Edge | The router returns row 5 `unapproved` | Any turn renders | The flow segment reads `✋ approve` in the warning colour — the operator can see they are the blocker without reading scrollback |
 

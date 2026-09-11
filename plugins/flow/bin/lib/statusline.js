@@ -99,7 +99,7 @@ function modelSegment(input, opts) {
 
 // ── Flow segment (FR-02, FR-03, FR-04, FR-12, FR-16) ───────────────────────
 const FLOW_MARKER = '🌊 ';
-const SEPARATOR = ' · ';
+const SEPARATOR = ' | ';
 const FLOW_SEGMENT_MAX_WIDTH = 40;
 
 function flowSegment(entry, opts) {
@@ -141,7 +141,7 @@ function renderLine(input, entry, opts) {
   } catch (e) {
     flow = '';
   }
-  return flow ? model + '  ' + flow : model;
+  return flow ? model + SEPARATOR + flow : model;
 }
 
 // ── The cache (spec §5, design.md §5) ──────────────────────────────────────

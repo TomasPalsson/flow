@@ -295,7 +295,7 @@ flow statusline [--refresh] [--install] [--print] [--no-color]
 
 - No flags: reads the Claude Code JSON payload from stdin, prints
   `<model> | <plan> | <ctx%>` plus, once a cache entry exists,
-  `  🌊 <slug> · <badge>` for the router's state.
+  ` | 🌊 <slug> | <badge>` for the router's state.
 - `--install` merges `{"type":"command","command":"flow statusline"}` into
   `~/.claude/settings.json`'s `statusLine`, backing up any prior file
   first; refuses (exit 1) if a `statusLine` is already configured, unless
@@ -319,7 +319,7 @@ nothing else ever renders it. `⛔` and `⚠` are the row-0/row-1 alarms,
 the PR is the only thing left.
 
 ```
-Opus 5 | ✨ MAX | 📊 ctx 34%  🌊 008-flow-statusline · ✋ approve
+Opus 5 | ✨ MAX | 📊 ctx 34% | 🌊 008-flow-statusline | ✋ approve
 ```
 
 `flow doctor`'s `statusline` check resolves the configured
