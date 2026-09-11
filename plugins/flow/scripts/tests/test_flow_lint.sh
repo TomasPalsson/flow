@@ -461,3 +461,35 @@ _flowlint_ms() {
 		printf '0'
 	fi
 }
+
+# ---------------------------------------------------------------------------
+# flow-lint — `done: <sha> by <who>`, the form `flow tick --by user` writes
+# ---------------------------------------------------------------------------
+
+t_flowlint_done_sha_with_by_who_is_accepted() {
+	# `flow tick <CHK> --by user` appends "— done: <sha> by user", and a CHK
+	# can ONLY be ticked that way (tick refuses a CHK without --by). Reading
+	# the whole tail as the sha therefore made every human checkpoint in the
+	# harness unlintable: `git rev-parse "<sha> by user"` cannot resolve.
+	local d sha
+	d=$(tmp_repo)
+	printf 'a\n' >"$d/a.py"
+	(cd "$d" && git add a.py && git commit -qm "task work") >/dev/null 2>&1
+	sha=$(cd "$d" && git rev-parse --short HEAD)
+	base=$(cd "$d" && git rev-parse --short HEAD~1)
+	{
+		printf '# Tasks — x\n'
+		printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n' "$base"
+		printf '\n## Behaviors\n'
+		printf '| ID | Given / When / Then | Task | Proven by |\n'
+		printf '|----|---------------------|------|-----------|\n'
+		printf '| B1 | given / when / then | T001 | t1 |\n'
+		printf '\n## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [x] T001 done task — files: a.py — verify: `true` — done: %s by user\n' "$sha"
+	} >"$d/TASKS.md"
+
+	run_cmd bash -c "cd '$d' && bash '$FLOW_LINT' TASKS.md"
+	assert_not_contains "$OUT" "done-sha-unknown" "a 'done: <sha> by <who>' tick resolves its sha"
+	assert_rc 0 "flow-lint accepts the tick form that flow tick --by user writes"
+	rm -rf "$d"
+}

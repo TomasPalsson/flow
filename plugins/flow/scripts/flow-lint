@@ -444,7 +444,9 @@ while IFS= read -r raw || [ -n "$raw" ]; do
         has_verify=1
         ;;
       after:*) trim_var "${seg#after:}"; f_after=$R_TRIM ;;
-      done:*) trim_var "${seg#done:}"; f_done=$R_TRIM ;;
+      # `flow tick --by <who>` writes "done: <sha> by <who>", and a CHK can
+      # only be ticked that way — so the sha is the first word, never the tail.
+      done:*) trim_var "${seg#done:}"; f_done=${R_TRIM%% by *} ;;
       dropped:*) trim_var "${seg#dropped:}"; f_dropped=$R_TRIM ;;
       *) desc="$desc — $seg" ;;
       esac
