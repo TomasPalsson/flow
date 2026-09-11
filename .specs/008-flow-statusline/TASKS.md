@@ -38,7 +38,7 @@ Goal: a reviewer other than the author can prove every MUST, including the two t
 Independent test: `TEST_ONLY=test_statusline.sh plugins/flow/scripts/tests/run.sh` — green.
 - [x] T003 Fixture-driven tests: all 21 states, the `✋`/`human_gate` parity assertion, the four fault injections, the three install paths, the zero-writes tree hash, the 10 s-stub latency assertion, and the single-refresh lock assertion (B4, B5, B14, B15, B16) — files: plugins/flow/scripts/tests/test_statusline.sh — verify: `TEST_ONLY=test_statusline.sh plugins/flow/scripts/tests/run.sh` — after: T002 — done: eaf333b
 - [x] T004 [P] Document the subcommand, the cache and its staleness marker in the plugin README and the CLI reference — files: plugins/flow/README.md, docs/reference/workflows-and-cli.md — verify: `grep -q "flow statusline" plugins/flow/README.md docs/reference/workflows-and-cli.md` — after: T002 — done: e670855
-- [ ] CHK001 human-verify the installed line reads correctly at a real human gate and the refresh never stalls the terminal — files: plugins/flow/bin/lib/statusline.js — verify: human: user installs it, drives one build turn to an unapproved or checkpoint state, and confirms the `✋` badge and slug are legible and that typing never lags — after: T003
+- [ ] CHK001 human-verify the installed line reads correctly at a real human gate and the refresh never stalls the terminal — files: .specs/008-flow-statusline/verify/CHK001.md — verify: human: user installs it, drives one build turn to an unapproved or checkpoint state, and confirms the `✋` badge and slug are legible and that typing never lags — after: T003
 
 ## Gates
 - [ ] G001 project gates clean — files: . — verify: `flow check --fix`
