@@ -17,6 +17,7 @@ Two slash commands, and the CLI they lean on. There is no third door.
 | `flow tick <ID>` | The only writer of `[x]`. Measures the sha itself. |
 | `flow use <NNN-slug>` | Writes `.specs/.current`. Only needed with two features open. |
 | `flow publish` | Optional leaf: mirror unchecked tasks to GitHub issues. Never called by the pipeline. |
+| `flow statusline [--install\|--print]` | Cached, read-only mirror of `flow next --peek` for Claude Code's `statusLine` hook. Never blocks a render; `--install` wires it into `~/.claude/settings.json`, `--print` hands you the snippet instead. |
 
 Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
 `/flow:spec` consolidates from. Unattended runs are `/flow:loop`. A defect
