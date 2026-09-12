@@ -114,6 +114,27 @@ function caseTags(toplevel, caseName) {
   return readCaseTags(raw);
 }
 
+// anyCaseNeedsBash(toplevel, selectedTags) -> true if a case dir under
+// EVALS_ROOT carries both `needs-bash` and at least one tag in selectedTags.
+// Cases can carry two tags (e.g. `[pipeline, needs-bash]`), so a plain
+// `selectedTags.includes('needs-bash')` check misses them whenever the
+// caller selects by the *other* tag (`--tag pipeline`) — evals/README.md's
+// own `--allow-tools Write Edit (and Bash for needs-bash cases)` contract
+// depends on this, not on the literal tag name in the selection.
+function anyCaseNeedsBash(toplevel, selectedTags) {
+  let entries;
+  try {
+    entries = fs.readdirSync(path.join(toplevel, EVALS_ROOT), { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  return entries.some((e) => {
+    if (!e.isDirectory()) return false;
+    const tags = caseTags(toplevel, e.name);
+    return tags.includes('needs-bash') && tags.some((t) => selectedTags.includes(t));
+  });
+}
+
 // tagRollup(toplevel, cases, selectedTags) — per-tag {score, delta, cases}
 // from cases[].aggregates grouped by the tags each case dir's case.yaml
 // declares (code-design.md section 5 GREEN description). Tags with no
@@ -197,11 +218,12 @@ function appendLedger(toplevel, line) {
   fs.appendFileSync(p, `${line}\n`);
 }
 
-function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags) {
+function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash) {
+  const allowTools = allowBash ? ['Write', 'Edit', 'Bash'] : ['Write', 'Edit'];
   const argv = [
     'plugin', 'eval', 'plugins/flow',
     '--trust-plugin', '--no-publish', '--scaffold',
-    '--allow-tools', 'Write', 'Edit',
+    '--allow-tools', ...allowTools,
     '--model', model,
     '--judge-model', judgeModel,
     '--runs', String(args.runs === null ? 3 : args.runs),
@@ -302,7 +324,8 @@ function run(argv, cwd, env) {
   const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
   const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;
   const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}.json`);
-  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath, selectedTags);
+  const allowBash = Boolean(socatPath) && anyCaseNeedsBash(toplevel, selectedTags);
+  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash);
 
   if (args.dryRun) {
     stdout.write(`claude ${childArgv.join(' ')}\n`);

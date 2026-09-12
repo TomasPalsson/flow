@@ -79,6 +79,29 @@ ev_repo() {
 	printf '%s' "$d"
 }
 
+# ev_repo_pipeline_bash — a tmp_repo with one case tagged [pipeline,
+# needs-bash], matching the real pipeline-fix-bug/pipeline-flow-feature
+# case.yaml shape: `--tag pipeline` alone must still select it.
+ev_repo_pipeline_bash() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/plugins/flow/evals/pipeline-fix-bug"
+	printf 'tags: [pipeline, needs-bash]\n' >"$d/plugins/flow/evals/pipeline-fix-bug/case.yaml"
+	printf '%s' "$d"
+}
+
+# ev_fakebin_with_socat — ev_fakebin plus a no-op `socat` stub, so the child
+# argv is built as if this machine had socat (Slice 6 review: proving Bash
+# gets granted needs a machine where the socat gate would let needs-bash
+# cases through in the first place).
+ev_fakebin_with_socat() {
+	local d
+	d=$(ev_fakebin)
+	printf '#!/usr/bin/env bash\nexit 0\n' >"$d/socat"
+	chmod +x "$d/socat"
+	printf '%s' "$d"
+}
+
 t_eval_help_exits_0() {
 	local home
 	home=$(tmp_dir)
@@ -118,6 +141,34 @@ t_eval_dry_run_drops_needs_bash_tag_from_argv() {
 	assert_contains "$OUT" "--tag routing" "t_eval_dry_run_drops_needs_bash_tag_from_argv routing-kept"
 	assert_contains "$OUT" "--tag invariant" "t_eval_dry_run_drops_needs_bash_tag_from_argv invariant-kept"
 	assert_not_contains "$OUT" "--tag needs-bash" "t_eval_dry_run_drops_needs_bash_tag_from_argv needs-bash-dropped"
+}
+
+# t_eval_dry_run_grants_bash_for_case_selected_by_other_tag — Slice 6 review:
+# a case tagged [pipeline, needs-bash] must get the Bash tool when selected
+# via `--tag pipeline` alone, not only when the literal tag `needs-bash` is
+# itself in the user's --tag selection (evals/README.md's own documented
+# contract: "--allow-tools Write Edit (and Bash for needs-bash cases)").
+t_eval_dry_run_grants_bash_for_case_selected_by_other_tag() {
+	local proj home fakebin
+	proj=$(ev_repo_pipeline_bash)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin_with_socat)
+	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag pipeline
+	assert_rc 0 "t_eval_dry_run_grants_bash_for_case_selected_by_other_tag rc"
+	assert_contains "$OUT" "--allow-tools Write Edit Bash" "t_eval_dry_run_grants_bash_for_case_selected_by_other_tag bash-granted"
+}
+
+# t_eval_dry_run_no_bash_when_no_selected_case_needs_it — the flip side: a
+# selection whose cases never carry needs-bash must not grant Bash at all,
+# even when socat is present.
+t_eval_dry_run_no_bash_when_no_selected_case_needs_it() {
+	local proj home fakebin
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin_with_socat)
+	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag quality
+	assert_rc 0 "t_eval_dry_run_no_bash_when_no_selected_case_needs_it rc"
+	assert_not_contains "$OUT" "Bash" "t_eval_dry_run_no_bash_when_no_selected_case_needs_it no-bash"
 }
 
 t_eval_dry_run_config_override() {
