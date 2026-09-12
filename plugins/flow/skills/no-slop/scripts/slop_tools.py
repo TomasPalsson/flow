@@ -101,11 +101,11 @@ def run_jscpd(toplevel, base, files, added):
         if not os.path.exists(report_path):
             return findings
         with open(report_path) as f:
-            data = json.load(f)
-        for dup in data.get("duplicates", []):
+            report = json.load(f)
+        for dup in report.get("duplicates", []):
             for side, other in (("firstFile", "secondFile"), ("secondFile", "firstFile")):
-                info = dup.get(side) or {}
-                fpath, start, end = info.get("name"), info.get("start"), info.get("end")
+                clone_side = dup.get(side) or {}
+                fpath, start, end = clone_side.get("name"), clone_side.get("start"), clone_side.get("end")
                 if fpath in added and start is not None and end is not None \
                         and any(start <= ln <= end for ln in added[fpath]):
                     o = dup.get(other) or {}

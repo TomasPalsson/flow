@@ -358,8 +358,9 @@ def collect_stdlib_findings(root, head, added_by_file, hunks_by_file):
         else:
             findings.extend(js_catch_findings(path, added))
             findings.extend(js_generic_name_findings(path, added))
-        findings.extend(scan_added_lines(path, added, bool(TEST_FILE_RE.search(path))))
-        if path in hunks_by_file:
+        is_test_file = bool(TEST_FILE_RE.search(path))
+        findings.extend(scan_added_lines(path, added, is_test_file))
+        if is_test_file and path in hunks_by_file:
             findings.extend(hunk_test_weakening(path, hunks_by_file[path]))
     return findings, py_trees, existing_ns03
 

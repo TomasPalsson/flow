@@ -72,6 +72,22 @@ t_noslop_reports_generic_variable_and_class_names() {
 # NS-16 (name similarity) runs without external tools, as SKILL.md says:
 # the fixture's duplicated src/text_helpers.py::slugify must be reported
 # under --no-tools.
+# NS-13 is a test-files-only detector (rubric.md: "slop-check (test files
+# only)"). A non-test file with an assertion removed and none added back in
+# the same hunk (src/guard.py in the fixture) must not trip it, even though
+# the hunk-level shape matches the test-file case.
+t_noslop_ns13_only_in_test_files() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	test_ns13=$(printf '%s\n' "$OUT" | grep "tests/test_text.py" | grep -c "NS-13")
+	guard_ns13=$(printf '%s\n' "$OUT" | grep "src/guard.py" | grep -c "NS-13")
+	if [ "$test_ns13" -gt 0 ]; then _pass "NS-13 still fires on the test file"; else
+		_fail "NS-13 still fires on the test file" "no NS-13 line for tests/test_text.py in: $OUT"
+	fi
+	assert_eq "$guard_ns13" "0" "NS-13 does not fire on the non-test file src/guard.py"
+}
+
 t_noslop_reports_name_similarity_without_tools() {
 	d=$(tmp_dir)
 	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1

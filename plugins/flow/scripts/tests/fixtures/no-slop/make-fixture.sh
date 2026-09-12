@@ -38,6 +38,12 @@ def test_placeholder():
     assert True
 EOF
 
+cat >src/guard.py <<'EOF'
+def check(value):
+    assert value is not None
+    return value
+EOF
+
 git add -A
 git commit -q -m "base: clean slugify + formatDate"
 git tag base
@@ -120,6 +126,20 @@ def test_placeholder():
 def test_process_returns_value():
     # assert process("x") == "x"
     pass
+EOF
+
+# non-test-file assertion removal: NS-13 is a test-files-only detector
+# (see rubric.md), so this must NOT be reported even though the hunk-level
+# "assertion removed without replacement" shape matches. A second, unrelated
+# added function keeps this file's added-lines set non-empty so slop-check
+# doesn't skip it outright.
+cat >src/guard.py <<'EOF'
+def check(value):
+    return value
+
+
+def check_other(value):
+    return value
 EOF
 
 git add -A
