@@ -90,11 +90,23 @@ function gateWeakened(change) {
   return Object.keys(after).some((k) => k in before && before[k] !== after[k]);
 }
 
+// protectedFilesRemoved(toplevel, front) -> string[]. --test-files (K-F,
+// FR-008) names paths that must stay present for the loop's duration,
+// independent of the isTestPath heuristic countTestFiles relies on.
+function protectedFilesRemoved(toplevel, front) {
+  const paths = String(front.protected_files || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return paths.filter((p) => !fs.existsSync(path.join(toplevel, p)));
+}
+
 function tamperCheck(toplevel, front) {
   const findings = [];
   const initCount = toInt(front.test_files);
   const curCount = countTestFiles(toplevel);
   if (curCount < initCount) findings.push(`test files removed: ${initCount} → ${curCount}`);
+  for (const p of protectedFilesRemoved(toplevel, front)) findings.push(`protected file removed: ${p}`);
   const changes = changesSinceBase(toplevel, front.base);
   for (const [file, change] of Object.entries(changes)) {
     if (isTestPath(file) && change.added.some((l) => SKIP_RE.test(l))) findings.push(`skip/xfail added in ${file}`);

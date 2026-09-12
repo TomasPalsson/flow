@@ -9,8 +9,8 @@ const path = require('node:path');
 const CONTRACT_KEY_ORDER = [
   'version', 'slug', 'goal', 'verify', 'shape', 'status', 'stop_reason', 'session_id',
   'iteration', 'max_iterations', 'max_minutes', 'max_usd', 'stall_after', 'verify_timeout',
-  'permission_mode', 'model', 'max_turns', 'base', 'test_files', 'started_at', 'finished_at',
-  'cost_usd', 'finish_reported',
+  'permission_mode', 'model', 'max_turns', 'base', 'test_files', 'protected_files', 'started_at',
+  'finished_at', 'cost_usd', 'finish_reported',
 ];
 const QUOTED_KEYS = new Set(['verify', 'goal', 'prompt_file']);
 

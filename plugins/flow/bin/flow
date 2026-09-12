@@ -724,7 +724,8 @@ function doctorEvalReadyCheck(push) {
   }
   parts.push(`bwrap ${have('bwrap') ? 'ok' : 'missing'}`);
   parts.push(`socat ${have('socat') ? 'ok' : 'missing (needs-bash cases skipped)'}`);
-  const ledgerPath = path.join(process.cwd(), LEDGER_PATH);
+  const ledgerToplevel = gitToplevel(process.cwd()) || process.cwd();
+  const ledgerPath = path.join(ledgerToplevel, LEDGER_PATH);
   const ledgerRaw = safeRead(ledgerPath);
   const lastLine = ledgerRaw ? ledgerRaw.trim().split('\n').filter(Boolean).pop() : null;
   let lastEntry = null;

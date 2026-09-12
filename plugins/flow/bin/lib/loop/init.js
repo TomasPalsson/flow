@@ -99,10 +99,15 @@ function buildInitFront(toplevel, args, base) {
     model: args.model,
     max_turns: String(args.maxTurns),
     base,
+    // test_files stays the auto-detected count (tamper.js's "test files
+    // removed" check reads it as a number) regardless of --test-files, so
+    // naming explicit paths never disables that check for the whole session.
+    test_files: String(countTestFiles(toplevel)),
     // Slice 5 (--test-files): explicit tamper-protected paths (e.g.
-    // plugins/flow/evals/**, FR-008) win over the auto-detected count, so a
-    // caller can protect data dirs the isTestPath heuristic never matches.
-    test_files: args.testFiles.length ? args.testFiles.join(',') : String(countTestFiles(toplevel)),
+    // plugins/flow/evals/**, FR-008), checked in addition to test_files
+    // above so a caller can protect data dirs the isTestPath heuristic never
+    // matches, without weakening the auto-detected count check.
+    protected_files: args.testFiles.join(','),
     started_at: now,
     finished_at: '',
     cost_usd: '0',

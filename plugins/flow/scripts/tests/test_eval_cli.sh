@@ -98,6 +98,26 @@ t_eval_dry_run_prints_pinned_models() {
 	assert_contains "$OUT" "--judge-model claude-haiku-4-5" "t_eval_dry_run_prints_pinned_models judge-model"
 	assert_contains "$OUT" "--trust-plugin" "t_eval_dry_run_prints_pinned_models trust-plugin"
 	assert_contains "$OUT" "--allow-tools Write Edit" "t_eval_dry_run_prints_pinned_models allow-tools"
+	assert_contains "$OUT" "--tag quality" "t_eval_dry_run_prints_pinned_models tag-forwarded"
+	assert_not_contains "$OUT" "--tag routing" "t_eval_dry_run_prints_pinned_models tag-not-selected-absent"
+}
+
+# t_eval_dry_run_drops_needs_bash_tag_from_argv — proves the socat-missing
+# skip (FR-00x, code-design.md decision 5) actually narrows what gets
+# forwarded to `claude plugin eval`, not just what the printed notice claims.
+# Relies on the same "no socat on the test machine" assumption as the rest
+# of this file's real-PATH (`ev_cli_in`) tests.
+t_eval_dry_run_drops_needs_bash_tag_from_argv() {
+	local proj home
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run
+	assert_rc 0 "t_eval_dry_run_drops_needs_bash_tag_from_argv rc"
+	assert_contains "$OUT" "socat" "t_eval_dry_run_drops_needs_bash_tag_from_argv notice"
+	assert_contains "$OUT" "--tag quality" "t_eval_dry_run_drops_needs_bash_tag_from_argv quality-kept"
+	assert_contains "$OUT" "--tag routing" "t_eval_dry_run_drops_needs_bash_tag_from_argv routing-kept"
+	assert_contains "$OUT" "--tag invariant" "t_eval_dry_run_drops_needs_bash_tag_from_argv invariant-kept"
+	assert_not_contains "$OUT" "--tag needs-bash" "t_eval_dry_run_drops_needs_bash_tag_from_argv needs-bash-dropped"
 }
 
 t_eval_dry_run_config_override() {
@@ -150,6 +170,27 @@ t_eval_ok_run_appends_ledger_and_summary() {
 	assert_contains "$(cat "$ledger")" '"routing"' "t_eval_ok_run_appends_ledger_and_summary ledger-routing-tag"
 }
 
+# t_eval_single_tag_excludes_other_tag_from_rollup — ev_repo's fixture data
+# has both a quality and a routing case; requesting only --tag quality must
+# leave routing out of both the summary and the ledger line, not just merge
+# every tag the fixture happens to have data for (the rollup half of the
+# --tag contract, distinct from the argv-forwarding half covered by the
+# --dry-run tests above).
+t_eval_single_tag_excludes_other_tag_from_rollup() {
+	local proj home fakebin ledger
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-ok CLAUDE_STUB_EXIT=0 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	assert_rc 0 "t_eval_single_tag_excludes_other_tag_from_rollup rc"
+	assert_contains "$OUT" "quality:" "t_eval_single_tag_excludes_other_tag_from_rollup quality-row-present"
+	assert_not_contains "$OUT" "routing:" "t_eval_single_tag_excludes_other_tag_from_rollup routing-row-absent"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"quality"' "t_eval_single_tag_excludes_other_tag_from_rollup ledger-quality-tag"
+	assert_not_contains "$(cat "$ledger")" '"routing"' "t_eval_single_tag_excludes_other_tag_from_rollup ledger-routing-tag-absent"
+}
+
 t_eval_partial_run_marks_ledger_and_exits_2() {
 	local proj home fakebin ledger
 	proj=$(ev_repo)
@@ -193,6 +234,23 @@ t_eval_doctor_reports_eval_ready_row() {
 	assert_contains "$OUT" "eval-ready" "t_eval_doctor_reports_eval_ready_row row-present"
 }
 
+# t_eval_doctor_ledger_age_from_subdir — the eval-ready row must find the
+# ledger `flow eval` itself wrote (resolved against the git toplevel), not
+# just process.cwd(); running `flow doctor` from a subdirectory of the repo
+# must still report the real ledger age, not "no ledger yet" (FR-009).
+t_eval_doctor_ledger_age_from_subdir() {
+	local proj home sub
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/plugins/flow/evals" "$proj/sub/deeper"
+	printf '{"ts":"2020-01-01T00:00:00.000Z","sha":"abc1234","model":"m","judgeModel":"j","tags":{},"meanDelta":0,"costUsd":0,"partial":false,"reason":""}\n' \
+		>"$proj/plugins/flow/evals/ledger.jsonl"
+	sub="$proj/sub/deeper"
+	ev_cli_in "$sub" "$home" doctor
+	assert_contains "$OUT" "ledger age" "t_eval_doctor_ledger_age_from_subdir ledger-age-present"
+	assert_not_contains "$OUT" "no ledger yet" "t_eval_doctor_ledger_age_from_subdir ledger-not-missing"
+}
+
 t_eval_loop_init_test_files_flag_writes_paths() {
 	local proj home
 	proj=$(tmp_repo)
@@ -202,4 +260,82 @@ t_eval_loop_init_test_files_flag_writes_paths() {
 	assert_rc 0 "t_eval_loop_init_test_files_flag_writes_paths rc"
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "plugins/flow/evals/a" "t_eval_loop_init_test_files_flag_writes_paths path-a"
 	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "plugins/flow/evals/b" "t_eval_loop_init_test_files_flag_writes_paths path-b"
+}
+
+# ev_repo_with_test_file — a tmp_repo with a tracked test file (so the
+# auto-detected test_files count is > 0 at init), matching test_loop.sh's
+# lp_repo helper.
+ev_repo_with_test_file() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/tests"
+	printf 'echo test\n' >"$d/tests/foo_test.sh"
+	(cd "$d" && git add tests/foo_test.sh && git commit -q -m "add test file") >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+# t_eval_test_files_flag_keeps_auto_detected_tamper_check — regression:
+# --test-files must add tamper protection for the named paths, not replace
+# test_files' numeric count with a path string (which would silently
+# disable the "test files removed" check for the whole loop session, since
+# toInt() on a path string is 0 and curCount < 0 never fires).
+t_eval_test_files_flag_keeps_auto_detected_tamper_check() {
+	local proj home
+	proj=$(ev_repo_with_test_file)
+	home=$(tmp_dir)
+	mkdir -p "$proj/plugins/flow/evals/a"
+	printf 'x\n' >"$proj/plugins/flow/evals/a/case.yaml"
+	(cd "$proj" && git add -A && git commit -q -m "add protected dir") >/dev/null 2>&1
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt" \
+		--test-files "plugins/flow/evals/a/case.yaml"
+	assert_rc 0 "t_eval_test_files_flag_keeps_auto_detected_tamper_check init-rc"
+	: >"$proj/done.txt"
+
+	(cd "$proj" && rm tests/foo_test.sh && git add -A) >/dev/null 2>&1
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_eval_test_files_flag_keeps_auto_detected_tamper_check check-rc"
+	assert_contains "$OUT" "test files removed" "t_eval_test_files_flag_keeps_auto_detected_tamper_check finding"
+}
+
+# t_eval_test_files_flag_protects_named_path — the named path itself is
+# tamper-protected: removing it (even though it never matches the
+# isTestPath heuristic) must flag the loop as suspect.
+t_eval_test_files_flag_protects_named_path() {
+	local proj home
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/plugins/flow/evals/a"
+	printf 'x\n' >"$proj/plugins/flow/evals/a/case.yaml"
+	(cd "$proj" && git add -A && git commit -q -m "add protected dir") >/dev/null 2>&1
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt" \
+		--test-files "plugins/flow/evals/a/case.yaml"
+	assert_rc 0 "t_eval_test_files_flag_protects_named_path init-rc"
+	: >"$proj/done.txt"
+
+	(cd "$proj" && rm plugins/flow/evals/a/case.yaml && git add -A) >/dev/null 2>&1
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_eval_test_files_flag_protects_named_path check-rc"
+	assert_contains "$OUT" "protected file removed" "t_eval_test_files_flag_protects_named_path finding"
+	assert_contains "$OUT" "plugins/flow/evals/a/case.yaml" "t_eval_test_files_flag_protects_named_path path"
+}
+
+# t_eval_partial_exit_when_child_exits_0_but_data_partial — regression: the
+# child `claude plugin eval` can flag partial/cost_ceiling in its --json
+# output while itself exiting 0. flow eval's own exit code must still be 2
+# (partial), not 0, since the summary and ledger already say partial.
+t_eval_partial_exit_when_child_exits_0_but_data_partial() {
+	local proj home fakebin ledger
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-partial CLAUDE_STUB_EXIT=0 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	assert_rc 2 "t_eval_partial_exit_when_child_exits_0_but_data_partial rc"
+	assert_contains "$OUT" "cost_ceiling" "t_eval_partial_exit_when_child_exits_0_but_data_partial reason"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"partial":true' "t_eval_partial_exit_when_child_exits_0_but_data_partial ledger-partial-true"
 }

@@ -197,7 +197,7 @@ function appendLedger(toplevel, line) {
   fs.appendFileSync(p, `${line}\n`);
 }
 
-function buildChildArgv(model, judgeModel, args, jsonPath) {
+function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags) {
   const argv = [
     'plugin', 'eval', 'plugins/flow',
     '--trust-plugin', '--no-publish', '--scaffold',
@@ -209,6 +209,7 @@ function buildChildArgv(model, judgeModel, args, jsonPath) {
   ];
   if (args.threshold !== null) argv.push('--threshold', String(args.threshold));
   if (args.ablation !== null) argv.push('--ablation', String(args.ablation));
+  for (const tag of selectedTags) argv.push('--tag', tag);
   argv.push('--json', jsonPath);
   return argv;
 }
@@ -260,7 +261,7 @@ function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, 
     })
   );
   printSummary(rollup, meanDelta, costUsd, partial, reason);
-  return mappedExit;
+  return partial ? EXIT.partial : mappedExit;
 }
 
 function run(argv, cwd, env) {
@@ -293,7 +294,7 @@ function run(argv, cwd, env) {
   const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
   const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;
   const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}.json`);
-  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath);
+  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath, selectedTags);
 
   if (args.dryRun) {
     stdout.write(`claude ${childArgv.join(' ')}\n`);
