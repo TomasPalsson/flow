@@ -7,3 +7,5 @@ plugins/harness
 .claude/worktrees/
 .claude/*.local.md
 **/evals/results/
+.claude/loop/*
+!.claude/loop/LEARNINGS.md

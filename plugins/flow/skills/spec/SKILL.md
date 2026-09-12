@@ -35,9 +35,10 @@ Three facts, counted before anything is written:
 
 | Route | Predicate | Artifacts | Execution |
 |---|---|---|---|
-| `bounded` | 0 gaps, 0 irreversibles, ≤2 files, the flow already exists here | **nothing under `.specs/NNN-slug/`** — the plan is three lines in chat, and one `LEDGER.md` line after it lands | inline, main session |
-| `oneshot` | 0 gaps, 0 irreversibles, ≤5 tasks | `TASKS.md` only | inline per task |
+| `bounded` | 0 gaps, 0 irreversibles, exactly 1 task, ≤2 files, the flow already exists here | **nothing under `.specs/NNN-slug/`** — the plan is three lines in chat, and one `LEDGER.md` line after it lands | inline, main session |
+| `oneshot` | 0 gaps, 0 irreversibles, 2-5 tasks | `TASKS.md` only | inline per task |
 | `dispatch` | anything else | `spec.md` + `TASKS.md` (+ `design.md` on the seam trigger) | one fresh subagent per task |
+
 
 **State the route; do not ask it.** One line, facts first:
 
