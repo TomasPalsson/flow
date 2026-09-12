@@ -52,7 +52,7 @@ Commit `feat(<scope>): implement <phase>`. Update state.
 ### REFACTOR
 Record the exact pass count from GREEN. Apply the `clean-code` skill to everything written in this phase's RED and GREEN: intention-revealing names, one job per function, self-documenting code over comments, Law of Demeter, no rigidity or needless complexity. Constraints: no new behavior, no test changes, **no public API surface change**. Run `$TEST_CMD` after each change, not only at the end.
 **HARD GATE**: pass count drops at any point → REVERT that change immediately. Never fix a failing test during REFACTOR — a drop means the refactor changed behavior.
-Run `scripts/slop-check --base <base>` and either fix each finding or justify it in one line in the report.
+Run `${CLAUDE_PLUGIN_ROOT}/skills/no-slop/scripts/slop-check --base <base>` and either fix each finding or justify it in one line in the report.
 Commit `refactor(<scope>): clean <phase> implementation`. Update state.
 
 ### Inline Gates
