@@ -190,18 +190,101 @@ if (depsMap === undefined || filesMap === undefined) {
 depsMap = depsMap || {}
 filesMap = filesMap || {}
 
-// runSlice carries one slice through its full chain (brief -> implement ->
-// package -> review -> fix ladder) inside a single thunk, so it can be handed
-// to parallel() alongside every other slice in its wave without any of them
-// blocking on each other.
-async function runSlice(id) {
+// getBrief runs slice-brief for one slice and returns its output path (or
+// null when the brief agent produced nothing usable).
+async function getBrief(id) {
   let briefCmd = scriptsDir + '/slice-brief ' + plan + ' ' + id
   if (design) { briefCmd += ' --design ' + design }
   const briefRes = await agent(
     'Run this exact command and return its stdout output path: ' + briefCmd,
     { model: 'haiku', label: 'brief:' + id, phase: 'Brief', schema: BRIEF_SCHEMA }
   )
-  const briefPath = briefRes ? briefRes.briefPath : null
+  return briefRes ? briefRes.briefPath : null
+}
+
+// initialReview builds the first diff for one slice and runs the three
+// adversary lenses (correctness, gaming, slop) over it in parallel.
+async function initialReview(id, briefPath, reviewCmd) {
+  const diffRes = await agent(
+    'Run this exact command and return its output path: ' + reviewCmd,
+    { model: 'haiku', label: 'review:' + id, phase: 'Review', schema: DIFF_SCHEMA }
+  )
+  const diffPath = diffRes ? diffRes.diffPath : null
+  let findings = []
+  if (diffPath) {
+    const lenses = await parallel([
+      function () { return agent(adversaryPrompt('correctness', briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('gaming', briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('slop', briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
+    ])
+    findings = lenses.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
+  }
+  return { diffPath: diffPath, findings: findings }
+}
+
+// runFixRound applies one fix (fresh opus implementer from round 4 on),
+// re-reviews the result, and runs the three adversary lenses again.
+async function runFixRound(ctx, current, round) {
+  const stronger = round >= 4
+  const prompt = 'Slice ' + ctx.id + '. Brief: ' + ctx.briefPath + '. Diff: ' + ctx.diffPath +
+    '. Fix these adversarial findings: ' + JSON.stringify(current) +
+    '. Run the test command: ' + testCmd + '. Return the updated SLICE_RESULT.'
+  let fixed
+  if (stronger) {
+    fixed = await agent(prompt, { agentType: 'developer', model: 'opus', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: SLICE_RESULT })
+  } else {
+    fixed = await agent(prompt, { agentType: 'developer', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: SLICE_RESULT })
+  }
+  if (!fixed) { return null }
+  ctx = Object.assign({}, ctx, fixed, { briefPath: ctx.briefPath })
+  log('fix round ' + round + ' for slice ' + ctx.id + (stronger ? ' (fresh implementer, opus)' : ' (same implementer)'))
+
+  const reReviewCmd = scriptsDir + '/review-package ' + base + ' HEAD --out .claude/review/slice-' + ctx.id + '.diff'
+  const reReview = await agent(
+    'Run this exact command and return its output path: ' + reReviewCmd,
+    { model: 'haiku', label: 'review:' + ctx.id + ':r' + round, phase: 'Review', schema: DIFF_SCHEMA }
+  )
+  const diffPath = reReview ? reReview.diffPath : ctx.diffPath
+  ctx = Object.assign({}, ctx, { diffPath: diffPath })
+
+  const relook = await parallel([
+    function () { return agent(adversaryPrompt('correctness', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
+    function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
+    function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
+  ])
+  const findings = relook.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
+  return { ctx: ctx, findings: findings }
+}
+
+// runFixLadder drives up to 5 fix rounds against blocking findings, re-
+// reviewing after each fix, and parks whatever is still blocking once the
+// ladder is exhausted.
+async function runFixLadder(ctx, findings) {
+  const localParked = []
+  let current = findings.filter(isBlocking)
+
+  for (let round = 1; round <= 5 && current.length > 0; round++) {
+    const outcome = await runFixRound(ctx, current, round)
+    if (!outcome) { break }
+    ctx = outcome.ctx
+    current = outcome.findings.filter(isBlocking)
+  }
+
+  for (const finding of current) {
+    const ruling = { slice: ctx.id, finding: finding, ruling: 'parked', why: 'fix ladder exhausted after 5 rounds without resolving this finding' }
+    localParked.push(ruling)
+    log('parked: slice ' + ctx.id + ' - ' + finding.predicate)
+  }
+
+  return { ctx: ctx, parked: localParked }
+}
+
+// runSlice carries one slice through its full chain (brief -> implement ->
+// package -> review -> fix ladder) inside a single thunk, so it can be handed
+// to parallel() alongside every other slice in its wave without any of them
+// blocking on each other.
+async function runSlice(id) {
+  const briefPath = await getBrief(id)
   if (!briefPath) {
     return {
       result: { id: id, redExit: null, greenExit: null, refactorPassCount: 0, commits: [], files: [], notes: 'brief failed' },
@@ -223,61 +306,11 @@ async function runSlice(id) {
   let ctx = Object.assign({}, implRes, { briefPath: briefPath })
 
   const reviewCmd = scriptsDir + '/review-package ' + base + ' HEAD --out .claude/review/slice-' + id + '.diff'
-  const diffRes = await agent(
-    'Run this exact command and return its output path: ' + reviewCmd,
-    { model: 'haiku', label: 'review:' + id, phase: 'Review', schema: DIFF_SCHEMA }
-  )
-  ctx = Object.assign({}, ctx, { diffPath: diffRes ? diffRes.diffPath : null })
+  const initial = await initialReview(id, ctx.briefPath, reviewCmd)
+  ctx = Object.assign({}, ctx, { diffPath: initial.diffPath })
 
-  let findings = []
-  if (ctx.diffPath) {
-    const lenses = await parallel([
-      function () { return agent(adversaryPrompt('correctness', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('gaming', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('slop', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
-    ])
-    findings = lenses.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
-  }
-
-  const localParked = []
-  let current = findings.filter(isBlocking)
-
-  for (let round = 1; round <= 5 && current.length > 0; round++) {
-    const stronger = round >= 4
-    const prompt = 'Slice ' + ctx.id + '. Brief: ' + ctx.briefPath + '. Diff: ' + ctx.diffPath +
-      '. Fix these adversarial findings: ' + JSON.stringify(current) +
-      '. Run the test command: ' + testCmd + '. Return the updated SLICE_RESULT.'
-    let fixed
-    if (stronger) {
-      fixed = await agent(prompt, { agentType: 'developer', model: 'opus', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: SLICE_RESULT })
-    } else {
-      fixed = await agent(prompt, { agentType: 'developer', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: SLICE_RESULT })
-    }
-    if (!fixed) { break }
-    ctx = Object.assign({}, ctx, fixed, { briefPath: ctx.briefPath })
-    log('fix round ' + round + ' for slice ' + ctx.id + (stronger ? ' (fresh implementer, opus)' : ' (same implementer)'))
-
-    const reReviewCmd = scriptsDir + '/review-package ' + base + ' HEAD --out .claude/review/slice-' + ctx.id + '.diff'
-    const reReview = await agent(
-      'Run this exact command and return its output path: ' + reReviewCmd,
-      { model: 'haiku', label: 'review:' + ctx.id + ':r' + round, phase: 'Review', schema: DIFF_SCHEMA }
-    )
-    const diffPath = reReview ? reReview.diffPath : ctx.diffPath
-    ctx = Object.assign({}, ctx, { diffPath: diffPath })
-
-    const relook = await parallel([
-      function () { return agent(adversaryPrompt('correctness', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-    ])
-    current = relook.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, []).filter(isBlocking)
-  }
-
-  for (const finding of current) {
-    const ruling = { slice: ctx.id, finding: finding, ruling: 'parked', why: 'fix ladder exhausted after 5 rounds without resolving this finding' }
-    localParked.push(ruling)
-    log('parked: slice ' + ctx.id + ' - ' + finding.predicate)
-  }
+  const ladder = await runFixLadder(ctx, initial.findings)
+  ctx = ladder.ctx
 
   return {
     result: {
@@ -289,7 +322,7 @@ async function runSlice(id) {
       files: ctx.files || [],
       notes: ctx.notes || '',
     },
-    parked: localParked,
+    parked: ladder.parked,
   }
 }
 
