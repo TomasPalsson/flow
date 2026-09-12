@@ -39,7 +39,7 @@ function printHelp() {
       '            [--ablation <arm>] [--history] [--dry-run]',
       '',
       'Options:',
-      '  --tag <tag>          one of quality, routing, invariant, needs-bash (repeatable;',
+      '  --tag <tag>          one of ' + TAGS.join(', ') + ' (repeatable;',
       '                       default: all tags)',
       '  --runs N             repetitions per case (default 3)',
       '  --threshold N        minimum per-case score to pass (forwarded to the CLI)',
