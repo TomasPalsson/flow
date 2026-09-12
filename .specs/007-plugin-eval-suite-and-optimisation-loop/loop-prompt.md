@@ -10,14 +10,14 @@ You are one fresh iteration of an unattended loop. The verifier is `flow eval --
 
 ## Pick one cause, fix it at the root
 Choose the single failed grader with the highest (cases affected × severity) and trace it to the skill text that should have prevented it. Typical roots:
-- a skill did not fire on natural phrasing → its `description` in `plugins/flow/skills/<name>/SKILL.md` (add the phrasing the case used, keep under 1024 chars, keep the "Do NOT use" clause);
-- the pipeline wrote code that re-implemented a helper → `plugins/flow/skills/no-slop/references/developer-block.md` (the search step), `plugins/flow/scripts/slice-brief` (is the block reaching the brief?), `plugins/flow/workflows/build-slices.js` implement prompt, `plugins/flow/skills/feature/execution-prompt.md` GREEN;
-- prep or spec asked several questions, picked silently, or wrote artifacts before asking → `plugins/flow/skills/prep/SKILL.md`, `plugins/flow/skills/flow-spec/SKILL.md`, `plugins/flow/skills/flow/steps/01-spec.md`;
-- a spec carried implementation leaks or invented requirements → `plugins/flow/skills/flow-spec/references/spec-template.md` guidance lines, `skills/flow/planning.md`;
-- a build skipped Red or weakened a test → `plugins/flow/skills/feature/execution-prompt.md`, `plugins/flow/skills/flow/steps/04-build.md`.
+- a skill did not fire on natural phrasing → its `description` in `plugins/flow/skills/<name>/SKILL.md` (add the phrasing the case used, keep under 1024 chars, keep the "Not for" clause); v2 hub skills are `spec`, `next`, `issue`, `fix`, `prep`, `loop`, `qa`, `audit`, `scrutinize-idea`;
+- the pipeline wrote code that re-implemented a helper → `plugins/flow/skills/no-slop/references/developer-block.md` (the search step), `plugins/flow/scripts/task-brief` (is the block reaching the brief?), `plugins/flow/workflows/build-slices.js` implement prompt, `plugins/flow/skills/next/execution-prompt.md` GREEN;
+- prep or spec asked several questions, picked silently, wrote artifacts before the one batched offer, or stopped without stating its route and positions → `plugins/flow/skills/prep/SKILL.md`, `plugins/flow/skills/spec/SKILL.md`;
+- a spec carried implementation leaks or invented requirements → `plugins/flow/skills/spec/SKILL.md` and its references;
+- a build skipped Red or weakened a test, or `/flow:next` did not build → `plugins/flow/skills/next/execution-prompt.md`, `plugins/flow/skills/next/SKILL.md`.
 
 ## Rules
-- Edit ONLY files under `plugins/flow/skills/`, `plugins/flow/scripts/slice-brief`, `plugins/flow/workflows/`. Never touch `plugins/flow/evals/` (tamper-protected), `plugins/flow/bin/`, or tests.
+- Edit ONLY files under `plugins/flow/skills/`, `plugins/flow/scripts/task-brief`, `plugins/flow/workflows/`. Never touch `plugins/flow/evals/` (tamper-protected), `plugins/flow/bin/`, or tests.
 - One root cause per iteration. A change must be one paragraph or one description edit; if you cannot state in one sentence which grader it will flip, do not make it.
 - Structural constraints over adjectives: numbers, formats, "exactly one", never "be concise".
 - Keep every skill's `description` under 1024 characters and every SKILL.md under 300 lines.
