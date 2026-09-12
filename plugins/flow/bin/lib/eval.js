@@ -45,6 +45,7 @@ function printHelp() {
       '  --threshold N        minimum per-case score to pass (forwarded to the CLI)',
       '  --max-cost-usd N     cost ceiling before the run goes partial (default 25)',
       '  --ablation <arm>     forwarded to the CLI as-is',
+      '  -j, --concurrency N  parallel runs, 1..8 (forwarded to the CLI as --concurrency)',
       '  --history            print the last 10 ledger lines as a table, then exit',
       '  --dry-run            print the `claude plugin eval` argv and exit, without spawning',
       '',
@@ -161,7 +162,7 @@ function tagRollup(toplevel, cases, selectedTags) {
 }
 
 function parseArgs(argv) {
-  const out = { tags: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, history: false, dryRun: false };
+  const out = { tags: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, concurrency: null, history: false, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tag') out.tags.push(argv[++i]);
@@ -169,6 +170,7 @@ function parseArgs(argv) {
     else if (a === '--threshold') out.threshold = argv[++i];
     else if (a === '--max-cost-usd') out.maxCostUsd = argv[++i];
     else if (a === '--ablation') out.ablation = argv[++i];
+    else if (a === '-j' || a === '--concurrency') out.concurrency = argv[++i];
     else if (a === '--history') out.history = true;
     else if (a === '--dry-run') out.dryRun = true;
   }
@@ -231,6 +233,7 @@ function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBa
   ];
   if (args.threshold !== null) argv.push('--threshold', String(args.threshold));
   if (args.ablation !== null) argv.push('--ablation', String(args.ablation));
+  if (args.concurrency !== null) argv.push('--concurrency', String(args.concurrency));
   for (const tag of selectedTags) argv.push('--tag', tag);
   argv.push('--json', jsonPath);
   return argv;
@@ -293,6 +296,13 @@ function run(argv, cwd, env) {
     return EXIT.ok;
   }
   const args = parseArgs(argv);
+  if (args.concurrency !== null) {
+    const n = Number(args.concurrency);
+    if (!Number.isInteger(n) || n < 1 || n > 8) {
+      stderr.write(`flow eval: --concurrency must be an integer between 1 and 8 (got ${args.concurrency})\n`);
+      return EXIT.fail;
+    }
+  }
   const toplevel = gitToplevel(cwd, env);
   if (!toplevel) {
     stderr.write('flow eval: not a git repository\n');

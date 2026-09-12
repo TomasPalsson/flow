@@ -171,6 +171,30 @@ t_eval_dry_run_no_bash_when_no_selected_case_needs_it() {
 	assert_not_contains "$OUT" "Bash" "t_eval_dry_run_no_bash_when_no_selected_case_needs_it no-bash"
 }
 
+# t_eval_dry_run_concurrency_forwarded — -j N is a shorthand for
+# --concurrency N, and both forward `--concurrency N` (not `-j N`) to the
+# child CLI.
+t_eval_dry_run_concurrency_forwarded() {
+	local proj home
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality -j 4
+	assert_rc 0 "t_eval_dry_run_concurrency_forwarded rc"
+	assert_contains "$OUT" "--concurrency 4" "t_eval_dry_run_concurrency_forwarded forwarded"
+}
+
+# t_eval_concurrency_out_of_range_refuses_before_spawning — the CLI accepts
+# 1..8; anything else must be rejected with exit 1 and no argv printed
+# (--dry-run would otherwise still print it), before any spawn is attempted.
+t_eval_concurrency_out_of_range_refuses_before_spawning() {
+	local proj home
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality -j 9
+	assert_rc 1 "t_eval_concurrency_out_of_range_refuses_before_spawning rc"
+	assert_not_contains "$OUT" "plugin eval plugins/flow" "t_eval_concurrency_out_of_range_refuses_before_spawning no-argv-printed"
+}
+
 t_eval_dry_run_config_override() {
 	local proj home
 	proj=$(tmp_repo)
