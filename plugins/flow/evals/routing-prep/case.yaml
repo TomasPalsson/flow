@@ -10,12 +10,9 @@ execution:
   max_turns: 8
   allowed_tools: [Read, Glob, Grep, Skill]
 graders:
-  - name: fires-prep
-    type: tool_used
-    tool: Skill
-    input_match: "flow:prep\\b"
-    min: 1
-    arm: with-only
+  - name: prep-interview-starts
+    type: llm
+    criteria: "PASS if the response behaves as a prep interview: it asks exactly one question about the idea, states its own recommended answer with a confidence word, and asks the user to confirm or correct; it does not write a spec, a plan, or code. FAIL otherwise."
   - name: no-other-hub-skill
     type: tool_used
     tool: Skill
