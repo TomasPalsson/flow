@@ -17,6 +17,7 @@
 - Optional: description-triggering optimisation for `vary` via skill-creator `run_loop.py` if available
 
 ## Done
+- 2026-09-12: no-slop slop-check run on this branch vs `origin/main` (`slop-check --base origin/main --no-tools`): the NS-03 in `slop_tools.py` and the duplicated `resolveOnPath` (driver.js vs loop/util.js) are fixed; the remaining hits are advisory NS-16 spelling matches in `bin/lib/eval.js` (`printHelp`, `parseArgs`, `gitToplevel`, `run`) — left to the eval slice that owns that file, not silenced here
 - 2026-09-07: loop engineering — research 12 (10-angle sweep + 2 source-level dives, 40 claims confirmed), spec 006, `flow loop` CLI (`bin/lib/loop/`, 7 subcommands, K-A..K-L), `loop-gate.sh` Stop hook, `/flow:loop` skill (judge 110/120 A), fix skill off ralph-loop, docs; two headless probes ($0.79 and $0.80, one iteration each) — 130b2f2 and earlier
 - 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); plugins/design/skills/vary — 617990d
 - 2026-09-05: fix(tutorial) --sandbox path resolution — 7580745

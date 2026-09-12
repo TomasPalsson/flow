@@ -9,20 +9,7 @@ const { readContract, writeContract } = require('./contract.js');
 const { tick } = require('./tick.js');
 const { appendLog } = require('./log.js');
 const { cmdStatus } = require('./status.js');
-const { toInt, toFloat, headSha, gitDirty, fmtCost } = require('./util.js');
-
-function resolveOnPath(name, env) {
-  const pathVar = (env && env.PATH) || '';
-  for (const dir of pathVar.split(path.delimiter)) {
-    if (!dir) continue;
-    const p = path.join(dir, name);
-    try {
-      fs.accessSync(p, fs.constants.X_OK);
-      return p;
-    } catch { /* keep looking */ }
-  }
-  return null;
-}
+const { toInt, toFloat, headSha, gitDirty, fmtCost, resolveOnPath } = require('./util.js');
 
 function parseRunArgs(argv) {
   const out = {

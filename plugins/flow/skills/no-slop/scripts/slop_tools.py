@@ -1,9 +1,10 @@
 """Optional external-tool adapters for slop-check: ruff, tsc, jscpd.
 
-Each run_<tool>(toplevel, base, files, added) never raises and returns an
-empty list of findings if the tool binary is missing, times out, or its
-output can't be parsed. Imported lazily by slop-check only when tool
-checks are enabled (i.e. --no-tools was not passed).
+Each run_<tool>(toplevel, base, files, added) returns an empty list of
+findings when the tool binary is missing, times out, or emits output that
+can't be parsed; anything else is left to raise. Imported lazily by
+slop-check only when tool checks are enabled (i.e. --no-tools was not
+passed).
 """
 import json
 import os
@@ -112,8 +113,8 @@ def run_jscpd(toplevel, base, files, added):
                                       f"new clone: {fpath}:{start}-{end} ~ "
                                       f"{o.get('name')}:{o.get('start')}-{o.get('end')}", "jscpd"))
                     break
-    except Exception:
-        pass
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return findings  # tool missing, timed out, or emitted an unreadable report
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
     return findings

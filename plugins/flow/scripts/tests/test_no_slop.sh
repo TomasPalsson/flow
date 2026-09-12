@@ -54,6 +54,18 @@ t_noslop_reports_planted_findings() {
 	done
 }
 
+# NS-16 (name similarity) runs without external tools, as SKILL.md says:
+# the fixture's duplicated src/text_helpers.py::slugify must be reported
+# under --no-tools.
+t_noslop_reports_name_similarity_without_tools() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "slop-check exits 0 with a name-similarity finding"
+	assert_contains "$OUT" "NS-16" "slop-check reports NS-16 under --no-tools"
+	assert_contains "$OUT" "src/text_helpers.py" "NS-16 names the duplicated helper's file"
+}
+
 # ---------------------------------------------------------------------------
 # B3 — advisory by default; --strict turns findings into a non-zero exit.
 # ---------------------------------------------------------------------------

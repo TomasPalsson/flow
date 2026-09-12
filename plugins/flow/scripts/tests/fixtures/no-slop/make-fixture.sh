@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # make-fixture.sh <dir> — builds a git repo for no-slop's slop-check tests:
 # a "base" tag with clean src/text.py::slugify and src/util.ts::formatDate,
-# then a HEAD commit that plants NS-03, 04, 05, 06, 08, 09, 10, 13, 15 for
-# slop-check to find (see plugins/flow/skills/no-slop/references/rubric.md).
+# then a HEAD commit that plants NS-03, 04, 05, 06, 08, 09, 10, 13, 15, 16
+# for slop-check to find (see plugins/flow/skills/no-slop/references/rubric.md).
 set -eu
 
 dir=${1:?"usage: make-fixture.sh <dir>"}
@@ -75,6 +75,13 @@ def debug_dump(payload):
 def cast_value(value):
     result = value  # type: ignore
     return result
+EOF
+
+# NS-16: a second copy of an existing helper under a new path, the
+# duplicated-helper case the rubric's NS-20 lens exists to catch.
+cat >src/text_helpers.py <<'EOF'
+def slugify(value):
+    return value.strip().lower().replace(" ", "-")
 EOF
 
 cat >>src/util.ts <<'EOF'

@@ -42,6 +42,10 @@ JS_FUNC_NAME_RE = re.compile(
     r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|"
     r"\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(|"
     r"^\s*([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{")
+# The third alternative above also matches `if (...) {`, `for (...) {` and
+# friends; those are control flow, not function names.
+JS_KEYWORDS = {"if", "for", "while", "switch", "catch", "do", "else", "return",
+               "function", "with", "await", "typeof", "delete"}
 JS_CATCH_RE = re.compile(r"catch\s*(\([^\)]*\))?\s*\{\s*(//[^\r\n]*)?\s*\}")
 TYPE_ESCAPE_RE = re.compile(r"as any|as unknown as|@ts-ignore|@ts-expect-error")
 PY_TYPE_ESCAPE_RE = re.compile(r"# type: ignore|typing\.cast\(Any")
@@ -246,13 +250,21 @@ def hunk_test_weakening(path, hunks):
                 "assertion removed without replacement in same hunk")
     return findings
 
+def js_func_name(text):
+    """The function name a JS/TS line defines, or None (keywords excluded)."""
+    m = JS_FUNC_NAME_RE.search(text)
+    if not m:
+        return None
+    name = next(g for g in m.groups() if g)
+    return None if name in JS_KEYWORDS else name
+
 def js_generic_and_dup_names(path, added):
     """(lineno, name) for new JS/TS defs; feeds NS-06 and NS-16."""
     out = []
     for lineno, text in added.items():
-        m = JS_FUNC_NAME_RE.search(text)
-        if m:
-            out.append((lineno, next(g for g in m.groups() if g)))
+        name = js_func_name(text)
+        if name:
+            out.append((lineno, name))
     return out
 
 def js_generic_name_findings(path, added):
@@ -280,23 +292,27 @@ def all_repo_function_names(root, head):
                          if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
         else:
             for line in src.splitlines():
-                m = JS_FUNC_NAME_RE.search(line)
-                if m:
-                    names.append((next(g for g in m.groups() if g), path))
+                name = js_func_name(line)
+                if name:
+                    names.append((name, path))
     return names
 
 def name_similarity_findings(path, new_names, existing_names):
     """NS-16: spelling-similarity only — never a semantic-reinvention detector."""
     findings = []
     for lineno, name in new_names:
+        best = None
         for other, opath in existing_names:
             if other == name and opath == path:
                 continue
             ratio = difflib.SequenceMatcher(None, name, other).ratio()
-            if ratio >= 0.85:
-                add(findings, path, lineno, "NS-16",
-                    f"'{name}' is {ratio:.0%} similar to existing '{other}' ({opath}) "
-                    "— spelling similarity only")
+            if ratio >= 0.85 and (best is None or ratio > best[0]):
+                best = (ratio, other, opath)
+        if best:
+            ratio, other, opath = best
+            add(findings, path, lineno, "NS-16",
+                f"'{name}' is {ratio:.0%} similar to existing '{other}' ({opath}) "
+                "— spelling similarity only")
     return findings
 
 def collect_stdlib_findings(root, head, added_by_file, hunks_by_file):
@@ -390,8 +406,8 @@ def main():
 
     findings, py_trees, existing_ns03 = collect_stdlib_findings(
         root, args.head, added_by_file, hunks_by_file)
+    findings.extend(collect_name_similarity(root, args.head, added_by_file, py_trees))
     if not args.no_tools:
-        findings.extend(collect_name_similarity(root, args.head, added_by_file, py_trees))
         findings.extend(run_tool_checks(root, base, added_by_file, existing_ns03))
 
     return emit(findings, file_status, added_by_file, args)
