@@ -1,22 +1,22 @@
 schema_version: "1.1"
 name: pipeline-flow-feature
-description: An unattended /flow:flow request must spec, plan, implement, and reuse the existing slugify/format_cents helpers instead of reinventing them
+description: An unattended /flow:spec then /flow:next pipeline must spec, plan, implement, and reuse the existing slugify/format_cents helpers instead of reinventing them
 tags: [pipeline, needs-bash]
 runs: 1
 context:
   scaffold_script: scaffold.sh
 execution:
-  prompt: "/flow:flow --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it."
+  prompt: "/flow:spec --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
   max_turns: 150
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
 timeout_seconds: 2400
 graders:
-  - name: spec-doc-written
+  - name: current-spec-pointer-written
     type: file_exists
-    path: ".specs/*/spec.md"
-  - name: verification-evidence-written
+    path: ".specs/.current"
+  - name: tasks-doc-written
     type: file_exists
-    path: ".claude/verification/*.md"
+    path: ".specs/*/TASKS.md"
   - name: reuses-slugify
     type: regex
     target: { source: file, path: src/posts.py }

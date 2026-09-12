@@ -19,7 +19,7 @@ graders:
   - name: no-other-hub-skill
     type: tool_used
     tool: Skill
-    input_match: "flow:feature\\b|flow:flow\\b(?!-)|flow:flow-spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b"
+    input_match: "flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b"
     min: 0
     max: 0
     arm: with-only

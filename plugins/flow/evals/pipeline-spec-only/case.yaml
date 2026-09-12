@@ -1,31 +1,25 @@
 schema_version: "1.1"
 name: pipeline-spec-only
-description: /flow:flow-spec must write a spec that traces every requirement to the prompt, leaks no implementation detail, and leaves no interview question unanswered
+description: /flow:spec --unattended must proceed on its stated positions after one batched offer, reuse the existing slugify helper instead of inventing new requirements, and never land the change itself (the approval gate never scales down, even for bounded)
 tags: [pipeline]
 runs: 1
 context:
   scaffold_script: scaffold.sh
-  history_file: history.jsonl
 execution:
-  prompt: "small — go ahead, use your recommendations for every question and write the spec."
+  prompt: "/flow:spec --unattended Add a url_path property to Post that returns /posts/<slug of title>"
   max_turns: 40
   timeout_seconds: 1200
   allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
-  - name: spec-doc-written
-    type: file_exists
-    path: ".specs/*/spec.md"
-  - name: no-implementation-leak
+  - name: spec-never-lands-code
     type: regex
-    target: { source: file, path: ".specs/001-post-url-path/spec.md" }
-    pattern: "PostgreSQL|Redis|React|FastAPI|Django|SQLAlchemy"
+    target: { source: file, path: src/posts.py }
+    pattern: "url_path"
     match: not_contains
   - name: reuses-slugify
     type: regex
-    target: { source: file, path: ".specs/001-post-url-path/spec.md" }
     pattern: "slugify"
     match: contains
-  - name: spec-traces-to-prompt
+  - name: unattended-turn-traces-to-prompt
     type: llm
-    focus: { source: file, path: ".specs/001-post-url-path/spec.md" }
-    criteria: "PASS if every requirement traces to the prompt (a url_path property from the title), the spec names no technology the repo does not already use, and it does not invent features (ids, uniqueness handling, caching) as requirements — listing them under out-of-scope is fine. FAIL otherwise."
+    criteria: "PASS if the last message states the route it took (bounded, oneshot, or dispatch) with its reason, records its positions as Assumptions each with a confidence, invents no requirement (ids, uniqueness handling, caching) beyond the prompt's url_path property, names the existing slugify helper for reuse, and ends correctly for its route: bounded asks to confirm (\"Go?\") without having written any file yet; oneshot or dispatch instead point .specs/.current at a written TASKS.md (plus spec.md on dispatch) and end with the router's Next: line. FAIL if it writes files while a bounded route still asks to confirm, if it fails to write the route's artifacts for oneshot/dispatch, if it invents a requirement, or if it omits the confidence/Assumptions framing."

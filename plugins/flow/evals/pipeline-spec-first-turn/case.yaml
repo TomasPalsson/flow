@@ -1,18 +1,18 @@
 schema_version: "1.1"
 name: pipeline-spec-first-turn
-description: /flow:flow-spec's first turn must state its size classification and ask the first discovery question in the same message, not stop and wait
+description: /flow:spec's one batched discovery turn must state the route and offer every pre-answered position in the same message, not stop and wait one question at a time
 tags: [pipeline]
 runs: 1
 context:
   scaffold_script: scaffold.sh
 execution:
-  prompt: "/flow:flow-spec Add a url_path property to Post"
+  prompt: "/flow:spec Add a url_path property to Post that returns /posts/<slug of title>"
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
-  - name: classification-and-first-question
+  - name: route-and-batched-offer
     type: llm
-    criteria: "PASS if the message states the size classification AND asks the first discovery question in the same message, with a recommended answer and \"confirm or correct\". FAIL if it only reports the size and waits, or asks more than one question."
+    criteria: "PASS if the message states the route (bounded, oneshot, or dispatch) with its reason in the same message, and either (a) it has open intent gaps and lists them as pre-answered assumptions each with a confidence, including the negative-scope position and a number for every adjective, ending by asking the user to confirm or correct in one reply, or (b) it has zero intent gaps (a bounded idea this small), so it prints the concrete plan instead (the change, the test that proves it, the one risk) and asks a single 'Go?' without waiting across turns. FAIL if it asks questions one at a time, asks more than one turn's worth, or writes artifacts before the offer or the plan."
   - name: not-stop-and-wait
     type: regex
     pattern: "Reply \"small\", \"medium\", or \"large\""

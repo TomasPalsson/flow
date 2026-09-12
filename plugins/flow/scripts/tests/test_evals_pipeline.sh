@@ -131,12 +131,11 @@ t_flow_feature_file_exists_graders() {
 	local f
 	f="$PL_EVALS_DIR/pipeline-flow-feature/case.yaml"
 	[ -f "$f" ] || return
-	assert_contains "$(cat "$f")" ".specs/*/spec.md" "file_exists targets .specs/*/spec.md"
-	# Not .claude/feature-plan.local.md: 06-pr.md's Promote step cleans up every
-	# .claude/*.local.md on a fully-shipped run, which would flip this grader to
-	# FAIL for the best-behaved runs. .claude/verification/ is the one directory
-	# 06-pr.md and SKILL.md's invariants both name as never deleted.
-	assert_contains "$(cat "$f")" ".claude/verification/*.md" "file_exists targets .claude/verification/*.md"
+	# v2: /flow:spec always points .specs/.current at the spec dir it opens,
+	# and /flow:next always drafts TASKS.md before building the first wave -
+	# these are what the v2 pipeline promises, regardless of route.
+	assert_contains "$(cat "$f")" ".specs/.current" "file_exists targets .specs/.current"
+	assert_contains "$(cat "$f")" ".specs/*/TASKS.md" "file_exists targets .specs/*/TASKS.md"
 }
 
 t_flow_feature_reuse_regex_graders() {
@@ -253,23 +252,25 @@ t_fix_bug_scaffold_plants_no_regression_test() {
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Slice 6 review — pipeline-spec-only resumes a saved transcript past
-# /flow:flow-spec's size-classification stop, instead of relying on a single
-# fresh turn to reach a written spec (which the size stop makes impossible).
+# v2 retarget — /flow:spec --unattended proceeds on its stated positions
+# after one offer, so pipeline-spec-only no longer needs to resume a saved
+# first-turn transcript past a stop-and-wait. No context.history_file, and
+# no leftover history.jsonl fixture beside the case.
 # ---------------------------------------------------------------------------
 
-t_spec_only_declares_history_file() {
+t_spec_only_declares_no_history_file() {
 	local f
 	f="$PL_EVALS_DIR/pipeline-spec-only/case.yaml"
 	[ -f "$f" ] || { _fail "pipeline-spec-only case.yaml exists" "missing: $f"; return; }
-	assert_contains "$(cat "$f")" "history_file: history.jsonl" "declares context.history_file: history.jsonl"
+	if grep -q 'history_file' "$f"; then
+		_fail "no context.history_file declared" "found a history_file: line in $f"
+	else
+		_pass "no context.history_file declared"
+	fi
 }
 
-t_spec_only_history_file_present_and_nonempty() {
-	local f
-	f="$PL_EVALS_DIR/pipeline-spec-only/history.jsonl"
-	assert_file_exists "$f" "history.jsonl exists"
-	[ -s "$f" ] && _pass "history.jsonl is non-empty" || _fail "history.jsonl is non-empty" "empty or missing: $f"
+t_spec_only_history_file_absent() {
+	assert_file_missing "$PL_EVALS_DIR/pipeline-spec-only/history.jsonl" "history.jsonl removed (v2 proceeds without a resumed transcript)"
 }
 
 t_spec_only_grants_write_and_edit() {
