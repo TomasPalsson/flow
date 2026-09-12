@@ -278,4 +278,4 @@ Load with the Read tool. **Do NOT pre-load all references at Stage 0** — wait 
 
 - **`/sst`** — default deployment path for web/API projects. After base scaffold completes, if the user indicated deployment is relevant OR the project type is clearly deployable (web app, API, service), offer: "Deployment target is AWS via SST by default. Run `/sst` now to add SST v3 to this project at `<path>`?" Hand off there — do not duplicate SST config knowledge in this skill. If the user says they don't need deploy yet, skip.
 - **`/init`** — after scaffold completion, suggest the user run `/init` if they want a more comprehensive CLAUDE.md.
-- **`/feature`** — suggested next step when the user is ready to build their first feature.
+- **`/flow:spec`** — suggested next step when the user is ready to build their first feature.

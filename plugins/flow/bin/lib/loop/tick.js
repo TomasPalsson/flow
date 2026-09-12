@@ -107,7 +107,7 @@ function tickFailPath(toplevel, front, body, verify, now) {
 // through to the stall/wedge/cap path.
 function tickCheckPath(toplevel, front, body, now, env) {
   const verify = runVerify(toplevel, front.verify, front.verify_timeout, env);
-  const tamper = tamperCheck(toplevel, front);
+  const tamper = tamperCheck(toplevel, front, env);
   const verdict = verify.rc === 0 ? (tamper.length ? 'suspect' : 'pass') : 'fail';
   if (verdict === 'fail') return tickFailPath(toplevel, front, body, verify, now);
   front.status = verdict === 'pass' ? 'done' : 'suspect';

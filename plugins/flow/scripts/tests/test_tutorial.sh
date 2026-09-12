@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test_tutorial.sh — tests for the interactive tutorial runner (lib/tutorial.js)
-# and lessons 1-3 (lib/lessons/01-doctor.js, 02-init.js, 03-progress-and-next.js).
+# and lessons 1-3 (lib/lessons/01-doctor.js, 02-init.js, 03-next.js).
 # Self-contained: does not assume any other test_*.sh has been sourced in the
 # same run.sh invocation (TEST_ONLY=test_tutorial.sh runs this file alone).
 #
@@ -10,9 +10,9 @@ set -u
 
 TUTORIAL_PATH="$SCAN_DIR/../bin/lib/tutorial.js"
 
-# The one-liner lesson 3's tryIt suggests: insert a `- resume: /flow` bullet
-# right under PROGRESS.md's "## Now" heading, then run `flow next`.
-TT_EDIT_AND_NEXT="awk '1;/^## Now\$/{print \"- resume: \`/flow\`\"}' PROGRESS.md > p.tmp && mv p.tmp PROGRESS.md && flow next"
+# The one-liner lesson 3's tryIt suggests: give the router a feature to route
+# to (spec 004 K-C — the answer comes from .specs/ and git, never from prose).
+TT_EDIT_AND_NEXT="mkdir -p .specs/001-hello && printf '# Spec\\n' > .specs/001-hello/spec.md && flow use 001-hello && flow next"
 
 # tt_in <dir> <home> <tutorial-args...>
 # Runs `node $TUTORIAL_PATH <args>` with cwd=<dir> and HOME=<home>, inheriting

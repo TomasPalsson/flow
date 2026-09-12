@@ -537,3 +537,37 @@ t_install_missing_link_target_is_reported_not_linked() {
 
 	rm -rf "$home"
 }
+
+# ---------------------------------------------------------------------------
+# ~/.claude is itself a symlink into the dotfiles
+# ---------------------------------------------------------------------------
+
+t_install_self_referential_home_does_not_eat_the_source() {
+	# Real incident: ~/.claude -> dotfiles/claude/.claude, so ~/.claude/agents/x.md
+	# and $DOTFILES/claude/.claude/agents/x.md are the SAME file. installLinkEntry
+	# read both sides, called them identical, unlinked the source and symlinked it
+	# to itself — five agents, four commands and CLAUDE.md became ELOOP, and only
+	# git had the content. The install must recognise the source and leave it be.
+	local home dotfiles real
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	real="$dotfiles/claude/.claude"
+	mkdir -p "$real/agents"
+	printf -- '---\nname: developer\n---\nthe real body\n' >"$real/agents/developer.md"
+	# the shape that caused it: ~/.claude IS the dotfiles copy
+	rm -rf "$home/.claude"
+	ln -s "$real" "$home/.claude"
+
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$1"; shift; exec "$@"' \
+		_ "$home" node "$CLI_PATH" install --dotfiles "$dotfiles"
+
+	assert_file_exists "$real/agents/developer.md" "the source agent still exists"
+	OUT=$(cat "$real/agents/developer.md" 2>&1)
+	assert_contains "$OUT" "the real body" "and still has its content, not ELOOP"
+	if [ -L "$real/agents/developer.md" ]; then
+		_fail "the source agent is not a symlink to itself" "it was replaced by a self-referential link"
+	else
+		_pass "the source agent is not a symlink to itself"
+	fi
+	rm -rf "$home" "$dotfiles"
+}

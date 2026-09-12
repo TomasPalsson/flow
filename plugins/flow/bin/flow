@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { spawnSync } = require('node:child_process');
+const { spawnSync, spawn } = require('node:child_process');
 
 const { stdout, stderr } = process;
 
@@ -158,8 +158,18 @@ ${C.accent}Commands:${C.reset}
                                                      (idempotent); ends by running doctor
   check [--fix]                                     Run project quality gates (check-all)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
-  next [--json]                                     Print the next command to run, from
-                                                     deterministic repo state only
+  next [--json] [--force] [--peek]                  Print the one thing to do next, from
+                                                     .specs/ and git alone (14 states; --json
+                                                     adds the gates as data, --peek reads
+                                                     without moving the loop counter)
+  lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
+                                                     [P] disjointness per wave, missing verify:,
+                                                     ticks that no commit backs
+  tick <ID> [--dir <d>] [--by user]                 The only writer of [x] — measures the sha
+                                                     rather than trusting a claim
+  use <NNN-slug>                                    Point .specs/.current at one feature
+  publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
+                                                     GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
   eval [--tag <tag>]... [--runs N] [--threshold N] [--max-cost-usd N]
@@ -173,6 +183,14 @@ ${C.accent}Commands:${C.reset}
                                                      (default: cwd) and everything under it;
                                                      --unsafe also disables git-guard
   on [<dir>]                                        Turn them back on
+  statusline [--refresh] [--install] [--print] [--no-color]
+                                                     Render the Claude Code status line — the
+                                                     flow segment is a cached, never-waiting
+                                                     mirror of \`flow next --peek\`; --install
+                                                     wires it into ~/.claude/settings.json,
+                                                     --print emits the snippet with nothing
+                                                     written, --refresh fills the cache (run by
+                                                     the render itself, not by hand)
 
 ${C.accent}Options:${C.reset}
   -h, --help   Show this help message
@@ -591,6 +609,35 @@ function isGitRepo(dir) {
   const r = spawnSync('git', ['-C', dir, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8' });
   if (r.error) return false;
   return r.status === 0 && (r.stdout || '').trim() === 'true';
+}
+
+// specs-state (spec 004 K-C): print the router's own state, and FAIL on the
+// three the user has to act on before anything else works — a scan failure
+// (row 0), an invalid TASKS.md (1d) and a lying tick (1e). Everything else is
+// a normal position in the build, not a health problem.
+const DOCTOR_SPECS_FAIL = ['scan-failed', 'invalid', 'lying'];
+
+function doctorSpecsStateCheck(push) {
+  const cwd = process.cwd();
+  if (!isGitRepo(cwd)) {
+    push('specs-state', 'PASS', 'skipped: current directory is not a git repo');
+    return;
+  }
+  let r;
+  try {
+    // count:false — doctor asks without moving the consecutive-call counter.
+    r = computeNext(cwd, { count: false });
+  } catch (e) {
+    push('specs-state', 'FAIL', `router threw: ${e.message}`, 'flow next --json');
+    return;
+  }
+  const where = r.feature ? ` (${r.feature.dir})` : '';
+  const detail = `${r.state}${where} → ${r.command}`;
+  if (DOCTOR_SPECS_FAIL.indexOf(r.state) !== -1) {
+    push('specs-state', 'FAIL', `${detail} — ${r.why}`, 'flow lint');
+    return;
+  }
+  push('specs-state', 'PASS', detail);
 }
 
 // C17 delta: flow doctor gains a PROGRESS.md check (WARN-only, never
@@ -1341,6 +1388,57 @@ function doctorPermissionsDenyCheck(push) {
   );
 }
 
+// statuslineCommandResolves: `have()` walks PATH by basename and cannot
+// resolve an absolute path, which a hand-edited statusLine command may be.
+function statuslineCommandResolves(bin) {
+  if (path.isAbsolute(bin)) {
+    try {
+      fs.accessSync(bin, fs.constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return have(bin);
+}
+
+// FR-10 / spec §2.1: "A flow doctor check that the configured status line
+// command resolves and exits 0." No statusLine configured at all is PASS —
+// this check only speaks about one that IS configured.
+function doctorStatuslineCheck(push) {
+  const settingsPath = path.join(HOME, '.claude', 'settings.json');
+  const raw = safeRead(settingsPath);
+  if (raw === null) {
+    push('statusline', 'PASS', 'no statusLine configured');
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    push('statusline', 'PASS', `${settingsPath} does not parse — unrelated to this check`);
+    return;
+  }
+  const command = parsed && parsed.statusLine && typeof parsed.statusLine.command === 'string'
+    ? parsed.statusLine.command : null;
+  if (!command) {
+    push('statusline', 'PASS', 'no statusLine configured');
+    return;
+  }
+  const bin = command.trim().split(/\s+/)[0];
+  if (!statuslineCommandResolves(bin)) {
+    push('statusline', 'FAIL', `configured statusLine command '${command}' does not resolve — '${bin}' is not on PATH`);
+    return;
+  }
+  const res = spawnSync(command, { shell: true, encoding: 'utf8', input: '{}', timeout: 5000 });
+  if (res.error || res.status !== 0) {
+    const how = res.status === null || res.status === undefined ? `signal ${res.signal}` : `status ${res.status}`;
+    push('statusline', 'FAIL', `configured statusLine command '${command}' did not exit 0 (${how})`);
+    return;
+  }
+  push('statusline', 'PASS', `configured statusLine command '${command}' resolves and exits 0`);
+}
+
 // dotfilesRoot: see doctorSymlinkChecks above — forwarded through so a
 // `flow install --dotfiles <path>` recheck (C18 step 7) compares against
 // the root that install actually used, not always $HOME/.dotfiles.
@@ -1387,6 +1485,7 @@ function buildDoctorChecks(dotfilesRoot, deep) {
   run('project-hooks', () => doctorProjectHooksCheck(push));
   run('thresholds-referenced', () => doctorThresholdsReferencedCheck(push));
   run('progress-md', () => doctorProgressCheck(push));
+  run('specs-state', () => doctorSpecsStateCheck(push));
   run('gates-runnable', () => doctorGatesRunnableCheck(push));
   run('loop-contract', () => doctorLoopCheck(push));
   run('tools', () => doctorToolChecks(push));
@@ -1401,6 +1500,7 @@ function buildDoctorChecks(dotfilesRoot, deep) {
   run('local-bin-harness', () => doctorLocalBinHarnessCheck(push));
   run('live-hooks-match-cwd', () => doctorLiveHooksMatchCwdCheck(push));
   run('permissions-deny', () => doctorPermissionsDenyCheck(push));
+  run('statusline', () => doctorStatuslineCheck(push));
   run('plugin-list', () => doctorPluginListCheck(push));
   return checks;
 }
@@ -2219,8 +2319,29 @@ function installEnsureLink(opts) {
 // identical real file → replaced by the link (nothing is lost); differing
 // real file (or a real directory) → kept unless --force, which moves it to
 // <name>.pre-harness.<epoch> first. Returns 'linked' | 'kept'.
+// samePhysicalPath(a, b): do these two paths name the same file on disk?
+// Compares the resolved PARENT plus the basename, because realpath on a
+// self-referential link throws ELOOP — which is exactly the case this guards.
+function samePhysicalPath(a, b) {
+  try {
+    return path.join(fs.realpathSync(path.dirname(a)), path.basename(a))
+      === path.join(fs.realpathSync(path.dirname(b)), path.basename(b));
+  } catch {
+    return false;
+  }
+}
+
 function installLinkEntry(opts) {
   const { dest, targetAbs, relative, force, dryRun, epoch, report } = opts;
+  // ~/.claude can itself be a symlink INTO the dotfiles, which makes dest and
+  // targetAbs the same file. Without this guard the "identical real file"
+  // branch below unlinks the source and symlinks it to itself: the content is
+  // destroyed and every reader gets ELOOP. It ate this machine's five agents,
+  // four commands and CLAUDE.md, and git was the only reason they came back.
+  if (samePhysicalPath(dest, targetAbs)) {
+    report('ok', dest, `is ${targetAbs} — the deployment already lives in the dotfiles; nothing to link`);
+    return 'linked';
+  }
   const desired = relative ? path.relative(path.dirname(dest), targetAbs) : targetAbs;
   let lst = null;
   try { lst = fs.lstatSync(dest); } catch { lst = null; }
@@ -2536,11 +2657,12 @@ function cmdSkillsLint(argv) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// next — C23: "Next: <command>" derived only from deterministic repo state
-// (no network, no model). Checked in the exact priority order the spec lists:
-// (1) not a git repo, (2) PROGRESS.md's `## Now` names a resume command,
-// (3) `.claude/flow.json` present (a flow is in progress), (4) no flow but
-// the branch is `flow/*` with no plan file, (5) generic dirty/clean fallback.
+// next — spec 004 K-C: "Next: <command>" derived only from deterministic repo
+// state (no network, no model). The 14-row state machine lives in
+// bin/lib/router.js; computeNext below checks only the two things that come
+// before it — is this a git repo, and is a loop contract active — and hands
+// the rest to the router. Position is recomputed from disk on every call, so
+// /clear, a crash, a compaction and a git checkout all self-heal.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function printNextHelp() {
@@ -2548,205 +2670,22 @@ function printNextHelp() {
 ${C.primary}${C.bold}flow next${C.reset} ${C.muted}— print the next command to run${C.reset}
 
 ${C.accent}Usage:${C.reset}
-  flow next [--json]
+  flow next [--json] [--force] [--peek]
 
 ${C.accent}Options:${C.reset}
-  --json        Print { next, why, state } instead of plain lines
+  --json        Print { state, state_no, command, why, after, gates, feature, wave }
+                instead of the plain Next:/Why:/Then: lines.
+  --force       Carry on past a hard stop: BLOCKED.md, another approved feature
+                with open tasks, or five calls with no state change.
+  --peek        Read the state without moving the consecutive-call counter, for
+                a hook or a status line. A real turn must not pass it.
   -h, --help    Show this help message
+
+${C.accent}Position is recomputed from disk on every call${C.reset}
+  \$FLOW_SPEC → .specs/.current → branch flow/<slug>, anchored at the git
+  toplevel. Nothing lives in the transcript, so /clear, a crash, a compaction
+  and a git checkout all self-heal. PROGRESS.md is never consulted.
 `);
-}
-
-// Commands a resume bullet may name even when the tool is not installed on
-// this machine (the answer is still the right instruction to print). Anything
-// outside this list has to be resolvable on PATH via have().
-const RESUME_KNOWN_COMMANDS = [
-  'flow',
-  'git',
-  'make',
-  'just',
-  'task',
-  'npm',
-  'npx',
-  'pnpm',
-  'yarn',
-  'bun',
-  'bunx',
-  'node',
-  'deno',
-  'python',
-  'python3',
-  'uv',
-  'uvx',
-  'pytest',
-  'cargo',
-  'go',
-  'ruby',
-  'bundle',
-  'rake',
-  'php',
-  'composer',
-  'docker',
-  'kubectl',
-  'terraform',
-  'gradle',
-  'mvn',
-  'dotnet',
-  'swift',
-  'sh',
-  'bash',
-  'agents',
-  'claude',
-];
-
-// Destructive shapes the harness refuses to RECOMMEND. PROGRESS.md is an
-// ordinary file in the repo, so a backticked span in it is untrusted input;
-// printing `rm -rf /` as the session's first instruction is not acceptable
-// just because a bullet said so. These mirror what git-guard denies. The
-// match is coarse on purpose and can fire on an innocent cleanup command —
-// that is safe here because a rejected span is never dropped silently: the
-// caller prints which span it ignored and why, so the user can see it.
-const RESUME_DESTRUCTIVE = [
-  /(^|\s)rm\s+(-[A-Za-z]*\s+)*-[A-Za-z]*[rf]/,
-  /(^|\s)git\s+push\s+(.*\s)?(-f|--force)(\s|$)/,
-  /(^|\s)git\s+reset\s+(.*\s)?--hard(\s|$)/,
-  /(^|\s)git\s+clean\s+(.*\s)?-[A-Za-z]*f/,
-  /(^|\s)git\s+branch\s+(.*\s)?-D(\s|$)/,
-  /(^|\s)(sudo|dd|mkfs|shutdown|reboot|halt)(\s|$)/,
-  /(^|\s):\s*\(\)\s*\{/, // fork bomb
-];
-
-// isDestructiveResume: RESUME_DESTRUCTIVE against the span with quote
-// characters blanked out, so one level of quoting (`bash -c 'rm -rf /'`)
-// cannot hide the body from the scan.
-function isDestructiveResume(cmd) {
-  const unquoted = String(cmd).replace(/['"]/g, ' ');
-  return RESUME_DESTRUCTIVE.some((re) => re.test(unquoted));
-}
-
-// resumeCommandHead: the token that decides whether a span is runnable, after
-// stripping the two prefixes a resume bullet legitimately carries (git-guard
-// strips the same shapes before it resolves a command head):
-//   - leading `VAR=value` assignments — `PYTHONPATH=. pytest -k slow`
-//   - a leading `cd <dir> &&` / `cd <dir>;` hop — `cd frontend && npm test`
-// Both forms are runnable as written, so the head to test is the one after
-// them, not `PYTHONPATH=.` or `cd`.
-function resumeCommandHead(cmd) {
-  let s = String(cmd).trim();
-  for (let i = 0; i < 8; i++) {
-    const before = s;
-    s = s.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]*)\s+)+/, '');
-    s = s.replace(/^cd\s+(?:"[^"]*"|'[^']*'|[^\s;&]+)\s*(?:&&|;)\s*/, '');
-    if (s === before) break;
-  }
-  return s.split(/\s+/)[0] || '';
-}
-
-// isCommandShaped: C-D — `Next:` must be something the reader can type. A
-// backticked span in prose is very often a filename, a directory or an
-// identifier, so accept only:
-//   - a slash command (`/flow`, `/wrap`): one leading slash, no path parts;
-//   - a path-shaped head (contains `/`, or starts with `~`) that actually
-//     resolves to an executable FILE from the repo root;
-//   - a bare head that is a known harness/tool command or is on PATH.
-// `.skill-forge/` (trailing slash), `hookout.sh` and `notes.md` (bare names
-// that are not executables) are all rejected, and the caller reports the
-// rejection before falling through to the state-derived command.
-function isCommandShaped(cmd, root) {
-  const head = resumeCommandHead(cmd);
-  if (!head || head.startsWith('-')) return false;
-  if (head.endsWith('/')) return false;
-  if (/^\/[A-Za-z][A-Za-z0-9:_-]*$/.test(head)) return true;
-  if (head.indexOf('/') !== -1 || head.startsWith('~')) {
-    const abs = head.startsWith('~') ? path.join(HOME, head.slice(1)) : path.resolve(root, head);
-    try {
-      fs.accessSync(abs, fs.constants.X_OK);
-      return fs.statSync(abs).isFile();
-    } catch {
-      return false;
-    }
-  }
-  return RESUME_KNOWN_COMMANDS.indexOf(head) !== -1 || have(head);
-}
-
-// resumeCommand: how a `resume:` bullet's backticked span resolves.
-//
-// FU-09/C-D: the command is the BACKTICKED text only — a prose resume bullet
-// ("resume: finish the docs pass") yields null so the caller falls back to a
-// plan/state-derived command, because `Next:` must always be runnable.
-//
-// Returns { command } when the span is runnable; { span, reason } when a span
-// was found and rejected — the user wrote that instruction, so the caller
-// reports the drop instead of discarding it in silence; null when there is
-// nothing to drop (no span, or the untouched init-template placeholder).
-function resumeCommand(bullet, root) {
-  const m = bullet.match(/`([^`]+)`/);
-  if (!m) return null;
-  const cmd = m[1].trim();
-  if (cmd === '') return null;
-  if (/^<[^<>]*>$/.test(cmd)) return null; // `<the exact command…>`: the flow-templates placeholder, not an instruction
-  if (/^flow\s+next\b/.test(cmd)) return { span: cmd, reason: 'would loop straight back into flow next' };
-  if (isDestructiveResume(cmd)) return { span: cmd, reason: 'is destructive, so the harness will not recommend it' };
-  if (!isCommandShaped(cmd, root)) return { span: cmd, reason: 'is not runnable from here' };
-  return { command: cmd };
-}
-
-// readProgressResume: scans PROGRESS.md's "## Now" section (until the next
-// "## " heading) for a bullet that starts with "resume:" and names a runnable
-// command, per C23 state 2 / the G10 rule ("next for a `resume:` bullet is the
-// backticked command only").
-//
-// Returns { command, bullet } where bullet is the bullet that actually
-// supplied the command — the "Why" line must point at the text the answer
-// came from. When every resume bullet's span was rejected it returns
-// { ignored: { span, reason } } for the FIRST rejection, so the caller can
-// say which instruction it did not follow; null when no resume bullet named
-// anything at all.
-function readProgressResume(progressPath, root) {
-  const raw = safeRead(progressPath);
-  if (!raw) return null;
-  const lines = raw.split('\n');
-  let inNow = false;
-  let ignored = null;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^##\s/.test(trimmed)) {
-      if (inNow) break; // left the "## Now" section
-      inNow = trimmed === '## Now';
-      continue;
-    }
-    if (!inNow || trimmed === '') continue;
-    const bullet = trimmed.replace(/^-+\s*/, '');
-    if (!/^resume\s*:/i.test(bullet)) continue;
-    const r = resumeCommand(bullet, root);
-    if (r && r.command) return { command: r.command, bullet };
-    if (r && !ignored) ignored = { span: r.span, reason: r.reason };
-  }
-  return ignored ? { ignored } : null;
-}
-
-// .claude/flow.json is committed content: `flow next` treats every string in
-// it as untrusted. A C0 control character (or DEL) cannot appear in a git
-// refname and does not belong in a path, so such a value is not the branch or
-// worktree it claims to be — and a newline in one would forge a second
-// `Next:` line inside session-context's block, which the model reads as an
-// instruction. Values carrying one are DROPPED, never repaired (a repaired
-// refname is still not a refname), and the drop is named in `why`.
-const CONTROL_CHARS_RE = /[\x00-\x1F\x7F]/;
-
-// sanitizeFlowJson(flow) -> { flow: <object without the poisoned keys>,
-// dropped: [key...] }.
-function sanitizeFlowJson(flow) {
-  const clean = {};
-  const dropped = [];
-  for (const key of Object.keys(flow)) {
-    const v = flow[key];
-    if (typeof v === 'string' && CONTROL_CHARS_RE.test(v)) {
-      dropped.push(key);
-      continue;
-    }
-    clean[key] = v;
-  }
-  return { flow: clean, dropped };
 }
 
 // oneLine(s): s with every control character collapsed to a space, so a
@@ -2754,124 +2693,6 @@ function sanitizeFlowJson(flow) {
 // `flow next` emits at most 2 lines (C-D / G6's 2-line Next: block).
 function oneLine(s) {
   return String(s).replace(/[\x00-\x1F\x7F]+/g, ' ').replace(/\s+$/, '');
-}
-
-function readFlowJson(cwd) {
-  const raw = safeRead(path.join(cwd, '.claude', 'flow.json'));
-  if (raw === null) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-// parseProgressCheckboxes: parses a document's "## Progress" section (until
-// the next "## " heading) for `- [ ]`/`- [x]` checkboxes and returns
-// { total, done }, or null when there is no such section or it has no
-// checkbox lines. Used against BOTH `.claude/workflow-state.local.md`
-// (the real, spec-documented home of live per-slice checkbox progress —
-// see flow/planning.md: "Mirror each slice's sub-phases into `## Progress`
-// in `.claude/workflow-state.local.md` ... that is what step 0's resume
-// check reads") and the plan file itself (kept as a defensive fallback;
-// the plan's own `## Progress` section, when present, normally holds
-// `Ruling:` lines from the fix ladder, not checkboxes, so this yields
-// null there in the common case, which is correct — it just means "no
-// checkbox data here").
-function parseProgressCheckboxes(raw) {
-  const lines = raw.split('\n');
-  let inProgress = false;
-  let sawSection = false;
-  let total = 0;
-  let done = 0;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^##\s/.test(trimmed)) {
-      if (inProgress) break;
-      inProgress = trimmed === '## Progress';
-      if (inProgress) sawSection = true;
-      continue;
-    }
-    if (!inProgress) continue;
-    const m = trimmed.match(/^-\s*\[([ xX])\]/);
-    if (m) {
-      total++;
-      if (m[1].toLowerCase() === 'x') done++;
-    }
-  }
-  if (!sawSection || total === 0) return null;
-  return { total, done };
-}
-
-// sliceHeadingDoneStatus: C23 state 3(d)'s second detection method ("slice
-// headings without a done marker"). Fence-aware per C7 (a `## Slice N —`
-// line inside a ``` or ~~~ fence is never a heading). No "done marker"
-// syntax is frozen anywhere in the spec or produced anywhere by the
-// shipped flow skill, so this is a narrow, documented ASSUMPTION: a slice
-// counts as done when its own section body (until the next `## ` heading)
-// contains a standalone line reading "Done", "**Done**", or "Status: Done"
-// (case-insensitive). Returns { total, done } (total = number of `## Slice
-// <N> — ...` headings found), or null when the plan has no slice headings
-// at all.
-function sliceHeadingDoneStatus(raw) {
-  const lines = raw.split('\n');
-  let inFence = false;
-  let fenceMarker = null;
-  const slices = [];
-  let current = null;
-  const doneMarker = /^(\*\*)?done(\*\*)?$|^status:\s*done\s*$/i;
-  for (const line of lines) {
-    const fenceMatch = line.match(/^\s*(```|~~~)/);
-    if (fenceMatch) {
-      if (!inFence) {
-        inFence = true;
-        fenceMarker = fenceMatch[1];
-      } else if (fenceMatch[1] === fenceMarker) {
-        inFence = false;
-        fenceMarker = null;
-      }
-      continue;
-    }
-    if (!inFence) {
-      const headingMatch = line.match(/^##\s+Slice\s+\d+\s+—/);
-      if (headingMatch) {
-        if (current) slices.push(current);
-        current = { done: false };
-        continue;
-      }
-      if (/^##\s/.test(line.trim())) {
-        if (current) slices.push(current);
-        current = null;
-        continue;
-      }
-    }
-    if (current && doneMarker.test(line.trim())) current.done = true;
-  }
-  if (current) slices.push(current);
-  if (slices.length === 0) return null;
-  let done = 0;
-  for (const s of slices) if (s.done) done++;
-  return { total: slices.length, done };
-}
-
-// computeSliceProgress: tries, in order, (1) checkbox progress in
-// `.claude/workflow-state.local.md` (the real source the flow skill
-// writes and reads — see parseProgressCheckboxes's comment), (2) checkbox
-// progress inside the plan file's own "## Progress" section (defensive
-// fallback), (3) the slice-heading-done-marker method over the plan file.
-// Returns { total, done, source } or null when none of the three yield
-// anything (e.g. a plan with zero slice headings).
-function computeSliceProgress(cwd, planRaw) {
-  const workflowStateRaw = safeRead(path.join(cwd, '.claude', 'workflow-state.local.md'));
-  if (workflowStateRaw) {
-    const p = parseProgressCheckboxes(workflowStateRaw);
-    if (p) return Object.assign({ source: 'workflow-state-checkboxes' }, p);
-  }
-  const fromPlan = parseProgressCheckboxes(planRaw);
-  if (fromPlan) return Object.assign({ source: 'plan-checkboxes' }, fromPlan);
-  const fromHeadings = sliceHeadingDoneStatus(planRaw);
-  if (fromHeadings) return Object.assign({ source: 'slice-heading-marker' }, fromHeadings);
-  return null;
 }
 
 function gitBranch(dir) {
@@ -2892,43 +2713,6 @@ function gitToplevel(dir) {
   return (r.stdout || '').trim();
 }
 
-// gitPushed: true when the branch has an upstream and no commits ahead of
-// it. Reads the local remote-tracking ref only — no fetch, no network.
-function gitPushed(dir) {
-  const r = spawnSync('git', ['-C', dir, 'rev-list', '--count', '@{u}..HEAD'], { encoding: 'utf8' });
-  return r.status === 0 && (r.stdout || '').trim() === '0';
-}
-
-// findSpecDirForBranch: for a `flow/<slug>` branch, the `.specs/NNN-<slug>`
-// entry holding a spec.md (relative path), or null.
-function findSpecDirForBranch(cwd, branch) {
-  const slug = branch.replace(/^flow\//, '');
-  const specsDir = path.join(cwd, '.specs');
-  let entries;
-  try {
-    entries = fs.readdirSync(specsDir);
-  } catch {
-    return null;
-  }
-  // A dir holding only PREP.md (prep ran, spec not written) is not a spec.
-  const hit = entries.find((e) => /^\d{3}-/.test(e) && e.slice(4) === slug
-    && fs.existsSync(path.join(specsDir, e, 'spec.md')));
-  return hit ? path.join('.specs', hit) : null;
-}
-
-// gitDefaultBranch: reads the LOCAL refs/remotes/origin/HEAD symref only
-// (no fetch, no network per C23's "no network" requirement); null when it
-// is not set, in which case the caller falls back to a main/master guess.
-function gitDefaultBranch(dir) {
-  const r = spawnSync('git', ['-C', dir, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { encoding: 'utf8' });
-  if (r.status === 0 && r.stdout) {
-    const s = r.stdout.trim();
-    const idx = s.indexOf('/');
-    return idx !== -1 ? s.slice(idx + 1) : s;
-  }
-  return null;
-}
-
 // physicalPath: the fully resolved path, or the input when it cannot be
 // resolved (B21-23: worktree comparisons must not fail over /var vs
 // /private/var or a symlinked checkout).
@@ -2938,152 +2722,6 @@ function physicalPath(p) {
   } catch {
     return p;
   }
-}
-
-// specPlanPath: the first `.specs/<dir>/plan.md` in the repo (relative), or
-// null. FU-09: evidence that a flow is in flight even when .claude/flow.json
-// is absent (a worktree that was cleaned up, or a plan written by hand).
-function specPlanPath(root) {
-  let entries = [];
-  try {
-    entries = fs.readdirSync(path.join(root, '.specs')).sort();
-  } catch {
-    return null;
-  }
-  for (const e of entries) {
-    if (fs.existsSync(path.join(root, '.specs', e, 'plan.md'))) return path.join('.specs', e, 'plan.md');
-  }
-  return null;
-}
-
-// flowInFlight: { flow, planPath, evidence, ignored } when this repo is
-// mid-flow, else null. flow.json wins; otherwise a live workflow-state file
-// or a spec plan counts as evidence (FU-09). `ignored` is a one-clause note
-// when sanitizeFlowJson dropped poisoned keys, so the drop is visible.
-function flowInFlight(root) {
-  const raw = readFlowJson(root);
-  const clean = raw ? sanitizeFlowJson(raw) : null;
-  const flow = clean ? clean.flow : null;
-  const ignored = clean && clean.dropped.length
-    ? `ignored: control characters in .claude/flow.json ${clean.dropped.join(', ')}`
-    : null;
-  const defaultPlan = path.join(root, '.claude', 'feature-plan.local.md');
-  if (flow) {
-    // FU-18: `plan` points at the active plan; bare names live under .claude/.
-    const rel = typeof flow.plan === 'string' && flow.plan ? flow.plan : null;
-    const planPath = rel ? path.resolve(root, rel.indexOf('/') !== -1 ? rel : path.join('.claude', rel)) : defaultPlan;
-    return { flow, planPath, evidence: '.claude/flow.json', ignored };
-  }
-  if (fs.existsSync(path.join(root, '.claude', 'workflow-state.local.md'))) {
-    return { flow: {}, planPath: defaultPlan, evidence: '.claude/workflow-state.local.md' };
-  }
-  const specPlan = specPlanPath(root);
-  if (specPlan) {
-    return { flow: {}, planPath: fs.existsSync(defaultPlan) ? defaultPlan : path.join(root, specPlan), evidence: specPlan };
-  }
-  return null;
-}
-
-// nextForFlow: the in-flight-flow half of the decision table. Returns a
-// result, or null to fall through to the branch/dirty rules below.
-function nextForFlow(root, ctx, inFlight) {
-  const { branch, dirty } = ctx;
-  const { flow, planPath, evidence } = inFlight;
-  const base = { gitRepo: true, root, branch, dirty, flow, evidence };
-  const flowBranch = flow.branch || '';
-  const flowWorktree = flow.worktree || null;
-  if (flowWorktree && physicalPath(flowWorktree) !== physicalPath(root)) {
-    return {
-      // C-D: the answer must be runnable as printed, so a path with a space
-      // (or any other shell metacharacter) is quoted.
-      next: `agents ${shellQuote(flowWorktree)}`,
-      why: `this flow lives in ${flowWorktree} (branch ${flowBranch || 'unknown'})`,
-      state: Object.assign({ source: 'flow-worktree-mismatch' }, base),
-    };
-  }
-  if (flowBranch && flowBranch !== branch) {
-    return {
-      // C-D: `;`, `&`, `$` are legal in a refname, and this is run as printed.
-      next: `git checkout ${shellQuote(flowBranch)}`,
-      why: `this checkout is on ${branch || 'a detached HEAD'}; .claude/flow.json says ${flowBranch}`,
-      state: Object.assign({ source: 'flow-branch-mismatch' }, base),
-    };
-  }
-  if (!fs.existsSync(planPath)) {
-    return {
-      next: '/flow',
-      why: `spec exists (${flow.spec_dir || evidence}), plan not written`,
-      state: Object.assign({ source: 'flow-no-plan' }, base),
-    };
-  }
-  const planRaw = safeRead(planPath) || '';
-  if (!/^Approved:\s*\d{4}-\d{2}-\d{2}/m.test(planRaw)) {
-    return {
-      next: '/flow',
-      why: `${path.relative(root, planPath)} has no "Approved: <date>" line — review and approve it first`,
-      state: Object.assign({ source: 'flow-plan-unapproved' }, base),
-    };
-  }
-  const progress = computeSliceProgress(root, planRaw);
-  if (progress && progress.done < progress.total) {
-    return {
-      next: '/flow',
-      why: `${progress.done} of ${progress.total} slices done`,
-      state: Object.assign({ source: 'flow-slices-unfinished', progress }, base),
-    };
-  }
-  // All slices done (or computeSliceProgress found nothing to track at all —
-  // a plan with zero "## Slice N —" headings, which plan-lint would already
-  // have rejected before approval — treated the same way).
-  if (dirty) {
-    return { next: '/wrap', why: 'all slices done; tree is dirty — /wrap, then /ship', state: Object.assign({ source: 'flow-done-dirty' }, base) };
-  }
-  const defaultBranch = gitDefaultBranch(root);
-  if (!(branch === defaultBranch || branch === 'main' || branch === 'master')) {
-    return { next: '/ship', why: 'all slices done; tree is clean', state: Object.assign({ source: 'flow-done-clean' }, base) };
-  }
-  // Clean tree, back on the default branch: nothing left for this flow to
-  // drive — fall through to the generic suggestion.
-  return null;
-}
-
-// nextForFlowBranch: `flow/<slug>` with no in-flight flow — the shipped/
-// unpushed/no-spec cases.
-function nextForFlowBranch(root, ctx) {
-  const { branch, dirty } = ctx;
-  const base = { gitRepo: true, root, branch, dirty };
-  const specDir = findSpecDirForBranch(root, branch);
-  if (!specDir) {
-    // A PREP.md for this branch's slug is the concrete next step; only when
-    // there is no prep does the spec gate's generic answer stand.
-    const prepOnBranch = prepNext(root, branch, dirty);
-    if (prepOnBranch) return prepOnBranch;
-    return {
-      next: '/flow',
-      why: 'spec gate is active on this branch; /flow writes the spec and plan',
-      state: Object.assign({ source: 'flow-branch-no-plan' }, base),
-    };
-  }
-  if (dirty) {
-    return {
-      next: '/wrap',
-      why: `${specDir} is committed on ${branch}; tree is dirty`,
-      state: Object.assign({ source: 'flow-branch-shipped-dirty', specDir }, base),
-    };
-  }
-  if (gitPushed(root)) {
-    const defaultBranch = gitDefaultBranch(root) || 'main';
-    return {
-      next: 'gh pr view --web',
-      why: `${branch} is shipped (${specDir} committed and pushed); merge the PR, then agents ${defaultBranch}`,
-      state: Object.assign({ source: 'flow-branch-shipped', specDir }, base),
-    };
-  }
-  return {
-    next: '/ship',
-    why: `${specDir} is committed on ${branch} but not pushed`,
-    state: Object.assign({ source: 'flow-branch-unpushed', specDir }, base),
-  };
 }
 
 // K-L: null unless `.claude/loop/loop.md` at the git toplevel is active, in
@@ -3098,135 +2736,41 @@ function computeNextLoopActive(toplevel, branch, dirty) {
     loopFront = null;
   }
   if (!loopFront || loopFront.status !== 'active') return null;
-  const next = loopFront.shape === 'fresh' ? 'flow loop run' : 'flow loop status';
-  return { next, why: null, state: { gitRepo: true, branch, dirty, source: 'loop-active' } };
-}
-
-// findPrepWithoutSpec(cwd, branch): every `.specs/NNN-*` holding a PREP.md
-// with no sibling spec.md is a prep waiting on its spec
-// (docs/research/13-flow-prep-2026-09-07.md §5). Prefers the dir whose slug
-// matches a `flow/<slug>` branch, else the highest number. Returns
-// { dir, status, asked, budget, count } or null. Callers consult it only
-// after every branch/dirty/shipped check, so a stale prep never outranks
-// real state.
-function findPrepWithoutSpec(cwd, branch) {
-  const specsDir = path.join(cwd, '.specs');
-  let entries;
-  try {
-    entries = fs.readdirSync(specsDir).filter((e) => /^\d{3}-/.test(e)).sort();
-  } catch {
-    return null;
-  }
-  const hits = entries.filter((e) => fs.existsSync(path.join(specsDir, e, 'PREP.md'))
-    && !fs.existsSync(path.join(specsDir, e, 'spec.md')));
-  if (hits.length === 0) return null;
-  const slug = branch.replace(/^flow\//, '');
-  const pick = hits.find((e) => e.slice(4) === slug) || hits[hits.length - 1];
-  const raw = safeRead(path.join(specsDir, pick, 'PREP.md')) || '';
-  const statusMatch = raw.match(/Status:\s*([^·\n]+)/);
-  const qMatch = raw.match(/Questions:\s*(\d+)\s+of\s+(\d+)/);
+  const command = loopFront.shape === 'fresh' ? 'flow loop run' : 'flow loop status';
+  // why stays null: K-L pins `flow next` under an active loop to the single
+  // line `Next: flow loop run` (test_loop.sh asserts it exactly), and the
+  // loop's own status output is where the detail belongs.
   return {
-    dir: path.join('.specs', pick),
-    status: statusMatch ? statusMatch[1].replace(/\s+-\s.*$/, '').trim() : '',
-    asked: qMatch ? qMatch[1] : null,
-    budget: qMatch ? qMatch[2] : null,
-    count: hits.length,
-  };
-}
-
-// prepNext(cwd, branch, dirty) -> a computeNext result for a prep waiting on
-// its spec, or null when there is none (or its status is "done in chat").
-function prepNext(cwd, branch, dirty) {
-  const prep = findPrepWithoutSpec(cwd, branch);
-  if (!prep) return null;
-  const more = prep.count > 1 ? ` (${prep.count} preps without a spec; newest shown)` : '';
-  if (/^ready for spec/.test(prep.status)) {
-    return {
-      next: '/flow:flow-spec',
-      why: `${prep.dir}/PREP.md is ready for spec, no spec.md yet${more}`,
-      state: { gitRepo: true, branch, dirty, source: 'prep-ready', prepDir: prep.dir },
-    };
-  }
-  if (/^interviewing/.test(prep.status)) {
-    return {
-      next: '/flow:prep',
-      why: `${prep.dir}/PREP.md: interview ${prep.asked} of ${prep.budget} answered${more}`,
-      state: { gitRepo: true, branch, dirty, source: 'prep-interviewing', prepDir: prep.dir },
-    };
-  }
-  return null;
-}
-
-// nextFromState(root, ctx): the answer derived from repo state alone — the
-// in-flight flow, a flow/* branch, or the dirty/clean fallback. Split out of
-// computeNext so a PROGRESS.md resume bullet that had to be ignored can
-// annotate this answer instead of replacing it.
-function nextFromState(root, ctx) {
-  const inFlight = flowInFlight(root);
-  if (inFlight) {
-    const r = nextForFlow(root, ctx, inFlight);
-    // A dropped flow.json key changes the answer (the branch/worktree rules
-    // never fire for it), so the drop is stated rather than left silent.
-    if (r && inFlight.ignored) r.why = r.why ? `${r.why} · ${inFlight.ignored}` : inFlight.ignored;
-    if (r) return r;
-  } else if (/^flow\//.test(ctx.branch)) {
-    return nextForFlowBranch(root, ctx);
-  }
-
-  // A prep waiting on its spec outranks only the generic fallbacks below —
-  // never a live flow, a mismatch, or a shipped branch.
-  if (!inFlight) {
-    const prep = prepNext(root, ctx.branch, ctx.dirty);
-    if (prep) return prep;
-  }
-
-  const base = { gitRepo: true, root, branch: ctx.branch, dirty: ctx.dirty };
-  if (ctx.dirty) {
-    return { next: '/wrap', why: 'uncommitted changes; /wrap records them before you leave', state: Object.assign({ source: 'dirty-no-flow' }, base) };
-  }
-  return {
-    next: '/flow',
-    why: 'clean tree, no flow in progress; /flow starts one (or just ask for a one-sentence change)',
-    state: Object.assign({ source: 'clean-no-flow' }, base),
+    state: 'loop-active', state_no: 1, command, why: null,
+    after: null, human_gate: false, feature: null, wave: null,
+    gates: { blocked: false, lint_error: false, unreachable_done: false, scan_failed: false, consecutive_calls: 0 },
   };
 }
 
 // computeNext(cwd) -> { next, why (string|null), state }. Pure decision logic,
 // no printing — cmdNext formats it for --json or plain-text output. `next` is
 // always a runnable command or a slash command (C-D), never prose.
-function computeNext(cwd) {
+function computeNext(cwd, opts) {
   if (!isGitRepo(cwd)) {
-    return { next: 'flow init', why: `${cwd} is not a git repo`, state: { gitRepo: false, source: 'no-git-repo' } };
+    return {
+      state: 'scan-failed', state_no: 0, command: 'flow init', why: `${cwd} is not a git repo`,
+      after: null, human_gate: false, feature: null, wave: null,
+      gates: { blocked: false, lint_error: false, unreachable_done: false, scan_failed: true, consecutive_calls: 0 },
+    };
   }
-  // B21: every piece of state below is read from the repo root, not from
-  // whatever subdirectory the command happened to be run in.
+  // FU-09/L2: every predicate below is read from the repo root, so `flow next`
+  // gives the same answer at the root and in src/lib/api.
   const root = gitToplevel(cwd) || cwd;
   const ctx = { branch: gitBranch(root), dirty: gitDirty(root) };
 
-  // K-L: an active loop contract wins over the PROGRESS.md resume line —
-  // one early branch, evaluated first.
+  // K-L: an active loop contract is the one thing checked before the router.
   const loopNext = computeNextLoopActive(root, ctx.branch, ctx.dirty);
   if (loopNext) return loopNext;
 
-  const progressPath = path.join(root, 'PROGRESS.md');
-  const resume = fs.existsSync(progressPath) ? readProgressResume(progressPath, root) : null;
-  if (resume && resume.command) {
-    return {
-      next: resume.command,
-      why: `PROGRESS.md · Now: ${resume.bullet}`,
-      state: { gitRepo: true, root, branch: ctx.branch, dirty: ctx.dirty, source: 'progress-resume' },
-    };
-  }
-
-  const result = nextFromState(root, ctx);
-  // A resume bullet the user wrote is never dropped in silence: say which
-  // span was ignored and why, so a wrong rejection is visible and fixable.
-  if (resume && resume.ignored) {
-    const drop = `PROGRESS.md's resume bullet names \`${resume.ignored.span}\`, which ${resume.ignored.reason} — ignored`;
-    result.why = result.why ? `${result.why} · ${drop}` : drop;
-    result.state = Object.assign({}, result.state, { resumeIgnored: resume.ignored });
-  }
-  return result;
+  // PROGRESS.md is NEVER consulted here. A stale `## Now` bullet used to
+  // return before any flow state was read and silently outrank the whole
+  // router (research 11 §5, L5); the router owns the answer now.
+  return require('./lib/router.js').routeWithCount(root, ctx, opts || {});
 }
 
 // flow off / flow on — a .claude/flow.off marker in <dir>. Every judging hook
@@ -3290,24 +2834,261 @@ function cmdOffOn(cmd, argv) {
 
 function cmdNext(argv) {
   const jsonMode = argv.includes('--json');
-  const result = computeNext(process.cwd());
+  const result = computeNext(process.cwd(), {
+    force: argv.includes('--force'),
+    // The /flow:next skill's own read is `flow next --json`, so --json MUST
+    // count or row 1c can never fire for the thing it exists to bound. The
+    // read-only door is --peek, for session-context.sh, a status line or any
+    // other passive observer (flow doctor asks in-process with count:false).
+    count: !argv.includes('--peek'),
+  });
   if (jsonMode) {
-    stdout.write(JSON.stringify({ next: result.next, why: result.why || '', state: result.state }, null, 2) + '\n');
+    stdout.write(JSON.stringify({
+      state: result.state,
+      state_no: result.state_no,
+      command: result.command,
+      why: result.why || '',
+      after: result.after,
+      human_gate: !!result.human_gate,
+      gates: result.gates,
+      feature: result.feature,
+      wave: result.wave,
+    }, null, 2) + '\n');
     return 0;
   }
-  // Plain mode is read by session-context (G6) as a 2-line block, so it emits
-  // exactly one line per field no matter what any file on disk contains: a
-  // stray newline here would forge a third line the model reads as a `Next:`.
-  stdout.write(`Next: ${oneLine(result.next)}\n`);
+  // Plain mode is read by session-context (G6) line by line, so every field
+  // emits exactly one line no matter what any file on disk contains: a stray
+  // newline here would forge a `Next:` the model then obeys.
+  stdout.write(`Next: ${oneLine(result.command)}\n`);
   if (result.why) stdout.write(`Why: ${oneLine(result.why)}\n`);
+  if (result.after) stdout.write(`Then: ${oneLine(result.after)}\n`);
   return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// statusline — spec 008-flow-statusline: a cached, read-only mirror of
+// `flow next --peek`, rendered for Claude Code's statusLine hook. The render
+// path (no flags) NEVER calls the router and NEVER waits on the refresh
+// child — see design.md §7. `lib/statusline.js` owns every render function;
+// this section only wires stdin, the cache path, the refresh child and the
+// pid lock around it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function statuslineRepoRoot(cwd) {
+  return gitToplevel(cwd) || cwd;
+}
+
+// Only --no-color and NO_COLOR turn colour off. Deliberately NOT gated on
+// isTTY: Claude Code always pipes a status line command's stdout, so a tty
+// test would mean the FR-04 human-gate colour never once renders where it
+// matters. The harness renders the ANSI it is handed.
+function statuslineColorEnabled(argv) {
+  if (argv.includes('--no-color')) return false;
+  if (process.env.NO_COLOR) return false;
+  return true;
+}
+
+function statuslineReadStdin() {
+  try {
+    return fs.readFileSync(0, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+// Detached, stdio-ignored, unref'd: a render that spawns this must be free
+// to exit 0 immediately — the child never holds the render's event loop open
+// and its own exit or failure is never observed by anyone.
+function statuslineSpawnRefresh(repoRoot) {
+  try {
+    const child = spawn(process.execPath, [CLI_REAL, 'statusline', '--refresh'], {
+      cwd: repoRoot,
+      env: process.env,
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  } catch {
+    // a failed spawn just leaves the cache as it was — never blocks a render
+  }
+}
+
+function cmdStatuslineRender(argv) {
+  const raw = statuslineReadStdin();
+  let input = null;
+  try {
+    input = JSON.parse(raw);
+  } catch {
+    input = null;
+  }
+  const statusline = require('./lib/statusline.js');
+  const repoRoot = statuslineRepoRoot(process.cwd());
+  const entry = statusline.readCache(repoRoot);
+  const line = statusline.renderLine(input, entry, { color: statuslineColorEnabled(argv) });
+  stdout.write(`${line}\n`);
+  const age = entry ? Date.now() - entry.at : Infinity;
+  if (age >= statusline.CACHE_FRESH_MS) statuslineSpawnRefresh(repoRoot);
+  return 0;
+}
+
+const STATUSLINE_LOCK_MAX_AGE_MS = 60000;
+
+function statuslineLockHolderAlive(raw) {
+  const pid = parseInt((raw || '').trim(), 10);
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function statuslineTryTakeLock(lockPath) {
+  try {
+    const fd = fs.openSync(lockPath, 'wx');
+    fs.writeFileSync(fd, String(process.pid));
+    fs.closeSync(fd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// A lock is stale — and gets cleared, once, then retaken — when its pid is
+// no longer alive or it is older than the cap (design.md §5: "a stale lock
+// is a hazard, not a theoretical one: the refresh child can be killed with
+// the terminal").
+function statuslineLockIsStale(lockPath) {
+  try {
+    const ageMs = Date.now() - fs.statSync(lockPath).mtimeMs;
+    return ageMs > STATUSLINE_LOCK_MAX_AGE_MS || !statuslineLockHolderAlive(safeRead(lockPath));
+  } catch {
+    return true;
+  }
+}
+
+function statuslineReleaseLock(lockPath) {
+  try {
+    fs.unlinkSync(lockPath);
+  } catch {
+    // already gone — releasing an absent lock is not an error
+  }
+}
+
+// FR-15: ten renders firing back to back must produce at most one live
+// refresh. `wx` is the lock — a second refresh that loses the race sees
+// EEXIST and, if the holder is a live pid under the age cap, backs off
+// silently rather than running a second router.
+function statuslineAcquireLock(lockPath) {
+  try {
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  } catch {
+    return false;
+  }
+  if (statuslineTryTakeLock(lockPath)) return true;
+  if (!statuslineLockIsStale(lockPath)) return false;
+  statuslineReleaseLock(lockPath);
+  return statuslineTryTakeLock(lockPath);
+}
+
+function cmdStatuslineRefresh() {
+  const statusline = require('./lib/statusline.js');
+  const repoRoot = statuslineRepoRoot(process.cwd());
+  const lockPath = `${statusline.cachePath(repoRoot)}.lock`;
+  if (!statuslineAcquireLock(lockPath)) return 0;
+  try {
+    // Non-goals §2.2 / §1.2 "hidden stakeholders": a repo with no .specs/ at
+    // all must stay silent about flow, always — router.js's own `no-project`
+    // state does not distinguish "no .specs/ dir" from "empty .specs/ dir"
+    // (featureDirs treats ENOENT as zero dirs), so that distinction is made
+    // here, before the cache is ever written, rather than in the render.
+    if (!isDir(path.join(repoRoot, '.specs'))) return 0;
+    let result = null;
+    try {
+      result = computeNext(repoRoot, { count: false });
+    } catch {
+      result = null;
+    }
+    if (result) statusline.writeCache(repoRoot, result);
+  } finally {
+    statuslineReleaseLock(lockPath);
+  }
+  return 0;
+}
+
+function cmdStatuslinePrint() {
+  const statusline = require('./lib/statusline.js');
+  stdout.write(`${JSON.stringify(statusline.SETTINGS_SNIPPET, null, 2)}\n`);
+  return 0;
+}
+
+// planStatuslineInstall mirrors planSettingsDeny's shape one level up (read,
+// parse, refuse on an existing key, merge otherwise) but deliberately shares
+// no code with it (design.md §6): planSettingsDeny writes the project's
+// .claude/settings.json and merges permissions.deny; this writes the user's
+// global settings.json and merges statusLine, and their refusal rules
+// differ — an existing statusLine key refuses (--force overrides), while an
+// existing permissions key always refuses, unconditionally.
+function planStatuslineInstall(settingsPath, force, snippet) {
+  const raw = safeRead(settingsPath);
+  if (raw === null) {
+    return { willWrite: true, backupOf: null, content: `${JSON.stringify({ statusLine: snippet }, null, 2)}\n` };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return { willWrite: false, error: `${settingsPath} does not parse (${e.message})` };
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { willWrite: false, error: `${settingsPath} is not a JSON object` };
+  }
+  if (Object.prototype.hasOwnProperty.call(parsed, 'statusLine') && !force) {
+    return { willWrite: false, existing: parsed.statusLine };
+  }
+  parsed.statusLine = snippet;
+  return { willWrite: true, backupOf: raw, content: `${JSON.stringify(parsed, null, 2)}\n` };
+}
+
+function cmdStatuslineInstall(argv) {
+  const statusline = require('./lib/statusline.js');
+  const settingsPath = path.join(HOME, '.claude', 'settings.json');
+  const plan = planStatuslineInstall(settingsPath, argv.includes('--force'), statusline.SETTINGS_SNIPPET);
+  if (plan.error) {
+    stderr.write(`${C.error}flow statusline --install: ${plan.error} — nothing written${C.reset}\n`);
+    stdout.write(`Paste this by hand under "statusLine" in ${settingsPath}:\n${JSON.stringify(statusline.SETTINGS_SNIPPET, null, 2)}\n`);
+    return 1;
+  }
+  if (!plan.willWrite) {
+    stderr.write(
+      `${C.error}flow statusline --install: ${settingsPath} already has a statusLine (${JSON.stringify(plan.existing)}) — pass --force to replace it${C.reset}\n`
+    );
+    return 1;
+  }
+  let backup = null;
+  if (plan.backupOf !== null) {
+    backup = `${settingsPath}.pre-flow-statusline.${Math.floor(Date.now() / 1000)}`;
+    fs.writeFileSync(backup, plan.backupOf);
+  }
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, plan.content);
+  stdout.write(`flow statusline: installed into ${settingsPath}${backup ? ` (backup: ${backup})` : ' (created)'}\n`);
+  return 0;
+}
+
+function cmdStatusline(argv) {
+  if (argv.includes('--refresh')) return cmdStatuslineRefresh();
+  if (argv.includes('--install')) return cmdStatuslineInstall(argv);
+  if (argv.includes('--print')) return cmdStatuslinePrint();
+  return cmdStatuslineRender(argv);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'loop', 'eval', 'tutorial', 'off', 'on'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3390,10 +3171,15 @@ function main() {
   else if (cmd === 'check') process.exit(cmdCheck(rest));
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
   else if (cmd === 'next') process.exit(cmdNext(rest));
+  else if (cmd === 'lint') process.exit(require('./lib/lint.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
+  else if (cmd === 'tick') process.exit(require('./lib/tick.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
+  else if (cmd === 'use') process.exit(require('./lib/use.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }));
+  else if (cmd === 'publish') process.exit(require('./lib/publish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'eval') process.exit(require('./lib/eval.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'tutorial') cmdTutorial(rest);
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
+  else if (cmd === 'statusline') process.exit(cmdStatusline(rest));
   else {
     const near = nearestCommand(cmd);
     stderr.write(

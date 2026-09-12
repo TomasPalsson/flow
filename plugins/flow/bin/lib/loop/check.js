@@ -26,7 +26,7 @@ function cmdCheck(argv, toplevel, env) {
   }
   const front = contract.front;
   const verify = runVerify(toplevel, front.verify, toInt(front.verify_timeout) || 600, env);
-  const tamper = tamperCheck(toplevel, front);
+  const tamper = tamperCheck(toplevel, front, env);
   const verdict = verdictOf(verify.rc, tamper);
   const tail = verify.output.split('\n').slice(-40).join('\n');
 

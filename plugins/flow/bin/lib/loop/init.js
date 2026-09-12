@@ -7,7 +7,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readContract, writeContract } = require('./contract.js');
 const { runVerify } = require('./verify.js');
-const { countTestFiles } = require('./tamper.js');
+const { countTestFiles, targetSha, envSha } = require('./tamper.js');
 const { appendLog } = require('./log.js');
 const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
 const { cmdStop } = require('./status.js');
@@ -42,6 +42,7 @@ function parseInitArgs(argv) {
     goal: null, verify: null, shape: 'session', promptFile: null, prompt: null, session: '',
     maxIterations: null, maxMinutes: null, maxUsd: 0, stallAfter: 3, verifyTimeout: 600,
     permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
+    target: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -61,6 +62,7 @@ function parseInitArgs(argv) {
     else if (a === '--allow-green') out.allowGreen = true;
     else if (a === '--force') out.force = true;
     else if (a === '--test-files') out.testFiles.push(argv[++i]);
+    else if (a === '--target') out.target = argv[++i];
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
   }
   if (out.maxIterations === null) out.maxIterations = out.shape === 'fresh' ? 30 : 8;
@@ -89,8 +91,41 @@ function protectedFilesFront(toplevel, testFiles) {
   return [...new Set(paths)].join(',');
 }
 
-function buildInitFront(toplevel, args, base) {
+// findVerifyScript — every whitespace-separated token in `verify` that
+// resolves (relative to toplevel) to an existing file, space-joined; '' if
+// none does. (F2: a wrapper like "cat README.md && sh tests/ui/verify.sh"
+// must freeze both files, not just the first token that happens to stat.)
+function findVerifyScript(toplevel, verify) {
+  const found = [];
+  for (const raw of String(verify || '').split(/\s+/)) {
+    const tok = raw.replace(/^['"]|['"]$/g, '');
+    if (!tok || tok.startsWith('-')) continue;
+    try {
+      if (fs.statSync(path.join(toplevel, tok)).isFile()) found.push(tok);
+    } catch { /* not a file */ }
+  }
+  return found.join(' ');
+}
+
+function repoRelative(toplevel, target) {
+  if (!target) return '';
+  const abs = path.isAbsolute(target) ? target : path.join(toplevel, target);
+  return path.relative(toplevel, abs);
+}
+
+function uiScorePath() {
+  const p = path.join(__dirname, '..', '..', '..', 'scripts', 'ui-score');
+  return fs.existsSync(p) ? p : '';
+}
+
+function buildInitFront(toplevel, args, base, env) {
   const now = new Date().toISOString();
+  const target = repoRelative(toplevel, args.target);
+  // targetScript is an absolute path into the flow plugin's own scripts/;
+  // scope it to the --target case or a plugin update marks every unrelated
+  // loop on the machine suspect the next time the plugin changes.
+  const targetScript = args.target ? uiScorePath() : '';
+  const verifyScript = findVerifyScript(toplevel, args.verify);
   return {
     version: '1',
     slug: slugify(args.goal),
@@ -119,6 +154,15 @@ function buildInitFront(toplevel, args, base) {
     // isTestPath heuristic never matches, without weakening the auto-detected
     // count check. FR-008 wires plugins/flow/evals in by default.
     protected_files: protectedFilesFront(toplevel, args.testFiles),
+    target,
+    target_script: targetScript,
+    verify_script: verifyScript,
+    target_sha: targetSha(toplevel, target, [targetScript, ...verifyScript.split(/\s+/)]),
+    // Scoped to --target (a UI loop) the same way target_script is: freezes
+    // ui-verify.sh's boot config (SERVE/PORT/HEALTH/BOOT/BASE_URL/
+    // FLOW_UI_SCORE) so a later run can't redirect the verifier at a
+    // different process by overriding those env vars (see tamper.js).
+    env_sha: target ? envSha(env) : '',
     started_at: now,
     finished_at: '',
     cost_usd: '0',
@@ -174,7 +218,7 @@ function cmdInit(argv, toplevel, env) {
   }
 
   const base = (spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout || '').trim();
-  const front = buildInitFront(toplevel, args, base);
+  const front = buildInitFront(toplevel, args, base, env);
   const body = initBody(args, base);
   writeContract(toplevel, front, body);
   ensureLoopGitignore(toplevel);
@@ -191,4 +235,4 @@ function cmdInit(argv, toplevel, env) {
   return 0;
 }
 
-module.exports = { cmdInit };
+module.exports = { cmdInit, findVerifyScript };

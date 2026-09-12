@@ -17,7 +17,7 @@ Run `${CLAUDE_PLUGIN_ROOT}/skills/shared/scripts/detect-project` first — it de
 
 Output includes: `pkg_mgr`, `test_cmd`, `e2e_cmd`, `lint_cmd`, `format_cmd`, `typecheck_cmd`, `dev_cmd`, `is_monorepo`, `packages`, `framework`, `language`, `project_skills`, and `workspace_commands` (for monorepos). Use `--dir <path>` if not in the project root.
 
-Parse the JSON output and populate the state file variables directly. **If the script is not available**, fall back to manual detection below.
+Parse the JSON output and use the values directly. **If the script is not available**, fall back to manual detection below.
 
 ## Manual Fallback — Step 1: Package Manager & Commands
 
@@ -35,7 +35,6 @@ If a command can't be detected, leave it empty — don't guess.
 
 - **NEVER hardcode a fallback package manager** — if no lock file is found, leave PKG_MGR empty; guessing causes wrong commands downstream
 - **NEVER run commands with side effects during detection** — no `npm install`, `cargo build`, `pip install`; read config files only
-- **NEVER overwrite sections of `workflow-state.local.md` other than `## Project Environment`** — the calling workflow owns the rest of the file
 - **NEVER infer a package manager from directory names** — only lock files are reliable indicators
 
 ## Step 2: Project Structure
@@ -58,18 +57,18 @@ Check for `.claude/skills/` in the project. If present, list available skills �
 
 ## Output
 
-The calling workflow (feature/fix) creates `.claude/workflow-state.local.md` and is responsible for writing the detected values into its `## Project Environment` section. After detection, return the values in the format below so the calling workflow can populate the state file.
+Detection returns values to the caller in the format below — it does not write them anywhere; what the caller does with them (hold in context, write to its own file) is the caller's decision.
 
-**If the state file already exists** (resume scenario): Read the existing `## Project Environment` section. If it is already populated with real values (not placeholders), skip detection entirely — use the cached values. Only re-detect if the caller explicitly requests it.
+**If the caller already holds cached values from an earlier detection this session** (resume scenario): reuse them and skip detection entirely. Only re-detect if the caller explicitly requests it.
 
-Variables to persist:
+Variables returned:
 
 ```
 PKG_MGR, TEST_CMD, E2E_CMD, LINT_CMD, FORMAT_CMD, TYPECHECK_CMD, DEV_CMD
 PROJECT_SKILLS[], IS_MONOREPO, PACKAGES[]
 ```
 
-Format in the state file:
+Return format:
 
 ```markdown
 ## Project Environment
@@ -84,3 +83,5 @@ Format in the state file:
 - PACKAGES: [comma-separated list or ""]
 - PROJECT_SKILLS: [comma-separated list or ""]
 ```
+
+These are markdown fields, not shell variables — a caller that pastes `"$TEST_CMD"` into a shell command gets an empty string; substitute the literal command text instead.

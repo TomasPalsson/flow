@@ -12,12 +12,9 @@ REPO="${FLOW_REPO:-$HOME/Desktop/Projects/flow}"
 MKT_JSON="$REPO/.claude-plugin/marketplace.json"
 
 # bundle<space>skill pairs, per C21's target layout.
-_MKT_SKILL_LIST='flow flow
-flow flow-spec
+_MKT_SKILL_LIST='flow next
+flow spec
 flow flow-deepen
-flow flow-handoff
-flow flow-to-issues
-flow feature
 flow spec-judge
 flow shared
 flow qa
@@ -157,10 +154,13 @@ t_mkt_no_skill_in_two_bundles() {
 	assert_eq "$dup" "" "t_mkt_no_skill_in_two_bundles no-duplicate-skill-names"
 }
 
-t_mkt_harness_plugin_has_flow_shared_feature() {
-	assert_file_exists "$REPO/plugins/flow/skills/flow" "t_mkt_harness_plugin_has_flow_shared_feature flow"
-	assert_file_exists "$REPO/plugins/flow/skills/shared" "t_mkt_harness_plugin_has_flow_shared_feature shared"
-	assert_file_exists "$REPO/plugins/flow/skills/feature" "t_mkt_harness_plugin_has_flow_shared_feature feature"
+# Spec 004 deleted skills/feature (its execution-prompt.md moved into
+# skills/next/); the third dir this pins is now skills/spec, the other half of
+# the two-command surface. Same test, retargeted, not weakened.
+t_mkt_harness_plugin_has_next_shared_spec() {
+	assert_file_exists "$REPO/plugins/flow/skills/next" "t_mkt_harness_plugin_has_next_shared_spec next"
+	assert_file_exists "$REPO/plugins/flow/skills/shared" "t_mkt_harness_plugin_has_next_shared_spec shared"
+	assert_file_exists "$REPO/plugins/flow/skills/spec" "t_mkt_harness_plugin_has_next_shared_spec spec"
 }
 
 t_mkt_claude_plugin_validate_marketplace() {

@@ -27,7 +27,7 @@
 - investment
 - portfolio
 
-## harness (30 skills)
+## harness (27 skills)
 
 - audit
 - better-plan
@@ -35,18 +35,14 @@
 - claude-improver
 - claude-md
 - develop-idea
-- feature
 - find-skills
 - fix
-- flow
 - flow-deepen
-- flow-handoff
-- flow-spec
-- flow-to-issues
 - grill-me
 - grill-with-docs
 - lesson
 - loop
+- next
 - overkill
 - prompt-engineer
 - pr-reviewer
@@ -57,6 +53,7 @@
 - skill-forge
 - skill-improver
 - skill-judge
+- spec
 - spec-judge
 - ultracode
 

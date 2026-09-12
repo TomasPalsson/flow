@@ -29,7 +29,7 @@ A description must answer 3 questions:
 
 **Pattern 1 — Scenario list:**
 ```yaml
-description: "... Use when: (1) user asks to add new component, (2) user says /feature, (3) user wants to implement new behavior, (4) user mentions TDD, (5) resuming feature branch."
+description: "... Use when: (1) user asks to add new component, (2) user says /flow:next, (3) user wants to implement new behavior, (4) user mentions TDD, (5) resuming feature branch."
 ```
 
 **Pattern 2 — Keyword cluster:**

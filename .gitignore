@@ -2,4 +2,8 @@ node_modules/
 __pycache__/
 .DS_Store
 plugins/harness
+.specs/*/review/
+.specs/.next-call-count
+.claude/worktrees/
+.claude/*.local.md
 **/evals/results/

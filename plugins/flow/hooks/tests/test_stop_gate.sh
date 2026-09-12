@@ -11,8 +11,29 @@ set -u
 # _stop_shared — the repo's real shared gate scripts (check-all/test-changed).
 _stop_shared() { (cd "$SCAN_DIR/../skills/shared/scripts" && pwd -P); }
 
-# _stop_scripts — the repo's real scripts/ dir (plan-lint).
+# _stop_scripts — the repo's real scripts/ dir (flow-lint).
 _stop_scripts() { (cd "$SCAN_DIR/../scripts" && pwd -P); }
+
+# _stop_tasks <repo> [extra task line] — the ACTIVE feature (spec 004 K-A):
+# .specs/001-x/TASKS.md in the K-B grammar, plus the .specs/.current pointer.
+# Base: is the repo's real HEAD so flow-lint's git joins resolve.
+_stop_tasks() {
+	local repo=$1 base
+	base=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null)
+	mkdir -p "$repo/.specs/001-x"
+	cat >"$repo/.specs/001-x/TASKS.md" <<EOF
+# Tasks — X
+Spec: spec.md · Design: none · Base: $base · Route: oneshot · Test: \`true\`
+Approved: 2026-01-01 by user
+
+## Phase 1 — Thing
+Goal: the thing works.
+Independent test: \`true\`
+- [ ] T001 do the thing — files: src/a.ts — verify: \`true\`
+${2:-}
+EOF
+	printf '001-x\n' >"$repo/.specs/.current"
+}
 
 # _stop_stamp <sid> <repo> — start the turn: a stamp older than everything in
 # the fixture, so every file written by the test counts as changed this turn.
@@ -196,74 +217,165 @@ t_stop_r3_worktree_git_file_is_not_a_change() {
 }
 
 # --- R4: docs and config only ---------------------------------------------
-t_stop_r4_docs_only_turn_does_not_lint_a_stale_plan() {
-	# A broken plan left behind by another branch is not in Δ, so plan-lint
-	# never runs on it (FU-18) and a README edit ends the turn in silence.
+# --- R4: docs and config only ---------------------------------------------
+# K-E(6): flow-lint is paid for only when the ACTIVE TASKS.md is in this turn's
+# change set. A broken TASKS.md left behind by another turn is not linted, and a
+# README edit ends the turn in silence.
+t_stop_r4_docs_only_turn_does_not_lint_a_stale_tasks_file() {
 	local repo sid
 	repo=$(tmp_repo)
 	sid="stop-r4-$$"
-	mkdir -p "$repo/.claude"
-	printf '# not a real plan\n' >"$repo/.claude/feature-plan.local.md"
+	_stop_tasks "$repo" "- [ ] T002 no verify here — files: src/b.ts"
 	_stop_stamp "$sid" "$repo"
-	touch -t 202001010000 "$repo/.claude/feature-plan.local.md"
+	touch -t 202001010000 "$repo/.specs/001-x/TASKS.md" "$repo/.specs/.current"
 	printf 'more docs\n' >>"$repo/README.md"
 	_stop_run "$sid" "$repo"
-	assert_rc 0 "t_stop_r4_docs_only_turn_does_not_lint_a_stale_plan rc"
-	assert_eq "$OUT" "" "t_stop_r4_docs_only_turn_does_not_lint_a_stale_plan silent"
+	assert_rc 0 "t_stop_r4_docs_only_turn_does_not_lint_a_stale_tasks_file rc"
+	assert_eq "$OUT" "" "t_stop_r4_docs_only_turn_does_not_lint_a_stale_tasks_file silent"
 	_stop_forget "$sid"
 	rm -rf "$repo"
 }
 
-t_stop_r4_active_plan_in_delta_is_linted() {
-	local repo sid
+t_stop_r4_active_tasks_file_in_delta_is_linted() {
+	local repo sid repro
 	repo=$(tmp_repo)
 	sid="stop-r4p-$$"
-	mkdir -p "$repo/.claude"
 	_stop_stamp "$sid" "$repo"
-	printf '# not a real plan\n' >"$repo/.claude/feature-plan.local.md"
+	_stop_tasks "$repo" "- [ ] T002 no verify here — files: src/b.ts"
 	_stop_run "$sid" "$repo"
-	assert_rc 0 "t_stop_r4_active_plan_in_delta_is_linted rc"
-	assert_contains "$OUT" '"decision":"block"' "t_stop_r4_active_plan_in_delta_is_linted blocks"
-	assert_contains "$OUT" "plan-lint" "t_stop_r4_active_plan_in_delta_is_linted names-plan-lint"
-	assert_contains "$OUT" "To reproduce:" "t_stop_r4_active_plan_in_delta_is_linted reproduce-line"
-	assert_contains "$OUT" "CC_NO_STOP_GATE=1" "t_stop_r4_active_plan_in_delta_is_linted names-its-escape-hatch"
-	# The reproduce line has to be runnable AS PRINTED: plan-lint ships in the
-	# plugin's scripts/ dir and is on no PATH, so a bare `plan-lint <plan>`
+	assert_rc 0 "t_stop_r4_active_tasks_file_in_delta_is_linted rc"
+	assert_contains "$OUT" '"decision":"block"' "t_stop_r4_active_tasks_file_in_delta_is_linted blocks"
+	assert_contains "$OUT" "flow-lint" "t_stop_r4_active_tasks_file_in_delta_is_linted names-flow-lint"
+	assert_contains "$OUT" "To reproduce:" "t_stop_r4_active_tasks_file_in_delta_is_linted reproduce-line"
+	assert_contains "$OUT" "CC_NO_STOP_GATE=1" "t_stop_r4_active_tasks_file_in_delta_is_linted names-its-escape-hatch"
+	# The reproduce line has to be runnable AS PRINTED: flow-lint ships in the
+	# plugin's scripts/ dir and is on no PATH, so a bare `flow-lint <file>`
 	# would exit 127 instead of reproducing the failure it claims to.
-	local repro
 	repro=$(printf '%s' "$OUT" | jq -r '.reason' 2>/dev/null | grep '^To reproduce: ')
 	run_cmd bash -c "${repro#To reproduce: }"
-	assert_rc 1 "t_stop_r4_active_plan_in_delta_is_linted reproduce-command-reproduces-the-failure"
-	assert_contains "$OUT" "MISSING:" "t_stop_r4_active_plan_in_delta_is_linted reproduce-command-prints-the-same-complaints"
+	assert_rc 1 "t_stop_r4_active_tasks_file_in_delta_is_linted reproduce-command-reproduces-the-failure"
+	assert_contains "$OUT" "T002 has no verify:" "t_stop_r4_active_tasks_file_in_delta_is_linted reproduce-command-prints-the-same-complaints"
 	# The hatches this block names are RUN, not grepped: the round-1 version of
 	# this test asserted the string "CC_NO_SPEC_GATE=1" while that variable
 	# escaped nothing here, so the block told the reader a falsehood it passed.
 	_stop_run "$sid" "$repo" CC_NO_STOP_GATE=1
-	assert_rc 0 "t_stop_r4_active_plan_in_delta_is_linted env-hatch-rc"
-	assert_not_contains "$OUT" '"decision"' "t_stop_r4_active_plan_in_delta_is_linted env-hatch-really-escapes"
+	assert_rc 0 "t_stop_r4_active_tasks_file_in_delta_is_linted env-hatch-rc"
+	assert_not_contains "$OUT" '"decision"' "t_stop_r4_active_tasks_file_in_delta_is_linted env-hatch-really-escapes"
+	mkdir -p "$repo/.claude"
 	printf '{"stopGate": false}\n' >"$repo/.claude/flow.config.json"
 	touch -t 202001010000 "$repo/.claude/flow.config.json"
 	_stop_run "$sid" "$repo"
-	assert_not_contains "$OUT" '"decision"' "t_stop_r4_active_plan_in_delta_is_linted config-hatch-really-escapes"
-	assert_not_contains "$OUT" "CC_NO_SPEC_GATE" "t_stop_r4_active_plan_in_delta_is_linted claims-no-hatch-it-lacks"
+	assert_not_contains "$OUT" '"decision"' "t_stop_r4_active_tasks_file_in_delta_is_linted config-hatch-really-escapes"
+	assert_not_contains "$OUT" "CC_NO_SPEC_GATE" "t_stop_r4_active_tasks_file_in_delta_is_linted claims-no-hatch-it-lacks"
 	_stop_forget "$sid"
 	rm -rf "$repo"
 }
 
-t_stop_r4_plan_pointer_from_flow_json_is_the_active_plan() {
-	# FU-18: .claude/flow.json "plan" moves the ACTIVE plan. The pointed-at
-	# file is linted; the default path, broken and untouched, is not.
-	local repo sid
+t_stop_r4_dot_current_is_the_active_feature() {
+	# K-E(3)/(5): `.specs/.current` names the ACTIVE feature. The pointed-at
+	# TASKS.md is linted; a second, broken feature on disk is not.
+	local repo sid base
 	repo=$(tmp_repo)
 	sid="stop-r4j-$$"
-	mkdir -p "$repo/.claude"
-	printf '{"plan":"slice.local.md"}\n' >"$repo/.claude/flow.json"
-	printf '# also not a plan\n' >"$repo/.claude/feature-plan.local.md"
+	base=$(git -C "$repo" rev-parse --short HEAD)
+	mkdir -p "$repo/.specs/002-y"
+	{
+		printf '# Tasks — Y\n'
+		printf 'Spec: spec.md · Design: none · Base: %s · Route: oneshot · Test: `true`\n\n' "$base"
+		printf '## Phase 1 — Y\nGoal: y.\nIndependent test: `true`\n'
+		printf -- '- [ ] T009 broken, no verify — files: src/y.ts\n'
+	} >"$repo/.specs/002-y/TASKS.md"
 	_stop_stamp "$sid" "$repo"
-	printf '# not a real plan either\n' >"$repo/.claude/slice.local.md"
+	_stop_tasks "$repo" "- [ ] T002 also no verify — files: src/b.ts"
 	_stop_run "$sid" "$repo"
-	assert_rc 0 "t_stop_r4_plan_pointer_from_flow_json_is_the_active_plan rc"
-	assert_contains "$OUT" "plan-lint (.claude/slice.local.md)" "t_stop_r4_plan_pointer_from_flow_json_is_the_active_plan lints-the-pointer"
+	assert_rc 0 "t_stop_r4_dot_current_is_the_active_feature rc"
+	assert_contains "$OUT" "flow-lint (.specs/001-x/TASKS.md)" "t_stop_r4_dot_current_is_the_active_feature lints-the-pointed-at-feature"
+	assert_not_contains "$OUT" "T009" "t_stop_r4_dot_current_is_the_active_feature ignores-the-other-feature"
+	_stop_forget "$sid"
+	rm -rf "$repo"
+}
+
+# --- K-E(1): a sha-less [x] is not a tick ---------------------------------
+t_stop_ke_sha_less_tick_blocks_the_turn() {
+	local repo sid
+	repo=$(tmp_repo)
+	sid="stop-ke1-$$"
+	_stop_stamp "$sid" "$repo"
+	_stop_tasks "$repo" "- [x] T002 claimed done — files: src/b.ts — verify: \`true\`"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_ke_sha_less_tick_blocks_the_turn rc"
+	assert_contains "$OUT" '"decision":"block"' "t_stop_ke_sha_less_tick_blocks_the_turn blocks"
+	assert_contains "$OUT" "T002 as [x] with no" "t_stop_ke_sha_less_tick_blocks_the_turn names-the-id"
+	assert_contains "$OUT" "fix: run flow tick T002" "t_stop_ke_sha_less_tick_blocks_the_turn names-the-fix"
+	# It really is escapable the way it says it is.
+	_stop_run "$sid" "$repo" CC_NO_STOP_GATE=1
+	assert_not_contains "$OUT" '"decision"' "t_stop_ke_sha_less_tick_blocks_the_turn env-hatch-really-escapes"
+	_stop_forget "$sid"
+	rm -rf "$repo"
+}
+
+t_stop_ke_tick_with_a_sha_does_not_block() {
+	local repo sid base sha
+	repo=$(tmp_repo)
+	sid="stop-ke2-$$"
+	base=$(git -C "$repo" rev-parse --short HEAD)
+	mkdir -p "$repo/src"
+	printf 'export const b = 1;\n' >"$repo/src/b.ts"
+	git -C "$repo" add src/b.ts >/dev/null 2>&1
+	git -C "$repo" commit -q -m "b" >/dev/null 2>&1
+	sha=$(git -C "$repo" rev-parse --short HEAD)
+	_stop_stamp "$sid" "$repo"
+	mkdir -p "$repo/.specs/001-x"
+	cat >"$repo/.specs/001-x/TASKS.md" <<EOF
+# Tasks — X
+Spec: spec.md · Design: none · Base: $base · Route: oneshot · Test: \`true\`
+Approved: 2026-01-01 by user
+
+## Phase 1 — Thing
+Goal: the thing works.
+Independent test: \`true\`
+- [x] T001 really done — files: src/b.ts — verify: \`true\` — done: $sha
+EOF
+	printf '001-x\n' >"$repo/.specs/.current"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_ke_tick_with_a_sha_does_not_block rc"
+	assert_not_contains "$OUT" '"decision"' "t_stop_ke_tick_with_a_sha_does_not_block no-block"
+	_stop_forget "$sid"
+	rm -rf "$repo"
+}
+
+# A fenced grammar example inside TASKS.md is an example, never a predicate:
+# the template that teaches the line format must not block every turn.
+t_stop_ke_sha_less_tick_inside_a_fence_is_not_a_tick() {
+	local repo sid
+	repo=$(tmp_repo)
+	sid="stop-ke3-$$"
+	_stop_stamp "$sid" "$repo"
+	_stop_tasks "$repo"
+	{
+		printf '\n```\n'
+		printf -- '- [x] T099 an example of the grammar — files: x — verify: `true`\n'
+		printf '```\n'
+	} >>"$repo/.specs/001-x/TASKS.md"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_ke_sha_less_tick_inside_a_fence_is_not_a_tick rc"
+	assert_not_contains "$OUT" "T099" "t_stop_ke_sha_less_tick_inside_a_fence_is_not_a_tick no-block"
+	_stop_forget "$sid"
+	rm -rf "$repo"
+}
+
+# flow off is still the master switch: the K-E rows are judging hooks too.
+t_stop_ke_flow_off_silences_the_sha_less_tick() {
+	local repo sid
+	repo=$(tmp_repo)
+	sid="stop-ke4-$$"
+	mkdir -p "$repo/.claude"
+	: >"$repo/.claude/flow.off"
+	_stop_stamp "$sid" "$repo"
+	_stop_tasks "$repo" "- [x] T002 claimed done — files: src/b.ts — verify: \`true\`"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_ke_flow_off_silences_the_sha_less_tick rc"
+	assert_eq "$OUT" "" "t_stop_ke_flow_off_silences_the_sha_less_tick silent"
 	_stop_forget "$sid"
 	rm -rf "$repo"
 }

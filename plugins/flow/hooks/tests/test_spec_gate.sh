@@ -5,7 +5,7 @@
 set -u
 
 # _spec_scripts_dir — real path of the repo's scripts/ dir, used as
-# CC_SCRIPTS_DIR so spec-gate.sh/stop-gate.sh find the real plan-lint.
+# CC_SCRIPTS_DIR so spec-gate.sh/stop-gate.sh find the real flow-lint.
 _spec_scripts_dir() {
 	(cd "$SCAN_DIR/../scripts" && pwd -P)
 }
@@ -30,48 +30,34 @@ _spec_forget() {
 		"${TMPDIR:-/tmp}/claude-once-$1"
 }
 
-# _spec_write_plan <path> — a minimal, C7-grammar-clean plan (no Approved
-# line).
-_spec_write_plan() {
-	mkdir -p "$(dirname "$1")"
-	cat >"$1" <<'PLANEOF'
-## Behavior Inventory
+# _spec_tasks <repo> [extra task line] — the ACTIVE feature (spec 004 K-A):
+# .specs/001-x/TASKS.md in the K-B grammar plus .specs/.current pointing at it.
+# No Approved: line. Base: is this repo's real HEAD, so flow-lint's git joins
+# have something to resolve.
+_spec_tasks() {
+	local repo=$1 base
+	base=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null)
+	mkdir -p "$repo/.specs/001-x"
+	cat >"$repo/.specs/001-x/TASKS.md" <<EOF
+# Tasks — X
+Spec: spec.md · Design: none · Base: $base · Route: oneshot · Test: \`true\`
 
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing works | Slice 1 | `test_thing` |
-
-## Slice 1 — Thing
-
-- **Files**: src/a.ts
-
-### Slice 1 — RED
-
-Write a failing test.
-
-### Slice 1 — GREEN
-
-Make it pass.
-
-### Slice 1 — REFACTOR
-
-Clean up.
-
-## Gate Phases
-
-1. Run tests.
-PLANEOF
+## Phase 1 — Thing
+Goal: the thing works.
+Independent test: \`true\`
+- [ ] T001 do the thing — files: src/a.ts — verify: \`true\`
+${2:-}
+EOF
+	printf '001-x\n' >"$repo/.specs/.current"
 }
 
-# _spec_write_approved_plan <path> — the plan above with a leading
-# "Approved: <date>" line so it passes both the C20 regex and plan-lint.
-_spec_write_approved_plan() {
-	_spec_write_plan "$1"
-	{
-		printf 'Approved: 2026-01-01 by user\n\n'
-		cat "$1"
-	} >"$1.tmp"
-	mv "$1.tmp" "$1"
+# _spec_approved_tasks <repo> [extra task line] — the same file with the
+# "Approved:" line the K-E predicate requires.
+_spec_approved_tasks() {
+	_spec_tasks "$@"
+	awk 'NR==2 { print; print "Approved: 2026-01-01 by user"; next } { print }' \
+		"$1/.specs/001-x/TASKS.md" >"$1/.specs/001-x/TASKS.md.tmp"
+	mv "$1/.specs/001-x/TASKS.md.tmp" "$1/.specs/001-x/TASKS.md"
 }
 
 # ---------------------------------------------------------------------------
@@ -131,24 +117,34 @@ t_spec_gate_flow_branch_plan_without_approved_line_denied() {
 	scripts=$(_spec_scripts_dir)
 	git -C "$repo" checkout -qb flow/x
 	mkdir -p "$repo/src"
-	_spec_write_plan "$repo/.claude/feature-plan.local.md"
+	_spec_tasks "$repo"
 	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_flow_branch_plan_without_approved_line_denied rc"
 	assert_contains "$OUT" '"permissionDecision":"deny"' "t_spec_gate_flow_branch_plan_without_approved_line_denied denied"
+	# The deny says WHICH half of the predicate failed, not just "invalid".
+	assert_contains "$OUT" "has no 'Approved: <date> by user' line" "t_spec_gate_flow_branch_plan_without_approved_line_denied names-the-missing-half"
+	assert_contains "$OUT" ".specs/001-x/TASKS.md" "t_spec_gate_flow_branch_plan_without_approved_line_denied names-the-file"
 	rm -rf "$repo"
 }
 
+# K-E(2): the predicate is "Approved: AND flow lint ok", and the deny text
+# prints the FIRST lint ERROR together with its fix: string. spec-gate used to
+# capture the linter's output into PL_OUT and never use it, so a deny told the
+# reader their plan was invalid without ever saying which rule failed.
 t_spec_gate_flow_branch_approved_line_but_lint_fails_denied() {
-	local repo scripts plan
+	local repo scripts
 	repo=$(tmp_repo)
 	scripts=$(_spec_scripts_dir)
 	git -C "$repo" checkout -qb flow/x
-	mkdir -p "$repo/src" "$repo/.claude"
-	plan="$repo/.claude/feature-plan.local.md"
-	printf 'Approved: 2026-01-01 by user\n\n# not a real plan\n' >"$plan"
+	mkdir -p "$repo/src"
+	# T002 has no verify: — an ERROR with a fix: in the K-B grammar.
+	_spec_approved_tasks "$repo" "- [ ] T002 second thing — files: src/b.ts"
 	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_flow_branch_approved_line_but_lint_fails_denied rc"
 	assert_contains "$OUT" '"permissionDecision":"deny"' "t_spec_gate_flow_branch_approved_line_but_lint_fails_denied denied"
+	assert_contains "$OUT" "does not pass flow lint" "t_spec_gate_flow_branch_approved_line_but_lint_fails_denied names-the-linter"
+	assert_contains "$OUT" "T002 has no verify:" "t_spec_gate_flow_branch_approved_line_but_lint_fails_denied prints-the-first-error"
+	assert_contains "$OUT" "fix: append" "t_spec_gate_flow_branch_approved_line_but_lint_fails_denied prints-its-fix-string"
 	rm -rf "$repo"
 }
 
@@ -158,11 +154,64 @@ t_spec_gate_flow_branch_approved_lint_clean_plan_allowed() {
 	scripts=$(_spec_scripts_dir)
 	git -C "$repo" checkout -qb flow/x
 	mkdir -p "$repo/src"
-	_spec_write_approved_plan "$repo/.claude/feature-plan.local.md"
+	_spec_approved_tasks "$repo"
 	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_flow_branch_approved_lint_clean_plan_allowed rc"
 	assert_eq "$OUT" "" "t_spec_gate_flow_branch_approved_lint_clean_plan_allowed allowed"
 	rm -rf "$repo"
+}
+
+# K-E(3)/(5): the ACTIVE feature comes from .specs/.current, not from a guess.
+# Two features on disk, both approved, one of them broken: the pointer decides
+# which one the gate judges, and switching the pointer switches the verdict.
+t_spec_gate_dot_current_selects_the_active_feature() {
+	local repo scripts base
+	repo=$(tmp_repo)
+	scripts=$(_spec_scripts_dir)
+	git -C "$repo" checkout -qb flow/x
+	mkdir -p "$repo/src" "$repo/.specs/002-y"
+	base=$(git -C "$repo" rev-parse --short HEAD)
+	_spec_approved_tasks "$repo"
+	{
+		printf '# Tasks — Y\n'
+		printf 'Spec: spec.md · Design: none · Base: %s · Route: oneshot · Test: `true`\n' "$base"
+		printf 'Approved: 2026-01-01 by user\n\n'
+		printf '## Phase 1 — Y\nGoal: y.\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 y — files: src/y.ts\n'
+	} >"$repo/.specs/002-y/TASKS.md"
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_dot_current_selects_the_active_feature pointer-at-the-clean-one-allows"
+	printf '002-y\n' >"$repo/.specs/.current"
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_spec_gate_dot_current_selects_the_active_feature pointer-at-the-broken-one-denies"
+	assert_contains "$OUT" ".specs/002-y/TASKS.md" "t_spec_gate_dot_current_selects_the_active_feature names-the-pointed-at-file"
+	rm -rf "$repo"
+}
+
+# K-E(5): with no .current, the branch resolves the feature — matching the
+# directory name exactly, or the directory name minus its NNN- prefix.
+t_spec_gate_branch_resolves_the_feature_without_a_pointer() {
+	local repo scripts
+	repo=$(tmp_repo)
+	scripts=$(_spec_scripts_dir)
+	git -C "$repo" checkout -qb flow/x
+	mkdir -p "$repo/src"
+	_spec_approved_tasks "$repo"
+	rm -f "$repo/.specs/.current"
+	# branch flow/x, directory .specs/001-x → matched minus the NNN- prefix
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_branch_resolves_the_feature_without_a_pointer nnn-prefix-stripped"
+	# and $FLOW_SPEC outranks both
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts" FLOW_SPEC="003-missing"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_spec_gate_branch_resolves_the_feature_without_a_pointer flow-spec-outranks"
+	rm -rf "$repo"
+}
+
+# Nothing in the hooks may name .claude/feature-plan.local.md any more (K-E 4).
+t_spec_gate_hooks_never_name_the_old_plan_file() {
+	local hits
+	hits=$(grep -rn 'feature-plan.local' "$SCAN_DIR/spec-gate.sh" "$SCAN_DIR/stop-gate.sh" "$SCAN_DIR/lib" 2>/dev/null || true)
+	assert_eq "$hits" "" "t_spec_gate_hooks_never_name_the_old_plan_file no-references"
 }
 
 t_spec_gate_excluded_paths_always_allowed() {
@@ -248,21 +297,22 @@ t_spec_gate_stopgate_plan_changed_lint_fails_blocks() {
 	repo=$(tmp_repo)
 	scripts=$(_spec_scripts_dir)
 	shared=$(tmp_dir)
-	# Seed .claude/ as a tracked dir first: git collapses a brand-new
-	# untracked directory into one "?? .claude/" porcelain line, which would
-	# never match the exact plan path below.
-	mkdir -p "$repo/.claude"
-	: >"$repo/.claude/.keep"
-	git -C "$repo" add "$repo/.claude/.keep" >/dev/null 2>&1
-	git -C "$repo" commit -q -m "seed .claude" >/dev/null 2>&1
-	_spec_stamp "spec-plan-lint" "$repo"
-	printf '# not a real plan\n' >"$repo/.claude/feature-plan.local.md"
-	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-plan-lint"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
+	# Seed .specs/ as a tracked dir first: git collapses a brand-new untracked
+	# directory into one "?? .specs/" porcelain line, which would never match
+	# the exact TASKS.md path below.
+	mkdir -p "$repo/.specs"
+	: >"$repo/.specs/.keep"
+	git -C "$repo" add "$repo/.specs/.keep" >/dev/null 2>&1
+	git -C "$repo" commit -q -m "seed .specs" >/dev/null 2>&1
+	_spec_stamp "spec-flow-lint" "$repo"
+	_spec_tasks "$repo" "- [ ] T002 second thing — files: src/b.ts"
+	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-flow-lint"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_stopgate_plan_changed_lint_fails_blocks rc"
 	assert_contains "$OUT" '"decision":"block"' "t_spec_gate_stopgate_plan_changed_lint_fails_blocks decision"
-	assert_contains "$OUT" "plan-lint" "t_spec_gate_stopgate_plan_changed_lint_fails_blocks names-plan-lint"
+	assert_contains "$OUT" "flow-lint" "t_spec_gate_stopgate_plan_changed_lint_fails_blocks names-flow-lint"
+	assert_contains "$OUT" "T002 has no verify:" "t_spec_gate_stopgate_plan_changed_lint_fails_blocks names-the-rule"
 	rm -rf "$repo" "$shared"
-	_spec_forget "spec-plan-lint"
+	_spec_forget "spec-flow-lint"
 }
 
 t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir() {
@@ -270,20 +320,18 @@ t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir() {
 	repo=$(tmp_repo)
 	scripts=$(_spec_scripts_dir)
 	shared=$(tmp_dir)
-	# Unlike the sibling test above, .claude/ itself is brand-new and
-	# UNTRACKED here (never git-added): git status collapses it into a single
-	# "?? .claude/" line rather than listing the plan file inside it. The
-	# change set walks the tree itself, so the plan file is still found and
-	# linted.
-	mkdir -p "$repo/.claude"
-	_spec_stamp "spec-plan-lint-untracked" "$repo"
-	printf 'Approved: 2026-01-01\n\n# not a real plan\n' >"$repo/.claude/feature-plan.local.md"
-	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-plan-lint-untracked"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
+	# Unlike the sibling test above, .specs/ itself is brand-new and UNTRACKED
+	# here (never git-added): git status collapses it into a single "?? .specs/"
+	# line rather than listing the TASKS.md inside it. The change set walks the
+	# tree itself, so the file is still found and linted.
+	_spec_stamp "spec-flow-lint-untracked" "$repo"
+	_spec_approved_tasks "$repo" "- [ ] T002 second thing — files: src/b.ts"
+	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-flow-lint-untracked"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir rc"
 	assert_contains "$OUT" '"decision":"block"' "t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir decision"
-	assert_contains "$OUT" "plan-lint" "t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir names-plan-lint"
+	assert_contains "$OUT" "flow-lint" "t_spec_gate_stopgate_plan_changed_lint_fails_blocks_untracked_dir names-flow-lint"
 	rm -rf "$repo" "$shared"
-	_spec_forget "spec-plan-lint-untracked"
+	_spec_forget "spec-flow-lint-untracked"
 }
 
 t_spec_gate_stopgate_untracked_dir_with_only_excluded_content_not_blocked() {
@@ -338,7 +386,7 @@ t_spec_gate_stopgate_source_changed_flow_branch_no_plan_blocks() {
 }
 
 t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block() {
-	# The R14 ladder counts a failure, not a gate. Two plan-lint blocks used to
+	# The R14 ladder counts a failure, not a gate. Two flow-lint blocks used to
 	# leave the very FIRST "no approved plan" block at count 3 — soft, no
 	# decision key — so the C20 gate the spec calls independent of stopGate
 	# failed open the first time it ever fired in a session.
@@ -347,16 +395,16 @@ t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block() {
 	scripts=$(_spec_scripts_dir)
 	shared=$(tmp_dir)
 	git -C "$repo" checkout -qb flow/x
-	mkdir -p "$repo/.claude" "$repo/src"
+	mkdir -p "$repo/src"
 	_spec_stamp "spec-ladder-mix" "$repo"
-	printf '# not a real plan\n' >"$repo/.claude/feature-plan.local.md"
+	_spec_approved_tasks "$repo" "- [ ] T002 second thing — files: src/b.ts"
 	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-ladder-mix"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
-	assert_contains "$OUT" "plan-lint" "t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block first-plan-lint-block"
+	assert_contains "$OUT" "flow-lint" "t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block first-flow-lint-block"
 	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-ladder-mix"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
-	assert_contains "$OUT" '"decision":"block"' "t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block second-plan-lint-block"
-	# Turn 3: the plan drops out of Δ (backdated behind the stamp) and a source
+	assert_contains "$OUT" '"decision":"block"' "t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block second-flow-lint-block"
+	# Turn 3: TASKS.md drops out of Δ (backdated behind the stamp) and a source
 	# file appears — a different failure, blocking for the first time.
-	touch -t 202001010000 "$repo/.claude/feature-plan.local.md"
+	touch -t 202001010000 "$repo/.specs/001-x/TASKS.md"
 	printf 'export const a = 1;\n' >"$repo/src/a.ts"
 	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-ladder-mix"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
 	assert_rc 0 "t_spec_gate_stopgate_plan_lint_blocks_do_not_soften_a_first_c20_block c20-rc"
@@ -429,9 +477,9 @@ t_spec_gate_stopgate_flow_branch_approved_plan_source_changed_not_blocked() {
 	shared=$(tmp_dir)
 	git -C "$repo" checkout -qb flow/x
 	mkdir -p "$repo/src"
-	_spec_write_approved_plan "$repo/.claude/feature-plan.local.md"
-	git -C "$repo" add "$repo/.claude/feature-plan.local.md" >/dev/null 2>&1
-	git -C "$repo" commit -q -m "add approved plan" >/dev/null 2>&1
+	_spec_approved_tasks "$repo"
+	git -C "$repo" add "$repo/.specs" >/dev/null 2>&1
+	git -C "$repo" commit -q -m "add approved tasks" >/dev/null 2>&1
 	_spec_stamp "spec-source-approved" "$repo"
 	printf 'export const a = 1;\n' >"$repo/src/a.ts"
 	run_hook "$SCAN_DIR/stop-gate.sh" '{"session_id":"spec-source-approved"}' CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared" CC_SCRIPTS_DIR="$scripts"
@@ -521,19 +569,61 @@ t_spec_untracked_dir_two_files_source_edit_blocks() {
 	rm -rf "$d"
 }
 
-t_spec_untracked_claude_dir_plan_plus_other_file_lints() {
-	local sid
+t_spec_untracked_specs_dir_tasks_plus_other_file_lints() {
+	local sid d
 	d=$(tmp_repo)
-	sid="plan-plus-$$-$RANDOM"
+	sid="tasks-plus-$$-$RANDOM"
 	git -C "$d" checkout -q -b flow/x
-	mkdir -p "$d/.claude"
 	_spec_stamp "$sid" "$d"
-	printf '# not a plan\n' >"$d/.claude/feature-plan.local.md"
-	printf '{}\n' >"$d/.claude/settings.local.json"
+	_spec_tasks "$d" "- [ ] T002 second thing — files: src/b.ts"
+	printf '{}\n' >"$d/.specs/001-x/notes.json"
 	run_hook "$SCAN_DIR/stop-gate.sh" "{\"session_id\":\"$sid\",\"stop_hook_active\":false}" \
 		CLAUDE_PROJECT_DIR="$d" CC_SCRIPTS_DIR="$SCAN_DIR/../scripts" CC_SHARED_SCRIPTS="$SCAN_DIR/../skills/shared/scripts"
-	assert_rc 0 "plan + second untracked file: rc 0"
-	assert_contains "$OUT" "plan-lint" "plan + second untracked file: plan-lint failure is reported"
+	assert_rc 0 "TASKS.md + second untracked file: rc 0"
+	assert_contains "$OUT" "flow-lint" "TASKS.md + second untracked file: the lint failure is reported"
 	_spec_forget "$sid"
 	rm -rf "$d"
+}
+
+# K-C: a PRESENT-but-blank .specs/.current is not a decision — router.js guards
+# its miss with `if (want)` and falls through to the branch, so the gate must
+# too. A zero-byte pointer used to deny every source write while `flow next`
+# said BUILD: a wedge with no correct action.
+t_spec_gate_blank_dot_current_falls_through_to_branch() {
+	local repo scripts
+	repo=$(tmp_repo)
+	scripts=$(_spec_scripts_dir)
+	git -C "$repo" checkout -qb flow/x
+	mkdir -p "$repo/src"
+	_spec_approved_tasks "$repo"
+	: >"$repo/.specs/.current"
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_blank_dot_current_falls_through_to_branch blank-pointer-allows"
+	rm -rf "$repo"
+}
+
+# SPEC C10 R4 / K-E(2): flow-lint's verdict is a git join, not a text scan, so
+# the hooks' verdict cache is keyed on HEAD as well as the file's mtime. A
+# commit flips the verdict without touching the file; an mtime-only key kept
+# reprinting a deny whose own `To reproduce:` line exited 0.
+t_spec_gate_lint_cache_follows_head() {
+	local repo scripts
+	repo=$(tmp_repo)
+	scripts=$(_spec_scripts_dir)
+	git -C "$repo" checkout -qb flow/x
+	mkdir -p "$repo/src"
+	_spec_approved_tasks "$repo" '- [ ] T002 second — files: src/b.ts — verify: `true`'
+	git -C "$repo" add -A .specs >/dev/null 2>&1
+	git -C "$repo" commit -qm tasks >/dev/null 2>&1
+	# T002 deleted from the working copy → id-vanished, and the gate denies
+	grep -v 'T002' "$repo/.specs/001-x/TASKS.md" >"$repo/.specs/001-x/TASKS.md.tmp"
+	mv "$repo/.specs/001-x/TASKS.md.tmp" "$repo/.specs/001-x/TASKS.md"
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_contains "$OUT" 'id-vanished' "t_spec_gate_lint_cache_follows_head vanished-denies"
+	# committing the deletion fixes it — same file, same mtime, new HEAD
+	git -C "$repo" add -A .specs >/dev/null 2>&1
+	git -C "$repo" commit -qm drop >/dev/null 2>&1
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_lint_cache_follows_head new-head-reruns-the-lint"
+	rm -rf "$repo"
 }

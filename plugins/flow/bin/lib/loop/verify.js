@@ -12,6 +12,7 @@ const { sha1, firstNLines, toInt } = require('./util.js');
 // output with hex hashes and timestamps/durations masked.
 function signatureOf(output) {
   const masked = firstNLines(output, 60)
+    .replace(/\b(127\.0\.0\.1|0\.0\.0\.0|localhost|\[::1\]):[0-9]{2,5}/g, '$1:P')
     .replace(/[0-9a-f]{7,40}/g, 'H')
     .replace(/[0-9]+(\.[0-9]+)?(ms|s)\b/g, 'T');
   return sha1(masked);

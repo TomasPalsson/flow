@@ -2,7 +2,7 @@
 # prep-lint — validate a PREP.md against the prep grammar.
 #
 # Fence-aware: lines inside ``` or ~~~ code fences are never treated as
-# headings or bullets (matches plan-lint's fence handling).
+# headings or bullets (matches flow-lint's fence handling).
 set -u
 
 print_help() {

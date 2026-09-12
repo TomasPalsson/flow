@@ -5,11 +5,14 @@ set -u
 
 usage() {
   cat <<'EOF'
-Usage: new-spec "<title>" [--dir .specs] [--prefix flow/] [--no-branch] [--worktree] [--reuse <dir>/NNN-slug] [--json]
+Usage: new-spec "<title>" [--dir .specs] [--current] [--prefix flow/] [--no-branch] [--worktree] [--reuse <dir>/NNN-slug] [--json]
 
 Computes the next 3-digit spec number from existing <dir>/NNN-* entries
 (001 when none exist), slugifies <title> to lowercase ASCII [a-z0-9-]
 (max 40 chars, computed under LC_ALL=C), and creates <dir>/NNN-slug/.
+--current also writes <dir>/.current so `flow next` routes to this
+feature without a `flow use`.
+
 The number is the max over the current dir, every git worktree's <dir>,
 and every local/remote branch's committed <dir>. Inside zellij
 (ZELLIJ_PANE_ID set), the pane is renamed to NNN-slug; failures are
@@ -135,6 +138,7 @@ PREFIX="flow/"
 NO_BRANCH=0
 WORKTREE=0
 REUSE=""
+CURRENT=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -149,6 +153,10 @@ while [ $# -gt 0 ]; do
   --prefix)
     PREFIX=$2
     shift 2
+    ;;
+  --current)
+    CURRENT=1
+    shift
     ;;
   --no-branch)
     NO_BRANCH=1
@@ -283,6 +291,13 @@ fi
 
 if [ -n "${ZELLIJ_PANE_ID:-}" ] && command -v zellij >/dev/null 2>&1; then
   zellij action rename-pane "$NUMBER-$SLUG" >/dev/null 2>&1 || true
+fi
+
+# --current: point the router at this feature (K-A). Written beside the spec
+# dirs, not in .claude/, so hooks' .specs/* exemption covers it.
+if [ "$CURRENT" -eq 1 ]; then
+  mkdir -p "$DIR"
+  printf '%s\n' "$NUMBER-$SLUG" >"$DIR/.current"
 fi
 
 mkdir -p .claude

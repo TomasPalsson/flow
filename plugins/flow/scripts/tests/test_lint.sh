@@ -1,145 +1,18 @@
 #!/usr/bin/env bash
-# test_lint.sh — tests for plan-lint and skills-lint (C8), t_lint_* prefix.
+# test_lint.sh — tests for skills-lint (C8), t_lint_* prefix.
 # Sourced by run.sh; HERE (this dir) and SCAN_DIR (its parent, "scripts/")
 # are already set.
 
 FIX="$HERE/fixtures"
-PLAN_LINT="$SCAN_DIR/plan-lint"
 SKILLS_LINT="$SCAN_DIR/skills-lint"
 
-# ---------------------------------------------------------------------------
-# plan-lint
-# ---------------------------------------------------------------------------
-
-t_lint_plan_lint_help() {
-	run_cmd "$PLAN_LINT" --help
-	assert_rc 0 "plan-lint --help exits 0"
-	assert_contains "$OUT" "Usage: plan-lint" "plan-lint --help shows usage"
-}
-
-t_lint_plan_lint_no_args() {
-	run_cmd "$PLAN_LINT"
-	assert_rc 1 "plan-lint with no args exits 1"
-}
-
-t_lint_plan_lint_missing_file() {
-	run_cmd "$PLAN_LINT" "$FIX/does-not-exist.md"
-	assert_rc 1 "plan-lint on a missing file exits 1"
-	assert_contains "$OUT" "MISSING" "plan-lint on a missing file prints MISSING"
-}
-
-t_lint_plan_lint_good_ok() {
-	run_cmd "$PLAN_LINT" "$FIX/plan-good.md"
-	assert_rc 0 "plan-lint on plan-good.md exits 0"
-	assert_eq "$OUT" "OK" "plan-lint on plan-good.md prints OK"
-}
-
-t_lint_plan_lint_good_fence_decoy_ignored() {
-	# C7: a fenced "## Slice 9 — decoy" line inside plan-good.md's Slice 2
-	# body must not be treated as a real heading. If it were, plan-lint
-	# would demand RED/GREEN/REFACTOR for a "slice 9" that only the real
-	# grammar (Slice 1, Slice 2) satisfies — plan-good.md stays OK either
-	# way, but must never mention Slice 9 in its output.
-	run_cmd "$PLAN_LINT" "$FIX/plan-good.md"
-	assert_not_contains "$OUT" "Slice 9" "plan-lint never surfaces the fenced decoy slice"
-}
-
-t_lint_plan_lint_fence_decoy_breaks_naive_scan() {
-	# A dedicated fixture where an un-fence-aware scanner would treat the
-	# fenced "## Slice 9 — decoy" heading as real and then complain about
-	# its (deliberately incomplete) sub-headings; a fence-aware scanner
-	# must ignore it and report OK.
-	d=$(tmp_dir)
-	cat >"$d/plan.md" <<'PLANEOF'
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | `test_thing` |
-
-## Slice 1 — Thing
-
-- **Files**: src/thing.ts
-
-### Slice 1 — RED
-
-Write the failing test.
-
-Decoy block a naive line-scanner would misparse as a new slice:
-
-```text
-## Slice 9 — decoy
-### Slice 9 — RED
-```
-
-### Slice 1 — GREEN
-
-Make it pass.
-
-### Slice 1 — REFACTOR
-
-Clean it up.
-
-## Gate Phases
-
-1. Run check-all.
-PLANEOF
-	run_cmd "$PLAN_LINT" "$d/plan.md"
-	assert_rc 0 "plan-lint ignores a fenced decoy slice heading"
-	assert_eq "$OUT" "OK" "plan-lint prints OK despite the fenced decoy"
-}
-
-t_lint_plan_lint_bad_reports_problems() {
-	run_cmd "$PLAN_LINT" "$FIX/plan-bad.md"
-	assert_rc 1 "plan-lint on plan-bad.md exits 1"
-}
-
-t_lint_plan_lint_bad_missing_refactor() {
-	run_cmd "$PLAN_LINT" "$FIX/plan-bad.md"
-	assert_contains "$OUT" "REFACTOR" "plan-lint flags the missing REFACTOR sub-heading"
-}
-
-t_lint_plan_lint_bad_depends_on_higher_slice() {
-	run_cmd "$PLAN_LINT" "$FIX/plan-bad.md"
-	assert_contains "$OUT" "INVALID: Slice 1 Depends-on refers to Slice 2" "plan-lint flags a Depends-on pointing at a higher-numbered slice"
-}
-
-t_lint_plan_lint_bad_no_inventory_row() {
-	run_cmd "$PLAN_LINT" "$FIX/plan-bad.md"
-	assert_contains "$OUT" "Behavior Inventory table row" "plan-lint flags the missing Behavior Inventory data row"
-}
-
-t_lint_plan_lint_heading_order_invalid() {
-	d=$(tmp_dir)
-	cat >"$d/plan.md" <<'PLANEOF'
-## Gate Phases
-
-1. Run check-all.
-
-## Behavior Inventory
-
-| Behavior | Slice | Verified by |
-|---|---|---|
-| Thing happens | Slice 1 | `test_thing` |
-
-## Slice 1 — Thing
-
-### Slice 1 — RED
-
-x
-
-### Slice 1 — GREEN
-
-x
-
-### Slice 1 — REFACTOR
-
-x
-PLANEOF
-	run_cmd "$PLAN_LINT" "$d/plan.md"
-	assert_rc 1 "plan-lint rejects Gate Phases appearing before Behavior Inventory"
-	assert_contains "$OUT" "INVALID: top-level headings must appear in order" "plan-lint names the heading-order problem"
-}
+# Spec 004 deleted plan-lint along with the feature-plan.local.md grammar it
+# parsed (Behavior Inventory / Slice N / RED-GREEN-REFACTOR / Depends-on /
+# Gate Phases). The ten t_lint_plan_lint_* tests that lived here were not
+# weakened but rewritten onto the replacement grammar: flow-lint over
+# TASKS.md, tested by t_flowlint_* in test_flow_lint.sh — same behaviours
+# (--help usage, no args, missing file, a good fixture, fenced decoys never
+# becoming headings, ordering/reference errors each carrying a fix:).
 
 # ---------------------------------------------------------------------------
 # skills-lint

@@ -234,16 +234,32 @@ t_wf_build_slices_returns_waves() {
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: build-slices.js returns { waves: number[][] } per C13"
+	assert_eq "$verdict" "yes" "wf: build-slices.js returns { waves: string[][] } per K-B"
 }
 
-# C13/C17 stage 0: when the caller does not already know deps/files, one
-# haiku general-purpose agent discovers them from the plan before scheduling.
+# Spec 004 stage 0: the wave schedule is flow-lint's, not the workflow's. One
+# haiku general-purpose agent runs `flow-lint --json` on the TASKS.md and the
+# workflow uses the returned waves array verbatim — it never re-derives file
+# overlap, because flow-lint is the only parser of the K-B grammar and the only
+# thing that has proved [P] disjointness.
+
+t_wf_build_slices_stage0_runs_flow_lint_json() {
+	run_cmd grep -c "flow-lint ' + tasks + ' --json" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js stage 0 runs flow-lint --json on the TASKS.md"
+	assert_eq "$OUT" "1" "wf: exactly one flow-lint --json stage-0 call"
+}
 
 t_wf_build_slices_stage0_absent_check() {
-	run_cmd grep -c 'depsMap === undefined || filesMap === undefined' "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: build-slices.js checks args.deps/args.files absence"
+	run_cmd grep -c 'lintWaves === undefined' "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js runs stage 0 only when args.waves is absent"
 	assert_eq "$OUT" "1" "wf: exactly one stage-0 absence check"
+}
+
+t_wf_build_slices_no_local_overlap_computation() {
+	# flow-lint owns [P] disjointness; a second implementation here could
+	# disagree with the linter that already gated the plan.
+	run_cmd grep -c 'filesOverlap\|computeAllWaves' "$WF_DIR/build-slices.js"
+	assert_eq "$OUT" "0" "wf: build-slices.js does not re-implement wave/overlap computation"
 }
 
 t_wf_build_slices_stage0_model_haiku() {
@@ -262,54 +278,71 @@ t_wf_build_slices_stage0_agent_type_general_purpose() {
 	assert_eq "$OUT" "1" "wf: exactly one agentType:'general-purpose' call (stage 0)"
 }
 
-t_wf_build_slices_stage0_reads_plan_and_design() {
+t_wf_build_slices_brief_uses_task_brief() {
+	run_cmd grep -c "/task-brief ' + tasks + ' ' + id" "$WF_DIR/build-slices.js"
+	assert_rc 0 "wf: build-slices.js briefs each task with scripts/task-brief"
+	assert_eq "$OUT" "1" "wf: exactly one task-brief call site"
+	run_cmd grep -c 'slice-brief' "$WF_DIR/build-slices.js"
+	assert_eq "$OUT" "0" "wf: build-slices.js no longer calls the deleted slice-brief"
+}
+
+t_wf_build_slices_passes_design_to_task_brief() {
 	run_cmd grep -c "args.design" "$WF_DIR/build-slices.js"
 	local count verdict
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: stage-0 agent reads args.design when given"
+	assert_eq "$verdict" "yes" "wf: task-brief gets --design when the caller passes one"
 }
 
-t_wf_build_slices_stage0_schema_deps_files() {
-	run_cmd grep -c 'STAGE0_SCHEMA' "$WF_DIR/build-slices.js"
+t_wf_build_slices_stage0_schema_waves() {
+	run_cmd grep -c 'SCHEDULE_SCHEMA' "$WF_DIR/build-slices.js"
 	local count verdict
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: a schema constant is used for the stage-0 deps/files return"
-	run_cmd grep -c "required: \['deps', 'files'\]" "$WF_DIR/build-slices.js"
+	assert_eq "$verdict" "yes" "wf: a schema constant is used for the stage-0 schedule return"
+	run_cmd grep -c "required: \['waves'\]" "$WF_DIR/build-slices.js"
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: stage-0 schema requires deps and files"
+	assert_eq "$verdict" "yes" "wf: stage-0 schema requires waves"
+}
+
+t_wf_build_slices_halts_on_lint_error() {
+	run_cmd grep -c 'scheduleRes.ok === false' "$WF_DIR/build-slices.js"
+	local count verdict
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: a flow-lint ERROR stops the run before any developer agent"
+	run_cmd grep -c 'lintOk: false' "$WF_DIR/build-slices.js"
+	count="$OUT"
+	verdict="no"
+	if [ "$count" -gt 0 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: the halted run reports lintOk:false"
 }
 
 t_wf_build_slices_log_format_string() {
-	run_cmd grep -c "'wave ' + (i + 1) + ': ' + wave.map" "$WF_DIR/build-slices.js"
+	run_cmd grep -c "'wave ' + (i + 1) + ': ' + wave.join" "$WF_DIR/build-slices.js"
 	local count verdict
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
 	assert_eq "$verdict" "yes" "wf: wave log format string present"
-	run_cmd grep -c "'Slice ' + id" "$WF_DIR/build-slices.js"
-	count="$OUT"
-	verdict="no"
-	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: wave log format uses 'Slice <id>' per slice"
 }
 
 t_wf_build_slices_logs_waves_before_starting() {
-	# The computeAllWaves()+log() block (before the exec loop) must appear
-	# before the first parallel(ready.map(...)) execution call in the file.
-	run_cmd grep -n 'computeAllWaves(sliceNumbers' "$WF_DIR/build-slices.js"
+	# The selectWaves()+log() block (before the exec loop) must appear before
+	# the first parallel(ready.map(...)) execution call in the file.
+	run_cmd grep -n 'const waves = selectWaves(' "$WF_DIR/build-slices.js"
 	local log_line exec_line
 	log_line=$(printf '%s\n' "$OUT" | head -1 | cut -d: -f1)
 	run_cmd grep -n 'for (let w = 0; w < waves.length; w++)' "$WF_DIR/build-slices.js"
 	exec_line=$(printf '%s\n' "$OUT" | head -1 | cut -d: -f1)
 	local before="no"
 	if [ "$log_line" -lt "$exec_line" ]; then before="yes"; fi
-	assert_eq "$before" "yes" "wf: waves are computed (and logged) before the execution loop starts"
+	assert_eq "$before" "yes" "wf: waves are selected (and logged) before the execution loop starts"
 }
 
 t_wf_build_slices_returns_discovered() {
@@ -323,7 +356,7 @@ t_wf_build_slices_returns_discovered() {
 	count="$OUT"
 	verdict="no"
 	if [ "$count" -gt 0 ]; then verdict="yes"; fi
-	assert_eq "$verdict" "yes" "wf: discovered starts as an array populated from slice results"
+	assert_eq "$verdict" "yes" "wf: discovered starts as an array populated from task results"
 }
 
 t_wf_build_slices_still_lints_ok() {
@@ -332,24 +365,18 @@ t_wf_build_slices_still_lints_ok() {
 	assert_contains "$OUT" "OK " "wf: build-slices.js with stage 0 prints OK"
 }
 
-# Behavioral regression coverage: computeWave()/computeAllWaves() must
-# actually be exercised against sample deps/files input, not merely grepped
-# for as source text. Extracts the three scheduling functions verbatim from
-# the shipped file (brace-matching, no rewrite of the source) and runs them
-# under node. Covers two things: (1) a real parallel wave when files are
-# disjoint and there are no deps (control case: the scheduler CAN produce
-# concurrency); (2) stage 0 may return Depends-on ids as strings (JSON
-# object keys are always strings, and models mirror that in adjacent array
-# values, e.g. {"deps":{"2":["1"]}}) — a string dependency id must still be
-# recognised once the depended-on slice is done, so an otherwise-independent
-# slice joins the wave with its unrelated siblings instead of being forced
-# into a fully serialized wave of its own by the cycle-detection safety
-# valve (C13; this is the exact defect class this unit's stage 0 must not
-# reintroduce).
-t_wf_build_slices_wave_computation_behavior() {
+# Behavioral regression coverage: the one piece of scheduling logic this
+# workflow still owns is selectWaves() — narrowing flow-lint's wave list to the
+# ids the caller asked for. It must preserve the linter's wave ORDER (wave N+1
+# never starts before wave N reports), drop waves that empty out after the
+# filter instead of scheduling an empty parallel() batch, and compare ids as
+# strings (TASKS.md ids are T001/CHK011, never numbers). Extracted verbatim
+# from the shipped file (brace-matching, no rewrite of the source) and run
+# under node, so this is exercised rather than merely grepped for.
+t_wf_build_slices_select_waves_behavior() {
 	local d script
 	d=$(tmp_dir)
-	script="$d/wave-behavior-check.js"
+	script="$d/select-waves-check.js"
 	cat >"$script" <<'NODEEOF'
 const fs = require('fs')
 const src = fs.readFileSync(process.argv[2], 'utf8')
@@ -368,33 +395,24 @@ function extractFn(name) {
   return src.slice(start, j)
 }
 
-const combined = extractFn('filesOverlap') + '\n' + extractFn('computeWave') + '\n' + extractFn('computeAllWaves') + '\n'
-const logs = []
-function log(m) { logs.push(m) }
-eval(combined)
+eval(extractFn('selectWaves'))
 
-// Control: two slices, no deps, disjoint files -> one real parallel wave.
-const controlWaves = computeAllWaves([1, 2], {}, { 1: ['a.js'], 2: ['b.js'] })
+// No ids requested -> the linter's schedule passes through untouched.
+const all = selectWaves([['T001'], ['T002', 'T003']], undefined)
 
-// Stage-0-shaped: slice 2 depends on slice 1 via a STRING id ("1"); slice 3
-// has no deps but shares slice 1's file so it cannot join wave 1 either.
-// Once slice 1 is done, both slice 2 (dependency satisfied) and slice 3
-// (file no longer contended) belong in wave 2 TOGETHER. A buggy scheduler
-// that never matches the string dependency id against the numeric `done`
-// set instead produces three waves ([[1],[3],[2]]) — slice 3 alone in wave 2
-// because slice 2 wrongly stays unready, then slice 2 forced into its own
-// wave 3 by the cycle-detection safety valve, with a misleading warning.
-const depWaves = computeAllWaves(
-  [1, 2, 3],
-  { 1: [], 2: ['1'], 3: [] },
-  { 1: ['a.js'], 2: ['b.js'], 3: ['a.js'] }
-)
+// A subset -> wave order is preserved and the wave that empties out is
+// dropped, never scheduled as an empty parallel() batch.
+const subset = selectWaves([['T001'], ['T002', 'T003'], ['T004']], ['T003', 'T004'])
 
-console.log(JSON.stringify({ control: controlWaves, dep: depWaves, logs: logs }))
+// Ids arriving as numbers (a caller that JSON-round-tripped them) still match
+// the linter's string ids instead of silently scheduling nothing.
+const coerced = selectWaves([['1'], ['2']], [2])
+
+console.log(JSON.stringify({ all: all, subset: subset, coerced: coerced }))
 NODEEOF
 	run_cmd node "$script" "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: wave-computation behavioral extraction runs cleanly"
-	assert_contains "$OUT" '"control":[[1,2]]' "wf: disjoint-file slices with no deps form one real parallel wave"
-	assert_contains "$OUT" '"dep":[[1],[2,3]]' "wf: string-typed Depends-on id (\"1\") is normalized so slice 2 joins wave 2 with slice 3 instead of being forced into its own wave 3"
-	assert_not_contains "$OUT" 'no slice became ready' "wf: no cycle-detection safety-valve warning fires when the string dependency id resolves correctly"
+	assert_rc 0 "wf: selectWaves behavioral extraction runs cleanly"
+	assert_contains "$OUT" '"all":[["T001"],["T002","T003"]]' "wf: no requested ids passes flow-lint's schedule through verbatim"
+	assert_contains "$OUT" '"subset":[["T003"],["T004"]]' "wf: a subset keeps wave order and drops the wave that emptied out"
+	assert_contains "$OUT" '"coerced":[["2"]]' "wf: numeric ids are compared as strings against the linter's ids"
 }
