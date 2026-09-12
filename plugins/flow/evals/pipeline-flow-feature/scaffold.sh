@@ -37,21 +37,26 @@ class Post:
         self.price_cents = price_cents
 PY
 cat >tests/test_text.py <<'PY'
+import unittest
+
 from src.text import slugify
 
 
-def test_slugify_lowercases_and_dashes():
-    assert slugify("Hello World") == "hello-world"
+class TestSlugify(unittest.TestCase):
+    def test_slugify_lowercases_and_dashes(self):
+        self.assertEqual(slugify("Hello World"), "hello-world")
 PY
 cat >pyproject.toml <<'TOML'
+# Tests: python3 -m unittest discover -s tests -v
 [project]
 name = "posts-app"
 version = "0.0.0"
-dependencies = ["pytest"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+dependencies = []
 TOML
+cat >README.md <<'MD'
+# posts-app
+
+Run tests: `python3 -m unittest discover -s tests -v`
+MD
 git add -A
 git commit -q -m "base: posts app with slugify, format_cents, Post"

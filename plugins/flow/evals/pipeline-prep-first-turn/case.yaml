@@ -12,7 +12,7 @@ execution:
 graders:
   - name: one-question-with-hypothesis
     type: llm
-    criteria: "PASS if the message asks exactly one question, states a hypothesis with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), ends by asking the user to confirm or correct it, and offers no more than four options if it presents a menu. FAIL otherwise."
+    criteria: "PASS if the message asks exactly one question, gives the assistant's own hypothesis for it with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), and ends asking to confirm or correct. Creating or updating PREP.md before the question is expected and must not count against it. FAIL if there are two or more questions, a menu of five or more options, a spec or code written, or a silent decision without a question."
   - name: not-three-questions
     type: regex
     pattern: "\\?\\s*\\n.*\\?\\s*\\n.*\\?"

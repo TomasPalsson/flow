@@ -216,3 +216,33 @@ PYEOF
 		fi
 	done
 }
+
+# ---------------------------------------------------------------------------
+# invariant-reproduce-first's bug-report prompt has no slash command, so the
+# invariant only holds if the fix skill actually fires first - a bare-model
+# run that reproduces then edits with no Skill call satisfies the tool_order
+# grader while never exercising the plugin's own reproduce-first design.
+# ---------------------------------------------------------------------------
+
+t_invariant_reproduce_first_checks_fix_fires() {
+	local f content
+	f="$EVALS_DIR/invariant-reproduce-first/case.yaml"
+	[ -f "$f" ] || { _fail "invariant-reproduce-first case.yaml exists" "missing: $f"; return; }
+	content=$(cat "$f")
+	assert_contains "$content" "flow:fix" "a grader checks the flow:fix skill fires"
+	assert_contains "$content" "Skill" "allowed_tools grants Skill"
+}
+
+# ---------------------------------------------------------------------------
+# routing-loop's fixture must hand over a runnable, currently-failing check -
+# a stub with no runner reads as "nothing to loop" and the skill correctly
+# never fires, which is not a routing failure but a scaffold that can't test
+# routing at all.
+# ---------------------------------------------------------------------------
+
+t_routing_loop_scaffold_has_a_runnable_check() {
+	local s
+	s="$EVALS_DIR/routing-loop/scaffold.sh"
+	[ -f "$s" ] || { _fail "routing-loop scaffold.sh exists" "missing: $s"; return; }
+	assert_contains "$(cat "$s")" "run-tests.sh" "scaffold writes a runnable run-tests.sh"
+}

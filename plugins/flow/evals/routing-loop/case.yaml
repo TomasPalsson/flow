@@ -6,7 +6,7 @@ runs: 1
 context:
   scaffold_script: scaffold.sh
 execution:
-  prompt: "Keep retrying the flaky integration test suite and fixing whatever breaks it, rerun after every change, and don't stop until it's green - even if it takes all night."
+  prompt: "The integration suite is red (`./run-tests.sh`). Keep going until it's green - don't stop until every test passes, I'm heading out for the night."
   max_turns: 8
   allowed_tools: [Read, Glob, Grep, Skill]
 graders:

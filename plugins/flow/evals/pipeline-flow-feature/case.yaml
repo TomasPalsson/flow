@@ -11,12 +11,24 @@ execution:
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
 timeout_seconds: 2400
 graders:
-  - name: current-spec-pointer-written
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: bounded|Route: oneshot|Route: dispatch"
+    match: contains
+  - name: posts-test-written
     type: file_exists
-    path: ".specs/.current"
-  - name: tasks-doc-written
-    type: file_exists
-    path: ".specs/*/TASKS.md"
+    path: "tests/test_posts.py"
+  - name: posts-test-covers-url-path
+    type: regex
+    target: { source: file, path: tests/test_posts.py }
+    pattern: "url_path"
+    match: contains
+  - name: posts-test-covers-price-label
+    type: regex
+    target: { source: file, path: tests/test_posts.py }
+    pattern: "price_label"
+    match: contains
   - name: reuses-slugify
     type: regex
     target: { source: file, path: src/posts.py }
@@ -32,10 +44,6 @@ graders:
     target: { source: file, path: src/posts.py }
     pattern: "re\\.sub|import re"
     match: not_contains
-  - name: explores-before-editing
-    type: tool_order
-    before: { tool: "Grep|Bash" }
-    after: { tool: "Edit|Write" }
   - name: posts-property-quality
     type: llm
     focus: { source: file, path: src/posts.py }

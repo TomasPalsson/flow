@@ -122,20 +122,31 @@ t_pipeline_scaffolds_executable_git_init() {
 }
 
 # ---------------------------------------------------------------------------
-# B22 — pipeline-flow-feature's graders: file_exists for the spec doc and
-# verification evidence, reuse-not-reimplement regexes on src/posts.py, and a
-# tool_order proving exploration happens before the edit.
+# B22 — pipeline-flow-feature's graders: reuse-not-reimplement regexes on
+# src/posts.py, and route-independent artifact checks (the run's own route
+# picks whether anything lands under .specs/ at all - bounded writes
+# nothing there - so the fixed artifact this case can always demand is the
+# route being stated and a real regression test for the new properties).
 # ---------------------------------------------------------------------------
 
-t_flow_feature_file_exists_graders() {
-	local f
+t_flow_feature_no_route_specific_artifact_graders() {
+	local f content
 	f="$PL_EVALS_DIR/pipeline-flow-feature/case.yaml"
 	[ -f "$f" ] || return
-	# v2: /flow:spec always points .specs/.current at the spec dir it opens,
-	# and /flow:next always drafts TASKS.md before building the first wave -
-	# these are what the v2 pipeline promises, regardless of route.
-	assert_contains "$(cat "$f")" ".specs/.current" "file_exists targets .specs/.current"
-	assert_contains "$(cat "$f")" ".specs/*/TASKS.md" "file_exists targets .specs/*/TASKS.md"
+	content=$(cat "$f")
+	assert_not_contains "$content" ".specs/.current" "no file_exists grader targets .specs/.current"
+	assert_not_contains "$content" ".specs/*/TASKS.md" "no file_exists grader targets .specs/*/TASKS.md"
+}
+
+t_flow_feature_posts_test_graders() {
+	local f content
+	f="$PL_EVALS_DIR/pipeline-flow-feature/case.yaml"
+	[ -f "$f" ] || return
+	content=$(cat "$f")
+	assert_contains "$content" "tests/test_posts.py" "a grader targets tests/test_posts.py"
+	assert_contains "$content" "type: file_exists" "a file_exists grader is declared"
+	assert_contains "$content" "url_path" "a grader checks tests/test_posts.py covers url_path"
+	assert_contains "$content" "price_label" "a grader checks tests/test_posts.py covers price_label"
 }
 
 t_flow_feature_reuse_regex_graders() {
@@ -150,14 +161,13 @@ t_flow_feature_reuse_regex_graders() {
 	assert_contains "$content" "not_contains" "a not_contains match is declared"
 }
 
-t_flow_feature_tool_order_grader() {
+t_flow_feature_route_stated_grader() {
 	local f content
 	f="$PL_EVALS_DIR/pipeline-flow-feature/case.yaml"
 	[ -f "$f" ] || return
 	content=$(cat "$f")
-	assert_contains "$content" "tool_order" "tool_order grader declared"
-	assert_contains "$content" "Grep|Bash" "tool_order before is Grep|Bash"
-	assert_contains "$content" "Edit|Write" "tool_order after is Edit|Write"
+	assert_contains "$content" "target: trace" "route-stated grader reads the whole trace, not just the last message"
+	assert_contains "$content" "Route: bounded|Route: oneshot|Route: dispatch" "route-stated grader's pattern names all three routes"
 }
 
 # ---------------------------------------------------------------------------
@@ -289,6 +299,22 @@ t_spec_first_turn_graders_check_the_first_message() {
 	content=$(cat "$f")
 	assert_contains "$content" 'Reply \"small\", \"medium\", or \"large\"' "not_contains targets the exact stop phrase"
 	assert_contains "$content" "not_contains" "a not_contains match is declared"
+}
+
+# ---------------------------------------------------------------------------
+# prep/SKILL.md Step 2 writes PREP.md before the first question and after
+# every answer - that is the skill's designed behaviour, not a violation of
+# "ask before acting". The grader criteria must say so explicitly, or an
+# honest first turn (file written, then the one hypothesis-led question)
+# scores FAIL for doing exactly what the skill prescribes.
+# ---------------------------------------------------------------------------
+
+t_prep_first_turn_grader_allows_the_file_before_the_question() {
+	local f content
+	f="$PL_EVALS_DIR/pipeline-prep-first-turn/case.yaml"
+	[ -f "$f" ] || { _fail "pipeline-prep-first-turn case.yaml exists" "missing: $f"; return; }
+	content=$(cat "$f")
+	assert_contains "$content" "must not count against it" "grader criteria excuses writing PREP.md before the question"
 }
 
 # ---------------------------------------------------------------------------

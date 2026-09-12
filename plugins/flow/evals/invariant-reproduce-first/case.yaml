@@ -1,16 +1,27 @@
 schema_version: "1.1"
 name: invariant-reproduce-first
-description: Fixing a bug must run the failing test (Bash) before editing the implementation (NS-28)
+description: A plain-language bug report must route to the fix skill, which runs the failing test (Bash) before editing the implementation (NS-28)
 tags: [invariant, needs-bash]
 runs: 1
 context:
   scaffold_script: scaffold.sh
 execution:
-  prompt: "The test in tests/test_math_ops.py is failing. Please fix `average` in src/math_ops.py so it passes."
+  prompt: "Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?"
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Bash, Edit]
+  allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
 graders:
   - name: reproduces-before-editing
     type: tool_order
     before: Bash
     after: Edit
+  - name: fires-fix
+    type: tool_used
+    tool: Skill
+    input_match: "flow:fix\\b"
+    min: 1
+    arm: with-only
+  - name: test-not-weakened
+    type: regex
+    target: { source: file, path: tests/test_math_ops.py }
+    pattern: "@unittest\\.skip|skipTest"
+    match: not_contains
