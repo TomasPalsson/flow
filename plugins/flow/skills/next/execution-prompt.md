@@ -34,13 +34,14 @@ Write stubs with correct signatures that throw the language's not-implemented er
 Commit `test(<scope>): add failing tests for <ID> [RED]` — tests and stubs only; verify with `git diff --name-only HEAD~1..HEAD`.
 
 ### GREEN
-Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Run `test-changed`, falling back to the brief's `Test:` command.
+Before your first edit, state the search receipt: `searched: <terms>; found: <path:line | nothing>`. Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Run `test-changed`, falling back to the brief's `Test:` command.
 **HARD GATE**: exit zero → proceed. Non-zero after 3 attempts → STOP and report. Confirm the diff shows no test files.
 Commit `feat(<scope>): implement <ID>`.
 
 ### REFACTOR
 Record the exact pass count from GREEN. Apply the `clean-code` skill to everything written in this task's RED and GREEN: intention-revealing names, one job per function, self-documenting code over comments, Law of Demeter, no rigidity or needless complexity. Constraints: no new behavior, no test changes, **no public API surface change**. Run the test command after each change, not only at the end.
 **HARD GATE**: pass count drops at any point → REVERT that change immediately. Never fix a failing test during REFACTOR — a drop means the refactor changed behavior.
+Before reporting done, run `${CLAUDE_PLUGIN_ROOT}/skills/no-slop/scripts/slop-check --base <base>` and fix or justify each finding.
 Commit `refactor(<scope>): clean <ID> implementation`.
 
 ### Inline gates

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # test_review_lenses.sh — tests that the branch-level review adds the `slop`
-# lens to review-diff's defaults and that skills/flow/review.md documents it
+# lens to review-diff's defaults and that skills/next/review.md documents it
 # (B9, B10).
 # Sourced by run.sh; HERE (this dir) and SCAN_DIR (its parent, "scripts/")
 # are already set.
 
-REVIEW_MD="$SCAN_DIR/../skills/flow/review.md"
+REVIEW_MD="$SCAN_DIR/../skills/next/review.md"
 REVIEW_DIFF_JS="$SCAN_DIR/../workflows/review-diff.js"
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ t_review_diff_defaults_include_slop() {
 }
 
 # ---------------------------------------------------------------------------
-# B10 — skills/flow/review.md documents the `slop` lens: a row in the lens
+# B10 — skills/next/review.md documents the `slop` lens: a row in the lens
 # table pointing at skills/no-slop/references/adversary-lens.md, and the
 # fixed-lenses placement sentence naming correctness + gaming + slop per
 # slice and all five at branch level.

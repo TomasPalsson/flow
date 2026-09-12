@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # test_no_slop_seams.sh — Slice 2: developer briefs carry the no-slop
-# developer block, and the slop lens runs per slice in build-slices.js.
+# developer block, and the slop lens runs per task in build-slices.js.
 # (B6 to B8). t_slopseam_* prefix.
 # Sourced by run.sh; HERE (this dir) and SCAN_DIR (its parent, "scripts/")
 # are already set.
 
-SLICE_BRIEF="$SCAN_DIR/slice-brief"
+TASK_BRIEF="$SCAN_DIR/task-brief"
 DEV_BLOCK="$SCAN_DIR/../skills/no-slop/references/developer-block.md"
 WF_DIR="$SCAN_DIR/../workflows"
-EXEC_PROMPT="$SCAN_DIR/../skills/feature/execution-prompt.md"
+EXEC_PROMPT="$SCAN_DIR/../skills/next/execution-prompt.md"
+FIX="$HERE/fixtures"
 
 # fenced_block_of <file> — the first ```...``` fenced block, fence lines
-# included, exactly as slice-brief must copy it.
+# included, exactly as task-brief must copy it.
 fenced_block_of() {
 	awk '
     /^```/ { infence = !infence; print; if (!infence) exit; next }
@@ -20,67 +21,46 @@ fenced_block_of() {
 }
 
 # ---------------------------------------------------------------------------
-# B6 — slice-brief appends the "## Before you write" heading plus the
-# no-slop developer block's fenced instructions verbatim, after the slice
+# B6 — task-brief appends the "## Before you write" heading plus the
+# no-slop developer block's fenced instructions verbatim, after the task
 # section and before any design contract.
 # ---------------------------------------------------------------------------
 
 t_slopseam_brief_appends_before_you_write_heading() {
-	local d plan out
+	local d out
 	d=$(tmp_dir)
-	plan="$d/plan.md"
-	cat >"$plan" <<'EOF'
-## Slice 1 — a slice
-- **Files**: a.js
-### Slice 1 — RED
-stub work
-EOF
 	out="$d/brief.md"
-	run_cmd bash "$SLICE_BRIEF" "$plan" 1 --out "$out"
-	assert_rc 0 "slice-brief exits 0"
-	assert_contains "$(cat "$out")" "## Before you write" "slice-brief output has the Before you write heading"
+	run_cmd bash "$TASK_BRIEF" "$FIX/tasks-good.md" T002 --out "$out"
+	assert_rc 0 "task-brief exits 0"
+	assert_contains "$(cat "$out")" "## Before you write" "task-brief output has the Before you write heading"
 }
 
 t_slopseam_brief_appends_developer_block_verbatim() {
-	local d plan out block
+	local d out block
 	d=$(tmp_dir)
-	plan="$d/plan.md"
-	cat >"$plan" <<'EOF'
-## Slice 1 — a slice
-- **Files**: a.js
-### Slice 1 — RED
-stub work
-EOF
 	out="$d/brief.md"
-	bash "$SLICE_BRIEF" "$plan" 1 --out "$out" >/dev/null
+	bash "$TASK_BRIEF" "$FIX/tasks-good.md" T002 --out "$out" >/dev/null
 	block=$(fenced_block_of "$DEV_BLOCK")
 	case "$(cat "$out")" in
-	*"$block"*) _pass "slice-brief output contains the developer-block.md fenced block verbatim" ;;
-	*) _fail "slice-brief output contains the developer-block.md fenced block verbatim" "block missing from $out" ;;
+	*"$block"*) _pass "task-brief output contains the developer-block.md fenced block verbatim" ;;
+	*) _fail "task-brief output contains the developer-block.md fenced block verbatim" "block missing from $out" ;;
 	esac
 }
 
 t_slopseam_brief_places_block_before_design_contract() {
-	local d plan design out before_pos after_pos content
+	local d design out before_pos after_pos content
 	d=$(tmp_dir)
-	plan="$d/plan.md"
-	cat >"$plan" <<'EOF'
-## Slice 1 — a slice
-- **Files**: a.js
-### Slice 1 — RED
-stub work
-EOF
 	design="$d/design.md"
 	cat >"$design" <<'EOF'
-## Contract for this slice — Slice 1
+## Contract — T002
 some contract text
 EOF
 	out="$d/brief.md"
-	bash "$SLICE_BRIEF" "$plan" 1 --design "$design" --out "$out" >/dev/null
+	bash "$TASK_BRIEF" "$FIX/tasks-good.md" T002 --design "$design" --out "$out" >/dev/null
 	content=$(cat "$out")
-	assert_contains "$content" "Contract for this slice" "slice-brief output still carries the design contract"
+	assert_contains "$content" "some contract text" "task-brief output still carries the design contract"
 	before_pos=$(printf '%s' "$content" | grep -n "## Before you write" | head -1 | cut -d: -f1)
-	after_pos=$(printf '%s' "$content" | grep -n "Contract for this slice" | head -1 | cut -d: -f1)
+	after_pos=$(printf '%s' "$content" | grep -n "some contract text" | head -1 | cut -d: -f1)
 	if [ -n "$before_pos" ] && [ -n "$after_pos" ] && [ "$before_pos" -lt "$after_pos" ]; then
 		_pass "developer block appears before the design contract"
 	else
