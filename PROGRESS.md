@@ -1,6 +1,7 @@
 # Progress
 
 ## Now
+- spec 007 (plugin eval suite + no-slop) on branch `flow/plugin-eval-suite-v2` (worktree `../code-worktrees/flow/plugin-eval-suite-and-optimisation-loop`, main v2 merged): `flow eval` (ledger, tags, -j, Bash grant), 24-case suite under `plugins/flow/evals/`, `no-slop` skill (rubric NS-01..29, `slop-check`, developer block in every `task-brief`, `slop` lens per task and at gating). Certification 3 runs/case, Bash on: pipeline 0.79 · quality 0.86 · routing 0.87 · invariant 0.67 (`.specs/007-*/loop-log.md`). Next: PR review of the deterministic failures below, then decide whether the loop runs with `--runs 3` (~$13/pass)
 - UI/browser verification for `/flow:loop` is merged to main (f37caa9). `skills/loop/references/browser-verifier.md` + `templates/ui-verify.sh` + `scripts/ui-score` (capture from a URL or a design PNG, score structure AND pixels per viewport). Fixed on the way: `signatureOf` blind to ephemeral ports, `countTestFiles` blind to an unstaged `rm -rf tests/`, `target_sha` gated on `--target` so the documented default left the assertions file unhashed, and `ui-score` grading a cached page. Research: `docs/research/15-ui-loop-verification-2026.md`. Owed: one full `bash plugins/flow/scripts/tests/run.sh` total — three runs were killed by machine memory at 282+ tests with zero non-shellcheck failures; every changed file has a green targeted run. Next: dogfood a real UI loop on an actual app.
 - resume: spec 004 (flow v2) built in this worktree, uncommitted — `/flow:spec` + `/flow:next` are the only two doors, `.specs/NNN-slug/TASKS.md` is the whole build state, `flow next|lint|tick|use|publish` is the CLI. F1-F6 landed (flow-lint, task-brief, router, hooks retarget, skills rename, deletions, integration). F6's end-to-end dry run walked a throwaway node repo through states 5 -> 6 (wave 0) -> tick -> 6 (wave 1) -> 8 -> PASS -> 9 -> Verified -> 11, caught a lying tick in both `flow lint` and `flow next`, proved `flow next` byte-identical from root and subdir, and confirmed spec-gate/stop-gate deny-and-name-the-objection. Suites at baseline: hooks 1236/8, scripts 1815/57, zero failures attributable to spec 004. Decide: commit + merge to main
 - resume: spec 003 (harness bug fixes) built and verified in this worktree, uncommitted: hooks 1163/0, scripts 1540/0, field re-probe on finance/terraform/prr green. Decide: commit + merge to main
@@ -8,6 +9,7 @@
 - decide whether `.skill-forge/` (research workspaces: design-v2, loop) is gitignored or kept
 
 ## Next
+- 007 follow-ups measured 0/3 with the plugin: `/flow:spec --unattended` never hands off to `/flow:next` (no `.specs/.current`, no `TASKS.md`); `/flow:prep` first turn does not ask one hypothesis question; `/flow:fix` edits before running the failing test; `loop` never fires on "keep going until green"; a bare "add a property" prompt fires no skill and re-implements the helper. Each is one skill-text change plus a 3-run re-measure
 - Dogfood `/flow:spec` then `/flow:next` on one real feature end to end; confirm every turn really ends with `Next: /clear, then /flow:next`
 - Dogfood `/flow:loop --fresh` overnight on a real project (candidates: any of the ~20 `.claude/` projects under ~/Desktop/Projects; none has run `flow init` yet) and tune the defaults (30 iterations / 480 min / stall 3) from the log
 - Merge order with the sibling worktrees: this branch touches `hooks.json` (one Stop entry), `bin/flow` (dispatch/doctor/next/init deltas) and `skills/fix`; the harness-audit worktree plans `flow goal` — build `flow goal` on `flow loop run` rather than a second driver
@@ -20,6 +22,7 @@
 - Optional: description-triggering optimisation for `vary` via skill-creator `run_loop.py` if available
 
 ## Done
+- 2026-09-12: spec 007 — eval suite, `flow eval`, `no-slop` (skill-forge, judge 110/120), loop dogfood (3 runs: v1 2 iters, v2 4 iters, v3 2 iters; 2 edits kept, 4 reverted on evidence) — branch flow/plugin-eval-suite-v2
 - 2026-09-12: no-slop slop-check run on this branch vs `origin/main` (`slop-check --base origin/main --no-tools`): the NS-03 in `slop_tools.py` and the duplicated `resolveOnPath` (driver.js vs loop/util.js) are fixed; the remaining hits are advisory NS-16 spelling matches in `bin/lib/eval.js` (`printHelp`, `parseArgs`, `gitToplevel`, `run`) — left to the eval slice that owns that file, not silenced here
 - 2026-09-07: loop engineering — research 12 (10-angle sweep + 2 source-level dives, 40 claims confirmed), spec 006, `flow loop` CLI (`bin/lib/loop/`, 7 subcommands, K-A..K-L), `loop-gate.sh` Stop hook, `/flow:loop` skill (judge 110/120 A), fix skill off ralph-loop, docs; two headless probes ($0.79 and $0.80, one iteration each) — 130b2f2 and earlier
 - 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); plugins/design/skills/vary — 617990d
@@ -29,6 +32,9 @@
 - Done before 2026-09-05: 6 items (rename harness→flow, /lesson, install merge, skills-lint perf, doctor hang fix)
 
 ## Rulings
+- Ruling: the optimisation loop's verifier must use `--runs 3`; single-run tiers swing up to 0.2 between unedited runs, so a 1-run loop edits on noise — if wrong, $8 per pass is wasted, not a bad edit shipped
+- Ruling: mechanical slop checks are advisory (`slop-check` exits 0), only the `slop` adversary lens with a receipt blocks — a purpose-built tool in this niche self-reports 37% false positives — if wrong, a missed advisory ships until review
+- Ruling: reuse of an existing helper is zero-tolerance; a new abstraction waits for the third instance — the two rules never merge — if wrong, either missed reuse is excused or three similar lines get a premature helper
 - Ruling: a loop exits on a verifier command the harness runs, never on a model-emitted phrase — `flow loop check` + K-F tamper veto + `BLOCKED.md`, 115 `t_loop_*` tests — if wrong, a goal with no runnable check must go through `/goal` or a human gate instead of a loop
 - Ruling: the in-session loop shape is capped at Claude Code's 8 consecutive Stop-hook blocks and says so; anything longer is `flow loop run` (fresh `claude -p` per iteration) — verified verbatim in code.claude.com/docs/en/hooks — if wrong, users see a block-cap warning at iteration 8 and re-arm as fresh
 - Ruling: workflow/subagent briefs are passed as ABSOLUTE paths when working in a worktree — the build-slices run resolved `.claude/slices/1-brief.md` against the main checkout and a developer read a stale brief for another feature — if wrong, one wasted agent run
