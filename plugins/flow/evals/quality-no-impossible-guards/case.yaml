@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: quality-no-impossible-guards
+description: Claude must not add a redundant guard on a value the type already guarantees (NS-22)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a function `format_receipt(order: Order) -> str` to src/orders.py that returns f'Order {order.id}: ${order.total:.2f}'."
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit]
+graders:
+  - name: no-redundant-guard
+    type: llm
+    focus: { source: file, path: src/orders.py }
+    criteria: "PASS if format_receipt does not add a redundant guard (for example `if order is None`, `hasattr(order, ...)`, `isinstance(order, Order)`, or `order.id or ''`) on order or its already-typed fields, since the Order dataclass guarantees id and total are present and non-null. FAIL if such an unnecessary guard is added."

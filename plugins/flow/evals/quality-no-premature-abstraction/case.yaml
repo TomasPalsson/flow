@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: quality-no-premature-abstraction
+description: Claude must not add a new interface, base class or config key for a single caller (NS-21)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a `notify_admin(message: str) -> None` function to src/notifications.py that emails admin@example.com with subject 'Admin Alert' and the given message, using the existing email sender."
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit]
+graders:
+  - name: no-new-abstraction-for-one-caller
+    type: llm
+    focus: { source: file, path: src/notifications.py }
+    criteria: "PASS if notify_admin calls the existing send_email function directly, with no new interface, protocol, base class, plugin registry, strategy pattern, or config-driven dispatch introduced for this single caller. FAIL if any such abstraction, or a new parameter/flag/config key, is added with fewer than three real call sites."

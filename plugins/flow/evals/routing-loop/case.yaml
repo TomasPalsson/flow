@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: routing-loop
+description: An unattended retry-until-green request must route to the loop skill
+tags: [routing]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Keep retrying the flaky integration test suite and fixing whatever breaks it, rerun after every change, and don't stop until it's green - even if it takes all night."
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: fires-loop
+    type: tool_used
+    tool: Skill
+    input_match: "\\bloop\\b"
+    min: 1
+    arm: with-only
+  - name: no-other-hub-skill
+    type: tool_used
+    tool: Skill
+    input_match: "\\bfix\\b|\\bflow\\b(?!-)|\\baudit\\b"
+    min: 0
+    max: 0
+    arm: with-only
