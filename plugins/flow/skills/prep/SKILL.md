@@ -59,10 +59,10 @@ interview. Print the path once.
 
 1. **One decision per turn, open phrasing.** Naming a decision's own
    candidates ("Postgres, MySQL or SQLite?") is still one question.
-2. **Then one line of hypothesis with a confidence**, so a one-word reply
-   locks it: *"Mr Claude's guess: 409 on a duplicate tag, 70 %."* A stated
-   hypothesis the user can correct is not a leading question; a hidden one
-   is.
+2. **Then one line of hypothesis with a confidence, ending "— confirm or
+   correct?"**, so a one-word reply locks it: *"Mr Claude's guess: 409 on a
+   duplicate tag, 70 % — confirm or correct?"* A stated hypothesis the user
+   can correct is not a leading question; a hidden one is.
 3. **Only ask what is answerable** in 2–5 options or ≤5 words. Interaction
    feel, aesthetics, "does this look right" are ungrillable — say so and
    route them to a prototype or `/design:vary`; talking through them is
