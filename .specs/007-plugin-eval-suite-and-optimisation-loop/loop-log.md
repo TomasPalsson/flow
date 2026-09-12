@@ -21,3 +21,9 @@
 | invariant | 0.67 | `invariant-reproduce-first` 0.00 (`/flow:fix` edits before running the failing test) |
 
 Rulings from the three loop runs: v2 iteration 1 (bounded = exactly one task) kept; v2 iteration 3 (prep hypothesis uses a confidence word) kept; v2 iteration 2 (count each named property as a task) reverted for a 0.85 → 0.61 pipeline regression; v2 iteration 4 (a no-tools rule for fix) reverted as grader-chasing; v3 iterations 1 and 2 (spec and fix description widening) reverted because the 3-run certification shows their target cases unchanged (0.17 and 0.00). Single-run verification swings up to 0.2 per tier between unedited runs; the loop needs `--runs 3` on its verifier to discriminate, at ~$13 per pass.
+
+## Re-measure after the case fixes (ee3de1c), 3 runs each, `recert-*-2026-09-12.json`, $3.09
+
+Traces of the four "deterministic" failures showed case defects, not skill defects (fixtures without a stdlib test runner; graders demanding `TASKS.md` from the `bounded` route; the prep judge penalising prep's own file-first design; a loop fixture with nothing runnable). After fixing the cases: `pipeline-flow-feature` 0.96, `pipeline-prep-first-turn` 1.00, `invariant-reproduce-first` 0.78 (order wrong once; `fix` fired once), `routing-loop` 0.67 (fires 1 of 3).
+
+Certification with those four replaced: **pipeline 0.97 · invariant 0.93 · routing 0.89 · quality 0.86**. Remaining below 0.9: `quality-reuse-existing-helper` (a bare prompt no skill claims; out of the pipeline by design) and routing for `loop`/`next`/`qa` at 2 of 3.

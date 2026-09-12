@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-12T23:44:44.074Z",
+  "durationSeconds": 142,
+  "costUsd": 0.9571338000000003,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "pipeline-flow-feature",
+    "threshold": 1,
+    "concurrency": 2,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "pipeline-flow-feature",
+      "dir": "evals/pipeline-flow-feature",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:spec --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 150,
+      "graders": [
+        {
+          "name": "route-stated",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "trace",
+            "pattern": "Route: bounded|Route: oneshot|Route: dispatch",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "posts-test-written",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "tests/test_posts.py",
+            "exists": true
+          }
+        },
+        {
+          "name": "posts-test-covers-url-path",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_posts.py"
+            },
+            "pattern": "url_path",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "posts-test-covers-price-label",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_posts.py"
+            },
+            "pattern": "price_label",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "reuses-slugify",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "slugify",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "reuses-format-cents",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "format_cents",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-reimplemented-slug-regex",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "re\\.sub|import re",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "posts-property-quality",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise.",
+          "config": {
+            "criteria": "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise.",
+            "focus": {
+              "source": "file",
+              "path": "src/posts.py"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 22,
+            "costUsd": 0.3635976000000001,
+            "judgeCostUsd": 0.000942,
+            "durationSeconds": 97,
+            "startedAt": "2026-09-12T23:44:44.089Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ShW92G/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-stated",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched Route: bounded|Route: oneshot|Route: dispatch",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-written",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_posts.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-url-path",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched url_path",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-price-label",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched price_label",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-format-cents",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched format_cents",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-property-quality",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\nfrom src.text import slugify\n\n\nclass Post:\n    def __init__(self, title, body, price_cents):\n        self.title = title\n        self.body = body\n        self.price_cents = price_cents\n\n    @property\n    def url_path(self):\n        return \"/posts/%s\" % slugify(self.title)\n\n    @property\n    def price_label(self):\n        return format_cents(self.price_cents)\n"
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 17,
+            "costUsd": 0.2865542000000001,
+            "judgeCostUsd": 0.0009390000000000001,
+            "durationSeconds": 66,
+            "startedAt": "2026-09-12T23:44:44.089Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-HcUhBD/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-stated",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched Route: bounded|Route: oneshot|Route: dispatch",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-written",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_posts.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-url-path",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched url_path",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-price-label",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched price_label",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-format-cents",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched format_cents",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-property-quality",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\nfrom src.text import slugify\n\n\nclass Post:\n    def __init__(self, title, body, price_cents):\n        self.title = title\n        self.body = body\n        self.price_cents = price_cents\n\n    @property\n    def url_path(self):\n        return f\"/posts/{slugify(self.title)}\"\n\n    @property\n    def price_label(self):\n        return format_cents(self.price_cents)\n"
+              }
+            ]
+          },
+          {
+            "score": 0.875,
+            "passed": false,
+            "turns": 16,
+            "costUsd": 0.30698200000000003,
+            "judgeCostUsd": 0.000939,
+            "durationSeconds": 77,
+            "startedAt": "2026-09-12T23:45:49.694Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-JMl9GF/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-stated",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in trace",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-written",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_posts.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-url-path",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched url_path",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-price-label",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched price_label",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-format-cents",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched format_cents",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-property-quality",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\nfrom src.text import slugify\n\n\nclass Post:\n    def __init__(self, title, body, price_cents):\n        self.title = title\n        self.body = body\n        self.price_cents = price_cents\n\n    @property\n    def url_path(self):\n        return f\"/posts/{slugify(self.title)}\"\n\n    @property\n    def price_label(self):\n        return format_cents(self.price_cents)\n"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.9583333333333334,
+        "passRate": 0.6666666666666666
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.9583333333333334,
+    "overallPassRate": 0.6666666666666666
+  }
+}
