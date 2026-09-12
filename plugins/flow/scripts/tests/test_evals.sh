@@ -121,3 +121,23 @@ t_every_case_has_at_least_one_grader() {
 		fi
 	done
 }
+
+# ---------------------------------------------------------------------------
+# B11 — README.md promises `evals/results/` is gitignored. The repo's
+# .gitignore must actually ignore the suite's real results dir, which lives
+# at plugins/flow/evals/results/, not at the repo root. Checked hermetically
+# against a throwaway repo carrying this repo's .gitignore text.
+# ---------------------------------------------------------------------------
+
+t_gitignore_covers_nested_eval_results() {
+	local d
+	d=$(tmp_repo)
+	cp "$EV_REPO_ROOT/.gitignore" "$d/.gitignore"
+	mkdir -p "$d/plugins/flow/evals/results"
+	printf '{}\n' >"$d/plugins/flow/evals/results/aggregate-result.json"
+	(cd "$d" && git check-ignore -q plugins/flow/evals/results/aggregate-result.json)
+	RC=$?
+	ERR=""
+	assert_rc 0 ".gitignore ignores plugins/flow/evals/results/ (README claim holds)"
+	rm -rf "$d"
+}
