@@ -290,6 +290,14 @@ function run(argv, cwd, env) {
     stdout.write('flow eval: socat not found — skipping needs-bash cases (notice, not a failure)\n');
     selectedTags = selectedTags.filter((t) => t !== 'needs-bash');
   }
+  // An empty selection must refuse, never spawn: buildChildArgv would emit no
+  // `--tag` at all, and the CLI's documented default for "no --tag" is *every*
+  // tag — so `--tag needs-bash` alone on a socat-less box would silently run
+  // the whole suite the caller just narrowed away from, at full API cost.
+  if (!selectedTags.length) {
+    stderr.write('flow eval: no cases left to run after skipping needs-bash — nothing to evaluate\n');
+    return EXIT.fail;
+  }
 
   const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
   const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;

@@ -11,6 +11,7 @@ const { countTestFiles } = require('./tamper.js');
 const { appendLog } = require('./log.js');
 const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
 const { cmdStop } = require('./status.js');
+const { EVALS_ROOT } = require('../eval/contract.js');
 
 const DEFAULT_PROMPT = [
   'You are one iteration of a loop. The loop, not you, decides when the goal is met: it runs',
@@ -78,6 +79,16 @@ function refuseIfActive(toplevel, args, stderrW) {
   return 0;
 }
 
+// protectedFilesFront(toplevel, testFiles) -> the comma list tamper.js reads.
+// FR-008: the eval suite is tamper-protected in any repo that has it, with or
+// without --test-files, so an optimisation loop cannot rewrite the cases it is
+// being scored on (AC-011). Repos without plugins/flow/evals are unaffected.
+function protectedFilesFront(toplevel, testFiles) {
+  const paths = testFiles.filter(Boolean);
+  if (fs.existsSync(path.join(toplevel, EVALS_ROOT))) paths.push(EVALS_ROOT);
+  return [...new Set(paths)].join(',');
+}
+
 function buildInitFront(toplevel, args, base) {
   const now = new Date().toISOString();
   return {
@@ -103,11 +114,11 @@ function buildInitFront(toplevel, args, base) {
     // removed" check reads it as a number) regardless of --test-files, so
     // naming explicit paths never disables that check for the whole session.
     test_files: String(countTestFiles(toplevel)),
-    // Slice 5 (--test-files): explicit tamper-protected paths (e.g.
-    // plugins/flow/evals/**, FR-008), checked in addition to test_files
-    // above so a caller can protect data dirs the isTestPath heuristic never
-    // matches, without weakening the auto-detected count check.
-    protected_files: args.testFiles.join(','),
+    // Slice 5 (--test-files): explicit tamper-protected paths, checked in
+    // addition to test_files above so a caller can protect data dirs the
+    // isTestPath heuristic never matches, without weakening the auto-detected
+    // count check. FR-008 wires plugins/flow/evals in by default.
+    protected_files: protectedFilesFront(toplevel, args.testFiles),
     started_at: now,
     finished_at: '',
     cost_usd: '0',

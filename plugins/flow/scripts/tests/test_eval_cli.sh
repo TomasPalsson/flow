@@ -339,3 +339,116 @@ t_eval_partial_exit_when_child_exits_0_but_data_partial() {
 	ledger="$proj/plugins/flow/evals/ledger.jsonl"
 	assert_contains "$(cat "$ledger")" '"partial":true' "t_eval_partial_exit_when_child_exits_0_but_data_partial ledger-partial-true"
 }
+
+# t_eval_empty_tag_selection_refuses_instead_of_running_everything — the
+# socat skip can empty an explicit selection (`--tag needs-bash` alone). The
+# child CLI's documented default for "no --tag" is every tag, so forwarding an
+# empty selection would run the whole suite the caller narrowed away from, at
+# full API cost. `flow eval` must refuse and spawn nothing.
+t_eval_empty_tag_selection_refuses_instead_of_running_everything() {
+	local proj home fakebin
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag needs-bash
+	assert_rc 1 "t_eval_empty_tag_selection_refuses_instead_of_running_everything rc"
+	assert_contains "$ERR" "nothing to evaluate" "t_eval_empty_tag_selection_refuses_instead_of_running_everything message"
+	assert_not_contains "$OUT" "plugin eval plugins/flow" "t_eval_empty_tag_selection_refuses_instead_of_running_everything no-child-argv"
+	assert_file_missing "$proj/plugins/flow/evals/ledger.jsonl" "t_eval_empty_tag_selection_refuses_instead_of_running_everything no-ledger-line"
+}
+
+# ev_repo_with_evals — a tmp_repo with a committed eval case under
+# plugins/flow/evals/, the shape FR-008/AC-011 talk about.
+ev_repo_with_evals() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/plugins/flow/evals/quality-foo"
+	printf 'tags: [quality]\nexpected: reuse the existing helper\n' >"$d/plugins/flow/evals/quality-foo/case.yaml"
+	(cd "$d" && git add -A && git commit -q -m "add eval case") >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+# t_eval_edit_under_evals_is_suspect_by_default — AC-011: an iteration that
+# edits (not deletes) a file under evals/ is suspect, with no --test-files at
+# init. Rewriting a case's expectations is exactly how a loop would game the
+# suite it is scored on, and the file still exists afterwards, so an
+# existence-only check never sees it.
+t_eval_edit_under_evals_is_suspect_by_default() {
+	local proj home
+	proj=$(ev_repo_with_evals)
+	home=$(tmp_dir)
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt"
+	assert_rc 0 "t_eval_edit_under_evals_is_suspect_by_default init-rc"
+	: >"$proj/done.txt"
+	printf 'tags: [quality]\nexpected: anything at all\n' >"$proj/plugins/flow/evals/quality-foo/case.yaml"
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_eval_edit_under_evals_is_suspect_by_default check-rc"
+	assert_contains "$OUT" "verdict: suspect" "t_eval_edit_under_evals_is_suspect_by_default verdict"
+	assert_contains "$OUT" "plugins/flow/evals/quality-foo/case.yaml" "t_eval_edit_under_evals_is_suspect_by_default path"
+}
+
+# t_eval_new_case_under_evals_is_suspect_by_default — the same gate for an
+# added (untracked) file: planting a trivially-passing case is tamper too.
+t_eval_new_case_under_evals_is_suspect_by_default() {
+	local proj home
+	proj=$(ev_repo_with_evals)
+	home=$(tmp_dir)
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt"
+	assert_rc 0 "t_eval_new_case_under_evals_is_suspect_by_default init-rc"
+	: >"$proj/done.txt"
+	mkdir -p "$proj/plugins/flow/evals/quality-free-points"
+	printf 'tags: [quality]\n' >"$proj/plugins/flow/evals/quality-free-points/case.yaml"
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_eval_new_case_under_evals_is_suspect_by_default check-rc"
+	assert_contains "$OUT" "plugins/flow/evals/quality-free-points/case.yaml" "t_eval_new_case_under_evals_is_suspect_by_default path"
+}
+
+# t_eval_ledger_append_under_evals_is_not_tamper — the one documented
+# exemption: `flow eval` (the verifier itself) appends a line to
+# evals/ledger.jsonl on every run, so protecting that path would mark every
+# iteration of the very loop FR-008 exists to protect as suspect.
+t_eval_ledger_append_under_evals_is_not_tamper() {
+	local proj home
+	proj=$(ev_repo_with_evals)
+	home=$(tmp_dir)
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt"
+	assert_rc 0 "t_eval_ledger_append_under_evals_is_not_tamper init-rc"
+	: >"$proj/done.txt"
+	printf '{"ts":"2020-01-01T00:00:00.000Z","sha":"abc1234","model":"m","judgeModel":"j","tags":{},"meanDelta":0,"costUsd":0,"partial":false,"reason":""}\n' \
+		>>"$proj/plugins/flow/evals/ledger.jsonl"
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 0 "t_eval_ledger_append_under_evals_is_not_tamper check-rc"
+	assert_contains "$OUT" "verdict: pass" "t_eval_ledger_append_under_evals_is_not_tamper verdict"
+}
+
+# t_eval_test_files_flag_protects_directory_contents — --test-files takes a
+# directory ("a caller can protect data dirs the isTestPath heuristic never
+# matches"): removing a file inside it must flag, even though the directory
+# itself still exists.
+t_eval_test_files_flag_protects_directory_contents() {
+	local proj home
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/data/goldens"
+	printf 'x\n' >"$proj/data/goldens/one.txt"
+	printf 'y\n' >"$proj/data/goldens/two.txt"
+	(cd "$proj" && git add -A && git commit -q -m "add protected dir") >/dev/null 2>&1
+
+	ev_cli_in "$proj" "$home" loop init "goal text" --verify "test -f done.txt" \
+		--test-files "data/goldens"
+	assert_rc 0 "t_eval_test_files_flag_protects_directory_contents init-rc"
+	: >"$proj/done.txt"
+
+	rm "$proj/data/goldens/one.txt"
+
+	ev_cli_in "$proj" "$home" loop check
+	assert_rc 2 "t_eval_test_files_flag_protects_directory_contents check-rc"
+	assert_contains "$OUT" "data/goldens/one.txt" "t_eval_test_files_flag_protects_directory_contents path"
+	assert_contains "$OUT" "verdict: suspect" "t_eval_test_files_flag_protects_directory_contents verdict"
+}
