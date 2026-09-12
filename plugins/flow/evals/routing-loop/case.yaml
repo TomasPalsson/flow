@@ -13,13 +13,13 @@ graders:
   - name: fires-loop
     type: tool_used
     tool: Skill
-    input_match: "\\bloop\\b"
+    input_match: "flow:loop\\b"
     min: 1
     arm: with-only
   - name: no-other-hub-skill
     type: tool_used
     tool: Skill
-    input_match: "\\bfix\\b|\\bflow\\b(?!-)|\\baudit\\b"
+    input_match: "flow:feature\\b|flow:fix\\b|flow:flow\\b(?!-)|flow:flow-spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:scrutinize-idea\\b"
     min: 0
     max: 0
     arm: with-only

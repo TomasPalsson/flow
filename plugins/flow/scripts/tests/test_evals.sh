@@ -141,3 +141,78 @@ t_gitignore_covers_nested_eval_results() {
 	assert_rc 0 ".gitignore ignores plugins/flow/evals/results/ (README claim holds)"
 	rm -rf "$d"
 }
+
+# ---------------------------------------------------------------------------
+# routing negative-grader regression guard — a `no-other-hub-skill` grader
+# whose input_match was built from bare skill names (e.g. `\bfix\b`) matches
+# the `flow:` plugin prefix of every Skill call, so it fails alongside a
+# correctly-firing expected skill. The pattern must anchor on the full
+# `flow:<skill>` name and must never match the case's own expected skill.
+# ---------------------------------------------------------------------------
+
+t_evals_routing_negative_graders_exclude_own_skill() {
+	if ! command -v python3 >/dev/null 2>&1; then
+		printf '  skip t_evals_routing_negative_graders_exclude_own_skill (python3 absent)\n'
+		return
+	fi
+	local dir skill f out
+	for dir in "$EVALS_DIR"/routing-*/; do
+		[ -d "$dir" ] || continue
+		case "$dir" in
+		*/routing-none-*) continue ;;
+		esac
+		f="${dir}case.yaml"
+		[ -f "$f" ] || continue
+		skill="${dir#"$EVALS_DIR"/routing-}"
+		skill="${skill%/}"
+		out=$(python3 - "$f" "$skill" <<'PYEOF'
+import sys, yaml, re
+f, skill = sys.argv[1], sys.argv[2]
+d = yaml.safe_load(open(f))
+grader = next((g for g in d.get("graders", []) if g.get("name") == "no-other-hub-skill"), None)
+if grader is None:
+    print("missing-grader")
+    sys.exit(0)
+pattern = grader.get("input_match", "")
+own_call = '{"skill": "flow:%s", "args": ""}' % skill
+bad = []
+if re.search(pattern, own_call):
+    bad.append("matches-own-skill")
+if r"\bflow\b" in pattern:
+    bad.append("bare-flow-boundary")
+print(",".join(bad) if bad else "OK")
+PYEOF
+)
+		if [ "$out" = "OK" ]; then
+			_pass "no-other-hub-skill excludes own skill, no bare \\bflow\\b: ${dir#"$EVALS_DIR"/}case.yaml"
+		else
+			_fail "no-other-hub-skill excludes own skill, no bare \\bflow\\b: ${dir#"$EVALS_DIR"/}case.yaml" "$out"
+		fi
+	done
+}
+
+t_evals_routing_fires_graders_with_only() {
+	if ! command -v python3 >/dev/null 2>&1; then
+		printf '  skip t_evals_routing_fires_graders_with_only (python3 absent)\n'
+		return
+	fi
+	local dir f out
+	for dir in "$EVALS_DIR"/routing-*/; do
+		[ -d "$dir" ] || continue
+		f="${dir}case.yaml"
+		[ -f "$f" ] || continue
+		out=$(python3 - "$f" <<'PYEOF'
+import sys, yaml
+d = yaml.safe_load(open(sys.argv[1]))
+bad = [g.get("name", "") for g in d.get("graders", [])
+       if g.get("name", "").startswith("fires-") and g.get("arm") != "with-only"]
+print(",".join(bad) if bad else "OK")
+PYEOF
+)
+		if [ "$out" = "OK" ]; then
+			_pass "fires-* graders carry arm: with-only: ${dir#"$EVALS_DIR"/}case.yaml"
+		else
+			_fail "fires-* graders carry arm: with-only: ${dir#"$EVALS_DIR"/}case.yaml" "missing on: $out"
+		fi
+	done
+}
