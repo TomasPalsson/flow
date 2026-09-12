@@ -5,9 +5,11 @@ tags: [pipeline]
 runs: 1
 context:
   scaffold_script: scaffold.sh
+  history_file: history.jsonl
 execution:
-  prompt: "/flow:flow-spec Add a url_path property to Post"
+  prompt: "small — go ahead, use your recommendations for every question and write the spec."
   max_turns: 40
+  timeout_seconds: 1200
   allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: spec-doc-written
@@ -15,10 +17,15 @@ graders:
     path: ".specs/*/spec.md"
   - name: no-implementation-leak
     type: regex
-    target: { source: file, path: ".specs/*/spec.md" }
-    pattern: "PostgreSQL|Redis|React|FastAPI"
+    target: { source: file, path: ".specs/001-post-url-path/spec.md" }
+    pattern: "PostgreSQL|Redis|React|FastAPI|Django|SQLAlchemy"
     match: not_contains
+  - name: reuses-slugify
+    type: regex
+    target: { source: file, path: ".specs/001-post-url-path/spec.md" }
+    pattern: "slugify"
+    match: contains
   - name: spec-traces-to-prompt
     type: llm
-    focus: { source: file, path: ".specs/*/spec.md" }
-    criteria: "PASS if every functional requirement in the spec traces to a sentence in the prompt, no requirement is invented beyond it, and no interview question is left unanswered by the spec's own Assumptions table. FAIL otherwise."
+    focus: { source: file, path: ".specs/001-post-url-path/spec.md" }
+    criteria: "PASS if every requirement traces to the prompt (a url_path property from the title), the spec names no technology the repo does not already use, and it does not invent features (ids, uniqueness handling, caching) as requirements — listing them under out-of-scope is fine. FAIL otherwise."

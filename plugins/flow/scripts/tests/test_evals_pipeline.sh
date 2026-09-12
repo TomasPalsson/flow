@@ -15,8 +15,9 @@ set -u
 
 PL_EVALS_DIR="$SCAN_DIR/../evals"
 PL_BUILD_CASES="pipeline-flow-feature pipeline-fix-bug"
-PL_FIRST_TURN_CASES="pipeline-spec-only pipeline-prep-first-turn"
-PL_ALL_CASES="$PL_BUILD_CASES $PL_FIRST_TURN_CASES"
+PL_FIRST_TURN_CASES="pipeline-spec-first-turn pipeline-prep-first-turn"
+PL_SPEC_ONLY_CASE="pipeline-spec-only"
+PL_ALL_CASES="$PL_BUILD_CASES $PL_FIRST_TURN_CASES $PL_SPEC_ONLY_CASE"
 
 # pl_field <field> <file> — the numeric value of the first "<field>: N" line
 # at any indent level.
@@ -98,6 +99,14 @@ t_first_turn_cases_max_turns_at_least_8() {
 
 t_build_cases_timeout_at_least_1800() {
 	pl_assert_field_at_least timeout_seconds 1800 "timeout_seconds >= 1800" $PL_BUILD_CASES
+}
+
+# pipeline-spec-only resumes a saved first-turn transcript and lets
+# /flow:flow-spec run to completion, so it needs more headroom than a plain
+# first-turn case but not the full build tier's minimums.
+t_spec_only_max_turns_and_timeout() {
+	pl_assert_field_at_least max_turns 40 "max_turns >= 40" $PL_SPEC_ONLY_CASE
+	pl_assert_field_at_least timeout_seconds 1200 "timeout_seconds >= 1200" $PL_SPEC_ONLY_CASE
 }
 
 t_pipeline_scaffolds_executable_git_init() {
@@ -242,6 +251,72 @@ t_fix_bug_scaffold_plants_no_regression_test() {
 # special case sweeps the whole grader set while the rounding bug survives for
 # every other input.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Slice 6 review — pipeline-spec-only resumes a saved transcript past
+# /flow:flow-spec's size-classification stop, instead of relying on a single
+# fresh turn to reach a written spec (which the size stop makes impossible).
+# ---------------------------------------------------------------------------
+
+t_spec_only_declares_history_file() {
+	local f
+	f="$PL_EVALS_DIR/pipeline-spec-only/case.yaml"
+	[ -f "$f" ] || { _fail "pipeline-spec-only case.yaml exists" "missing: $f"; return; }
+	assert_contains "$(cat "$f")" "history_file: history.jsonl" "declares context.history_file: history.jsonl"
+}
+
+t_spec_only_history_file_present_and_nonempty() {
+	local f
+	f="$PL_EVALS_DIR/pipeline-spec-only/history.jsonl"
+	assert_file_exists "$f" "history.jsonl exists"
+	[ -s "$f" ] && _pass "history.jsonl is non-empty" || _fail "history.jsonl is non-empty" "empty or missing: $f"
+}
+
+t_spec_only_grants_write_and_edit() {
+	local f content
+	f="$PL_EVALS_DIR/pipeline-spec-only/case.yaml"
+	[ -f "$f" ] || return
+	content=$(cat "$f")
+	assert_contains "$content" "Write" "allowed_tools includes Write"
+	assert_contains "$content" "Edit" "allowed_tools includes Edit"
+}
+
+t_spec_first_turn_graders_check_the_first_message() {
+	local f content
+	f="$PL_EVALS_DIR/pipeline-spec-first-turn/case.yaml"
+	[ -f "$f" ] || { _fail "pipeline-spec-first-turn case.yaml exists" "missing: $f"; return; }
+	content=$(cat "$f")
+	assert_contains "$content" 'Reply \"small\", \"medium\", or \"large\"' "not_contains targets the exact stop phrase"
+	assert_contains "$content" "not_contains" "a not_contains match is declared"
+}
+
+# ---------------------------------------------------------------------------
+# Slice 6 review — `claude plugin eval --scaffold` nests a case's cwd inside
+# its own throwaway HOME, which is itself an empty `git init` (no commits).
+# scaffold.sh's "refuse to run inside an existing checkout" guard must not
+# mistake that placeholder for a real invoking repo; only a work tree that
+# already has a commit is the danger case. Covers the two scaffold.sh files
+# this slice's fix touches.
+# ---------------------------------------------------------------------------
+
+PL_FIXED_GUARD_CASES="pipeline-spec-only pipeline-spec-first-turn"
+
+t_fixed_scaffolds_run_inside_a_commitless_work_tree() {
+	local name repo s
+	for name in $PL_FIXED_GUARD_CASES; do
+		s="$PL_EVALS_DIR/$name/scaffold.sh"
+		[ -f "$s" ] || continue
+		repo=$(tmp_dir)
+		(cd "$repo" && git init -q && git config user.email "e@example.com" && git config user.name "e" && git config commit.gpgsign false) >/dev/null 2>&1
+		run_cmd bash -c 'cd "$1" && exec bash "$2"' _ "$repo" "$s"
+		if [ "$RC" -eq 0 ]; then
+			_pass "scaffold runs inside a commit-less work tree: $name"
+		else
+			_fail "scaffold runs inside a commit-less work tree: $name" "exit $RC: $ERR"
+		fi
+		rm -rf "$repo"
+	done
+}
 
 t_fix_bug_graders_read_the_patched_source() {
 	local f content

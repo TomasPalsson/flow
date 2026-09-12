@@ -12,10 +12,8 @@ execution:
 graders:
   - name: one-question-with-hypothesis
     type: llm
-    focus: { source: last_message }
     criteria: "PASS if the message asks exactly one question, states a hypothesis with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), ends by asking the user to confirm or correct it, and offers no more than four options if it presents a menu. FAIL otherwise."
   - name: not-three-questions
     type: regex
-    target: { source: last_message }
     pattern: "\\?\\s*\\n.*\\?\\s*\\n.*\\?"
     match: not_contains

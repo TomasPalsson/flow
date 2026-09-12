@@ -1,0 +1,19 @@
+schema_version: "1.1"
+name: pipeline-spec-first-turn
+description: /flow:flow-spec's first turn must state its size classification and ask the first discovery question in the same message, not stop and wait
+tags: [pipeline]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:flow-spec Add a url_path property to Post"
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: classification-and-first-question
+    type: llm
+    criteria: "PASS if the message states the size classification AND asks the first discovery question in the same message, with a recommended answer and \"confirm or correct\". FAIL if it only reports the size and waits, or asks more than one question."
+  - name: not-stop-and-wait
+    type: regex
+    pattern: "Reply \"small\", \"medium\", or \"large\""
+    match: not_contains
