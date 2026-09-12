@@ -1,6 +1,6 @@
 ---
 name: qa
-description: "Use WHENEVER the user asks to: QA, test, verify, 'does this work?', 'check for bugs', 'is this ready to ship?', 'qa this', 'test this feature', 'run quality checks', 'do a QA pass', 'qa branch X', check accessibility, audit security, find edge cases, review code quality, /qa, /qa <branch>, or any request for quality assurance, testing, or verification. Accepts a branch name as argument — checks out the branch, sets up the environment, runs parallel QA agent swarms (code analysis, live browser testing via agent-browser, accessibility, security, performance, edge cases), presents findings, then offers the user a live browser session to manually verify."
+description: "Use WHENEVER the user asks to: QA, test, verify, 'is this ready to ship?', 'can you QA it', 'check this branch before I merge' — even when you could answer from the diff alone — 'does this work?', 'check for bugs', 'is this ready to ship?', 'qa this', 'test this feature', 'run quality checks', 'do a QA pass', 'qa branch X', check accessibility, audit security, find edge cases, review code quality, /qa, /qa <branch>, or any request for quality assurance, testing, or verification. Accepts a branch name as argument — checks out the branch, sets up the environment, runs parallel QA agent swarms (code analysis, live browser testing via agent-browser, accessibility, security, performance, edge cases), presents findings, then offers the user a live browser session to manually verify."
 ---
 
 # QA — Agent Swarm Quality Assurance
