@@ -54,6 +54,21 @@ t_noslop_reports_planted_findings() {
 	done
 }
 
+# NS-06 covers the whole rubric row, not just function names: the fixture's
+# generic class (`Manager`) and generic variables (`data`, `item`) must be
+# reported too, in Python and in JS/TS.
+t_noslop_reports_generic_variable_and_class_names() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_contains "$OUT" "generic class name 'Manager'" \
+		"NS-06 reports a generic Python class name"
+	assert_contains "$OUT" "generic variable name 'data'" \
+		"NS-06 reports a generic Python variable name"
+	assert_contains "$OUT" "generic variable name 'item'" \
+		"NS-06 reports a generic JS/TS variable name"
+}
+
 # NS-16 (name similarity) runs without external tools, as SKILL.md says:
 # the fixture's duplicated src/text_helpers.py::slugify must be reported
 # under --no-tools.

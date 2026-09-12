@@ -38,6 +38,7 @@ TASK_REF_RE = re.compile(
     r"per the (spec|brief|ticket))\b", re.I)
 TASK_NUM_RE = re.compile(r"#\d{2,}")
 TEST_FILE_RE = re.compile(r"test|spec|__tests__", re.I)
+JS_VAR_NAME_RE = re.compile(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=")
 JS_FUNC_NAME_RE = re.compile(
     r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|"
     r"\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(|"
@@ -159,6 +160,24 @@ def js_catch_findings(path, added):
         add(findings, path, line_for_pos(offsets, m.start()), "NS-03", "empty catch block")
     return findings
 
+def assigned_names(node):
+    """Target names of a plain `x = ...` / `x: T = ...`; tuples and attributes skipped."""
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    return [t.id for t in targets if isinstance(t, ast.Name)]
+
+def _py_generic_name_findings(findings, path, node):
+    """NS-06 for one added Python node: def, class, or plain assignment."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if node.name in GENERIC_NAMES:
+            add(findings, path, node.lineno, "NS-06", f"generic function name '{node.name}'")
+    elif isinstance(node, ast.ClassDef):
+        if node.name.lower() in GENERIC_NAMES:
+            add(findings, path, node.lineno, "NS-06", f"generic class name '{node.name}'")
+    elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+        for name in assigned_names(node):
+            if name in GENERIC_NAMES:
+                add(findings, path, node.lineno, "NS-06", f"generic variable name '{name}'")
+
 def py_findings(path, added, src):
     """NS-03/05/06 for Python, via ast over the added def/except lines."""
     findings = []
@@ -180,8 +199,9 @@ def py_findings(path, added, src):
             if doc and span <= 3 and doc.count("\n") >= 2:
                 add(findings, path, node.lineno, "NS-05",
                     f"{span}-line body but {doc.count(chr(10)) + 1}-line docstring")
-            if node.name in GENERIC_NAMES:
-                add(findings, path, node.lineno, "NS-06", f"generic function name '{node.name}'")
+        # ast.walk yields nodes without a lineno (Module, expression contexts)
+        if getattr(node, "lineno", None) in added_linenos:
+            _py_generic_name_findings(findings, path, node)
     return findings, tree
 
 def _hedge_finding(findings, path, lineno, text, stripped):
@@ -273,6 +293,13 @@ def js_generic_name_findings(path, added):
         for lineno, name in js_generic_and_dup_names(path, added):
             if name in GENERIC_NAMES:
                 add(findings, path, lineno, "NS-06", f"generic function name '{name}'")
+        for lineno, text in added.items():
+            # a `const x = (…) =>` line is already reported above as a function
+            if js_func_name(text):
+                continue
+            m = JS_VAR_NAME_RE.search(text)
+            if m and m.group(1) in GENERIC_NAMES:
+                add(findings, path, lineno, "NS-06", f"generic variable name '{m.group(1)}'")
     return findings
 
 def all_repo_function_names(root, head):

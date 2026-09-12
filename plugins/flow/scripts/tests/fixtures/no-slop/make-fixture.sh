@@ -75,6 +75,12 @@ def debug_dump(payload):
 def cast_value(value):
     result = value  # type: ignore
     return result
+
+
+class Manager:
+    def build(self, value):
+        data = value.strip()
+        return data
 EOF
 
 # NS-16: a second copy of an existing helper under a new path, the
@@ -90,6 +96,11 @@ cat >>src/util.ts <<'EOF'
 export function formatDateLegacy(d: Date): string {
   // added for the export flow
   return d.toISOString();
+}
+
+export function isoWeekday(d: Date): number {
+  const item = d.getUTCDay();
+  return item === 0 ? 7 : item;
 }
 EOF
 
