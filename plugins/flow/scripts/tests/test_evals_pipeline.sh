@@ -127,7 +127,7 @@ t_pipeline_scaffolds_executable_git_init() {
 
 # ---------------------------------------------------------------------------
 # B22 — pipeline-flow-feature's graders: file_exists for the spec doc and
-# feature plan, reuse-not-reimplement regexes on src/posts.py, and a
+# verification evidence, reuse-not-reimplement regexes on src/posts.py, and a
 # tool_order proving exploration happens before the edit.
 # ---------------------------------------------------------------------------
 
@@ -136,7 +136,11 @@ t_flow_feature_file_exists_graders() {
 	f="$PL_EVALS_DIR/pipeline-flow-feature/case.yaml"
 	[ -f "$f" ] || return
 	assert_contains "$(cat "$f")" ".specs/*/spec.md" "file_exists targets .specs/*/spec.md"
-	assert_contains "$(cat "$f")" ".claude/feature-plan.local.md" "file_exists targets .claude/feature-plan.local.md"
+	# Not .claude/feature-plan.local.md: 06-pr.md's Promote step cleans up every
+	# .claude/*.local.md on a fully-shipped run, which would flip this grader to
+	# FAIL for the best-behaved runs. .claude/verification/ is the one directory
+	# 06-pr.md and SKILL.md's invariants both name as never deleted.
+	assert_contains "$(cat "$f")" ".claude/verification/*.md" "file_exists targets .claude/verification/*.md"
 }
 
 t_flow_feature_reuse_regex_graders() {

@@ -14,9 +14,9 @@ graders:
   - name: spec-doc-written
     type: file_exists
     path: ".specs/*/spec.md"
-  - name: feature-plan-written
+  - name: verification-evidence-written
     type: file_exists
-    path: ".claude/feature-plan.local.md"
+    path: ".claude/verification/*.md"
   - name: reuses-slugify
     type: regex
     target: { source: file, path: src/posts.py }
