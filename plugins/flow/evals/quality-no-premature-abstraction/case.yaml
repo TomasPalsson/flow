@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "Add a `notify_admin(message: str) -> None` function to src/notifications.py that emails admin@example.com with subject 'Admin Alert' and the given message, using the existing email sender."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: no-new-abstraction-for-one-caller
     type: llm

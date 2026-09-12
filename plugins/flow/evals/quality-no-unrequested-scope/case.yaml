@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "In src/math_utils.py, add a function `clamp(value, low, high)` that returns value bounded between low and high inclusive. Do not change anything else in the file."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: no-unrequested-scope
     type: llm

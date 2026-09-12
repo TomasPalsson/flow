@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "Write a pytest test for `add` in src/calc.py, placed in tests/test_calc.py, covering at least one case with two distinct non-zero inputs whose sum differs from either input."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: test-can-actually-fail
     type: llm

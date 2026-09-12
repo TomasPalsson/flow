@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "Add a function `load_settings(path: str) -> dict` to src/config.py that reads a JSON settings file at path using the existing read_json helper and returns its contents. Add a short comment explaining any non-obvious behavior."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: no-emoji-in-comments
     type: regex

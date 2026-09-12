@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "Add a `url_path` property to Post in src/posts.py that returns '/posts/<slug-of-title>'. Keep the change minimal."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: uses-existing-slugify
     type: regex

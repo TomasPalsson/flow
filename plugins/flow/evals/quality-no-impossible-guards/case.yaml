@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "Add a function `format_receipt(order: Order) -> str` to src/orders.py that returns f'Order {order.id}: ${order.total:.2f}'."
   max_turns: 12
-  allowed_tools: [Read, Glob, Grep, Write, Edit]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: no-redundant-guard
     type: llm
