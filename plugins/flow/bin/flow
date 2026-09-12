@@ -165,8 +165,9 @@ ${C.accent}Commands:${C.reset}
   lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
                                                      [P] disjointness per wave, missing verify:,
                                                      ticks that no commit backs
-  tick <ID> [--dir <d>] [--by user]                 The only writer of [x] — measures the sha
-                                                     rather than trusting a claim
+  tick <ID> [--dir <d>] [--by user] [--sha <c>]     The only writer of [x] — records the newest
+                                                     commit since Base touching the task's files:
+                                                     (or --sha), never a claim
   use <NNN-slug>                                    Point .specs/.current at one feature
   publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
                                                      GitHub issues. Never on the pipeline

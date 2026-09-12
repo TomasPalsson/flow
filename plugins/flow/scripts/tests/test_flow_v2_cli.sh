@@ -254,6 +254,67 @@ t_v2_tick_output_passes_the_lint_it_creates() {
 	rm -rf "$home" "$proj"
 }
 
+# v2_wave_repo — a v2_repo with a parallel wave landed: a commit touching b.py
+# (T002's file) and then a later commit touching c.py, so HEAD is not T002's
+# commit. Echoes "<repo> <b-sha> <head-sha>".
+v2_wave_repo() {
+	local set d bsha head
+	set=$(v2_repo)
+	d=${set%% *}
+	(
+		cd "$d" || exit 1
+		printf 'b\n' >b.py && git add -A && git commit -qm "T002: b"
+		printf 'c\n' >c.py && git add -A && git commit -qm "T009: c"
+	) >/dev/null 2>&1
+	bsha=$(git -C "$d" log -n 1 --format=%h -- b.py)
+	head=$(git -C "$d" rev-parse --short HEAD)
+	printf '%s %s %s' "$d" "$bsha" "$head"
+}
+
+t_v2_tick_records_the_commit_that_touched_its_files_not_head() {
+	# After a parallel wave HEAD is another task's commit. Recording HEAD would
+	# make the very next `flow next` report lying.
+	local home set proj bsha head line
+	home=$(tmp_dir)
+	set=$(v2_wave_repo)
+	proj=${set%% *}
+	set=${set#* }
+	bsha=${set%% *}
+	head=${set##* }
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "flow tick after a wave exits 0"
+	assert_contains "$OUT" "T002 ticked at $bsha" "the receipt names T002's own commit"
+	assert_not_contains "$OUT" "$head" "not HEAD"
+	line=$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md")
+	assert_contains "$line" "— done: $bsha" "done: is the commit that touched b.py"
+	v2_cli_in "$proj" "$home" lint
+	assert_rc 0 "and the lint join passes"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_accepts_a_sha_override() {
+	local home set proj bsha head base line
+	home=$(tmp_dir)
+	set=$(v2_wave_repo)
+	proj=${set%% *}
+	set=${set#* }
+	bsha=${set%% *}
+	head=${set##* }
+	base=$(git -C "$proj" rev-list --max-parents=0 --abbrev-commit HEAD)
+	v2_cli_in "$proj" "$home" tick T002 --sha nonesuch
+	assert_rc 1 "--sha with an unknown commit exits 1"
+	assert_contains "$ERR" "not a commit" "it says why"
+	v2_cli_in "$proj" "$home" tick T002 --sha "$base"
+	assert_rc 1 "--sha at Base exits 1"
+	assert_contains "$ERR" "at or before Base" "it says why"
+	v2_cli_in "$proj" "$home" tick T002 --sha "$head"
+	assert_rc 0 "--sha with a real commit since Base exits 0"
+	line=$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md")
+	assert_contains "$line" "— done: $head" "done: is the given sha, not the one files: would resolve"
+	assert_not_contains "$line" "$bsha" "files: resolution did not override --sha"
+	rm -rf "$home" "$proj"
+}
+
 # ---------------------------------------------------------------------------
 # flow publish — an optional leaf, never on the pipeline
 # ---------------------------------------------------------------------------

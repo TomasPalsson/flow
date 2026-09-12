@@ -1,9 +1,12 @@
 'use strict';
 
-// tick.js — `flow tick <ID> [--dir <spec-dir>] [--by user]`.
+// tick.js — `flow tick <ID> [--dir <spec-dir>] [--by user] [--sha <commit>]`.
 //
 // K-D: the ONLY writer of `[x]`. It measures the sha rather than trusting a
 // claim, which is what makes flow-lint's [x] → sha → files: join meaningful.
+// The sha it measures is the newest commit in Base..HEAD that touched the
+// task's files: — after a parallel wave HEAD is some other task's commit, so
+// recording HEAD would be a lie flow-lint catches one call later.
 
 const fs = require('fs');
 const path = require('path');
@@ -20,13 +23,38 @@ function git(root, args) {
   return { ok: r.status === 0, out: (r.stdout || '').trim() };
 }
 
+// Which commit a tick records. `--sha` wins once verified; otherwise the newest
+// commit since Base that touched the task's files:. None → HEAD, and
+// flow-lint's done-touches-nothing says why.
+function resolveSha(root, { id, line, base, head, shaArg, isHuman }) {
+  const hasBase = base && base !== 'none';
+  if (shaArg) {
+    const given = git(root, ['rev-parse', '--short', '--verify', '-q', `${shaArg}^{commit}`]);
+    if (!given.ok) return { error: `--sha ${shaArg} is not a commit in this repo`, fix: 'pass a sha from git log' };
+    if (!git(root, ['merge-base', '--is-ancestor', given.out, 'HEAD']).ok) {
+      return { error: `--sha ${given.out} is not on this branch`, fix: 'pass a commit reachable from HEAD' };
+    }
+    if (hasBase && git(root, ['merge-base', '--is-ancestor', given.out, base]).ok) {
+      return { error: `--sha ${given.out} is at or before Base: ${base}`, fix: `pass a commit made for ${id} since Base` };
+    }
+    return { sha: given.out };
+  }
+  if (isHuman) return { sha: head };
+  const filesSeg = line.split('—').map((s) => s.trim()).find((s) => s.startsWith('files:'));
+  const files = filesSeg ? filesSeg.slice('files:'.length).split(',').map((s) => s.trim()).filter(Boolean) : [];
+  if (!files.length) return { sha: head };
+  const own = git(root, ['log', '-n', '1', '--format=%h', hasBase ? `${base}..HEAD` : 'HEAD', '--'].concat(files));
+  return { sha: own.ok && own.out ? own.out : head };
+}
+
 function run(argv, root, io, env) {
   const { stdout, stderr } = io;
   let dirArg = null;
   let by = null;
+  let shaArg = null;
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--dir') { dirArg = argv[++i]; } else if (argv[i] === '--by') { by = argv[++i]; } else if (!argv[i].startsWith('-')) rest.push(argv[i]);
+    if (argv[i] === '--dir') { dirArg = argv[++i]; } else if (argv[i] === '--by') { by = argv[++i]; } else if (argv[i] === '--sha') { shaArg = argv[++i]; } else if (!argv[i].startsWith('-')) rest.push(argv[i]);
   }
   const id = rest[0];
   if (!id) return fail(stderr, 'no task id', 'flow tick <T###|CHK###|G###>');
@@ -77,11 +105,15 @@ function run(argv, root, io, env) {
       `commit ${id}'s work first, then flow tick ${id}`);
   }
 
-  const suffix = isHuman ? ` — done: ${head.out} by user` : ` — done: ${head.out}`;
+  const r = resolveSha(root, { id, line: lines[hit], base, head: head.out, shaArg, isHuman });
+  if (r.error) return fail(stderr, r.error, r.fix);
+  const sha = r.sha;
+
+  const suffix = isHuman ? ` — done: ${sha} by user` : ` — done: ${sha}`;
   lines[hit] = lines[hit].replace(/^- \[ \]/, '- [x]').replace(/\s*$/, '') + suffix;
   fs.writeFileSync(tasksPath, lines.join('\n'));
   resetCount(root);
-  stdout.write(`flow: ${id} ticked at ${head.out} (${path.relative(root, tasksPath)})\n`);
+  stdout.write(`flow: ${id} ticked at ${sha} (${path.relative(root, tasksPath)})\n`);
   return 0;
 }
 
