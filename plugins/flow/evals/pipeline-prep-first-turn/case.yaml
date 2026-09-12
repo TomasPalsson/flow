@@ -7,8 +7,8 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "/flow:prep Add a url_path property to Post"
-  max_turns: 8
-  allowed_tools: [Read, Glob, Grep, Skill]
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: one-question-with-hypothesis
     type: llm
