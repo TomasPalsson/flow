@@ -4,7 +4,7 @@
 // section 1: names, locations and shapes shared across the eval-suite
 // slices. Owner: orchestrator; import, never edit (THE FIVE #1/#3).
 
-const TAGS = ['quality', 'routing', 'invariant', 'needs-bash']; // every case tag ⊂ TAGS
+const TAGS = ['quality', 'routing', 'invariant', 'pipeline', 'needs-bash']; // every case tag ⊂ TAGS
 const EVALS_ROOT = 'plugins/flow/evals'; // relative to repo toplevel
 const LEDGER_PATH = 'plugins/flow/evals/ledger.jsonl';
 const CONFIG_KEYS = { model: 'evalModel', judgeModel: 'evalJudgeModel' }; // .claude/flow.config.json
