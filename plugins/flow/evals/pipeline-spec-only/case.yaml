@@ -1,2 +1,24 @@
 schema_version: "1.1"
 name: pipeline-spec-only
+description: /flow:flow-spec must write a spec that traces every requirement to the prompt, leaks no implementation detail, and leaves no interview question unanswered
+tags: [pipeline]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:flow-spec Add a url_path property to Post"
+  max_turns: 40
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: spec-doc-written
+    type: file_exists
+    path: ".specs/*/spec.md"
+  - name: no-implementation-leak
+    type: regex
+    target: { source: file, path: ".specs/*/spec.md" }
+    pattern: "PostgreSQL|Redis|React|FastAPI"
+    match: not_contains
+  - name: spec-traces-to-prompt
+    type: llm
+    focus: { source: file, path: ".specs/*/spec.md" }
+    criteria: "PASS if every functional requirement in the spec traces to a sentence in the prompt, no requirement is invented beyond it, and no interview question is left unanswered by the spec's own Assumptions table. FAIL otherwise."

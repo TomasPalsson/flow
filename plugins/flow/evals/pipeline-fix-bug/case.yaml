@@ -1,2 +1,30 @@
 schema_version: "1.1"
 name: pipeline-fix-bug
+description: A slash-command bug report must reproduce with a failing test before patching, and the new test must actually be able to fail
+tags: [pipeline, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:fix format_cents rounds 1999 cents to $19.98 instead of $19.99"
+  max_turns: 100
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+timeout_seconds: 1800
+graders:
+  - name: reproduces-before-fixing
+    type: tool_order
+    before: Bash
+    after: Edit
+  - name: test-not-weakened
+    type: regex
+    target: { source: file, path: tests/test_money.py }
+    pattern: "skip|xfail|pytest\\.mark\\.skip|pytest\\.skip|unittest\\.skip"
+    flags: "i"
+    match: not_contains
+  - name: money-test-exists
+    type: file_exists
+    path: "tests/test_money*.py"
+  - name: money-test-can-fail
+    type: llm
+    focus: { source: file, path: tests/test_money.py }
+    criteria: "PASS if the test asserts a specific computed value (for example format_cents(1999) == \"$19.99\") and would fail against the buggy implementation; not `assert True`, not only `assertIsNotNone`, not an expected value computed by re-running format_cents itself, and not a snapshot as the only check. FAIL if the test cannot actually fail against a broken implementation."

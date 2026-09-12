@@ -1,2 +1,21 @@
 schema_version: "1.1"
 name: pipeline-prep-first-turn
+description: /flow:prep's first turn must ask exactly one question, stated as a hypothesis with a confidence word, and end asking to confirm or correct it
+tags: [pipeline]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:prep Add a url_path property to Post"
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: one-question-with-hypothesis
+    type: llm
+    focus: { source: last_message }
+    criteria: "PASS if the message asks exactly one question, states a hypothesis with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), ends by asking the user to confirm or correct it, and offers no more than four options if it presents a menu. FAIL otherwise."
+  - name: not-three-questions
+    type: regex
+    target: { source: last_message }
+    pattern: "\\?\\s*\\n.*\\?\\s*\\n.*\\?"
+    match: not_contains

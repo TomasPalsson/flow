@@ -1,2 +1,42 @@
 schema_version: "1.1"
 name: pipeline-flow-feature
+description: An unattended /flow:flow request must spec, plan, implement, and reuse the existing slugify/format_cents helpers instead of reinventing them
+tags: [pipeline, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:flow --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it."
+  max_turns: 150
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 2400
+graders:
+  - name: spec-doc-written
+    type: file_exists
+    path: ".specs/*/spec.md"
+  - name: feature-plan-written
+    type: file_exists
+    path: ".claude/feature-plan.local.md"
+  - name: reuses-slugify
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "slugify"
+    match: contains
+  - name: reuses-format-cents
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "format_cents"
+    match: contains
+  - name: no-reimplemented-slug-regex
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "re\\.sub|import re"
+    match: not_contains
+  - name: explores-before-editing
+    type: tool_order
+    before: { tool: "Grep|Bash" }
+    after: { tool: "Edit|Write" }
+  - name: posts-property-quality
+    type: llm
+    focus: { source: file, path: src/posts.py }
+    criteria: "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise."
