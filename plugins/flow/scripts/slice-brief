@@ -14,6 +14,10 @@ grammar — a line inside a ``` or ~~~ fence is never a heading).
 When --design is given and contains a matching
 "## Contract for this slice — Slice N" block, appends that block.
 
+Appends "## Before you write" plus the no-slop developer block's fenced
+instructions (verbatim, from skills/no-slop/references/developer-block.md)
+after the slice section and before any design contract.
+
 Writes the result to --out (default .claude/slices/<N>-brief.md,
 directory created) and prints the output path.
 
@@ -145,6 +149,16 @@ if [ -n "$DESIGN" ] && [ -f "$DESIGN" ]; then
   ' "$DESIGN")
 fi
 
+HERE=$(cd "$(dirname "$0")" && pwd -P)
+DEV_BLOCK="$HERE/../skills/no-slop/references/developer-block.md"
+DEV_BLOCK_TEXT=""
+if [ -f "$DEV_BLOCK" ]; then
+  DEV_BLOCK_TEXT=$(awk '
+    /^```/ { infence = !infence; print; if (!infence) exit; next }
+    infence { print }
+  ' "$DEV_BLOCK")
+fi
+
 if [ -z "$OUT" ]; then
   OUT=".claude/slices/${N}-brief.md"
 fi
@@ -154,6 +168,9 @@ mkdir -p "$OUT_DIR"
 
 {
   printf '%s\n' "$SLICE_TEXT"
+  if [ -n "$DEV_BLOCK_TEXT" ]; then
+    printf '\n\n## Before you write\n%s\n' "$DEV_BLOCK_TEXT"
+  fi
   if [ -n "$CONTRACT_TEXT" ]; then
     printf '\n%s\n' "$CONTRACT_TEXT"
   fi

@@ -45,13 +45,14 @@ Confirm every task is a test or a stub. Write stubs with correct signatures that
 Commit `test(<scope>): add failing tests for <phase> [RED]` — tests and stubs only; verify with `git diff --name-only HEAD~1..HEAD`. Mark the sub-phase `[x]` with its commit hash.
 
 ### GREEN
-Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Run `test-changed`, falling back to `$TEST_CMD`.
+Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Before your first edit, state the search receipt in the form `searched: <terms>; found: <path:line | nothing>`. Run `test-changed`, falling back to `$TEST_CMD`.
 **HARD GATE**: exit zero → proceed. Non-zero after 3 attempts → STOP and report. Confirm the diff shows no test files.
 Commit `feat(<scope>): implement <phase>`. Update state.
 
 ### REFACTOR
 Record the exact pass count from GREEN. Apply the `clean-code` skill to everything written in this phase's RED and GREEN: intention-revealing names, one job per function, self-documenting code over comments, Law of Demeter, no rigidity or needless complexity. Constraints: no new behavior, no test changes, **no public API surface change**. Run `$TEST_CMD` after each change, not only at the end.
 **HARD GATE**: pass count drops at any point → REVERT that change immediately. Never fix a failing test during REFACTOR — a drop means the refactor changed behavior.
+Run `scripts/slop-check --base <base>` and either fix each finding or justify it in one line in the report.
 Commit `refactor(<scope>): clean <phase> implementation`. Update state.
 
 ### Inline Gates

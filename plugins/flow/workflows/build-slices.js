@@ -211,7 +211,8 @@ async function runSlice(id) {
 
   const implementPrompt = 'Implement slice ' + id + ' by reading ONLY the brief at ' + briefPath +
     ' and the files it names. Follow RED/GREEN/REFACTOR from the brief. Run the test command: ' +
-    testCmd + '. Return the SLICE_RESULT.'
+    testCmd + '. State the search receipt before your first edit and run scripts/slop-check ' +
+    'before reporting done. Return the SLICE_RESULT.'
   const implRes = await agent(implementPrompt, { agentType: 'developer', label: 'implement:' + id, phase: 'Implement', schema: SLICE_RESULT })
   if (!implRes) {
     return {
@@ -233,6 +234,7 @@ async function runSlice(id) {
     const lenses = await parallel([
       function () { return agent(adversaryPrompt('correctness', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('slop', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
     ])
     findings = lenses.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
   }
@@ -266,6 +268,7 @@ async function runSlice(id) {
     const relook = await parallel([
       function () { return agent(adversaryPrompt('correctness', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
     ])
     current = relook.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, []).filter(isBlocking)
   }
