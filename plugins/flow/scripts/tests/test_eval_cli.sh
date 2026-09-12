@@ -17,9 +17,15 @@ EV_CLI_PATH="$EV_CLI_PATH/bin/.local/bin/flow"
 EV_FIXTURES="$HERE/fixtures/eval"
 
 # ev_cli_in <project-dir> <home-dir> <harness-args...> — inherits this
-# runner's PATH, so the real `claude` (and the real absence of `socat`) on
-# the machine running the suite is what these tests see, matching the
-# spec's own assumption (7.1: no socat here; claude >= 2.1.269 available).
+# runner's PATH, so the real `claude` on the machine running the suite is
+# what these tests see (spec's own assumption, 7.1: claude >= 2.1.269
+# available). A test that additionally needs `socat` to read as absent
+# (deterministically, regardless of what this machine's PATH actually has —
+# /bin being a symlink to /usr/bin on usrmerge systems means a system socat
+# package can share a directory with binaries the CLI needs, like git or
+# node, so PATH can no longer be pared down to exclude just socat) sets
+# FLOW_EVAL_TEST_HIDE_SOCAT=1 before calling this helper; eval.js honors it
+# as a test-only override of the PATH-based socat lookup.
 ev_cli_in() {
 	local dir home
 	dir=$1
@@ -30,8 +36,8 @@ ev_cli_in() {
 }
 
 # ev_cli_bare_in <project-dir> <home-dir> <harness-args...> — PATH stripped
-# to /bin only: no `claude`, no `socat`, deterministic regardless of what a
-# developer happens to have installed.
+# to /bin only: no `claude`, deterministic regardless of what a developer
+# happens to have installed.
 ev_cli_bare_in() {
 	local dir home
 	dir=$1
@@ -42,9 +48,11 @@ ev_cli_bare_in() {
 }
 
 # ev_cli_stub_in <project-dir> <home-dir> <fakebin-dir> <harness-args...> —
-# PATH is <fakebin-dir>:/bin only, so the fake `claude` in <fakebin-dir> is
-# the only `claude` found, and `socat` stays absent (not in /bin on any
-# machine this suite runs on).
+# PATH is <fakebin-dir>:/bin, so the fake `claude` in <fakebin-dir> is the
+# only `claude` found. A test that needs `socat` absent regardless of what
+# this machine's /bin actually has sets FLOW_EVAL_TEST_HIDE_SOCAT=1 before
+# calling this helper (see ev_cli_in above); a test that needs `socat`
+# present stubs one into <fakebin-dir> instead (ev_fakebin_with_socat).
 ev_cli_stub_in() {
 	local dir home fakebin
 	dir=$1
@@ -128,13 +136,13 @@ t_eval_dry_run_prints_pinned_models() {
 # t_eval_dry_run_drops_needs_bash_tag_from_argv — proves the socat-missing
 # skip (FR-00x, code-design.md decision 5) actually narrows what gets
 # forwarded to `claude plugin eval`, not just what the printed notice claims.
-# Relies on the same "no socat on the test machine" assumption as the rest
-# of this file's real-PATH (`ev_cli_in`) tests.
+# FLOW_EVAL_TEST_HIDE_SOCAT=1 keeps `socat` reading as absent regardless of
+# the host (see ev_cli_in's doc comment).
 t_eval_dry_run_drops_needs_bash_tag_from_argv() {
 	local proj home
 	proj=$(tmp_repo)
 	home=$(tmp_dir)
-	ev_cli_in "$proj" "$home" eval --dry-run
+	FLOW_EVAL_TEST_HIDE_SOCAT=1 ev_cli_in "$proj" "$home" eval --dry-run
 	assert_rc 0 "t_eval_dry_run_drops_needs_bash_tag_from_argv rc"
 	assert_contains "$OUT" "socat" "t_eval_dry_run_drops_needs_bash_tag_from_argv notice"
 	assert_contains "$OUT" "--tag quality" "t_eval_dry_run_drops_needs_bash_tag_from_argv quality-kept"
@@ -221,7 +229,7 @@ t_eval_needs_bash_skipped_without_socat() {
 	proj=$(ev_repo)
 	home=$(tmp_dir)
 	fakebin=$(ev_fakebin)
-	CLAUDE_STUB_RESULT=aggregate-ok CLAUDE_STUB_EXIT=0 \
+	CLAUDE_STUB_RESULT=aggregate-ok CLAUDE_STUB_EXIT=0 FLOW_EVAL_TEST_HIDE_SOCAT=1 \
 		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag needs-bash --tag quality
 	assert_rc 0 "t_eval_needs_bash_skipped_without_socat rc"
 	assert_contains "$OUT" "needs-bash" "t_eval_needs_bash_skipped_without_socat notice-mentions-tag"
@@ -420,12 +428,14 @@ t_eval_partial_exit_when_child_exits_0_but_data_partial() {
 # child CLI's documented default for "no --tag" is every tag, so forwarding an
 # empty selection would run the whole suite the caller narrowed away from, at
 # full API cost. `flow eval` must refuse and spawn nothing.
+# FLOW_EVAL_TEST_HIDE_SOCAT=1 keeps `socat` reading as absent regardless of
+# the host, so the skip triggers deterministically.
 t_eval_empty_tag_selection_refuses_instead_of_running_everything() {
 	local proj home fakebin
 	proj=$(ev_repo)
 	home=$(tmp_dir)
 	fakebin=$(ev_fakebin)
-	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag needs-bash
+	FLOW_EVAL_TEST_HIDE_SOCAT=1 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag needs-bash
 	assert_rc 1 "t_eval_empty_tag_selection_refuses_instead_of_running_everything rc"
 	assert_contains "$ERR" "nothing to evaluate" "t_eval_empty_tag_selection_refuses_instead_of_running_everything message"
 	assert_not_contains "$OUT" "plugin eval plugins/flow" "t_eval_empty_tag_selection_refuses_instead_of_running_everything no-child-argv"

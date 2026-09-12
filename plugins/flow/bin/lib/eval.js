@@ -317,7 +317,12 @@ function run(argv, cwd, env) {
   }
 
   let selectedTags = args.tags.length ? args.tags : TAGS.slice();
-  const socatPath = resolveOnPath('socat', env);
+  // FLOW_EVAL_TEST_HIDE_SOCAT — test-only hook (test_eval_cli.sh) so "socat
+  // absent" is deterministic regardless of what a given machine's real PATH
+  // contains (e.g. /bin -> /usr/bin usrmerge systems ship a system socat
+  // alongside binaries the CLI needs, like git or node, so tests can't just
+  // pare PATH down to exclude socat).
+  const socatPath = env.FLOW_EVAL_TEST_HIDE_SOCAT ? null : resolveOnPath('socat', env);
   if (selectedTags.includes('needs-bash') && !socatPath) {
     stdout.write('flow eval: socat not found — skipping needs-bash cases (notice, not a failure)\n');
     selectedTags = selectedTags.filter((t) => t !== 'needs-bash');
