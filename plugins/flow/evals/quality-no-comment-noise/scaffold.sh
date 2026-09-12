@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src
 cat >src/config.py <<'PY'
 import json

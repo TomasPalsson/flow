@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src tests
 cat >src/shipping.py <<'PY'
 def shipping_cost(weight_kg):

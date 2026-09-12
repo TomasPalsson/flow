@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src tests
 cat >src/calc.py <<'PY'
 def add(a, b):

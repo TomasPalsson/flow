@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-set -e
-mkdir -p src tests
+set -euo pipefail
+mkdir -p tests
 cat >package.json <<'JSON'
 {
   "name": "checkout-app",

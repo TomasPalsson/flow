@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src tests
 cat >src/pricing.py <<'PY'
 def apply_discount(price, percent):

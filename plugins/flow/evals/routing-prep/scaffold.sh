@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -e
-mkdir -p src
+set -euo pipefail
 cat >README.md <<'MD'
 # habits (empty scaffold repo)
 MD

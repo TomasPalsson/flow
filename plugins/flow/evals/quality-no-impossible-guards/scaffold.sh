@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src
 cat >src/orders.py <<'PY'
 from dataclasses import dataclass
+
 
 @dataclass
 class Order:

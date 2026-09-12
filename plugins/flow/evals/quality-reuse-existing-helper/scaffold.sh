@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 mkdir -p src
 cat >src/text.py <<'PY'
 import re
+
 
 def slugify(value: str) -> str:
     value = value.lower().strip()
@@ -10,6 +11,7 @@ def slugify(value: str) -> str:
 PY
 cat >src/posts.py <<'PY'
 from dataclasses import dataclass
+
 
 @dataclass
 class Post:
