@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 120,
+  "costUsd": 25.5,
+  "partial": true,
+  "reason": "cost_ceiling",
+  "aggregates": { "overallScore": 0.5, "meanDelta": 0.1 },
+  "cases": [
+    { "name": "quality-reuse-slugify", "aggregates": { "score": 0.5, "delta": 0.1 } }
+  ]
+}

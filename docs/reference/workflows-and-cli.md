@@ -84,6 +84,10 @@ Commands:
                                                      deterministic repo state only
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
+  eval [--tag <tag>]... [--runs N] [--threshold N] [--max-cost-usd N]
+       [--ablation <arm>] [--history] [--dry-run]    Run the plugin eval suite
+                                                     (claude plugin eval) and append a
+                                                     ledger line (flow eval --help)
   tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]
                                                      Walk the harness lessons in a scratch
                                                      git repo

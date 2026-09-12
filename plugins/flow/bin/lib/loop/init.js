@@ -40,7 +40,7 @@ function parseInitArgs(argv) {
   const out = {
     goal: null, verify: null, shape: 'session', promptFile: null, prompt: null, session: '',
     maxIterations: null, maxMinutes: null, maxUsd: 0, stallAfter: 3, verifyTimeout: 600,
-    permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false,
+    permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -59,6 +59,7 @@ function parseInitArgs(argv) {
     else if (a === '--max-turns') out.maxTurns = argv[++i];
     else if (a === '--allow-green') out.allowGreen = true;
     else if (a === '--force') out.force = true;
+    else if (a === '--test-files') out.testFiles.push(argv[++i]);
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
   }
   if (out.maxIterations === null) out.maxIterations = out.shape === 'fresh' ? 30 : 8;
@@ -98,7 +99,10 @@ function buildInitFront(toplevel, args, base) {
     model: args.model,
     max_turns: String(args.maxTurns),
     base,
-    test_files: String(countTestFiles(toplevel)),
+    // Slice 5 (--test-files): explicit tamper-protected paths (e.g.
+    // plugins/flow/evals/**, FR-008) win over the auto-detected count, so a
+    // caller can protect data dirs the isTestPath heuristic never matches.
+    test_files: args.testFiles.length ? args.testFiles.join(',') : String(countTestFiles(toplevel)),
     started_at: now,
     finished_at: '',
     cost_usd: '0',

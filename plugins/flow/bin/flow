@@ -162,6 +162,10 @@ ${C.accent}Commands:${C.reset}
                                                      deterministic repo state only
   loop <subcommand> [options]                       Run a task until a deterministic
                                                      verifier passes (flow loop --help)
+  eval [--tag <tag>]... [--runs N] [--threshold N] [--max-cost-usd N]
+       [--ablation <arm>] [--history] [--dry-run]    Run the plugin eval suite
+                                                     (claude plugin eval) and append a
+                                                     ledger line (flow eval --help)
   tutorial [--list] [--reset] [--lesson N] [--sandbox <dir>] [--force]
                                                      Walk the harness lessons in a scratch
                                                      git repo
@@ -682,6 +686,60 @@ function doctorLoopCheck(push) {
     return;
   }
   push('loop-contract', 'PASS', `${p} status=${front.status}`);
+}
+
+// compareVersions("2.1.269", "2.1.269") -> 0; -1 if a<b; 1 if a>b. Plain
+// dotted-numeric compare, no semver ranges (that is all MIN_CLAUDE_VERSION
+// needs).
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const da = pa[i] || 0;
+    const db = pb[i] || 0;
+    if (da !== db) return da < db ? -1 : 1;
+  }
+  return 0;
+}
+
+// doctorEvalReadyCheck — Slice 5 (.claude/slices/5-brief.md, FR-009): claude
+// version, bwrap, socat, and ledger age, all in one WARN-only row (missing
+// bwrap/socat degrade `flow eval` to Write/Edit-only cases, they do not
+// block it).
+function doctorEvalReadyCheck(push) {
+  const { MIN_CLAUDE_VERSION, LEDGER_PATH } = require('./lib/eval/contract.js');
+  const parts = [];
+  let versionOk = false;
+  if (!have('claude')) {
+    parts.push('claude not found on PATH');
+  } else {
+    const r = spawnSync('claude', ['--version'], { encoding: 'utf8' });
+    const m = (r.stdout || '').match(/(\d+\.\d+\.\d+)/);
+    if (!m) {
+      parts.push('claude --version output not parseable');
+    } else {
+      versionOk = compareVersions(m[1], MIN_CLAUDE_VERSION) >= 0;
+      parts.push(`claude ${m[1]}${versionOk ? '' : ` (< ${MIN_CLAUDE_VERSION} required)`}`);
+    }
+  }
+  parts.push(`bwrap ${have('bwrap') ? 'ok' : 'missing'}`);
+  parts.push(`socat ${have('socat') ? 'ok' : 'missing (needs-bash cases skipped)'}`);
+  const ledgerPath = path.join(process.cwd(), LEDGER_PATH);
+  const ledgerRaw = safeRead(ledgerPath);
+  const lastLine = ledgerRaw ? ledgerRaw.trim().split('\n').filter(Boolean).pop() : null;
+  let lastEntry = null;
+  try {
+    lastEntry = lastLine ? JSON.parse(lastLine) : null;
+  } catch {
+    lastEntry = null;
+  }
+  if (lastEntry && lastEntry.ts) {
+    const ageDays = Math.floor((Date.now() - Date.parse(lastEntry.ts)) / 86400000);
+    parts.push(`ledger age ${ageDays}d`);
+  } else {
+    parts.push('no ledger yet');
+  }
+  push('eval-ready', have('claude') && versionOk ? 'PASS' : 'WARN', parts.join('; '));
 }
 
 function doctorToolChecks(push) {
@@ -1331,6 +1389,7 @@ function buildDoctorChecks(dotfilesRoot, deep) {
   run('gates-runnable', () => doctorGatesRunnableCheck(push));
   run('loop-contract', () => doctorLoopCheck(push));
   run('tools', () => doctorToolChecks(push));
+  run('eval-ready', () => doctorEvalReadyCheck(push));
   run('skill-index-cost', () => doctorSkillIndexCostCheck(push));
   // skills-lint walks every skill file: too slow for the default run (B25).
   if (deep) run('skills-lint', () => doctorSkillsLintCheck(push));
@@ -3247,7 +3306,7 @@ function cmdNext(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'loop', 'tutorial', 'off', 'on'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'loop', 'eval', 'tutorial', 'off', 'on'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3309,9 +3368,9 @@ function main() {
 
   const rest = argv.slice(1);
 
-  // `loop` owns its own --help / <subcommand> --help handling (K-C); never
-  // route it through the generic top-help interception below.
-  if (cmd !== 'loop' && (rest.includes('--help') || rest.includes('-h'))) {
+  // `loop` and `eval` own their own --help handling (K-C; Slice 5); never
+  // route them through the generic top-help interception below.
+  if (cmd !== 'loop' && cmd !== 'eval' && (rest.includes('--help') || rest.includes('-h'))) {
     if (cmd === 'init') {
       printInitHelp();
     } else if (cmd === 'install') {
@@ -3331,6 +3390,7 @@ function main() {
   else if (cmd === 'skills-lint') process.exit(cmdSkillsLint(rest));
   else if (cmd === 'next') process.exit(cmdNext(rest));
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
+  else if (cmd === 'eval') process.exit(require('./lib/eval.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'tutorial') cmdTutorial(rest);
   else if (cmd === 'off' || cmd === 'on') process.exit(cmdOffOn(cmd, rest));
   else {
