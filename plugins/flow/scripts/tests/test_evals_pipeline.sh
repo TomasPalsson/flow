@@ -71,46 +71,33 @@ t_pipeline_cases_run_once() {
 # with a real `git init`.
 # ---------------------------------------------------------------------------
 
-t_build_cases_max_turns_at_least_100() {
-	local name f val
-	for name in $PL_BUILD_CASES; do
+# pl_assert_field_at_least <field> <threshold> <label> <case names...> — the
+# shared shape of the three minimum checks below.
+pl_assert_field_at_least() {
+	local field="$1" threshold="$2" label="$3" name f val
+	shift 3
+	for name in "$@"; do
 		f="$PL_EVALS_DIR/$name/case.yaml"
 		[ -f "$f" ] || continue
-		val=$(pl_field max_turns "$f")
-		if [ -n "$val" ] && [ "$val" -ge 100 ]; then
-			_pass "max_turns >= 100: $name"
+		val=$(pl_field "$field" "$f")
+		if [ -n "$val" ] && [ "$val" -ge "$threshold" ]; then
+			_pass "$label: $name"
 		else
-			_fail "max_turns >= 100: $name" "got '$val'"
+			_fail "$label: $name" "got '$val'"
 		fi
 	done
+}
+
+t_build_cases_max_turns_at_least_100() {
+	pl_assert_field_at_least max_turns 100 "max_turns >= 100" $PL_BUILD_CASES
 }
 
 t_first_turn_cases_max_turns_at_least_8() {
-	local name f val
-	for name in $PL_FIRST_TURN_CASES; do
-		f="$PL_EVALS_DIR/$name/case.yaml"
-		[ -f "$f" ] || continue
-		val=$(pl_field max_turns "$f")
-		if [ -n "$val" ] && [ "$val" -ge 8 ]; then
-			_pass "max_turns >= 8: $name"
-		else
-			_fail "max_turns >= 8: $name" "got '$val'"
-		fi
-	done
+	pl_assert_field_at_least max_turns 8 "max_turns >= 8" $PL_FIRST_TURN_CASES
 }
 
 t_build_cases_timeout_at_least_1800() {
-	local name f val
-	for name in $PL_BUILD_CASES; do
-		f="$PL_EVALS_DIR/$name/case.yaml"
-		[ -f "$f" ] || continue
-		val=$(pl_field timeout_seconds "$f")
-		if [ -n "$val" ] && [ "$val" -ge 1800 ]; then
-			_pass "timeout_seconds >= 1800: $name"
-		else
-			_fail "timeout_seconds >= 1800: $name" "got '$val'"
-		fi
-	done
+	pl_assert_field_at_least timeout_seconds 1800 "timeout_seconds >= 1800" $PL_BUILD_CASES
 }
 
 t_pipeline_scaffolds_executable_git_init() {
