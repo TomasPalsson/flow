@@ -234,3 +234,21 @@ t_fix_bug_scaffold_plants_no_regression_test() {
 	fi
 	rm -rf "$buggy" "$clean"
 }
+
+# ---------------------------------------------------------------------------
+# Slice 6 review — pipeline-fix-bug must grade the patch, not only the test.
+# With every grader pointed at tests/test_money.py, a run that writes an
+# honest failing test and then "fixes" src/money.py with an `if cents == 1999`
+# special case sweeps the whole grader set while the rounding bug survives for
+# every other input.
+# ---------------------------------------------------------------------------
+
+t_fix_bug_graders_read_the_patched_source() {
+	local f content
+	f="$PL_EVALS_DIR/pipeline-fix-bug/case.yaml"
+	[ -f "$f" ] || { _fail "pipeline-fix-bug case.yaml exists" "missing: $f"; return; }
+	content=$(cat "$f")
+	assert_contains "$content" 'target: { source: file, path: src/money.py }' "a regex grader reads src/money.py"
+	assert_contains "$content" '"1999|19\\.99"' "that regex rejects the reported value hard-coded into the patch"
+	assert_contains "$content" 'focus: { source: file, path: src/money.py }' "an llm grader judges src/money.py"
+}
