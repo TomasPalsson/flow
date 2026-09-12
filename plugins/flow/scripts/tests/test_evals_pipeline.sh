@@ -295,15 +295,12 @@ t_spec_first_turn_graders_check_the_first_message() {
 # its own throwaway HOME, which is itself an empty `git init` (no commits).
 # scaffold.sh's "refuse to run inside an existing checkout" guard must not
 # mistake that placeholder for a real invoking repo; only a work tree that
-# already has a commit is the danger case. Covers the two scaffold.sh files
-# this slice's fix touches.
+# already has a commit is the danger case. Covers every pipeline scaffold.sh.
 # ---------------------------------------------------------------------------
-
-PL_FIXED_GUARD_CASES="pipeline-spec-only pipeline-spec-first-turn"
 
 t_fixed_scaffolds_run_inside_a_commitless_work_tree() {
 	local name repo s
-	for name in $PL_FIXED_GUARD_CASES; do
+	for name in $PL_ALL_CASES; do
 		s="$PL_EVALS_DIR/$name/scaffold.sh"
 		[ -f "$s" ] || continue
 		repo=$(tmp_dir)

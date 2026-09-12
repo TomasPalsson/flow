@@ -3,7 +3,13 @@ set -euo pipefail
 # This script ends in `git add -A; git commit`. Run by hand from a checkout
 # instead of the eval runner's scratch copy, that would sweep the invoking
 # repo's whole working tree into one commit under a fake author identity.
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+# `claude plugin eval --scaffold` nests this case's cwd inside its own
+# throwaway HOME, which is itself an empty `git init` (no commits, user.email
+# eval@example.invalid) so `--is-inside-work-tree` alone is true there too.
+# Only refuse when that work tree already has a commit, which the real
+# invoking checkout always does and the eval sandbox's placeholder never does.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
+	git rev-parse --verify -q HEAD >/dev/null 2>&1; then
 	echo "scaffold.sh: refusing to scaffold inside an existing git work tree: $PWD" >&2
 	exit 1
 fi
