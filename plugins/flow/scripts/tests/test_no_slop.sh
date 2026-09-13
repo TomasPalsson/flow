@@ -97,6 +97,39 @@ t_noslop_reports_name_similarity_without_tools() {
 	assert_contains "$OUT" "src/text_helpers.py" "NS-16 names the duplicated helper's file"
 }
 
+# NS-16 must never compare dunder names or names under 4 characters: every
+# class's __init__ is "100% similar" to every other class's __init__, which
+# is noise, not a reinvention signal.
+t_noslop_ns16_ignores_dunder_names() {
+	local d
+	d=$(tmp_dir)
+	git -C "$d" init -q
+	git -C "$d" config user.email "fixture@example.com"
+	git -C "$d" config user.name "no-slop fixture"
+	git -C "$d" config commit.gpgsign false
+	mkdir -p "$d/src"
+	cat >"$d/src/alpha.py" <<'EOF'
+class Alpha:
+    def __init__(self, value):
+        self.value = value
+EOF
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "base: Alpha with __init__"
+	git -C "$d" tag base
+	cat >"$d/src/beta.py" <<'EOF'
+class Beta:
+    def __init__(self, value):
+        self.value = value
+EOF
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "head: Beta with __init__"
+
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "slop-check exits 0 on the dunder fixture"
+	dunder_hits=$(printf '%s\n' "$OUT" | grep -c "NS-16.*__init__" || true)
+	assert_eq "$dunder_hits" "0" "NS-16 does not fire on identical __init__ across files"
+}
+
 # ---------------------------------------------------------------------------
 # B3 — advisory by default; --strict turns findings into a non-zero exit.
 # ---------------------------------------------------------------------------

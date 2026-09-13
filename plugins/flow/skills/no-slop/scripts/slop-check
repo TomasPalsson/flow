@@ -249,12 +249,20 @@ def all_repo_function_names(root, head):
                     names.append((name, path))
     return names
 
+def _skip_ns16_name(name):
+    """Dunders and short names are near-universal, not a reinvention signal."""
+    return len(name) < 4 or (name.startswith("__") and name.endswith("__"))
+
 def name_similarity_findings(path, new_names, existing_names):
     """NS-16: spelling-similarity only — never a semantic-reinvention detector."""
     findings = []
     for lineno, name in new_names:
+        if _skip_ns16_name(name):
+            continue
         best = None
         for other, opath in existing_names:
+            if _skip_ns16_name(other):
+                continue
             if other == name and opath == path:
                 continue
             ratio = difflib.SequenceMatcher(None, name, other).ratio()
