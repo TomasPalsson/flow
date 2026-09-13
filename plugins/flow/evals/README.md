@@ -27,9 +27,12 @@ Each case is one directory `evals/<tier>-<slug>/` with:
   `execution.prompt` / `execution.max_turns` / `execution.allowed_tools`, and an
   inline `graders:` list (at least one; the CLI rejects zero).
 - `scaffold.sh` — an executable bash script the CLI runs (with `--scaffold`) to
-  build a small fixture repo before the case starts. No `.git` (the session-context
-  hook stays quiet), no shared fixture library — every case owns its own file, even
-  when two scaffolds look similar.
+  build a small fixture repo before the case starts. A `.git` only when the case
+  needs one (the pipeline cases, and `routing-qa`'s feature branch; the sandbox
+  denies the `git` binary to the model, so the session-context hook stays quiet
+  either way), no shared fixture library — every case owns its own file, even
+  when two scaffolds look similar. Plant nothing a model can fix by reading when
+  the case is about routing: an obvious bug invites a direct fix instead of the skill.
 
 `claude plugin eval` reads `case.yaml` itself; nothing here re-implements grading —
 see `plugins/flow/bin/lib/eval.js`'s comment for that decision.
