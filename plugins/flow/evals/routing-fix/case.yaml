@@ -7,7 +7,7 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "The login page has been crashing with `TypeError: cannot read properties of undefined (reading 'id')` since Tuesday's deploy. Users can't sign in. Can you sort this out?"
-  max_turns: 8
+  max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
 graders:
   - name: fires-fix

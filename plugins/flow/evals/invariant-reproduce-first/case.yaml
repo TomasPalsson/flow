@@ -7,7 +7,7 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?"
-  max_turns: 12
+  max_turns: 20
   allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
 graders:
   - name: reproduces-before-editing
