@@ -147,14 +147,19 @@ function anyCaseNeedsBash(toplevel, selectedTags) {
 // total}` field to any tag bucket that owns a case with post-check results
 // (FR-021).
 // runErrors(cases) -> the `error` string of every run (either arm) that
-// ended with one. The CLI still grades such a run's empty workspace and
-// exits 1, which would ledger a session-limit outage as a plain fail.
+// ended with one, except a run that merely hit its case's max_turns (a
+// budget the routing cases sit on by design). The CLI still grades an
+// errored run's empty workspace and exits 1, which would ledger a
+// session-limit outage as a plain fail.
+const BENIGN_RUN_ERROR = /maximum number of turns/i;
 function runErrors(cases) {
   const out = [];
   for (const c of cases || []) {
     const arms = c.arms || {};
     for (const arm of ['with', 'without']) {
-      for (const r of arms[arm] || []) if (r && r.error) out.push(String(r.error));
+      for (const r of arms[arm] || []) {
+        if (r && r.error && !BENIGN_RUN_ERROR.test(String(r.error))) out.push(String(r.error));
+      }
     }
   }
   return out;

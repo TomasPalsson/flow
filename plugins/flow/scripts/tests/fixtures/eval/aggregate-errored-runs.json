@@ -46,11 +46,11 @@
       "arms": {
         "with": [
           {
-            "score": 0,
+            "score": 1,
             "passed": false,
             "turns": 1,
             "costUsd": 0,
-            "error": "exit 1: You've hit your session limit \u00b7 resets 2:30am (UTC)",
+            "error": "exit 1: Reached maximum number of turns (8)",
             "graders": []
           }
         ],

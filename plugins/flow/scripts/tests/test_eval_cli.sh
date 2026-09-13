@@ -298,7 +298,7 @@ t_eval_errored_runs_are_partial_not_fail() {
 	CLAUDE_STUB_RESULT=aggregate-errored-runs CLAUDE_STUB_EXIT=1 \
 		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
 	assert_rc 2 "t_eval_errored_runs_are_partial_not_fail rc"
-	assert_contains "$OUT" "runs errored: exit 1: You've hit your session limit" "t_eval_errored_runs_are_partial_not_fail reason"
+	assert_contains "$OUT" "1 runs errored: exit 1: You've hit your session limit" "t_eval_errored_runs_are_partial_not_fail reason-counts-only-real-errors"
 	ledger="$proj/plugins/flow/evals/ledger.jsonl"
 	assert_contains "$(cat "$ledger")" '"partial":true' "t_eval_errored_runs_are_partial_not_fail ledger-partial-true"
 }
