@@ -76,25 +76,47 @@ ev_fakebin() {
 
 # ev_repo — a tmp_repo with plugins/flow/evals/<case>/case.yaml fixtures for
 # tag-grouping, matching aggregate-ok.json/aggregate-partial.json's case
-# names: quality-reuse-slugify tagged quality, routing-fix-skill tagged
-# routing.
+# names: quality-reuse-slugify tagged quality (allowed_tools includes the
+# gated Write/Edit), routing-fix-skill tagged routing (allowed_tools has no
+# gated tool at all — a routing case reads and routes, it doesn't edit).
 ev_repo() {
 	local d
 	d=$(tmp_repo)
 	mkdir -p "$d/plugins/flow/evals/quality-reuse-slugify" "$d/plugins/flow/evals/routing-fix-skill"
-	printf 'tags: [quality]\n' >"$d/plugins/flow/evals/quality-reuse-slugify/case.yaml"
-	printf 'tags: [routing]\n' >"$d/plugins/flow/evals/routing-fix-skill/case.yaml"
+	printf 'tags: [quality]\nexecution:\n  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]\n' \
+		>"$d/plugins/flow/evals/quality-reuse-slugify/case.yaml"
+	printf 'tags: [routing]\nexecution:\n  allowed_tools: [Read, Glob, Grep, Skill]\n' \
+		>"$d/plugins/flow/evals/routing-fix-skill/case.yaml"
 	printf '%s' "$d"
 }
 
 # ev_repo_pipeline_bash — a tmp_repo with one case tagged [pipeline,
 # needs-bash], matching the real pipeline-fix-bug/pipeline-flow-feature
-# case.yaml shape: `--tag pipeline` alone must still select it.
+# case.yaml shape: `--tag pipeline` alone must still select it, and its
+# allowed_tools includes Bash (this is the case whose grant depends on
+# socat, not on being asked for by the literal `needs-bash` tag).
 ev_repo_pipeline_bash() {
 	local d
 	d=$(tmp_repo)
 	mkdir -p "$d/plugins/flow/evals/pipeline-fix-bug"
-	printf 'tags: [pipeline, needs-bash]\n' >"$d/plugins/flow/evals/pipeline-fix-bug/case.yaml"
+	printf 'tags: [pipeline, needs-bash]\nexecution:\n  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]\n' \
+		>"$d/plugins/flow/evals/pipeline-fix-bug/case.yaml"
+	printf '%s' "$d"
+}
+
+# ev_repo_all_tags — one case per non-bash tag, plus one case tagged only
+# `needs-bash` (no other tag) — for proving the socat-missing skip drops
+# that case entirely from the default (no --tag) selection, while every
+# other tag's case still gets a `--case` line.
+ev_repo_all_tags() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/plugins/flow/evals/quality-x" "$d/plugins/flow/evals/routing-x" \
+		"$d/plugins/flow/evals/invariant-x" "$d/plugins/flow/evals/needsbash-only"
+	printf 'tags: [quality]\n' >"$d/plugins/flow/evals/quality-x/case.yaml"
+	printf 'tags: [routing]\n' >"$d/plugins/flow/evals/routing-x/case.yaml"
+	printf 'tags: [invariant]\n' >"$d/plugins/flow/evals/invariant-x/case.yaml"
+	printf 'tags: [needs-bash]\n' >"$d/plugins/flow/evals/needsbash-only/case.yaml"
 	printf '%s' "$d"
 }
 
@@ -120,7 +142,7 @@ t_eval_help_exits_0() {
 
 t_eval_dry_run_prints_pinned_models() {
 	local proj home
-	proj=$(tmp_repo)
+	proj=$(ev_repo)
 	home=$(tmp_dir)
 	ev_cli_in "$proj" "$home" eval --dry-run --tag quality
 	assert_rc 0 "t_eval_dry_run_prints_pinned_models rc"
@@ -128,34 +150,49 @@ t_eval_dry_run_prints_pinned_models() {
 	assert_contains "$OUT" "--model claude-sonnet-5" "t_eval_dry_run_prints_pinned_models model"
 	assert_contains "$OUT" "--judge-model claude-haiku-4-5" "t_eval_dry_run_prints_pinned_models judge-model"
 	assert_contains "$OUT" "--trust-plugin" "t_eval_dry_run_prints_pinned_models trust-plugin"
+	assert_contains "$OUT" "--case quality-reuse-slugify" "t_eval_dry_run_prints_pinned_models case-forwarded"
 	assert_contains "$OUT" "--allow-tools Write Edit" "t_eval_dry_run_prints_pinned_models allow-tools"
-	assert_contains "$OUT" "--tag quality" "t_eval_dry_run_prints_pinned_models tag-forwarded"
-	assert_not_contains "$OUT" "--tag routing" "t_eval_dry_run_prints_pinned_models tag-not-selected-absent"
+	assert_not_contains "$OUT" "--case routing-fix-skill" "t_eval_dry_run_prints_pinned_models routing-case-absent"
+	assert_not_contains "$OUT" "--tag" "t_eval_dry_run_prints_pinned_models no-tag-forwarded"
+}
+
+# t_eval_dry_run_routing_case_gets_no_allow_tools — the flip side: a case
+# whose allowed_tools has no gated tool (routing-fix-skill: Read, Glob, Grep,
+# Skill) gets no --allow-tools at all, not an empty grant.
+t_eval_dry_run_routing_case_gets_no_allow_tools() {
+	local proj home
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag routing
+	assert_rc 0 "t_eval_dry_run_routing_case_gets_no_allow_tools rc"
+	assert_contains "$OUT" "--case routing-fix-skill" "t_eval_dry_run_routing_case_gets_no_allow_tools case-forwarded"
+	assert_not_contains "$OUT" "--allow-tools" "t_eval_dry_run_routing_case_gets_no_allow_tools no-allow-tools"
+	assert_not_contains "$OUT" "--tag" "t_eval_dry_run_routing_case_gets_no_allow_tools no-tag-forwarded"
 }
 
 # t_eval_dry_run_drops_needs_bash_tag_from_argv — proves the socat-missing
-# skip (FR-00x, code-design.md decision 5) actually narrows what gets
-# forwarded to `claude plugin eval`, not just what the printed notice claims.
-# FLOW_EVAL_TEST_HIDE_SOCAT=1 keeps `socat` reading as absent regardless of
-# the host (see ev_cli_in's doc comment).
+# skip (FR-00x, code-design.md decision 5) actually drops the needs-bash-only
+# case from the default (no --tag) selection, while every other tag's case
+# still gets its own `--case` line. FLOW_EVAL_TEST_HIDE_SOCAT=1 keeps `socat`
+# reading as absent regardless of the host (see ev_cli_in's doc comment).
 t_eval_dry_run_drops_needs_bash_tag_from_argv() {
 	local proj home
-	proj=$(tmp_repo)
+	proj=$(ev_repo_all_tags)
 	home=$(tmp_dir)
 	FLOW_EVAL_TEST_HIDE_SOCAT=1 ev_cli_in "$proj" "$home" eval --dry-run
 	assert_rc 0 "t_eval_dry_run_drops_needs_bash_tag_from_argv rc"
 	assert_contains "$OUT" "socat" "t_eval_dry_run_drops_needs_bash_tag_from_argv notice"
-	assert_contains "$OUT" "--tag quality" "t_eval_dry_run_drops_needs_bash_tag_from_argv quality-kept"
-	assert_contains "$OUT" "--tag routing" "t_eval_dry_run_drops_needs_bash_tag_from_argv routing-kept"
-	assert_contains "$OUT" "--tag invariant" "t_eval_dry_run_drops_needs_bash_tag_from_argv invariant-kept"
-	assert_not_contains "$OUT" "--tag needs-bash" "t_eval_dry_run_drops_needs_bash_tag_from_argv needs-bash-dropped"
+	assert_contains "$OUT" "--case quality-x" "t_eval_dry_run_drops_needs_bash_tag_from_argv quality-kept"
+	assert_contains "$OUT" "--case routing-x" "t_eval_dry_run_drops_needs_bash_tag_from_argv routing-kept"
+	assert_contains "$OUT" "--case invariant-x" "t_eval_dry_run_drops_needs_bash_tag_from_argv invariant-kept"
+	assert_not_contains "$OUT" "needsbash-only" "t_eval_dry_run_drops_needs_bash_tag_from_argv needs-bash-dropped"
 }
 
 # t_eval_dry_run_grants_bash_for_case_selected_by_other_tag — Slice 6 review:
 # a case tagged [pipeline, needs-bash] must get the Bash tool when selected
 # via `--tag pipeline` alone, not only when the literal tag `needs-bash` is
 # itself in the user's --tag selection (evals/README.md's own documented
-# contract: "--allow-tools Write Edit (and Bash for needs-bash cases)").
+# contract).
 t_eval_dry_run_grants_bash_for_case_selected_by_other_tag() {
 	local proj home fakebin
 	proj=$(ev_repo_pipeline_bash)
@@ -163,7 +200,24 @@ t_eval_dry_run_grants_bash_for_case_selected_by_other_tag() {
 	fakebin=$(ev_fakebin_with_socat)
 	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag pipeline
 	assert_rc 0 "t_eval_dry_run_grants_bash_for_case_selected_by_other_tag rc"
+	assert_contains "$OUT" "--case pipeline-fix-bug" "t_eval_dry_run_grants_bash_for_case_selected_by_other_tag case-forwarded"
 	assert_contains "$OUT" "--allow-tools Write Edit Bash" "t_eval_dry_run_grants_bash_for_case_selected_by_other_tag bash-granted"
+}
+
+# t_eval_dry_run_pipeline_case_dropped_without_socat — the flip side: without
+# socat, that same [pipeline, needs-bash] case is not spawned at all (not
+# merely run with Bash withheld), and the existing socat notice still prints,
+# even though the user asked for `--tag pipeline`, never the literal tag
+# `needs-bash`.
+t_eval_dry_run_pipeline_case_dropped_without_socat() {
+	local proj home fakebin
+	proj=$(ev_repo_pipeline_bash)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	FLOW_EVAL_TEST_HIDE_SOCAT=1 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --dry-run --tag pipeline
+	assert_rc 0 "t_eval_dry_run_pipeline_case_dropped_without_socat rc"
+	assert_contains "$OUT" "socat" "t_eval_dry_run_pipeline_case_dropped_without_socat notice"
+	assert_not_contains "$OUT" "--case" "t_eval_dry_run_pipeline_case_dropped_without_socat case-not-spawned"
 }
 
 # t_eval_dry_run_no_bash_when_no_selected_case_needs_it — the flip side: a
@@ -184,7 +238,7 @@ t_eval_dry_run_no_bash_when_no_selected_case_needs_it() {
 # child CLI.
 t_eval_dry_run_concurrency_forwarded() {
 	local proj home
-	proj=$(tmp_repo)
+	proj=$(ev_repo)
 	home=$(tmp_dir)
 	ev_cli_in "$proj" "$home" eval --dry-run --tag quality -j 4
 	assert_rc 0 "t_eval_dry_run_concurrency_forwarded rc"
@@ -205,7 +259,7 @@ t_eval_concurrency_out_of_range_refuses_before_spawning() {
 
 t_eval_dry_run_config_override() {
 	local proj home
-	proj=$(tmp_repo)
+	proj=$(ev_repo)
 	home=$(tmp_dir)
 	mkdir -p "$proj/.claude"
 	printf '{"evalModel":"claude-opus-5","evalJudgeModel":"claude-sonnet-5"}\n' >"$proj/.claude/flow.config.json"
@@ -236,6 +290,13 @@ t_eval_needs_bash_skipped_without_socat() {
 	assert_contains "$OUT" "socat" "t_eval_needs_bash_skipped_without_socat notice-mentions-socat"
 }
 
+# t_eval_ok_run_appends_ledger_and_summary — ev_repo has one quality case and
+# one routing case, so `--tag quality --tag routing` spawns the stub `claude`
+# twice; the stub returns the same two-case aggregate-ok.json fixture on
+# every spawn, so the per-child name filter (spawnCase) must keep only the
+# matching entry each time — proven here by costUsd summing to 2 x 4.82
+# (double-counting either case would show up as a different total) and by
+# each tag's rollup showing exactly one case, not two.
 t_eval_ok_run_appends_ledger_and_summary() {
 	local proj home fakebin ledger
 	proj=$(ev_repo)
@@ -249,8 +310,9 @@ t_eval_ok_run_appends_ledger_and_summary() {
 	ledger="$proj/plugins/flow/evals/ledger.jsonl"
 	assert_file_exists "$ledger" "t_eval_ok_run_appends_ledger_and_summary ledger-file"
 	assert_contains "$(cat "$ledger")" '"partial":false' "t_eval_ok_run_appends_ledger_and_summary ledger-partial-false"
-	assert_contains "$(cat "$ledger")" '"quality"' "t_eval_ok_run_appends_ledger_and_summary ledger-quality-tag"
-	assert_contains "$(cat "$ledger")" '"routing"' "t_eval_ok_run_appends_ledger_and_summary ledger-routing-tag"
+	assert_contains "$(cat "$ledger")" '"quality":{"score":1,"delta":0.6,"cases":1}' "t_eval_ok_run_appends_ledger_and_summary ledger-quality-tag"
+	assert_contains "$(cat "$ledger")" '"routing":{"score":0.9,"delta":0.24,"cases":1}' "t_eval_ok_run_appends_ledger_and_summary ledger-routing-tag"
+	assert_contains "$(cat "$ledger")" '"costUsd":9.64' "t_eval_ok_run_appends_ledger_and_summary ledger-cost-summed-per-spawn"
 }
 
 # t_eval_single_tag_excludes_other_tag_from_rollup — ev_repo's fixture data

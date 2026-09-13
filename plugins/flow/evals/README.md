@@ -83,8 +83,14 @@ claude plugin eval plugins/flow --case 'quality-*' --trust-plugin --no-publish \
 ```
 
 `--scaffold` runs the case's `scaffold.sh` as you; only pass it for case files you
-authored. `--allow-tools Write Edit` (and `Bash` for `needs-bash` cases) grants the
-gated tools the fixtures need. `--trust-plugin` skips the first-run trust prompt.
+authored. `--allow-tools` is an operator grant that applies to every case in one
+invocation and OVERRIDES each case's own `execution.allowed_tools` rather than
+narrowing it — measured on `routing-loop`: under a tier-wide `--allow-tools Write
+Edit Bash` it ran the suite itself with Bash and scored 3/3 without the loop skill
+ever firing, while the same case run alone with no grant scored 3/3 correctly. So
+`flow eval` runs each selected case in its own `claude plugin eval` invocation and
+grants only the gated tools (`Write`, `Edit`, `Bash`) that case's own
+`allowed_tools` names. `--trust-plugin` skips the first-run trust prompt.
 
 ## Cost
 
