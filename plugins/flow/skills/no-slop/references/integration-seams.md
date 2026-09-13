@@ -13,6 +13,7 @@ description: Where the no-slop skill plugs into the flow plugin's pipeline — t
 | Branch review | `plugins/flow/workflows/review-diff.js` default lens list; `plugins/flow/skills/next/review.md` lens table | append `slop`; one table row pointing at `references/adversary-lens.md` |
 | Adversary agent definition | the user's own Claude Code agent definitions (outside this plugin): `agents/adversary.md` under their Claude config dir | add a `slop` lens bullet that points at `references/adversary-lens.md` |
 | Optional hook | `plugins/flow/hooks/hooks.json` PostToolUse | `slop-guard.sh` calling `slop-check --files <edited>` through `hook_note`, never `hook_deny`; toggle `slopGuard` in `.claude/flow.config.json` |
+| Optional hook | `plugins/flow/hooks/hooks.json` UserPromptSubmit | `search-first.sh` fires on an add/implement/create/introduce + new-symbol prompt, emits one `additionalContext` receipt-line nudge; toggle `searchFirst` in `.claude/flow.config.json` |
 | Eval suite | `plugins/flow/evals/quality-*` | one case per rubric row with a fixture that plants the reuse target; graders from `references/rubric.md`'s mapping table |
 
 ## v2 notes
