@@ -90,20 +90,21 @@ def assigned_names(node):
     targets = node.targets if isinstance(node, ast.Assign) else [node.target]
     return [t.id for t in targets if isinstance(t, ast.Name)]
 
-def _py_generic_name_findings(findings, path, node):
-    """NS-06 for one added Python node: def, class, or plain assignment."""
+def _py_generic_name_findings(findings, path, node, is_test_file):
+    """NS-06 for one added Python node: def, class, or plain assignment.
+    A test's act-phase local (`result = fn()`) is not long-lived: not scanned."""
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         if node.name in GENERIC_NAMES:
             add(findings, path, node.lineno, "NS-06", f"generic function name '{node.name}'")
     elif isinstance(node, ast.ClassDef):
         if node.name.lower() in GENERIC_NAMES:
             add(findings, path, node.lineno, "NS-06", f"generic class name '{node.name}'")
-    elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+    elif isinstance(node, (ast.Assign, ast.AnnAssign)) and not is_test_file:
         for name in assigned_names(node):
             if name in GENERIC_NAMES:
                 add(findings, path, node.lineno, "NS-06", f"generic variable name '{name}'")
 
-def py_findings(path, added, src):
+def py_findings(path, added, src, is_test_file):
     """NS-03/05/06 for Python, via ast over the added def/except lines."""
     findings = []
     added_linenos = set(added)
@@ -126,7 +127,7 @@ def py_findings(path, added, src):
                     f"{span}-line body but {doc.count(chr(10)) + 1}-line docstring")
         # ast.walk yields nodes without a lineno (Module, expression contexts)
         if getattr(node, "lineno", None) in added_linenos:
-            _py_generic_name_findings(findings, path, node)
+            _py_generic_name_findings(findings, path, node, is_test_file)
     return findings, tree
 
 def _hedge_finding(findings, path, lineno, text, stripped):
@@ -212,7 +213,7 @@ def js_generic_and_dup_names(path, added):
             out.append((lineno, name))
     return out
 
-def js_generic_name_findings(path, added):
+def js_generic_name_findings(path, added, is_test_file):
     findings = []
     if path.endswith((".js", ".jsx", ".ts", ".tsx")):
         for lineno, name in js_generic_and_dup_names(path, added):
@@ -223,7 +224,7 @@ def js_generic_name_findings(path, added):
             if js_func_name(text):
                 continue
             m = JS_VAR_NAME_RE.search(text)
-            if m and m.group(1) in GENERIC_NAMES:
+            if m and m.group(1) in GENERIC_NAMES and not is_test_file:
                 add(findings, path, lineno, "NS-06", f"generic variable name '{m.group(1)}'")
     return findings
 
@@ -281,17 +282,17 @@ def collect_stdlib_findings(root, head, added_by_file, hunks_by_file, all_lines=
     for path, added in added_by_file.items():
         if not added:
             continue
+        is_test_file = bool(TEST_FILE_RE.search(path))
         if path.endswith(".py"):
             src = slop_diff.read_file_direct(path) if all_lines else slop_diff.show_file(root, head, path)
             if src is not None:
-                py_finds, tree = py_findings(path, added, src)
+                py_finds, tree = py_findings(path, added, src, is_test_file)
                 py_trees[path] = tree
                 findings.extend(py_finds)
                 existing_ns03.update((f[0], f[1]) for f in py_finds if f[2] == "NS-03")
         else:
             findings.extend(js_catch_findings(path, added))
-            findings.extend(js_generic_name_findings(path, added))
-        is_test_file = bool(TEST_FILE_RE.search(path))
+            findings.extend(js_generic_name_findings(path, added, is_test_file))
         findings.extend(scan_added_lines(path, added, is_test_file))
         if is_test_file and path in hunks_by_file:
             findings.extend(hunk_test_weakening(path, hunks_by_file[path]))

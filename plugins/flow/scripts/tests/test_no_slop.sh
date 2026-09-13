@@ -69,6 +69,24 @@ t_noslop_reports_generic_variable_and_class_names() {
 		"NS-06 reports a generic JS/TS variable name"
 }
 
+# NS-06 does not judge lifetime (rubric.md): a test's act-phase local
+# (`result = fn()`) is not scanned, in Python or JS; the same name in a
+# source file still is.
+t_noslop_skips_act_phase_locals_in_test_files() {
+	d=$(tmp_dir)
+	mkdir -p "$d/tests" "$d/src"
+	printf 'def test_add():\n    result = 1 + 2\n    assert result == 3\n' >"$d/tests/test_calc.py"
+	printf 'test("x", () => {\n  const result = add(1, 2);\n  expect(result).toBe(3);\n});\n' >"$d/tests/calc.test.js"
+	printf 'def add(a, b):\n    result = a + b\n    return result\n' >"$d/src/calc.py"
+	run_slop "$d" --all-lines --no-tools --files tests/test_calc.py tests/calc.test.js src/calc.py
+	assert_not_contains "$OUT" "tests/test_calc.py" \
+		"NS-06 skips a plain assignment in a Python test file"
+	assert_not_contains "$OUT" "tests/calc.test.js" \
+		"NS-06 skips a const in a JS test file"
+	assert_contains "$OUT" "src/calc.py:2: NS-06 generic variable name 'result'" \
+		"NS-06 still reports the same name in a source file"
+}
+
 # NS-16 (name similarity) runs without external tools, as SKILL.md says:
 # the fixture's duplicated src/text_helpers.py::slugify must be reported
 # under --no-tools.
