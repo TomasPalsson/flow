@@ -8,7 +8,7 @@ context:
 execution:
   prompt: "/prep Build a habit-tracking mobile app that reminds users at custom times chosen per habit."
   max_turns: 8
-  allowed_tools: [Read, Glob, Grep, Skill]
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
 graders:
   - name: prep-interview-starts
     type: llm

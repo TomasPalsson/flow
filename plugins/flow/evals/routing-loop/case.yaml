@@ -9,6 +9,7 @@ execution:
   prompt: "The integration suite is red (`./run-tests.sh`). Keep going until it's green - don't stop until every test passes, I'm heading out for the night."
   max_turns: 8
   allowed_tools: [Read, Glob, Grep, Skill]
+timeout_seconds: 900
 graders:
   - name: fires-loop
     type: tool_used

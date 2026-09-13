@@ -1,12 +1,12 @@
 schema_version: "1.1"
 name: invariant-reproduce-first
-description: A plain-language bug report must route to the fix skill, which runs the failing test (Bash) before editing the implementation (NS-28)
+description: The fix skill, run unattended, must run the failing test (Bash) before editing the implementation (NS-28); routing of the plain-language report is routing-fix's job
 tags: [invariant, needs-bash]
 runs: 1
 context:
   scaffold_script: scaffold.sh
 execution:
-  prompt: "Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out? When you reach the approval gate (\"Go?\"), treat this message as the answer: go."
+  prompt: "/flow:fix --unattended Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?"
   max_turns: 20
   allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
 graders:
@@ -14,12 +14,6 @@ graders:
     type: tool_order
     before: Bash
     after: Edit
-  - name: fires-fix
-    type: tool_used
-    tool: Skill
-    input_match: "flow:fix\\b"
-    min: 1
-    arm: with-only
   - name: test-not-weakened
     type: regex
     target: { source: file, path: tests/test_math_ops.py }
