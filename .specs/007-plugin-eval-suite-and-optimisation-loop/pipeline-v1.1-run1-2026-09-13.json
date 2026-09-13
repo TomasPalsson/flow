@@ -1,0 +1,801 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:31:47.807Z",
+  "durationSeconds": 183,
+  "costUsd": 1.520666,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "tagFilters": [
+      "pipeline"
+    ],
+    "threshold": 1,
+    "concurrency": 2,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "pipeline-far-helper",
+      "dir": "evals/pipeline-far-helper",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:spec --unattended Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 150,
+      "graders": [
+        {
+          "name": "route-stated",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "trace",
+            "pattern": "Route: bounded|Route: oneshot|Route: dispatch",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "post-test-written",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "trace",
+            "pattern": "url_path",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "uses-existing-to-kebab",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "to_kebab",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-reimplemented-slug",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "re\\.sub|import re|\\.lower\\(\\)\\.replace\\(",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "post-quality",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if app/models/post.py adds only a url_path property built on the imported to_kebab helper, carries no added guard on a value the dataclass already guarantees, any new comment states a WHY rather than restating the code, and nothing beyond the requested property changed. FAIL otherwise.",
+          "config": {
+            "criteria": "PASS if app/models/post.py adds only a url_path property built on the imported to_kebab helper, carries no added guard on a value the dataclass already guarantees, any new comment states a WHY rather than restating the code, and nothing beyond the requested property changed. FAIL otherwise.",
+            "focus": {
+              "source": "file",
+              "path": "app/models/post.py"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 19,
+            "costUsd": 0.31513659999999993,
+            "judgeCostUsd": 0.0007409999999999999,
+            "durationSeconds": 74,
+            "startedAt": "2026-09-13T01:31:47.828Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-K8ieKL/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-stated",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched Route: bounded|Route: oneshot|Route: dispatch",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "post-test-written",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched url_path",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched to_kebab",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "post-quality",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from dataclasses import dataclass\n\nfrom app.support.strings import to_kebab\n\n\n@dataclass\nclass Post:\n    title: str\n    body: str\n\n    @property\n    def url_path(self) -> str:\n        return f\"/posts/{to_kebab(self.title)}\"\n"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    },
+    {
+      "name": "pipeline-fix-bug",
+      "dir": "evals/pipeline-fix-bug",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:fix format_cents rounds 1999 cents to $19.98 instead of $19.99",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 100,
+      "graders": [
+        {
+          "name": "reproduces-before-fixing",
+          "type": "tool_order",
+          "weight": 1,
+          "config": {
+            "before": {
+              "tool": "Bash"
+            },
+            "after": {
+              "tool": "Edit"
+            }
+          }
+        },
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_money.py"
+            },
+            "pattern": "skip|xfail|pytest\\.mark\\.skip|pytest\\.skip|unittest\\.skip",
+            "flags": "i",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "money-test-exists",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "tests/test_money*.py",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-hard-coded-cents-value",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/money.py"
+            },
+            "pattern": "1999|19\\.99",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "fix-is-general",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if format_cents derives the dollars and the cents from its argument with arithmetic that holds for every input, so 1999 -> \"$19.99\", 5 -> \"$0.05\" and 100 -> \"$1.00\" all follow from the same expression. FAIL if the reported input or its expected output is special-cased (an `if cents == 1999` branch, a lookup table, an early return for that one value) while the original off-by-one remainder arithmetic still runs for other inputs.",
+          "config": {
+            "criteria": "PASS if format_cents derives the dollars and the cents from its argument with arithmetic that holds for every input, so 1999 -> \"$19.99\", 5 -> \"$0.05\" and 100 -> \"$1.00\" all follow from the same expression. FAIL if the reported input or its expected output is special-cased (an `if cents == 1999` branch, a lookup table, an early return for that one value) while the original off-by-one remainder arithmetic still runs for other inputs.",
+            "focus": {
+              "source": "file",
+              "path": "src/money.py"
+            }
+          }
+        },
+        {
+          "name": "money-test-can-fail",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the test asserts a specific computed value (for example format_cents(1999) == \"$19.99\") and would fail against the buggy implementation; not `assert True`, not only `assertIsNotNone`, not an expected value computed by re-running format_cents itself, and not a snapshot as the only check. FAIL if the test cannot actually fail against a broken implementation.",
+          "config": {
+            "criteria": "PASS if the test asserts a specific computed value (for example format_cents(1999) == \"$19.99\") and would fail against the buggy implementation; not `assert True`, not only `assertIsNotNone`, not an expected value computed by re-running format_cents itself, and not a snapshot as the only check. FAIL if the test cannot actually fail against a broken implementation.",
+            "focus": {
+              "source": "file",
+              "path": "tests/test_money.py"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 21,
+            "costUsd": 0.3534932,
+            "judgeCostUsd": 0.0016739999999999997,
+            "durationSeconds": 103,
+            "startedAt": "2026-09-13T01:31:47.828Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-tMz8oI/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-fixing",
+                "passed": false,
+                "weight": 1,
+                "explanation": "\"after\" tool Edit never called",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "money-test-exists",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_money*.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-hard-coded-cents-value",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fix-is-general",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "def format_cents(cents):\n    dollars = cents // 100\n    remainder = (cents % 100) - 1\n    return \"$%d.%02d\" % (dollars, remainder)\n"
+              },
+              {
+                "name": "money-test-can-fail",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\n\n\ndef test_format_cents_does_not_lose_a_cent():\n    assert format_cents(1999) == \"$19.99\"\n\n\ndef test_format_cents_whole_dollar():\n    assert format_cents(100) == \"$1.00\"\n\n\ndef test_format_cents_zero():\n    assert format_cents(0) == \"$0.00\"\n"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "pipeline-flow-feature",
+      "dir": "evals/pipeline-flow-feature",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:spec --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 150,
+      "graders": [
+        {
+          "name": "route-stated",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "trace",
+            "pattern": "Route: bounded|Route: oneshot|Route: dispatch",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "posts-test-written",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "tests/test_posts.py",
+            "exists": true
+          }
+        },
+        {
+          "name": "posts-test-covers-url-path",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_posts.py"
+            },
+            "pattern": "url_path",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "posts-test-covers-price-label",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_posts.py"
+            },
+            "pattern": "price_label",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "reuses-slugify",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "slugify",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "reuses-format-cents",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "format_cents",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-reimplemented-slug-regex",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "re\\.sub|import re",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "posts-property-quality",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise.",
+          "config": {
+            "criteria": "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise.",
+            "focus": {
+              "source": "file",
+              "path": "src/posts.py"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 20,
+            "costUsd": 0.3129218,
+            "judgeCostUsd": 0.0009389999999999997,
+            "durationSeconds": 80,
+            "startedAt": "2026-09-13T01:33:01.688Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-KIcJY0/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-stated",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched Route: bounded|Route: oneshot|Route: dispatch",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-written",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_posts.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-url-path",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched url_path",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-test-covers-price-label",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched price_label",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-format-cents",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched format_cents",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "posts-property-quality",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\nfrom src.text import slugify\n\n\nclass Post:\n    def __init__(self, title, body, price_cents):\n        self.title = title\n        self.body = body\n        self.price_cents = price_cents\n\n    @property\n    def url_path(self):\n        return f\"/posts/{slugify(self.title)}\"\n\n    @property\n    def price_label(self):\n        return format_cents(self.price_cents)\n"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    },
+    {
+      "name": "pipeline-prep-first-turn",
+      "dir": "evals/pipeline-prep-first-turn",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:prep Add a url_path property to Post",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "one-question-with-hypothesis",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the message asks exactly one question, gives the assistant's own hypothesis for it with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), and ends asking to confirm or correct. Creating or updating PREP.md before the question is expected and must not count against it. FAIL if there are two or more questions, a menu of five or more options, a spec or code written, or a silent decision without a question.",
+          "config": {
+            "criteria": "PASS if the message asks exactly one question, gives the assistant's own hypothesis for it with a confidence word (for example \"likely\", \"probably\", \"I'd guess\"), and ends asking to confirm or correct. Creating or updating PREP.md before the question is expected and must not count against it. FAIL if there are two or more questions, a menu of five or more options, a spec or code written, or a silent decision without a question.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "not-three-questions",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "\\?\\s*\\n.*\\?\\s*\\n.*\\?",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 11,
+            "costUsd": 0.21836099999999997,
+            "judgeCostUsd": 0.0024339999999999995,
+            "durationSeconds": 48,
+            "startedAt": "2026-09-13T01:33:31.304Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-uNW4FE/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "one-question-with-hypothesis",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "This is a **bounded** change — small, existing-code-only (`src/posts.py`), reversible. I'll interview quickly and give you the answer in chat rather than writing a spec.\n\nFirst decision: what should `url_path` actually contain? Options: just the slug (`\"hello-world\"`), or a path with a fixed prefix (`\"/posts/hello-world\"`).\n\nMr Claude's guess: probably `/posts/<slug>` since \"url_path\" implies a full path, not a bare slug — confirm or correct?"
+              },
+              {
+                "name": "not-three-questions",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "pipeline-spec-first-turn",
+      "dir": "evals/pipeline-spec-first-turn",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:spec Add a url_path property to Post that returns /posts/<slug of title>",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "route-and-batched-offer",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the message states the route (bounded, oneshot, or dispatch) with its reason in the same message, and either (a) it has open intent gaps and lists them as pre-answered assumptions each with a confidence, including the negative-scope position and a number for every adjective, ending by asking the user to confirm or correct in one reply, or (b) it has zero intent gaps (a bounded idea this small), so it prints the concrete plan instead (the change, the test that proves it, the one risk) and asks a single 'Go?' without waiting across turns. FAIL if it asks questions one at a time, asks more than one turn's worth, or writes artifacts before the offer or the plan.",
+          "config": {
+            "criteria": "PASS if the message states the route (bounded, oneshot, or dispatch) with its reason in the same message, and either (a) it has open intent gaps and lists them as pre-answered assumptions each with a confidence, including the negative-scope position and a number for every adjective, ending by asking the user to confirm or correct in one reply, or (b) it has zero intent gaps (a bounded idea this small), so it prints the concrete plan instead (the change, the test that proves it, the one risk) and asks a single 'Go?' without waiting across turns. FAIL if it asks questions one at a time, asks more than one turn's worth, or writes artifacts before the offer or the plan.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "not-stop-and-wait",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "Reply \"small\", \"medium\", or \"large\"",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.152983,
+            "judgeCostUsd": 0.0011729999999999996,
+            "durationSeconds": 18,
+            "startedAt": "2026-09-13T01:34:19.500Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Ud6xWW/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "route-and-batched-offer",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Route: `bounded` — 0 intent gaps, 0 irreversibles, 1 task, 2 files, `slugify` already exists in `src/text.py`.\n\nPlan: add a `url_path` property to `Post` in `src/posts.py` that returns `f\"/posts/{slugify(self.title)}\"`, importing `slugify` from `src/text.py`. I'll add a test in `tests/test_posts.py` covering the basic case. Risk: none — pure additive property, no existing behavior touched.\n\nGo?"
+              },
+              {
+                "name": "not-stop-and-wait",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    },
+    {
+      "name": "pipeline-spec-only",
+      "dir": "evals/pipeline-spec-only",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:spec --unattended Add a url_path property to Post that returns /posts/<slug of title>",
+      "runsPerCase": 1,
+      "timeoutSeconds": 1200,
+      "maxTurns": 40,
+      "graders": [
+        {
+          "name": "spec-never-lands-code",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "url_path",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "reuses-slugify",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "slugify",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "unattended-turn-traces-to-prompt",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the last message states the route it took (bounded, oneshot, or dispatch) with its reason, records its positions as Assumptions each with a confidence, invents no requirement (ids, uniqueness handling, caching) beyond the prompt's url_path property, names the existing slugify helper for reuse, and ends correctly for its route: bounded asks to confirm (\"Go?\") without having written any file yet; oneshot or dispatch instead point .specs/.current at a written TASKS.md (plus spec.md on dispatch) and end with the router's Next: line. FAIL if it writes files while a bounded route still asks to confirm, if it fails to write the route's artifacts for oneshot/dispatch, if it invents a requirement, or if it omits the confidence/Assumptions framing.",
+          "config": {
+            "criteria": "PASS if the last message states the route it took (bounded, oneshot, or dispatch) with its reason, records its positions as Assumptions each with a confidence, invents no requirement (ids, uniqueness handling, caching) beyond the prompt's url_path property, names the existing slugify helper for reuse, and ends correctly for its route: bounded asks to confirm (\"Go?\") without having written any file yet; oneshot or dispatch instead point .specs/.current at a written TASKS.md (plus spec.md on dispatch) and end with the router's Next: line. FAIL if it writes files while a bounded route still asks to confirm, if it fails to write the route's artifacts for oneshot/dispatch, if it invents a requirement, or if it omits the confidence/Assumptions framing.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 10,
+            "costUsd": 0.16777040000000001,
+            "judgeCostUsd": 0.0019439999999999995,
+            "durationSeconds": 29,
+            "startedAt": "2026-09-13T01:34:21.722Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-vaFYcw/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "spec-never-lands-code",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reuses-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "unattended-turn-traces-to-prompt",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Route: `bounded` — 0 intent gaps, 0 irreversibles, 1 task, 2 files (`src/posts.py`, `tests/test_posts.py`), flow already exists here (`slugify` in `src/text.py`). Reply 'oneshot' to escalate if you want ceremony.\n\n**Plan:**\n- Add a `url_path` property to `Post` (`src/posts.py`) returning `f\"/posts/{slugify(self.title)}\"`, importing `slugify` from `src.text`.\n- Add `tests/test_posts.py` with a test asserting `Post(\"Hello World\", ...).url_path == \"/posts/hello-world\"`.\n- Test: `python -m pytest tests/test_posts.py`\n\nRisk: none significant — pure addition, no existing behavior touched.\n\nGo?"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 6,
+    "casesPassed": 3,
+    "overallScore": 0.8055555555555555,
+    "overallPassRate": 0.5
+  }
+}
