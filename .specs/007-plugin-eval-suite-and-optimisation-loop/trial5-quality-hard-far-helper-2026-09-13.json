@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:15:53.432Z",
+  "durationSeconds": 18,
+  "costUsd": 0.3178958,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "quality-hard-far-helper",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "quality-hard-far-helper",
+      "dir": "evals/quality-hard-far-helper",
+      "source": "case_yaml",
+      "promptMarkdown": "Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 14,
+      "graders": [
+        {
+          "name": "uses-existing-to-kebab",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "to_kebab",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-reimplemented-slug",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "re\\.sub|import re|\\.lower\\(\\)\\.replace\\(",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 7,
+            "costUsd": 0.1105766,
+            "judgeCostUsd": 0,
+            "durationSeconds": 15,
+            "startedAt": "2026-09-13T01:15:53.448Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-JxITA5/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file app/models/post.py",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern found (expected absent)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.1027064,
+            "judgeCostUsd": 0,
+            "durationSeconds": 14,
+            "startedAt": "2026-09-13T01:15:53.449Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Wd97HM/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file app/models/post.py",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern found (expected absent)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 7,
+            "costUsd": 0.10461279999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 18,
+            "startedAt": "2026-09-13T01:15:53.449Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-J1PUIN/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern not found in file app/models/post.py",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": false,
+                "weight": 1,
+                "explanation": "pattern found (expected absent)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0,
+    "overallPassRate": 0
+  }
+}

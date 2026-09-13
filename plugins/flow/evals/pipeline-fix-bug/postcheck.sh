@@ -42,4 +42,4 @@ fi
 cp "$fixed" src/money.py
 rm -f "$fixed"
 echo "test bites"
-exit 0
+"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files src/money.py $(ls tests/test_money*.py)

@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:18:32.780Z",
+  "durationSeconds": 14,
+  "costUsd": 0.3047762,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "quality-hard-far-helper",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "quality-hard-far-helper",
+      "dir": "evals/quality-hard-far-helper",
+      "source": "case_yaml",
+      "promptMarkdown": "Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 14,
+      "graders": [
+        {
+          "name": "uses-existing-to-kebab",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "to_kebab",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-reimplemented-slug",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "app/models/post.py"
+            },
+            "pattern": "re\\.sub|import re|\\.lower\\(\\)\\.replace\\(",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.1016272,
+            "judgeCostUsd": 0,
+            "durationSeconds": 12,
+            "startedAt": "2026-09-13T01:18:32.804Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-cEgfCY/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched to_kebab",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.1017294,
+            "judgeCostUsd": 0,
+            "durationSeconds": 14,
+            "startedAt": "2026-09-13T01:18:32.804Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-yVvfHF/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched to_kebab",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.10141960000000001,
+            "judgeCostUsd": 0,
+            "durationSeconds": 13,
+            "startedAt": "2026-09-13T01:18:32.804Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-vbV6sN/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-to-kebab",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched to_kebab",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-reimplemented-slug",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}
