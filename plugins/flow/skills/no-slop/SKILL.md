@@ -25,7 +25,7 @@ Conflate them and the rule becomes either useless ("only two instances, fine") o
 ## Before writing (developer protocol)
 
 1. Read the brief. List every symbol you intend to add.
-2. For each: at least three searches across the whole repo, never one word — the verb, two synonyms (slug: kebab, dash, hyphen; format: render, label; validate: check, verify), the library you would import, the error string; plus a look inside any `utils`/`support`/`helpers`/`lib` package. `rg -in '\b(slug|kebab|hyphen)\b'`; `rg -n '^(from|import) .*slug'`; for shape, `ast-grep run -p 'def $N($A: str) -> str: $$$' -l python`; with an LSP tool, workspace symbols for each term.
+2. For each, three searches, never a name alone: list the helper packages (`**/{utils,support,helpers,lib,common,shared,core}/**`) and open the small modules; grep the exact idiom you are about to write (`re.sub(r"[^a-z0-9]+"`, a join, a format string); grep the verb and two synonyms (slug: kebab, dash, hyphen; format: render, label; validate: check, verify) plus the library you would import. `rg -in '\b(slug|kebab|hyphen)\b'`; `rg -n '^(from|import) .*slug'`; for shape, `ast-grep run -p 'def $N($A: str) -> str: $$$' -l python`; with an LSP tool, workspace symbols for each term.
 3. Write the receipt line: `searched: slug, slugify, kebab, import slugify; found: src/text.py:4`. If found, import it. If nothing, write the function.
 4. Before each guard: name who guarantees the value (type, constructor, prior check, boundary). Only a boundary earns the guard.
 5. Before each comment: WHY, one short line, or nothing. Never WHAT, never the task or the caller.

@@ -57,6 +57,6 @@ _sf_hit=$(printf '%s' "$prompt" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '\
 ')
 [ "$_sf_hit" = "1" ] || hook_ok
 
-_sf_msg="Before adding code: search the whole repo for an existing implementation (the verb, two synonyms, the library you'd import, the error string; look in utils/support/helpers/lib), reuse it, and state one receipt line: searched: <terms>; found: <path:line | nothing>."
+_sf_msg="Before adding code: a name search is not enough. (1) Glob **/{utils,support,helpers,lib,common,shared,core}/** and open every small module there; (2) grep the exact idiom you are about to write (the regex, the join, the format string) - an existing helper contains it; (3) grep the verb and two synonyms. Reuse what you find and state one receipt line: searched: <terms and dirs>; found: <path:line | nothing>."
 
 printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":%s}}\n' "$(_json_str "$_sf_msg")"
