@@ -1,0 +1,26 @@
+schema_version: "1.1"
+name: routing-qa
+description: A ready-to-ship quality-check request must route to the qa skill
+tags: [routing]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Is this branch ready to ship? Can you QA it - check for bugs, run quality checks, and see if it's ready to ship?"
+  max_turns: 8
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: fires-qa
+    type: tool_used
+    tool: Skill
+    input_match: "flow:qa\\b"
+    min: 1
+    arm: with-only
+  - name: no-other-hub-skill
+    type: tool_used
+    tool: Skill
+    input_match: "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b"
+    min: 0
+    max: 0
+    arm: with-only

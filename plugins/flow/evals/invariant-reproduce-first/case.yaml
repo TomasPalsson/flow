@@ -1,0 +1,21 @@
+schema_version: "1.1"
+name: invariant-reproduce-first
+description: The fix skill, run unattended, must run the failing test (Bash) before editing the implementation (NS-28); routing of the plain-language report is routing-fix's job
+tags: [invariant, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:fix --unattended Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?"
+  max_turns: 20
+  allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
+graders:
+  - name: reproduces-before-editing
+    type: tool_order
+    before: Bash
+    after: Edit
+  - name: test-not-weakened
+    type: regex
+    target: { source: file, path: tests/test_math_ops.py }
+    pattern: "@unittest\\.skip|skipTest"
+    match: not_contains

@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T02:04:04.183Z",
+  "durationSeconds": 48,
+  "costUsd": 0.6886598,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "invariant-reproduce-first",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "invariant-reproduce-first",
+      "dir": "evals/invariant-reproduce-first",
+      "source": "case_yaml",
+      "promptMarkdown": "Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "reproduces-before-editing",
+          "type": "tool_order",
+          "weight": 1,
+          "config": {
+            "before": {
+              "tool": "Bash"
+            },
+            "after": {
+              "tool": "Edit"
+            }
+          }
+        },
+        {
+          "name": "fires-fix",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_math_ops.py"
+            },
+            "pattern": "@unittest\\.skip|skipTest",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 11,
+            "costUsd": 0.21471300000000004,
+            "judgeCostUsd": 0,
+            "durationSeconds": 48,
+            "startedAt": "2026-09-13T02:04:04.200Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Mgt1rJ/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": false,
+                "weight": 1,
+                "explanation": "\"after\" tool Edit never called",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 13,
+            "costUsd": 0.2194352,
+            "judgeCostUsd": 0,
+            "durationSeconds": 39,
+            "startedAt": "2026-09-13T02:04:04.200Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-gb9ryP/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": false,
+                "weight": 1,
+                "explanation": "\"after\" tool Edit never called",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 15,
+            "costUsd": 0.2545116,
+            "judgeCostUsd": 0,
+            "durationSeconds": 45,
+            "startedAt": "2026-09-13T02:04:04.200Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Zw9JXB/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@1 precedes Edit@11",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.7777777777777777,
+        "passRate": 0.3333333333333333
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.7777777777777777,
+    "overallPassRate": 0.3333333333333333
+  }
+}

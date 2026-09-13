@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T04:08:34.971Z",
+  "durationSeconds": 42,
+  "costUsd": 0.5465842000000001,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "routing-prep",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "routing-prep",
+      "dir": "evals/routing-prep",
+      "source": "case_yaml",
+      "promptMarkdown": "/prep Build a habit-tracking mobile app that reminds users at custom times chosen per habit.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "prep-interview-starts",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response behaves as a prep interview: it asks exactly one question about the idea, states its own recommended answer with a confidence word, and asks the user to confirm or correct; it does not write a spec, a plan, or code. FAIL otherwise.",
+          "config": {
+            "criteria": "PASS if the response behaves as a prep interview: it asks exactly one question about the idea, states its own recommended answer with a confidence word, and asks the user to confirm or correct; it does not write a spec, a plan, or code. FAIL otherwise.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.18928480000000003,
+            "judgeCostUsd": 0.0008960000000000001,
+            "durationSeconds": 39,
+            "startedAt": "2026-09-13T04:08:34.989Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-8EmBmp/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: FAIL PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  true,
+                  true
+                ],
+                "evidence": "Prep file created at `.specs/001-habit-tracking-app/PREP.md`.\n\nWhich platform(s) should this ship to — iOS, Android, or both via a cross-platform framework?\n\nMr Claude's guess: likely both, via a cross-platform framework (e.g. React Native or Flutter) — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.1818312,
+            "judgeCostUsd": 0.0010400000000000001,
+            "durationSeconds": 42,
+            "startedAt": "2026-09-13T04:08:34.989Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-rDMjmc/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: FAIL PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  true,
+                  true
+                ],
+                "evidence": "Prep file created at `.specs/001-habit-tracking-reminders/PREP.md`.\n\n**Q1.** What platform(s) should this target?\n\nMr Claude's guess: probably cross-platform (iOS + Android from one codebase, e.g. React Native or Flutter), since you said \"mobile app\" without naming a specific OS — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.17546820000000005,
+            "judgeCostUsd": 0.0007980000000000001,
+            "durationSeconds": 28,
+            "startedAt": "2026-09-13T04:08:34.989Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-g05m2R/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**PREP.md** at `.specs/001-habit-tracking-app/PREP.md` — route: **dispatch** (greenfield mobile app, well beyond bounded/oneshot).\n\nFirst question: what platform is this for — native iOS, native Android, or cross-platform (e.g. React Native/Flutter)?\n\nMr Claude's guess: probably cross-platform, since building two native apps for a habit tracker is unusual scope for a first version — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}

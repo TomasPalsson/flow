@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:36:05.842Z",
+  "durationSeconds": 112,
+  "costUsd": 1.3319662,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "pipeline-fix-bug",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "pipeline-fix-bug",
+      "dir": "evals/pipeline-fix-bug",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:fix format_cents rounds 1999 cents to $19.98 instead of $19.99",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 100,
+      "graders": [
+        {
+          "name": "reproduces-before-fixing",
+          "type": "tool_order",
+          "weight": 1,
+          "config": {
+            "before": {
+              "tool": "Bash"
+            },
+            "after": {
+              "tool": "Edit"
+            }
+          }
+        },
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_money.py"
+            },
+            "pattern": "skip|xfail|pytest\\.mark\\.skip|pytest\\.skip|unittest\\.skip",
+            "flags": "i",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "money-test-exists",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "tests/test_money*.py",
+            "exists": true
+          }
+        },
+        {
+          "name": "no-hard-coded-cents-value",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/money.py"
+            },
+            "pattern": "1999|19\\.99",
+            "flags": "",
+            "match": "not_contains"
+          }
+        },
+        {
+          "name": "fix-is-general",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if format_cents derives the dollars and the cents from its argument with arithmetic that holds for every input, so 1999 -> \"$19.99\", 5 -> \"$0.05\" and 100 -> \"$1.00\" all follow from the same expression. FAIL if the reported input or its expected output is special-cased (an `if cents == 1999` branch, a lookup table, an early return for that one value) while the original off-by-one remainder arithmetic still runs for other inputs.",
+          "config": {
+            "criteria": "PASS if format_cents derives the dollars and the cents from its argument with arithmetic that holds for every input, so 1999 -> \"$19.99\", 5 -> \"$0.05\" and 100 -> \"$1.00\" all follow from the same expression. FAIL if the reported input or its expected output is special-cased (an `if cents == 1999` branch, a lookup table, an early return for that one value) while the original off-by-one remainder arithmetic still runs for other inputs.",
+            "focus": {
+              "source": "file",
+              "path": "src/money.py"
+            }
+          }
+        },
+        {
+          "name": "money-test-can-fail",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the test asserts a specific computed value (for example format_cents(1999) == \"$19.99\") and would fail against the buggy implementation; not `assert True`, not only `assertIsNotNone`, not an expected value computed by re-running format_cents itself, and not a snapshot as the only check. FAIL if the test cannot actually fail against a broken implementation.",
+          "config": {
+            "criteria": "PASS if the test asserts a specific computed value (for example format_cents(1999) == \"$19.99\") and would fail against the buggy implementation; not `assert True`, not only `assertIsNotNone`, not an expected value computed by re-running format_cents itself, and not a snapshot as the only check. FAIL if the test cannot actually fail against a broken implementation.",
+            "focus": {
+              "source": "file",
+              "path": "tests/test_money.py"
+            }
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 30,
+            "costUsd": 0.4801892,
+            "judgeCostUsd": 0.0015030000000000017,
+            "durationSeconds": 112,
+            "startedAt": "2026-09-13T01:36:05.859Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-4Eh6ir/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-fixing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@23",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "money-test-exists",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_money*.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-hard-coded-cents-value",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fix-is-general",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "def format_cents(cents):\n    dollars = cents // 100\n    remainder = cents % 100\n    return \"$%d.%02d\" % (dollars, remainder)\n"
+              },
+              {
+                "name": "money-test-can-fail",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\n\n\ndef test_format_cents_does_not_lose_a_penny():\n    assert format_cents(1999) == \"$19.99\"\n"
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 22,
+            "costUsd": 0.4242078000000001,
+            "judgeCostUsd": 0.0014970000000000007,
+            "durationSeconds": 102,
+            "startedAt": "2026-09-13T01:36:05.860Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-4nqS7a/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-fixing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@17",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "money-test-exists",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_money*.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-hard-coded-cents-value",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fix-is-general",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "def format_cents(cents):\n    dollars = cents // 100\n    remainder = cents % 100\n    return \"$%d.%02d\" % (dollars, remainder)\n"
+              },
+              {
+                "name": "money-test-can-fail",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\n\n\ndef test_format_cents_no_off_by_one():\n    assert format_cents(1999) == \"$19.99\"\n"
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 26,
+            "costUsd": 0.42756920000000004,
+            "judgeCostUsd": 0.0014970000000000003,
+            "durationSeconds": 96,
+            "startedAt": "2026-09-13T01:36:05.860Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-8HVljK/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-fixing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@19",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "money-test-exists",
+                "passed": true,
+                "weight": 1,
+                "explanation": "tests/test_money*.py exists as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-hard-coded-cents-value",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fix-is-general",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "def format_cents(cents):\n    dollars = cents // 100\n    remainder = cents % 100\n    return \"$%d.%02d\" % (dollars, remainder)\n"
+              },
+              {
+                "name": "money-test-can-fail",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "from src.money import format_cents\n\n\ndef test_format_cents_no_off_by_one():\n    assert format_cents(1999) == \"$19.99\"\n"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}

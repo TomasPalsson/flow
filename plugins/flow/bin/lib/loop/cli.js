@@ -3,7 +3,7 @@
 // loop/cli.js — `flow loop` dispatcher (K-C). All commands anchor at
 // `git rev-parse --show-toplevel`.
 
-const { spawnSync } = require('node:child_process');
+const { gitToplevel } = require('./util.js');
 const { printTopHelp, printSubHelp } = require('./help.js');
 const { cmdInit } = require('./init.js');
 const { cmdCheck } = require('./check.js');
@@ -12,11 +12,6 @@ const { cmdRun } = require('./driver.js');
 const { cmdStatus, cmdStop, cmdLog } = require('./status.js');
 
 const SUBCOMMANDS = { init: cmdInit, check: cmdCheck, tick: cmdTick, run: cmdRun, status: cmdStatus, stop: cmdStop, log: cmdLog };
-
-function gitToplevel(cwd, env) {
-  const r = spawnSync('git', ['-C', cwd, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', env });
-  return r.status === 0 ? (r.stdout || '').trim() : null;
-}
 
 function run(argv, cwd, env) {
   env = env || process.env;

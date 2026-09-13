@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { sha1, toInt } = require('./util.js');
+const { LEDGER_PATH } = require('../eval/contract.js');
 
 // UI_ENV_VARS — ui-verify.sh's entire boot config (SERVE/PORT/HEALTH/BOOT/
 // BASE_URL/FLOW_UI_SCORE) is `${VAR:-default}`, fully caller-overridable,
@@ -152,6 +153,49 @@ function gateWeakened(change) {
   return Object.keys(after).some((k) => k in before && before[k] !== after[k]);
 }
 
+// protectedPaths(front) -> string[]. --test-files (K-F, FR-008) names files
+// or directories that must survive the loop untouched, independent of the
+// isTestPath heuristic countTestFiles relies on. loop/init.js seeds the list
+// with plugins/flow/evals when the repo has it.
+function protectedPaths(front) {
+  return String(front.protected_files || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function isUnder(file, root) {
+  return file === root || file.startsWith(root.endsWith('/') ? root : `${root}/`);
+}
+
+// changedPaths(toplevel, base) -> every path that differs from base, tracked
+// (git diff --name-only, which reports deletions and renames too) or
+// untracked-and-not-ignored. Deliberately name-based: changedLinesByFile only
+// sees files with a `+++ b/` header, so it misses deletions entirely.
+function changedPaths(toplevel, base) {
+  const tracked = base ? gitLines(toplevel, ['diff', '--name-only', base]) : [];
+  return [...new Set(tracked.concat(untrackedFiles(toplevel)))];
+}
+
+// protectedFindings(toplevel, front) -> string[]. AC-011/FR-008: an iteration
+// that edits, deletes or adds anything at or under a protected path is
+// suspect — not just one that makes a named path vanish. The eval ledger is
+// the one exemption: `flow eval` (the verifier itself) appends a line to it on
+// every run, so protecting it would flag every iteration of the very loop
+// FR-008 exists to protect.
+function protectedFindings(toplevel, front) {
+  const roots = protectedPaths(front);
+  if (!roots.length) return [];
+  const findings = [];
+  const gone = roots.filter((p) => !fs.existsSync(path.join(toplevel, p)));
+  for (const p of gone) findings.push(`protected file removed: ${p}`);
+  for (const f of changedPaths(toplevel, front.base)) {
+    if (f === LEDGER_PATH || gone.includes(f)) continue;
+    if (roots.some((r) => isUnder(f, r))) findings.push(`protected file changed: ${f}`);
+  }
+  return findings;
+}
+
 function tamperCheck(toplevel, front, env) {
   const findings = [];
   // Scoped to --target (a UI loop): a plain non-UI loop never records
@@ -163,6 +207,7 @@ function tamperCheck(toplevel, front, env) {
   const initCount = toInt(front.test_files);
   const curCount = countTestFiles(toplevel);
   if (curCount < initCount) findings.push(`test files removed: ${initCount} → ${curCount}`);
+  findings.push(...protectedFindings(toplevel, front));
   const changes = changesSinceBase(toplevel, front.base);
   for (const [file, change] of Object.entries(changes)) {
     if (isTestPath(file) && change.added.some((l) => SKIP_RE.test(l))) findings.push(`skip/xfail added in ${file}`);

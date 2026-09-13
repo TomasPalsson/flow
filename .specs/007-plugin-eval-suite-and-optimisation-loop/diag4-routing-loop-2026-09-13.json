@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T03:38:19.234Z",
+  "durationSeconds": 138,
+  "costUsd": 0.9357735999999999,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "routing-loop",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "routing-loop",
+      "dir": "evals/routing-loop",
+      "source": "case_yaml",
+      "promptMarkdown": "The integration suite is red (`./run-tests.sh`). Keep going until it's green - don't stop until every test passes, I'm heading out for the night.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-loop",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:loop\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 11,
+            "costUsd": 0.37400929999999993,
+            "judgeCostUsd": 0,
+            "durationSeconds": 138,
+            "startedAt": "2026-09-13T03:38:19.251Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-kTt5ft/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 3,
+            "costUsd": 0.3298913,
+            "judgeCostUsd": 0,
+            "durationSeconds": 95,
+            "startedAt": "2026-09-13T03:38:19.251Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-t2L1S3/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 4,
+            "costUsd": 0.231873,
+            "judgeCostUsd": 0,
+            "durationSeconds": 62,
+            "startedAt": "2026-09-13T03:38:19.251Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-T1TBI3/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.8333333333333334,
+        "passRate": 0.6666666666666666
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.8333333333333334,
+    "overallPassRate": 0.6666666666666666
+  }
+}

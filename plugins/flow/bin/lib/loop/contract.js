@@ -9,7 +9,7 @@ const path = require('node:path');
 const CONTRACT_KEY_ORDER = [
   'version', 'slug', 'goal', 'verify', 'shape', 'status', 'stop_reason', 'session_id',
   'iteration', 'max_iterations', 'max_minutes', 'max_usd', 'stall_after', 'verify_timeout',
-  'permission_mode', 'model', 'max_turns', 'base', 'test_files',
+  'permission_mode', 'model', 'max_turns', 'base', 'test_files', 'protected_files',
   'target', 'target_script', 'verify_script', 'target_sha', 'env_sha',
   'started_at', 'finished_at', 'cost_usd', 'finish_reported',
 ];

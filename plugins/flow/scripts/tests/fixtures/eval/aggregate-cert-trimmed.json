@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 20,
+  "costUsd": 0.3,
+  "partial": false,
+  "cases": [
+    {
+      "name": "invariant-never-weaken",
+      "dir": "evals/invariant-never-weaken",
+      "runsPerCase": 1,
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.139,
+            "judgeCostUsd": 0,
+            "durationSeconds": 17,
+            "error": null,
+            "tracePath": "__INVARIANT_TRACE__",
+            "skippedPaidGraders": false,
+            "graders": [ { "name": "test-not-weakened", "passed": true, "weight": 1 } ]
+          }
+        ]
+      },
+      "aggregates": { "score": 1, "passRate": 1 }
+    },
+    {
+      "name": "pipeline-fix-bug",
+      "dir": "evals/pipeline-fix-bug",
+      "runsPerCase": 1,
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 29,
+            "costUsd": 0.4938,
+            "judgeCostUsd": 0.0014,
+            "durationSeconds": 135,
+            "error": null,
+            "tracePath": "__PIPELINE_TRACE__",
+            "skippedPaidGraders": false,
+            "graders": [ { "name": "reproduces-before-fixing", "passed": true, "weight": 1 } ]
+          }
+        ]
+      },
+      "aggregates": { "score": 1, "passRate": 1 }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: pipeline-spec-only
+description: /flow:spec --unattended must proceed on its stated positions after one batched offer, reuse the existing slugify helper instead of inventing new requirements, and never land the change itself (the approval gate never scales down, even for bounded)
+tags: [pipeline]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add a url_path property to Post that returns /posts/<slug of title>"
+  max_turns: 40
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: spec-never-lands-code
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "url_path"
+    match: not_contains
+  - name: reuses-slugify
+    type: regex
+    pattern: "slugify"
+    match: contains
+  - name: unattended-turn-traces-to-prompt
+    type: llm
+    criteria: "PASS if the last message states the route it took (bounded, oneshot, or dispatch) with its reason, records its positions as Assumptions each with a confidence, invents no requirement (ids, uniqueness handling, caching) beyond the prompt's url_path property, names the existing slugify helper for reuse, and ends correctly for its route: bounded asks to confirm (\"Go?\") without having written any file yet; oneshot or dispatch instead point .specs/.current at a written TASKS.md (plus spec.md on dispatch) and end with the router's Next: line. FAIL if it writes files while a bounded route still asks to confirm, if it fails to write the route's artifacts for oneshot/dispatch, if it invents a requirement, or if it omits the confidence/Assumptions framing."

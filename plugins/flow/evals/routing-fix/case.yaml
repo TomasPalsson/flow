@@ -1,0 +1,28 @@
+schema_version: "1.1"
+name: routing-fix
+description: A plain bug report with no slash command must route to the fix skill, and reproduce before patching
+tags: [routing]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "The login page has been crashing with `TypeError: cannot read properties of undefined (reading 'id')` since Tuesday's deploy. Users can't sign in. Can you sort this out?"
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: fires-fix
+    type: tool_used
+    tool: Skill
+    input_match: "flow:fix\\b"
+    min: 1
+    arm: with-only
+  - name: no-other-hub-skill
+    type: tool_used
+    tool: Skill
+    input_match: "flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b"
+    min: 0
+    max: 0
+    arm: with-only
+  - name: reproduce-first
+    type: llm
+    criteria: "PASS if the response, before proposing any code change, either asks for exact reproduction steps / a failing input, or states the reproduction it would run (a test or command) and does not present a patch as the answer. FAIL if it presents or applies a fix from the error message alone."

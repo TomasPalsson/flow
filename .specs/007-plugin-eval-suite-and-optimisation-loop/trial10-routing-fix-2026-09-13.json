@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T02:12:20.159Z",
+  "durationSeconds": 120,
+  "costUsd": 0.87188435,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "routing-fix",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "routing-fix",
+      "dir": "evals/routing-fix",
+      "source": "case_yaml",
+      "promptMarkdown": "The login page has been crashing with `TypeError: cannot read properties of undefined (reading 'id')` since Tuesday's deploy. Users can't sign in. Can you sort this out?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-fix",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "reproduce-first",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response, before proposing any code change, either asks for exact reproduction steps / a failing input, or states the reproduction it would run (a test or command) and does not present a patch as the answer. FAIL if it presents or applies a fix from the error message alone.",
+          "config": {
+            "criteria": "PASS if the response, before proposing any code change, either asks for exact reproduction steps / a failing input, or states the reproduction it would run (a test or command) and does not present a patch as the answer. FAIL if it presents or applies a fix from the error message alone.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.6666666666666666,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.42450285000000004,
+            "judgeCostUsd": 0.0007979999999999999,
+            "durationSeconds": 120,
+            "startedAt": "2026-09-13T02:12:20.176Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-QGzxlw/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reproduce-first",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": ""
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.2299125,
+            "judgeCostUsd": 0.000543,
+            "durationSeconds": 83,
+            "startedAt": "2026-09-13T02:12:20.176Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-pEX08P/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reproduce-first",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I'll start by checking the flow state and detecting the project setup."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.21746899999999997,
+            "judgeCostUsd": 0.000576,
+            "durationSeconds": 44,
+            "startedAt": "2026-09-13T02:12:20.176Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-fVwfYq/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reproduce-first",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "This is a tiny repo — just `package.json` and `src/auth.js`. Let me read both."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.8888888888888888,
+        "passRate": 0.6666666666666666
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0.8888888888888888,
+    "overallPassRate": 0.6666666666666666
+  }
+}

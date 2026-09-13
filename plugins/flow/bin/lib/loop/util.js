@@ -4,7 +4,25 @@
 // modules. No fs writes here; pure helpers only.
 
 const crypto = require('node:crypto');
+const fsSync = require('node:fs');
+const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+
+// resolveOnPath(name, env) — the first executable <dir>/<name> found by
+// walking env.PATH, or null. Shared by loop/driver.js (spawning `claude`)
+// and eval.js (Slice 5: resolving `claude`/`socat` before it shells out).
+function resolveOnPath(name, env) {
+  const pathVar = (env && env.PATH) || '';
+  for (const dir of pathVar.split(path.delimiter)) {
+    if (!dir) continue;
+    const p = path.join(dir, name);
+    try {
+      fsSync.accessSync(p, fsSync.constants.X_OK);
+      return p;
+    } catch { /* keep looking */ }
+  }
+  return null;
+}
 
 function toInt(v) {
   const n = parseInt(v, 10);
@@ -65,6 +83,11 @@ function slugify(goal) {
   return s || 'loop';
 }
 
+function gitToplevel(cwd, env) {
+  const r = spawnSync('git', ['-C', cwd, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', env });
+  return r.status === 0 ? (r.stdout || '').trim() : null;
+}
+
 function headSha(toplevel) {
   const r = spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
   return r.status === 0 ? (r.stdout || '').trim() : '';
@@ -81,4 +104,7 @@ function humanDuration(startIso, endIso) {
   return `${Math.floor(sec / 60)}m${sec % 60}s`;
 }
 
-module.exports = { toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, headSha, gitDirty, humanDuration, fmtCost, ensureLoopGitignore };
+module.exports = {
+  toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, gitToplevel, headSha, gitDirty, humanDuration, fmtCost,
+  ensureLoopGitignore, resolveOnPath,
+};

@@ -53,7 +53,7 @@ function dedupeKey(f) {
 
 const base = args.base
 const head = args.head || 'HEAD'
-const lenses = args.lenses || ['correctness', 'security', 'gaming', 'cross-file']
+const lenses = args.lenses || ['correctness', 'security', 'gaming', 'cross-file', 'slop']
 const threshold = (args.threshold !== undefined) ? args.threshold : 80
 const reviewMd = args.reviewMd
 const scriptsDir = args.scriptsDir || '$HOME/.claude/scripts'

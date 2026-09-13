@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: quality-no-unrequested-scope
+description: Claude must add only the requested function and touch nothing else in the file (NS-24)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "In src/math_utils.py, add a function `clamp(value, low, high)` that returns value bounded between low and high inclusive. Do not change anything else in the file."
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: no-unrequested-scope
+    type: llm
+    focus: { source: file, path: src/math_utils.py }
+    criteria: "PASS if the diff to src/math_utils.py only adds the new clamp function and does not rename, reformat, restyle, or otherwise modify add, subtract, or multiply. FAIL if any existing function or line outside the new clamp function is changed."

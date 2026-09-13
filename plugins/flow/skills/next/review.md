@@ -1,6 +1,6 @@
 ---
 name: flow-review
-description: How /flow:next reviews a per-task diff and a whole-branch diff — the four adversary lenses with their self-commit protocol, severity buckets and verdict enum, the anchored 0–100 confidence re-score with the ≥80 keep rule, the bounded fix ladder, carried verdicts, and the stall rule. Loaded in the building and gating states.
+description: How /flow:next reviews a per-task diff and a whole-branch diff — the five adversary lenses with their self-commit protocol, severity buckets and verdict enum, the anchored 0–100 confidence re-score with the ≥80 keep rule, the bounded fix ladder, carried verdicts, and the stall rule. Loaded in the building and gating states.
 ---
 
 # Flow Review
@@ -17,8 +17,9 @@ Each reviewer gets the brief path and the diff path, and nothing else. It must *
 | **gaming** | Was the gate satisfied rather than the problem? Skipped/xfail'd/deleted tests, assertions weakened to `toBeDefined()`, a threshold lowered, a stub left in the Green commit, behavior special-cased to the test's input. |
 | **security** | Untrusted input reaching a sink, authz checked in the wrong layer, a secret in the diff, an injection or traversal path. |
 | **cross-file** | Does this agree with the rest of the branch? Duplicated concept under a second name, a contract from `design.md` drifted, two tasks owning one file. |
+| **slop** | Is this generic, duplicated, or plausible-looking but unproven? See `skills/no-slop/references/adversary-lens.md` for the checklist and evidence rule. |
 
-**Which lenses run where is fixed, never a per-run choice**: `building` runs exactly **correctness + gaming** on each task diff — the pair the saved `build-slices` workflow is pinned to, so every mode reviews a task identically. `gating` runs **all four** on the branch diff, matching `review-diff`'s defaults. A task-level security or cross-file worry is not dropped, it is caught at `gating` where the whole branch is visible.
+**Which lenses run where is fixed, never a per-run choice**: `building` runs exactly **correctness + gaming + slop** on each task diff — the trio the saved `build-slices` workflow is pinned to, so every mode reviews a task identically. `gating` runs **all five** on the branch diff, matching `review-diff`'s defaults. A task-level security or cross-file worry is not dropped, it is caught at `gating` where the whole branch is visible.
 
 **Self-commit protocol**: each reviewer states, before reporting, what it checked and what it deliberately did **not** check and why. A lens with no findings returns `verdict: CLEAN` and its `checked` list — **empty is a legitimate result**, and a reviewer that reads silence as failure manufactures the difference.
 

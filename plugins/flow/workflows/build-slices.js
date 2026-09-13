@@ -165,7 +165,8 @@ async function runTask(id) {
 
   const implementPrompt = 'Implement task ' + id + ' by reading ONLY the brief at ' + briefPath +
     ' and the files it names. Follow RED/GREEN/REFACTOR from the brief, and touch no file outside ' +
-    'the brief\'s files: list. Run the test command: ' + testCmd + '. Return the TASK_RESULT.'
+    'the brief\'s files: list. Run the test command: ' + testCmd + '. State the search receipt before ' +
+    'your first edit and run scripts/slop-check before reporting done. Return the TASK_RESULT.'
   const implRes = await agent(implementPrompt, { agentType: 'developer', label: 'implement:' + id, phase: 'Implement', schema: TASK_RESULT })
   if (!implRes) {
     return {
@@ -187,6 +188,7 @@ async function runTask(id) {
     const lenses = await parallel([
       function () { return agent(adversaryPrompt('correctness', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('slop', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
     ])
     findings = lenses.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
   }
@@ -220,6 +222,7 @@ async function runTask(id) {
     const relook = await parallel([
       function () { return agent(adversaryPrompt('correctness', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
+      function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
     ])
     current = relook.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, []).filter(isBlocking)
   }

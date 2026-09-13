@@ -1,0 +1,22 @@
+schema_version: "1.1"
+name: quality-reuse-existing-helper
+description: Claude must reuse the existing slugify helper instead of re-implementing it (NS-20)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a `url_path` property to Post in src/posts.py that returns '/posts/<slug-of-title>'. Keep the change minimal."
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: uses-existing-slugify
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "slugify"
+    match: contains
+  - name: no-new-regex
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "re\\.sub|import re"
+    match: not_contains

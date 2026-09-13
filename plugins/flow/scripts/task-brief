@@ -17,6 +17,8 @@ Writes a one-task brief containing:
   Base: <short sha of HEAD, measured now — before the task is dispatched>
   the task's phase heading with its Goal: and Independent test: lines
   the task's own line, verbatim
+  "## Before you write" plus the no-slop developer block's fenced
+  instructions (verbatim, from skills/no-slop/references/developer-block.md)
   any "## Contract" block in --design whose heading names <ID>
 
 Default --out is <dir-of-TASKS.md>/review/<ID>-brief.md (review/ is
@@ -124,6 +126,16 @@ BODY=$(awk -v id="$ID" '
   exit 1
 }
 
+HERE=$(cd "$(dirname "$0")" && pwd -P)
+DEV_BLOCK="$HERE/../skills/no-slop/references/developer-block.md"
+DEV_BLOCK_TEXT=""
+if [ -f "$DEV_BLOCK" ]; then
+  DEV_BLOCK_TEXT=$(awk '
+    /^```/ { infence = !infence; print; if (!infence) exit; next }
+    infence { print }
+  ' "$DEV_BLOCK")
+fi
+
 CONTRACT=""
 if [ -n "$DESIGN" ] && [ -f "$DESIGN" ]; then
   CONTRACT=$(awk -v id="$ID" '
@@ -146,6 +158,9 @@ fi
   [ -n "$HEADER" ] && printf '%s\n' "$HEADER"
   printf '\n'
   printf '%s\n' "$BODY"
+  if [ -n "$DEV_BLOCK_TEXT" ]; then
+    printf '\n\n## Before you write\n%s\n' "$DEV_BLOCK_TEXT"
+  fi
   if [ -n "$CONTRACT" ]; then
     printf '\n'
     printf '%s\n' "$CONTRACT"

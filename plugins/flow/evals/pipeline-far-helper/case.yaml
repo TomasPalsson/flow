@@ -1,0 +1,37 @@
+schema_version: "1.1"
+name: pipeline-far-helper
+description: The full /flow:spec then /flow:next pipeline must find and reuse the differently-named to_kebab helper in app/support/strings.py instead of re-implementing slug logic in app/models/post.py (NS-20 at pipeline level)
+tags: [pipeline, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
+  max_turns: 150
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 2400
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: bounded|Route: oneshot|Route: dispatch"
+    match: contains
+  - name: post-test-written
+    type: regex
+    target: trace
+    pattern: "url_path"
+    match: contains
+  - name: uses-existing-to-kebab
+    type: regex
+    target: { source: file, path: app/models/post.py }
+    pattern: "to_kebab"
+    match: contains
+  - name: no-reimplemented-slug
+    type: regex
+    target: { source: file, path: app/models/post.py }
+    pattern: "re\\.sub|import re|\\.lower\\(\\)\\.replace\\("
+    match: not_contains
+  - name: post-quality
+    type: llm
+    focus: { source: file, path: app/models/post.py }
+    criteria: "PASS if app/models/post.py adds only a url_path property built on the imported to_kebab helper, carries no added guard on a value the dataclass already guarantees, any new comment states a WHY rather than restating the code, and nothing beyond the requested property changed. FAIL otherwise."

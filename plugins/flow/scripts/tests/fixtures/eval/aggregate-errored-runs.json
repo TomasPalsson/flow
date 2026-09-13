@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 340,
+  "costUsd": 4.82,
+  "partial": false,
+  "aggregates": {
+    "overallScore": 0.95,
+    "meanDelta": 0.42
+  },
+  "cases": [
+    {
+      "name": "quality-reuse-slugify",
+      "aggregates": {
+        "score": 0,
+        "delta": 0.6
+      },
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0,
+            "error": "exit 1: You've hit your session limit \u00b7 resets 2:30am (UTC)",
+            "graders": []
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0,
+            "error": null,
+            "graders": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "routing-fix-skill",
+      "aggregates": {
+        "score": 0,
+        "delta": 0.24
+      },
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0,
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "graders": []
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0,
+            "error": null,
+            "graders": []
+          }
+        ]
+      }
+    }
+  ]
+}

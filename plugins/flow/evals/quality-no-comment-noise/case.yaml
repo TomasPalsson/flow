@@ -1,0 +1,27 @@
+schema_version: "1.1"
+name: quality-no-comment-noise
+description: Added comments must state a WHY, not restate the code, carry no task references, and no emoji (NS-07, NS-15, NS-23)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a function `load_settings(path: str) -> dict` to src/config.py that reads a JSON settings file at path using the existing read_json helper and returns its contents. Add a short comment explaining any non-obvious behavior."
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: no-emoji-in-comments
+    type: regex
+    target: { source: file, path: src/config.py }
+    pattern: "[\\u{1F300}-\\u{1FAFF}]|[\\u2600-\\u27BF]"
+    flags: "u"
+    match: not_contains
+  - name: no-task-reference-comment
+    type: regex
+    target: { source: file, path: src/config.py }
+    pattern: "used by |added for the |see issue #|for the .* flow"
+    match: not_contains
+  - name: comments-state-why-not-what
+    type: llm
+    focus: { source: file, path: src/config.py }
+    criteria: "PASS if every added comment states a WHY (a constraint, invariant, workaround or surprise) rather than restating the adjacent code, and any added docstring does not merely repeat the function signature. FAIL if a comment or docstring only restates what the code obviously does."

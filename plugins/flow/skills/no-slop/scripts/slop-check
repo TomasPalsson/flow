@@ -1,0 +1,383 @@
+#!/usr/bin/env python3
+"""slop-check: scan added lines of a git diff for common AI-slop signals.
+
+Usage: slop-check [--base <ref>] [--head <ref>] [--json] [--strict]
+                   [--no-tools] [--files <path>...] [--all-lines]
+
+Only reports on lines *added* between --base and --head. With --all-lines,
+every line of each --files path is treated as added and no git repository
+is required at all (--base/--head are ignored); same finding ids, messages
+and --json shape. Exit code is always 0 unless --strict is passed and
+findings > 0. Missing optional tools (ruff/tsc/jscpd, in slop_tools.py)
+never fail the run; those checks are silently skipped.
+"""
+import argparse
+import ast
+import difflib
+import json as jsonlib
+import os
+import re
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import slop_diff
+
+CODE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx")
+TS_EXTS = (".ts", ".tsx")
+
+HEDGE_RE = re.compile(
+    r"\b(TODO|FIXME|XXX|HACK|in a real (implementation|system)|for now|placeholder|"
+    r"not implemented yet|left as an exercise|simplified version)\b", re.I)
+TICKET_RE = re.compile(r"(#\d+|[A-Z]{2,}-\d+|https?://)")
+EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
+GENERIC_NAMES = {
+    "data", "temp", "tmp", "handle", "handler", "manager", "helper", "util",
+    "utils", "result", "obj", "thing", "foo", "bar", "baz", "process_data",
+    "do_thing", "do_stuff", "handle_data", "process", "item", "info", "value",
+}
+COMPAT_RE = re.compile(
+    r"(_legacy\b|_old\b|@deprecated|backwards?.?compat|kept for compat|for compatibility)", re.I)
+TASK_REF_RE = re.compile(
+    r"\b(used by|added for|handles the case from|see issue|for the .* flow|"
+    r"per the (spec|brief|ticket))\b", re.I)
+TASK_NUM_RE = re.compile(r"#\d{2,}")
+TEST_FILE_RE = re.compile(r"test|spec|__tests__", re.I)
+JS_VAR_NAME_RE = re.compile(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=")
+JS_FUNC_NAME_RE = re.compile(
+    r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|"
+    r"\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(|"
+    r"^\s*([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{")
+# The third alternative above also matches `if (...) {`, `for (...) {` and
+# friends; those are control flow, not function names.
+JS_KEYWORDS = {"if", "for", "while", "switch", "catch", "do", "else", "return",
+               "function", "with", "await", "typeof", "delete"}
+JS_CATCH_RE = re.compile(r"catch\s*(\([^\)]*\))?\s*\{\s*(//[^\r\n]*)?\s*\}")
+TYPE_ESCAPE_RE = re.compile(r"as any|as unknown as|@ts-ignore|@ts-expect-error")
+PY_TYPE_ESCAPE_RE = re.compile(r"# type: ignore|typing\.cast\(Any")
+TEST_WEAKEN_ADD_RE = re.compile(
+    r"@pytest\.mark\.skip|@pytest\.mark\.xfail|\bxit\(|\bxdescribe\(|"
+    r"describe\.skip\(|it\.skip\(|@Disabled|#\[ignore\]|"
+    r"pytest\.raises\(Exception|assertRaises\(Exception|\.toThrow\(\)")
+COMMENTED_ASSERT_RE = re.compile(r"#\s*assert|//\s*expect\(")
+ASSERT_RE = re.compile(r"assert|expect\(")
+
+def add(findings, path, lineno, fid, msg, src="stdlib"):
+    findings.append((path, lineno, fid, msg, src))
+
+def is_trivial_except_body(body):
+    if len(body) != 1:
+        return False
+    stmt = body[0]
+    if isinstance(stmt, (ast.Pass, ast.Continue)):
+        return True
+    if isinstance(stmt, ast.Return):
+        return stmt.value is None or isinstance(stmt.value, ast.Constant)
+    return (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)
+            and stmt.value.value is Ellipsis)
+
+def js_catch_findings(path, added):
+    """NS-03 for JS/TS: empty/comment-only catch, may span two added lines."""
+    findings = []
+    if not path.endswith((".js", ".jsx", ".ts", ".tsx")):
+        return findings
+    blob, offsets = slop_diff.added_text_blob(added)
+    for m in JS_CATCH_RE.finditer(blob):
+        add(findings, path, slop_diff.line_for_pos(offsets, m.start()), "NS-03", "empty catch block")
+    return findings
+
+def assigned_names(node):
+    """Target names of a plain `x = ...` / `x: T = ...`; tuples and attributes skipped."""
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    return [t.id for t in targets if isinstance(t, ast.Name)]
+
+def _py_generic_name_findings(findings, path, node, is_test_file):
+    """NS-06 for one added Python node: def, class, or plain assignment.
+    A test's act-phase local (`result = fn()`) is not long-lived: not scanned."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if node.name in GENERIC_NAMES:
+            add(findings, path, node.lineno, "NS-06", f"generic function name '{node.name}'")
+    elif isinstance(node, ast.ClassDef):
+        if node.name.lower() in GENERIC_NAMES:
+            add(findings, path, node.lineno, "NS-06", f"generic class name '{node.name}'")
+    elif isinstance(node, (ast.Assign, ast.AnnAssign)) and not is_test_file:
+        for name in assigned_names(node):
+            if name in GENERIC_NAMES:
+                add(findings, path, node.lineno, "NS-06", f"generic variable name '{name}'")
+
+def py_findings(path, added, src, is_test_file):
+    """NS-03/05/06 for Python, via ast over the added def/except lines."""
+    findings = []
+    added_linenos = set(added)
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return findings, None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler) and node.lineno in added_linenos:
+            broad = node.type is None or (isinstance(node.type, ast.Name)
+                                           and node.type.id in ("Exception", "BaseException"))
+            if broad and is_trivial_except_body(node.body):
+                add(findings, path, node.lineno, "NS-03", "broad except swallows error")
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.lineno in added_linenos:
+            doc = ast.get_docstring(node)
+            body = node.body[1:] if doc else node.body
+            span = ((body[-1].end_lineno or body[-1].lineno) - body[0].lineno + 1) if body else 0
+            if doc and span <= 3 and doc.count("\n") >= 2:
+                add(findings, path, node.lineno, "NS-05",
+                    f"{span}-line body but {doc.count(chr(10)) + 1}-line docstring")
+        # ast.walk yields nodes without a lineno (Module, expression contexts)
+        if getattr(node, "lineno", None) in added_linenos:
+            _py_generic_name_findings(findings, path, node, is_test_file)
+    return findings, tree
+
+def _hedge_finding(findings, path, lineno, text, stripped):
+    if HEDGE_RE.search(text) and not TICKET_RE.search(text):
+        add(findings, path, lineno, "NS-04", f"hedge/placeholder phrase: {stripped!r}")
+
+def _comment_findings(findings, path, lineno, stripped):
+    if not stripped.startswith(("#", "//", "/*", "*")):
+        return
+    if EMOJI_RE.search(stripped):
+        add(findings, path, lineno, "NS-07", "emoji in comment")
+    if TASK_REF_RE.search(stripped) or (
+            TASK_NUM_RE.search(stripped) and "http" not in stripped.lower()):
+        add(findings, path, lineno, "NS-15", f"task-reference comment: {stripped!r}")
+
+def _debug_print_findings(findings, path, lineno, text, is_py, is_js_like, debug_ok):
+    if is_py and re.match(r"^\s*print\(", text) and not debug_ok:
+        add(findings, path, lineno, "NS-08", "debug print() left in code")
+    if is_js_like and re.search(r"console\.(log|debug)\(", text):
+        add(findings, path, lineno, "NS-08", "debug console.log left in code")
+
+def _type_escape_finding(findings, path, lineno, text, stripped, escape_re):
+    if not escape_re:
+        return
+    for pm in escape_re.finditer(text):
+        if not text[pm.end():].strip().rstrip(";,)}]").strip():
+            add(findings, path, lineno, "NS-09",
+                f"type escape without explanation: {stripped!r}")
+
+def _compat_shim_finding(findings, path, lineno, text, stripped):
+    if COMPAT_RE.search(text):
+        add(findings, path, lineno, "NS-10", f"compat shim left in new code: {stripped!r}")
+
+def _test_weakening_findings(findings, path, lineno, text, stripped, is_test_file):
+    if not is_test_file:
+        return
+    if TEST_WEAKEN_ADD_RE.search(text):
+        add(findings, path, lineno, "NS-13", f"test weakened/disabled: {stripped!r}")
+    if COMMENTED_ASSERT_RE.search(text):
+        add(findings, path, lineno, "NS-13", f"commented-out assertion: {stripped!r}")
+
+def scan_added_lines(path, added, is_test_file):
+    """NS-04/07/08/09/10/13/15: regex checks needing one added line."""
+    findings = []
+    is_ts, is_py = path.endswith(TS_EXTS), path.endswith(".py")
+    is_js_like = path.endswith((".js", ".jsx", ".ts", ".tsx"))
+    debug_ok = any(p in ("cli", "__main__", "scripts") for p in re.split(r"[/\\]", path))
+    escape_re = TYPE_ESCAPE_RE if is_ts else (PY_TYPE_ESCAPE_RE if is_py else None)
+    for lineno, text in added.items():
+        stripped = text.strip()
+        _hedge_finding(findings, path, lineno, text, stripped)
+        _comment_findings(findings, path, lineno, stripped)
+        _debug_print_findings(findings, path, lineno, text, is_py, is_js_like, debug_ok)
+        _type_escape_finding(findings, path, lineno, text, stripped, escape_re)
+        _compat_shim_finding(findings, path, lineno, text, stripped)
+        _test_weakening_findings(findings, path, lineno, text, stripped, is_test_file)
+    return findings
+
+def hunk_test_weakening(path, hunks):
+    """NS-13: an assertion removed from a hunk with no assertion added back."""
+    findings = []
+    for hunk in hunks:
+        removed = [ln for ln, t in hunk.removed if ASSERT_RE.search(t)]
+        if removed and not any(ASSERT_RE.search(t) for _, t in hunk.added):
+            add(findings, path, removed[0], "NS-13",
+                "assertion removed without replacement in same hunk")
+    return findings
+
+def js_func_name(text):
+    """The function name a JS/TS line defines, or None (keywords excluded)."""
+    m = JS_FUNC_NAME_RE.search(text)
+    if not m:
+        return None
+    name = next(g for g in m.groups() if g)
+    return None if name in JS_KEYWORDS else name
+
+def js_generic_and_dup_names(path, added):
+    """(lineno, name) for new JS/TS defs; feeds NS-06 and NS-16."""
+    out = []
+    for lineno, text in added.items():
+        name = js_func_name(text)
+        if name:
+            out.append((lineno, name))
+    return out
+
+def js_generic_name_findings(path, added, is_test_file):
+    findings = []
+    if path.endswith((".js", ".jsx", ".ts", ".tsx")):
+        for lineno, name in js_generic_and_dup_names(path, added):
+            if name in GENERIC_NAMES:
+                add(findings, path, lineno, "NS-06", f"generic function name '{name}'")
+        for lineno, text in added.items():
+            # a `const x = (…) =>` line is already reported above as a function
+            if js_func_name(text):
+                continue
+            m = JS_VAR_NAME_RE.search(text)
+            if m and m.group(1) in GENERIC_NAMES and not is_test_file:
+                add(findings, path, lineno, "NS-06", f"generic variable name '{m.group(1)}'")
+    return findings
+
+def all_repo_function_names(root, head):
+    names = []
+    for path in slop_diff.repo_ls(root, head):
+        if not path.endswith(CODE_EXTS):
+            continue
+        src = slop_diff.show_file(root, head, path)
+        if src is None:
+            continue
+        if path.endswith(".py"):
+            try:
+                tree = ast.parse(src)
+            except SyntaxError:
+                continue
+            names.extend((n.name, path) for n in ast.walk(tree)
+                         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)))
+        else:
+            for line in src.splitlines():
+                name = js_func_name(line)
+                if name:
+                    names.append((name, path))
+    return names
+
+def _skip_ns16_name(name):
+    """Dunders and short names are near-universal, not a reinvention signal."""
+    return len(name) < 4 or (name.startswith("__") and name.endswith("__"))
+
+def name_similarity_findings(path, new_names, existing_names):
+    """NS-16: spelling-similarity only — never a semantic-reinvention detector."""
+    findings = []
+    for lineno, name in new_names:
+        if _skip_ns16_name(name):
+            continue
+        best = None
+        for other, opath in existing_names:
+            if _skip_ns16_name(other):
+                continue
+            if other == name and opath == path:
+                continue
+            ratio = difflib.SequenceMatcher(None, name, other).ratio()
+            if ratio >= 0.85 and (best is None or ratio > best[0]):
+                best = (ratio, other, opath)
+        if best:
+            ratio, other, opath = best
+            add(findings, path, lineno, "NS-16",
+                f"'{name}' is {ratio:.0%} similar to existing '{other}' ({opath}) "
+                "— spelling similarity only")
+    return findings
+
+def collect_stdlib_findings(root, head, added_by_file, hunks_by_file, all_lines=False):
+    """Run every stdlib (non-tool) check over each changed file's added lines."""
+    findings, py_trees, existing_ns03 = [], {}, set()
+    for path, added in added_by_file.items():
+        if not added:
+            continue
+        is_test_file = bool(TEST_FILE_RE.search(path))
+        if path.endswith(".py"):
+            src = slop_diff.read_file_direct(path) if all_lines else slop_diff.show_file(root, head, path)
+            if src is not None:
+                py_finds, tree = py_findings(path, added, src, is_test_file)
+                py_trees[path] = tree
+                findings.extend(py_finds)
+                existing_ns03.update((f[0], f[1]) for f in py_finds if f[2] == "NS-03")
+        else:
+            findings.extend(js_catch_findings(path, added))
+            findings.extend(js_generic_name_findings(path, added, is_test_file))
+        findings.extend(scan_added_lines(path, added, is_test_file))
+        if is_test_file and path in hunks_by_file:
+            findings.extend(hunk_test_weakening(path, hunks_by_file[path]))
+    return findings, py_trees, existing_ns03
+
+def collect_name_similarity(root, head, added_by_file, py_trees):
+    findings = []
+    existing_names = all_repo_function_names(root, head)
+    for path, added in added_by_file.items():
+        if not added:
+            continue
+        tree = py_trees.get(path)
+        if tree is not None:
+            new_names = [(n.lineno, n.name) for n in ast.walk(tree)
+                         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                         and n.lineno in added]
+        elif path.endswith(".py"):
+            new_names = []
+        else:
+            new_names = js_generic_and_dup_names(path, added)
+        findings.extend(name_similarity_findings(path, new_names, existing_names))
+    return findings
+
+def run_tool_checks(root, base, added_by_file, existing_ns03, all_lines=False):
+    """NS-01/11/12: lazily imports slop_tools.py (never, under --no-tools)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import slop_tools
+    py_files = [p for p in added_by_file if p.endswith(".py") and added_by_file[p]]
+    ts_files = [p for p in added_by_file if p.endswith(TS_EXTS) and added_by_file[p]]
+    findings = []
+    findings.extend(slop_tools.run_ruff(root, base, py_files, added_by_file, existing_ns03))
+    findings.extend(slop_tools.run_tsc(root, base, ts_files, added_by_file))
+    findings.extend(slop_tools.run_jscpd(root, base, list(added_by_file), added_by_file, all_lines))
+    return findings
+
+def emit(findings, file_status, added_by_file, args):
+    findings.sort(key=lambda f: (f[0], f[1]))
+    files_added = sum(1 for s in file_status.values() if s == "added")
+    files_modified = sum(1 for s in file_status.values() if s == "modified")
+    lines_added = sum(len(a) for a in added_by_file.values())
+    if args.json:
+        out = {
+            "findings": [{"id": fid, "file": p, "line": ln, "msg": msg, "source": src}
+                          for p, ln, fid, msg, src in findings],
+            "summary": {"total": len(findings), "by_id": {}, "files_added": files_added,
+                        "files_modified": files_modified, "lines_added": lines_added},
+        }
+        for f in findings:
+            out["summary"]["by_id"][f[2]] = out["summary"]["by_id"].get(f[2], 0) + 1
+        print(jsonlib.dumps(out))
+    else:
+        for p, ln, fid, msg, _src in findings:
+            print(f"{p}:{ln}: {fid} {msg}")
+        advisory = sum(1 for f in findings if f[2] == "NS-16")
+        sys.stderr.write(f"slop-check: {len(findings)} findings ({advisory} advisory)\n")
+    return 1 if args.strict and findings else 0
+
+def main():
+    ap = argparse.ArgumentParser(prog="slop-check")
+    ap.add_argument("--base")
+    ap.add_argument("--head", default="HEAD")
+    ap.add_argument("--json", action="store_true")
+    ap.add_argument("--strict", action="store_true")
+    ap.add_argument("--no-tools", action="store_true")
+    ap.add_argument("--files", nargs="+", default=None)
+    ap.add_argument("--all-lines", action="store_true")
+    args = ap.parse_args()
+
+    if args.all_lines:
+        root, base = os.getcwd(), None
+        added_by_file, hunks_by_file, file_status = slop_diff.build_all_lines(args.files or [])
+    else:
+        root = slop_diff.repo_root()
+        base = args.base or slop_diff.default_base(root)
+        pathspecs = args.files or [f"*{e}" for e in CODE_EXTS]
+        added_by_file, hunks_by_file, file_status = slop_diff.parse_diff(root, base, args.head, pathspecs)
+    added_by_file = {p: a for p, a in added_by_file.items() if p.endswith(CODE_EXTS)}
+
+    findings, py_trees, existing_ns03 = collect_stdlib_findings(
+        root, args.head, added_by_file, hunks_by_file, args.all_lines)
+    findings.extend(collect_name_similarity(root, args.head, added_by_file, py_trees))
+    if not args.no_tools:
+        findings.extend(run_tool_checks(root, base, added_by_file, existing_ns03, args.all_lines))
+
+    return emit(findings, file_status, added_by_file, args)
+
+if __name__ == "__main__":
+    sys.exit(main())

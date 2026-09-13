@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:18:48.101Z",
+  "durationSeconds": 19,
+  "costUsd": 0.34454320000000005,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "quality-reuse-existing-helper",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "quality-reuse-existing-helper",
+      "dir": "evals/quality-reuse-existing-helper",
+      "source": "case_yaml",
+      "promptMarkdown": "Add a `url_path` property to Post in src/posts.py that returns '/posts/<slug-of-title>'. Keep the change minimal.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "uses-existing-slugify",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "slugify",
+            "flags": "",
+            "match": "contains"
+          }
+        },
+        {
+          "name": "no-new-regex",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "src/posts.py"
+            },
+            "pattern": "re\\.sub|import re",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.11703960000000001,
+            "judgeCostUsd": 0,
+            "durationSeconds": 17,
+            "startedAt": "2026-09-13T01:18:48.120Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-uLoJMC/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-new-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.108796,
+            "judgeCostUsd": 0,
+            "durationSeconds": 15,
+            "startedAt": "2026-09-13T01:18:48.120Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-SjsHa4/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-new-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.1187076,
+            "judgeCostUsd": 0,
+            "durationSeconds": 19,
+            "startedAt": "2026-09-13T01:18:48.120Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-7G1Lvm/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "uses-existing-slugify",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched slugify",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-new-regex",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}

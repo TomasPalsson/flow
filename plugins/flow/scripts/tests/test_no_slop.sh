@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+# test_no_slop.sh — tests for the no-slop skill's scripts/slop-check
+# against the planted-slop fixture in fixtures/no-slop/make-fixture.sh
+# (B1 to B5). t_noslop_* prefix.
+# Sourced by run.sh; HERE (this dir) and SCAN_DIR (its parent, "scripts/")
+# are already set.
+
+SKILL_DIR="$SCAN_DIR/../skills/no-slop"
+SLOP_CHECK="$SKILL_DIR/scripts/slop-check"
+MAKE_FIXTURE="$HERE/fixtures/no-slop/make-fixture.sh"
+
+PLANTED_IDS='NS-03 NS-04 NS-05 NS-06 NS-08 NS-09 NS-10 NS-13 NS-15'
+
+# run_slop <repo-dir> [slop-check args...] — runs slop-check with its cwd
+# set to <repo-dir>, since it resolves the repo root via `git rev-parse`.
+run_slop() {
+	local repo=$1
+	shift
+	run_cmd bash -c 'cd "$1" || exit 1; shift; exec "$@"' _ "$repo" "$SLOP_CHECK" "$@"
+}
+
+# ---------------------------------------------------------------------------
+# B1 — make-fixture.sh builds a "base"-tagged clean commit and a HEAD
+# commit planted on top of it.
+# ---------------------------------------------------------------------------
+
+t_noslop_fixture_builds_base_tag() {
+	d=$(tmp_dir)
+	run_cmd bash "$MAKE_FIXTURE" "$d"
+	assert_rc 0 "make-fixture.sh exits 0"
+	run_cmd bash -c 'cd "$1" && git rev-parse --verify --quiet base' _ "$d"
+	assert_rc 0 "make-fixture.sh tags the clean commit 'base'"
+}
+
+t_noslop_fixture_base_is_clean() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --head base --no-tools
+	assert_eq "$OUT" "" "slop-check finds nothing between base and itself"
+}
+
+# ---------------------------------------------------------------------------
+# B2 — slop-check --no-tools reports every planted NS id on the fixture's
+# HEAD commit.
+# ---------------------------------------------------------------------------
+
+t_noslop_reports_planted_findings() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "slop-check exits 0 (advisory) despite findings"
+	for id in $PLANTED_IDS; do
+		assert_contains "$OUT" "$id" "slop-check reports $id on the fixture"
+	done
+}
+
+# NS-06 covers the whole rubric row, not just function names: the fixture's
+# generic class (`Manager`) and generic variables (`data`, `item`) must be
+# reported too, in Python and in JS/TS.
+t_noslop_reports_generic_variable_and_class_names() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_contains "$OUT" "generic class name 'Manager'" \
+		"NS-06 reports a generic Python class name"
+	assert_contains "$OUT" "generic variable name 'data'" \
+		"NS-06 reports a generic Python variable name"
+	assert_contains "$OUT" "generic variable name 'item'" \
+		"NS-06 reports a generic JS/TS variable name"
+}
+
+# NS-06 does not judge lifetime (rubric.md): a test's act-phase local
+# (`result = fn()`) is not scanned, in Python or JS; the same name in a
+# source file still is.
+t_noslop_skips_act_phase_locals_in_test_files() {
+	d=$(tmp_dir)
+	mkdir -p "$d/tests" "$d/src"
+	printf 'def test_add():\n    result = 1 + 2\n    assert result == 3\n' >"$d/tests/test_calc.py"
+	printf 'test("x", () => {\n  const result = add(1, 2);\n  expect(result).toBe(3);\n});\n' >"$d/tests/calc.test.js"
+	printf 'def add(a, b):\n    result = a + b\n    return result\n' >"$d/src/calc.py"
+	run_slop "$d" --all-lines --no-tools --files tests/test_calc.py tests/calc.test.js src/calc.py
+	assert_not_contains "$OUT" "tests/test_calc.py" \
+		"NS-06 skips a plain assignment in a Python test file"
+	assert_not_contains "$OUT" "tests/calc.test.js" \
+		"NS-06 skips a const in a JS test file"
+	assert_contains "$OUT" "src/calc.py:2: NS-06 generic variable name 'result'" \
+		"NS-06 still reports the same name in a source file"
+}
+
+# NS-16 (name similarity) runs without external tools, as SKILL.md says:
+# the fixture's duplicated src/text_helpers.py::slugify must be reported
+# under --no-tools.
+# NS-13 is a test-files-only detector (rubric.md: "slop-check (test files
+# only)"). A non-test file with an assertion removed and none added back in
+# the same hunk (src/guard.py in the fixture) must not trip it, even though
+# the hunk-level shape matches the test-file case.
+t_noslop_ns13_only_in_test_files() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	test_ns13=$(printf '%s\n' "$OUT" | grep "tests/test_text.py" | grep -c "NS-13")
+	guard_ns13=$(printf '%s\n' "$OUT" | grep "src/guard.py" | grep -c "NS-13")
+	if [ "$test_ns13" -gt 0 ]; then _pass "NS-13 still fires on the test file"; else
+		_fail "NS-13 still fires on the test file" "no NS-13 line for tests/test_text.py in: $OUT"
+	fi
+	assert_eq "$guard_ns13" "0" "NS-13 does not fire on the non-test file src/guard.py"
+}
+
+t_noslop_reports_name_similarity_without_tools() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "slop-check exits 0 with a name-similarity finding"
+	assert_contains "$OUT" "NS-16" "slop-check reports NS-16 under --no-tools"
+	assert_contains "$OUT" "src/text_helpers.py" "NS-16 names the duplicated helper's file"
+}
+
+# NS-16 must never compare dunder names or names under 4 characters: every
+# class's __init__ is "100% similar" to every other class's __init__, which
+# is noise, not a reinvention signal.
+t_noslop_ns16_ignores_dunder_names() {
+	local d
+	d=$(tmp_dir)
+	git -C "$d" init -q
+	git -C "$d" config user.email "fixture@example.com"
+	git -C "$d" config user.name "no-slop fixture"
+	git -C "$d" config commit.gpgsign false
+	mkdir -p "$d/src"
+	cat >"$d/src/alpha.py" <<'EOF'
+class Alpha:
+    def __init__(self, value):
+        self.value = value
+EOF
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "base: Alpha with __init__"
+	git -C "$d" tag base
+	cat >"$d/src/beta.py" <<'EOF'
+class Beta:
+    def __init__(self, value):
+        self.value = value
+EOF
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "head: Beta with __init__"
+
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "slop-check exits 0 on the dunder fixture"
+	dunder_hits=$(printf '%s\n' "$OUT" | grep -c "NS-16.*__init__" || true)
+	assert_eq "$dunder_hits" "0" "NS-16 does not fire on identical __init__ across files"
+}
+
+# ---------------------------------------------------------------------------
+# B3 — advisory by default; --strict turns findings into a non-zero exit.
+# ---------------------------------------------------------------------------
+
+t_noslop_strict_exits_nonzero_on_findings() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools --strict
+	assert_rc 1 "slop-check --strict exits 1 when findings exist"
+}
+
+t_noslop_strict_exits_zero_with_no_findings() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --head base --no-tools --strict
+	assert_rc 0 "slop-check --strict exits 0 when there are no findings"
+}
+
+# ---------------------------------------------------------------------------
+# --all-lines: a postcheck.sh's usage — a directory with no git at all,
+# still reports findings by treating every line of the listed files as
+# added; --base/--head are ignored and no repo lookup happens.
+# ---------------------------------------------------------------------------
+
+# plain_copy_of_planted_text_py <dest-dir> — extracts the fixture's planted
+# src/text.py (NS-03/04/05/06 all present in that one file) into <dest-dir>,
+# which is never `git init`-ed.
+plain_copy_of_planted_text_py() {
+	local fixture_repo=$1 plain=$2
+	mkdir -p "$plain/src"
+	git -C "$fixture_repo" show HEAD:src/text.py >"$plain/src/text.py"
+}
+
+t_noslop_all_lines_reports_findings_with_no_git() {
+	local d plain
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	plain=$(tmp_dir)
+	plain_copy_of_planted_text_py "$d" "$plain"
+	run_cmd bash -c 'cd "$1" && exec "$2" --all-lines --files src/text.py --no-tools' \
+		_ "$plain" "$SLOP_CHECK"
+	assert_rc 0 "slop-check --all-lines exits 0 (advisory) with no git repo present"
+	for id in NS-03 NS-04 NS-05 NS-06; do
+		assert_contains "$OUT" "$id" "slop-check --all-lines reports $id with no git"
+	done
+}
+
+t_noslop_all_lines_strict_exits_nonzero() {
+	local d plain
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	plain=$(tmp_dir)
+	plain_copy_of_planted_text_py "$d" "$plain"
+	run_cmd bash -c 'cd "$1" && exec "$2" --all-lines --files src/text.py --no-tools --strict' \
+		_ "$plain" "$SLOP_CHECK"
+	assert_rc 1 "slop-check --all-lines --strict exits 1 on a plain dir with findings"
+}
+
+# ---------------------------------------------------------------------------
+# B4 — --json emits a findings array plus a summary.
+# ---------------------------------------------------------------------------
+
+t_noslop_json_output_shape() {
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools --json
+	assert_rc 0 "slop-check --json exits 0"
+	assert_contains "$OUT" '"findings"' "slop-check --json emits a findings array"
+	assert_contains "$OUT" '"summary"' "slop-check --json emits a summary"
+	assert_contains "$OUT" '"NS-03"' "slop-check --json findings carry NS ids"
+}
+
+# ---------------------------------------------------------------------------
+# B5 — the skill package itself is present and well-formed.
+# ---------------------------------------------------------------------------
+
+t_noslop_skill_files_present() {
+	assert_file_exists "$SKILL_DIR/SKILL.md" "SKILL.md exists"
+	assert_file_exists "$SKILL_DIR/references/rubric.md" "references/rubric.md exists"
+	assert_file_exists "$SKILL_DIR/references/developer-block.md" "references/developer-block.md exists"
+	assert_file_exists "$SKILL_DIR/references/adversary-lens.md" "references/adversary-lens.md exists"
+	assert_file_exists "$SKILL_DIR/references/evidence.md" "references/evidence.md exists"
+	assert_file_exists "$SKILL_DIR/references/integration-seams.md" "references/integration-seams.md exists"
+	assert_file_exists "$SKILL_DIR/scripts/slop_tools.py" "scripts/slop_tools.py exists"
+}
+
+t_noslop_skill_md_frontmatter() {
+	run_cmd head -5 "$SKILL_DIR/SKILL.md"
+	assert_contains "$OUT" "name: no-slop" "SKILL.md declares name: no-slop"
+}
+
+t_noslop_slop_check_is_executable() {
+	if [ -x "$SLOP_CHECK" ]; then
+		_pass "scripts/slop-check is executable"
+	else
+		_fail "scripts/slop-check is executable" "not executable: $SLOP_CHECK"
+	fi
+}

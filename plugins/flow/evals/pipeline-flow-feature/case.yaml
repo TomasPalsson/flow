@@ -1,0 +1,50 @@
+schema_version: "1.1"
+name: pipeline-flow-feature
+description: An unattended /flow:spec then /flow:next pipeline must spec, plan, implement, and reuse the existing slugify/format_cents helpers instead of reinventing them
+tags: [pipeline, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add a url_path property (/posts/<slug of title>) and a price_label property (formatted from price_cents) to Post. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
+  max_turns: 150
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 2400
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: bounded|Route: oneshot|Route: dispatch"
+    match: contains
+  - name: posts-test-written
+    type: file_exists
+    path: "tests/test_posts.py"
+  - name: posts-test-covers-url-path
+    type: regex
+    target: { source: file, path: tests/test_posts.py }
+    pattern: "url_path"
+    match: contains
+  - name: posts-test-covers-price-label
+    type: regex
+    target: { source: file, path: tests/test_posts.py }
+    pattern: "price_label"
+    match: contains
+  - name: reuses-slugify
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "slugify"
+    match: contains
+  - name: reuses-format-cents
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "format_cents"
+    match: contains
+  - name: no-reimplemented-slug-regex
+    type: regex
+    target: { source: file, path: src/posts.py }
+    pattern: "re\\.sub|import re"
+    match: not_contains
+  - name: posts-property-quality
+    type: llm
+    focus: { source: file, path: src/posts.py }
+    criteria: "PASS if src/posts.py adds only url_path and price_label (built on the existing slugify/format_cents helpers), carries no added guard on a value the constructor already guarantees (title, body, price_cents), any new comment states a WHY rather than restating the code, and nothing beyond the two requested properties changed (no unrelated rename, reformat, or extra feature). FAIL otherwise."

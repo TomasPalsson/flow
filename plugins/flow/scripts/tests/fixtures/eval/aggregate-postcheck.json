@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 12,
+  "costUsd": 0.5,
+  "partial": false,
+  "aggregates": { "overallScore": 1.0, "meanDelta": 0.5 },
+  "cases": [
+    {
+      "name": "quality-reuse-slugify",
+      "aggregates": { "score": 1.0, "delta": 0.5 },
+      "arms": {
+        "with": [
+          { "tracePath": "__QUALITY_TRACE__", "score": 1, "passed": true, "graders": [] }
+        ]
+      }
+    },
+    {
+      "name": "routing-fix-skill",
+      "aggregates": { "score": 1.0, "delta": 0.5 },
+      "arms": {
+        "with": [
+          { "tracePath": "__ROUTING_TRACE__", "score": 1, "passed": true, "graders": [] }
+        ]
+      }
+    }
+  ]
+}

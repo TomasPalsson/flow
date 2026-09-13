@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 340,
+  "costUsd": 4.82,
+  "partial": false,
+  "aggregates": { "overallScore": 0.95, "meanDelta": 0.42 },
+  "cases": [
+    { "name": "quality-reuse-slugify", "aggregates": { "score": 1.0, "delta": 0.6 } },
+    { "name": "routing-fix-skill", "aggregates": { "score": 0.9, "delta": 0.24 } }
+  ]
+}

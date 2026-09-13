@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T05:11:53.361Z",
+  "durationSeconds": 79,
+  "costUsd": 0.9202118000000001,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "none",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "caseFilter": "invariant-reproduce-first",
+    "threshold": 1,
+    "concurrency": 3,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "invariant-reproduce-first",
+      "dir": "evals/invariant-reproduce-first",
+      "source": "case_yaml",
+      "promptMarkdown": "/flow:fix --unattended Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 20,
+      "graders": [
+        {
+          "name": "reproduces-before-editing",
+          "type": "tool_order",
+          "weight": 1,
+          "config": {
+            "before": {
+              "tool": "Bash"
+            },
+            "after": {
+              "tool": "Edit"
+            }
+          }
+        },
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_math_ops.py"
+            },
+            "pattern": "@unittest\\.skip|skipTest",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 15,
+            "costUsd": 0.327058,
+            "judgeCostUsd": 0,
+            "durationSeconds": 74,
+            "startedAt": "2026-09-13T05:11:53.379Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-yDzeU8/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@9",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 14,
+            "costUsd": 0.28405700000000006,
+            "judgeCostUsd": 0,
+            "durationSeconds": 56,
+            "startedAt": "2026-09-13T05:11:53.379Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-58rv0c/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@9",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 17,
+            "costUsd": 0.3090968,
+            "judgeCostUsd": 0,
+            "durationSeconds": 79,
+            "startedAt": "2026-09-13T05:11:53.379Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-2BFO6L/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@10",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}

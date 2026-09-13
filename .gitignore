@@ -6,3 +6,6 @@ plugins/harness
 .specs/.next-call-count
 .claude/worktrees/
 .claude/*.local.md
+**/evals/results/
+.claude/loop/*
+!.claude/loop/LEARNINGS.md

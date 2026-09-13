@@ -1,7 +1,7 @@
 ---
 name: fix
-description: "Fix a specific broken behaviour permanently: reproduce it as a failing test, find the root cause, change the smallest thing that makes the test pass, and open a PR. Use when something stopped working, crashes, returns the wrong value, or throws an error the user pasted — including \"why am I getting X\", \"this is broken\", \"it worked yesterday\", and issue references (`/flow:fix 143`, `#143`, `I-003`). Not for a defect you only want recorded (that is /flow:issue), not for feature work (/flow:spec then /flow:next), not for grinding an already-diagnosed task list (/flow:loop), and not for open-ended exploration or profiling with no fix target."
-argument-hint: "<what's broken, or an issue ref: 143 / #143 / I-003> [--loop] [--max-iterations N]"
+description: "Fix a specific broken behaviour permanently: reproduce it as a failing test, find the root cause, change the smallest thing that makes the test pass, and open a PR. Use when something stopped working, crashes, returns the wrong value, or throws an error the user pasted — including \"why am I getting X\", \"this is broken\", \"it worked yesterday\", \"returns X but should return Y\", \"off by one\", \"the test is red\", \"can you sort it out\" — even when the fix looks like a one-line edit, reproduce first — and issue references (`/flow:fix 143`, `#143`, `I-003`). Not for a defect you only want recorded (that is /flow:issue), not for feature work (/flow:spec then /flow:next), not for grinding an already-diagnosed task list (/flow:loop), and not for open-ended exploration or profiling with no fix target."
+argument-hint: "<what's broken, or an issue ref: 143 / #143 / I-003> [--unattended] [--loop] [--max-iterations N]"
 ---
 
 # /flow:fix — reproduce first, then fix
@@ -44,6 +44,8 @@ Write the test yourself and prove it is a real oracle — **both sides**:
 1. It **fails on HEAD**, and fails with the *reported* error — assert the specific wrong value or message from the bug report, not merely that something raises. A test that is red for the wrong reason (import error, over-broad `assertRaises`) becomes a verifier that can never go green.
 2. Commit it red: `test(<scope>): failing test for <bug>`, and **paste the failing run's output and exit code into the commit body**. On the direct path nothing external checks that this test was ever red — `flow loop init`'s green-verifier refusal only guards the `--loop` path — so this observation *is* the contract. This commit is the reproduction; nothing downstream may edit it.
 
+**NEVER edit a non-test file before the failing test has been RUN and its red output is in front of you** — writing the test is not reproducing; the run is. The first tool call that touches source is an edit only after a Bash call has executed the test and shown the reported failure.
+
 **Prose steps are input to writing that test, never a substitute for it.** If you genuinely cannot write one, say so and stop: *"I can't turn this into a failing test. Here's what I tried: [list]. What am I missing about the environment, steps or input?"*
 
 **Intermittent** (not red on every run): instrument first, collect 3+ failure samples, establish a failure rate over 10+ runs, and make the test assert the *rate*, not a single run. Record the rate in the diagnosis. Do not fix blind.
@@ -60,7 +62,7 @@ Dispatch **one** `explorer` agent (`model: haiku`, as its own definition pins), 
 
 ## 3. The gate — the one time this run stops for you
 
-Say, in this shape, and stop:
+Say, in this shape, and stop — unless the request already answered this gate (an explicit "go" for the approval gate, or `--unattended`), in which case say it and continue straight into §4:
 
 > **Root cause:** `session.ts:88` refreshes the token before checking expiry. **Fix:** move the expiry check above the refresh. **Risk:** low — `refresh.ts:40` is the only sibling caller and it is unaffected. This run will stop for you **1 more time** (the PR — backend, so verification is just the suite). Go?
 
