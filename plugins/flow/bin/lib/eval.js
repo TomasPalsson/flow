@@ -52,7 +52,7 @@ function printHelp() {
       '',
       '  A selected case with postcheck.sh runs it in the kept workspace after grading (adds --keep-temp); a failed post-check fails the run.',
       '',
-      'Exit codes: 0 ok, 1 fail (or claude missing / an unparsable result), 2 partial\n',
+      'Exit codes: 0 ok, 1 fail (or claude missing / an unparsable result), 2 partial (cost ceiling, or any run that ended in an error such as a session limit)\n',
     ].join('\n')
   );
 }
@@ -146,6 +146,20 @@ function anyCaseNeedsBash(toplevel, selectedTags) {
 // eval/postcheck.js's runAllPostchecks, default {}) adds a `post: {pass,
 // total}` field to any tag bucket that owns a case with post-check results
 // (FR-021).
+// runErrors(cases) -> the `error` string of every run (either arm) that
+// ended with one. The CLI still grades such a run's empty workspace and
+// exits 1, which would ledger a session-limit outage as a plain fail.
+function runErrors(cases) {
+  const out = [];
+  for (const c of cases || []) {
+    const arms = c.arms || {};
+    for (const arm of ['with', 'without']) {
+      for (const r of arms[arm] || []) if (r && r.error) out.push(String(r.error));
+    }
+  }
+  return out;
+}
+
 function tagRollup(toplevel, cases, selectedTags, postResults) {
   postResults = postResults || {};
   const buckets = {};
@@ -285,8 +299,9 @@ function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, 
     .filter((n) => typeof n === 'number');
   const meanDelta = report.aggregates && typeof report.aggregates.meanDelta === 'number' ? report.aggregates.meanDelta : avg(allDeltas);
   const costUsd = typeof report.costUsd === 'number' ? report.costUsd : (report.aggregates && report.aggregates.costUsd) || 0;
-  const partial = mappedExit === EXIT.partial || report.partial === true;
-  const reason = report.reason || '';
+  const erroredRuns = runErrors(report.cases);
+  const partial = mappedExit === EXIT.partial || report.partial === true || erroredRuns.length > 0;
+  const reason = report.reason || (erroredRuns.length ? `${erroredRuns.length} runs errored: ${erroredRuns[0]}` : '');
 
   appendLedger(
     toplevel,

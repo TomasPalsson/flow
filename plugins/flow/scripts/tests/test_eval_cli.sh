@@ -287,6 +287,22 @@ t_eval_partial_run_marks_ledger_and_exits_2() {
 	assert_contains "$(cat "$ledger")" '"partial":true' "t_eval_partial_run_marks_ledger_and_exits_2 ledger-partial-true"
 }
 
+# A run whose `error` is set (the CLI hit a session limit mid-suite) is
+# graded on an empty workspace and exits 1; flow eval must call that
+# partial, name the error, and never ledger it as a plain fail.
+t_eval_errored_runs_are_partial_not_fail() {
+	local proj home fakebin ledger
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-errored-runs CLAUDE_STUB_EXIT=1 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	assert_rc 2 "t_eval_errored_runs_are_partial_not_fail rc"
+	assert_contains "$OUT" "runs errored: exit 1: You've hit your session limit" "t_eval_errored_runs_are_partial_not_fail reason"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"partial":true' "t_eval_errored_runs_are_partial_not_fail ledger-partial-true"
+}
+
 t_eval_cli_fail_exit_passthrough() {
 	local proj home fakebin
 	proj=$(ev_repo)
