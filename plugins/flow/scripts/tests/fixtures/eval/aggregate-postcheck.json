@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "durationSeconds": 12,
+  "costUsd": 0.5,
+  "partial": false,
+  "aggregates": { "overallScore": 1.0, "meanDelta": 0.5 },
+  "cases": [
+    {
+      "name": "quality-reuse-slugify",
+      "aggregates": { "score": 1.0, "delta": 0.5 },
+      "runs": [ { "tracePath": "__QUALITY_TRACE__" } ]
+    },
+    {
+      "name": "routing-fix-skill",
+      "aggregates": { "score": 1.0, "delta": 0.5 },
+      "runs": [ { "tracePath": "__ROUTING_TRACE__" } ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { TAGS, EVALS_ROOT, LEDGER_PATH, CONFIG_KEYS, DEFAULT_MODELS, ledgerLine } = require('./eval/contract.js');
 const { resolveOnPath, headSha } = require('./loop/util.js');
+const postcheck = require('./eval/postcheck.js');
 
 const { stdout, stderr } = process;
 
@@ -48,6 +49,8 @@ function printHelp() {
       '  -j, --concurrency N  parallel runs, 1..8 (forwarded to the CLI as --concurrency)',
       '  --history            print the last 10 ledger lines as a table, then exit',
       '  --dry-run            print the `claude plugin eval` argv and exit, without spawning',
+      '',
+      '  A selected case with postcheck.sh runs it in the kept workspace after grading (adds --keep-temp); a failed post-check fails the run.',
       '',
       'Exit codes: 0 ok, 1 fail (or claude missing / an unparsable result), 2 partial\n',
     ].join('\n')
@@ -136,27 +139,38 @@ function anyCaseNeedsBash(toplevel, selectedTags) {
   });
 }
 
-// tagRollup(toplevel, cases, selectedTags) — per-tag {score, delta, cases}
-// from cases[].aggregates grouped by the tags each case dir's case.yaml
-// declares (code-design.md section 5 GREEN description). Tags with no
-// matching case are left out of the result, not zeroed.
-function tagRollup(toplevel, cases, selectedTags) {
+// tagRollup(toplevel, cases, selectedTags, postResults) — per-tag {score,
+// delta, cases} from cases[].aggregates grouped by the tags each case dir's
+// case.yaml declares (code-design.md section 5 GREEN description). Tags with
+// no matching case are left out of the result, not zeroed. postResults (from
+// eval/postcheck.js's runAllPostchecks, default {}) adds a `post: {pass,
+// total}` field to any tag bucket that owns a case with post-check results
+// (FR-021).
+function tagRollup(toplevel, cases, selectedTags, postResults) {
+  postResults = postResults || {};
   const buckets = {};
-  for (const tag of selectedTags) buckets[tag] = { scores: [], deltas: [] };
+  for (const tag of selectedTags) buckets[tag] = { scores: [], deltas: [], postPass: 0, postTotal: 0, hasPost: false };
   for (const c of cases || []) {
     const tags = caseTags(toplevel, c.name);
     const agg = c.aggregates || {};
+    const post = postResults[c.name];
     for (const tag of tags) {
       if (!buckets[tag]) continue;
       if (typeof agg.score === 'number') buckets[tag].scores.push(agg.score);
       if (typeof agg.delta === 'number') buckets[tag].deltas.push(agg.delta);
+      if (post) {
+        buckets[tag].hasPost = true;
+        buckets[tag].postPass += post.pass;
+        buckets[tag].postTotal += post.total;
+      }
     }
   }
   const out = {};
   for (const tag of selectedTags) {
-    const { scores, deltas } = buckets[tag];
+    const { scores, deltas, hasPost, postPass, postTotal } = buckets[tag];
     if (!scores.length) continue;
     out[tag] = { score: avg(scores), delta: avg(deltas), cases: scores.length };
+    if (hasPost) out[tag].post = { pass: postPass, total: postTotal };
   }
   return out;
 }
@@ -204,7 +218,7 @@ function printHistory(toplevel) {
   return EXIT.ok;
 }
 
-function printSummary(rollup, meanDelta, costUsd, partial, reason) {
+function printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines) {
   stdout.write('flow eval summary\n');
   for (const tag of Object.keys(rollup)) {
     const r = rollup[tag];
@@ -212,6 +226,7 @@ function printSummary(rollup, meanDelta, costUsd, partial, reason) {
   }
   stdout.write(`  meanDelta: ${meanDelta}  cost: $${costUsd}\n`);
   if (partial) stdout.write(`  partial: ${reason || 'yes'}\n`);
+  for (const line of postcheckLines || []) stdout.write(`  ${line}\n`);
 }
 
 function appendLedger(toplevel, line) {
@@ -220,7 +235,7 @@ function appendLedger(toplevel, line) {
   fs.appendFileSync(p, `${line}\n`);
 }
 
-function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash) {
+function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash, keepTemp) {
   const allowTools = allowBash ? ['Write', 'Edit', 'Bash'] : ['Write', 'Edit'];
   const argv = [
     'plugin', 'eval', 'plugins/flow',
@@ -235,14 +250,16 @@ function buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBa
   if (args.ablation !== null) argv.push('--ablation', String(args.ablation));
   if (args.concurrency !== null) argv.push('--concurrency', String(args.concurrency));
   for (const tag of selectedTags) argv.push('--tag', tag);
+  if (keepTemp) argv.push('--keep-temp');
   argv.push('--json', jsonPath);
   return argv;
 }
 
 // executeAndReport — spawn the child CLI, parse its --json output, roll it
-// up per tag, append the ledger line, print the summary, and return the
-// mapped exit code. Split out of run() so each stays under the size guard.
-function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, judgeModel, jsonPath) {
+// up per tag, run any selected case's postcheck.sh in its kept workspace
+// (FR-021), append the ledger line, print the summary, and return the mapped
+// exit code. Split out of run() so each stays under the size guard.
+function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, judgeModel, jsonPath, postcheckNames, env) {
   const spawnResult = spawnSync(claudePath, childArgv, { cwd: toplevel, encoding: 'utf8' });
 
   let raw = null;
@@ -261,8 +278,13 @@ function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, 
   } catch { /* best effort */ }
 
   const data = parsed.data;
+  const postResults = postcheckNames.length
+    ? postcheck.runAllPostchecks(toplevel, EVALS_ROOT, path.join(toplevel, 'plugins', 'flow'), env, data.cases, postcheckNames)
+    : {};
+  const postFailed = postcheck.anyFailed(postResults);
+  const postcheckLines = postcheck.formatSummaryLines(postResults);
   const mappedExit = mapExit(spawnResult.status);
-  const rollup = tagRollup(toplevel, data.cases, selectedTags);
+  const rollup = tagRollup(toplevel, data.cases, selectedTags, postResults);
   const allDeltas = (data.cases || [])
     .map((c) => c.aggregates && c.aggregates.delta)
     .filter((n) => typeof n === 'number');
@@ -285,8 +307,46 @@ function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, 
       reason,
     })
   );
-  printSummary(rollup, meanDelta, costUsd, partial, reason);
-  return partial ? EXIT.partial : mappedExit;
+  printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines);
+  if (partial) return EXIT.partial;
+  if (postFailed && mappedExit === EXIT.ok) return EXIT.fail;
+  return mappedExit;
+}
+
+// selectTagsForRun(args, env) -> {selectedTags, socatPath, notice}. Narrows
+// args.tags (default: every tag) by dropping `needs-bash` when socat is
+// unavailable; `notice`, when set, is the one-line stdout message for that
+// narrowing. FLOW_EVAL_TEST_HIDE_SOCAT is test_eval_cli.sh's hook to force
+// "socat absent" regardless of the host's real PATH.
+function selectTagsForRun(args, env) {
+  let selectedTags = args.tags.length ? args.tags : TAGS.slice();
+  const socatPath = env.FLOW_EVAL_TEST_HIDE_SOCAT ? null : resolveOnPath('socat', env);
+  let notice = null;
+  if (selectedTags.includes('needs-bash') && !socatPath) {
+    notice = 'flow eval: socat not found — skipping needs-bash cases (notice, not a failure)';
+    selectedTags = selectedTags.filter((t) => t !== 'needs-bash');
+  }
+  return { selectedTags, socatPath, notice };
+}
+
+// dispatchEval — builds the child argv (adding --keep-temp when a selected
+// case has a postcheck.sh), then either prints it (--dry-run) or spawns and
+// reports. Split out of run() so each stays under the size guard.
+function dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env) {
+  const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
+  const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;
+  const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}.json`);
+  const allowBash = Boolean(socatPath) && anyCaseNeedsBash(toplevel, selectedTags);
+  const postcheckNames = postcheck.postcheckCaseNames(toplevel, EVALS_ROOT, caseTags, selectedTags);
+  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash, postcheckNames.length > 0);
+
+  if (args.dryRun) {
+    stdout.write(`claude ${childArgv.join(' ')}\n`);
+    if (postcheckNames.length) stdout.write(`postcheck cases: ${postcheckNames.join(', ')}\n`);
+    return EXIT.ok;
+  }
+
+  return executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, judgeModel, jsonPath, postcheckNames, env);
 }
 
 function run(argv, cwd, env) {
@@ -316,17 +376,8 @@ function run(argv, cwd, env) {
     return EXIT.fail;
   }
 
-  let selectedTags = args.tags.length ? args.tags : TAGS.slice();
-  // FLOW_EVAL_TEST_HIDE_SOCAT — test-only hook (test_eval_cli.sh) so "socat
-  // absent" is deterministic regardless of what a given machine's real PATH
-  // contains (e.g. /bin -> /usr/bin usrmerge systems ship a system socat
-  // alongside binaries the CLI needs, like git or node, so tests can't just
-  // pare PATH down to exclude socat).
-  const socatPath = env.FLOW_EVAL_TEST_HIDE_SOCAT ? null : resolveOnPath('socat', env);
-  if (selectedTags.includes('needs-bash') && !socatPath) {
-    stdout.write('flow eval: socat not found — skipping needs-bash cases (notice, not a failure)\n');
-    selectedTags = selectedTags.filter((t) => t !== 'needs-bash');
-  }
+  const { selectedTags, socatPath, notice } = selectTagsForRun(args, env);
+  if (notice) stdout.write(`${notice}\n`);
   // An empty selection must refuse, never spawn: buildChildArgv would emit no
   // `--tag` at all, and the CLI's documented default for "no --tag" is *every*
   // tag — so `--tag needs-bash` alone on a socat-less box would silently run
@@ -336,18 +387,7 @@ function run(argv, cwd, env) {
     return EXIT.fail;
   }
 
-  const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
-  const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;
-  const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}.json`);
-  const allowBash = Boolean(socatPath) && anyCaseNeedsBash(toplevel, selectedTags);
-  const childArgv = buildChildArgv(model, judgeModel, args, jsonPath, selectedTags, allowBash);
-
-  if (args.dryRun) {
-    stdout.write(`claude ${childArgv.join(' ')}\n`);
-    return EXIT.ok;
-  }
-
-  return executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, judgeModel, jsonPath);
+  return dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env);
 }
 
 module.exports = { run, parseAggregate, readConfigKey, EXIT };

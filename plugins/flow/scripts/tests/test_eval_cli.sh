@@ -516,6 +516,139 @@ t_eval_ledger_append_under_evals_is_not_tamper() {
 # directory ("a caller can protect data dirs the isTestPath heuristic never
 # matches"): removing a file inside it must flag, even though the directory
 # itself still exists.
+# ev_repo_with_postcheck — ev_repo (quality-reuse-slugify tagged quality,
+# routing-fix-skill tagged routing) plus an executable postcheck.sh in each:
+# quality-reuse-slugify's echoes ok and exits 0; routing-fix-skill's echoes a
+# failure message and exits 1. Matches aggregate-postcheck.json's case names.
+ev_repo_with_postcheck() {
+	local d
+	d=$(ev_repo)
+	printf '#!/usr/bin/env bash\nset -u\necho "quality postcheck ok"\nexit 0\n' \
+		>"$d/plugins/flow/evals/quality-reuse-slugify/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/quality-reuse-slugify/postcheck.sh"
+	printf '#!/usr/bin/env bash\nset -u\necho "postcheck failed: marker missing"\nexit 1\n' \
+		>"$d/plugins/flow/evals/routing-fix-skill/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/routing-fix-skill/postcheck.sh"
+	printf '%s' "$d"
+}
+
+# ev_repo_with_passing_postchecks — like ev_repo_with_postcheck but both
+# cases' postcheck.sh exit 0, for the all-pass/exit-0 case.
+ev_repo_with_passing_postchecks() {
+	local d
+	d=$(ev_repo)
+	printf '#!/usr/bin/env bash\nset -u\necho ok\nexit 0\n' \
+		>"$d/plugins/flow/evals/quality-reuse-slugify/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/quality-reuse-slugify/postcheck.sh"
+	printf '#!/usr/bin/env bash\nset -u\necho ok\nexit 0\n' \
+		>"$d/plugins/flow/evals/routing-fix-skill/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/routing-fix-skill/postcheck.sh"
+	printf '%s' "$d"
+}
+
+# ev_kept_dir — a temp dir shaped like `claude plugin eval --keep-temp`
+# leaves behind: <kept>/out/trace.jsonl and <kept>/home/cwd/marker.txt, then
+# mode 000 on the kept dir itself (the contract's "sealed" case: chmod 700
+# must happen before the workspace is usable).
+ev_kept_dir() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/out" "$d/home/cwd"
+	printf '{"ok":true}\n' >"$d/out/trace.jsonl"
+	printf 'marker\n' >"$d/home/cwd/marker.txt"
+	chmod 000 "$d"
+	printf '%s' "$d"
+}
+
+# ev_postcheck_aggregate <quality-trace-path> <routing-trace-path> <out-file>
+# — aggregate-postcheck.json's template with its two placeholders replaced by
+# real (temp, per-test) tracePath values; sed, not -i, keeps run.sh's
+# portability grep happy (this dir is excluded from that scan, but the
+# habit isn't).
+ev_postcheck_aggregate() {
+	sed -e "s#__QUALITY_TRACE__#$1#" -e "s#__ROUTING_TRACE__#$2#" \
+		"$EV_FIXTURES/aggregate-postcheck.json" >"$3"
+}
+
+# t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases — FR-021: a
+# selection with a postcheck.sh case gets --keep-temp in the child argv, and
+# --dry-run names which cases have one.
+t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases() {
+	local proj home
+	proj=$(ev_repo_with_postcheck)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality --tag routing
+	assert_rc 0 "t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases rc"
+	assert_contains "$OUT" "--keep-temp" "t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases keep-temp"
+	assert_contains "$OUT" "postcheck cases:" "t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases label"
+	assert_contains "$OUT" "quality-reuse-slugify" "t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases quality-case-named"
+	assert_contains "$OUT" "routing-fix-skill" "t_eval_dry_run_adds_keep_temp_and_lists_postcheck_cases routing-case-named"
+}
+
+# t_eval_dry_run_no_keep_temp_when_no_case_has_postcheck — the flip side: a
+# repo with no postcheck.sh anywhere gets no --keep-temp and no listing.
+t_eval_dry_run_no_keep_temp_when_no_case_has_postcheck() {
+	local proj home
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality
+	assert_rc 0 "t_eval_dry_run_no_keep_temp_when_no_case_has_postcheck rc"
+	assert_not_contains "$OUT" "--keep-temp" "t_eval_dry_run_no_keep_temp_when_no_case_has_postcheck no-keep-temp"
+	assert_not_contains "$OUT" "postcheck cases:" "t_eval_dry_run_no_keep_temp_when_no_case_has_postcheck no-label"
+}
+
+# t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit — the main
+# FR-021 path: one case's postcheck.sh passes, the other's fails. The ledger's
+# per-tag rollup gets `post`, the summary names both cases and tails the
+# failing one's output, the run exits 1 (like a grader failure) even though
+# the stub `claude` itself exited 0, and both kept dirs are removed after.
+t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit() {
+	local proj home fakebin quality_kept routing_kept agg ledger
+	proj=$(ev_repo_with_postcheck)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	quality_kept=$(ev_kept_dir)
+	routing_kept=$(ev_kept_dir)
+	agg="$(tmp_dir)/aggregate-postcheck.json"
+	ev_postcheck_aggregate "$quality_kept/out/trace.jsonl" "$routing_kept/out/trace.jsonl" "$agg"
+
+	CLAUDE_STUB_JSON="$agg" CLAUDE_STUB_EXIT=0 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality --tag routing
+	assert_rc 1 "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit rc"
+	assert_contains "$OUT" "postcheck quality-reuse-slugify 1/1" "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-summary"
+	assert_contains "$OUT" "postcheck routing-fix-skill 0/1" "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-summary"
+	assert_contains "$OUT" "postcheck failed: marker missing" "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit failure-tail"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"quality":{"score":1,"delta":0.5,"cases":1,"post":{"pass":1,"total":1}}' \
+		"t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-quality-post"
+	assert_contains "$(cat "$ledger")" '"routing":{"score":1,"delta":0.5,"cases":1,"post":{"pass":0,"total":1}}' \
+		"t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-routing-post"
+	assert_file_missing "$quality_kept" "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-kept-removed"
+	assert_file_missing "$routing_kept" "t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-kept-removed"
+}
+
+# t_eval_postcheck_all_pass_keeps_ok_exit — when every selected case's
+# postcheck.sh passes, the run's own exit code is unaffected (still ok here,
+# since the stub claude also exits 0).
+t_eval_postcheck_all_pass_keeps_ok_exit() {
+	local proj home fakebin quality_kept routing_kept agg
+	proj=$(ev_repo_with_passing_postchecks)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	quality_kept=$(ev_kept_dir)
+	routing_kept=$(ev_kept_dir)
+	agg="$(tmp_dir)/aggregate-postcheck.json"
+	ev_postcheck_aggregate "$quality_kept/out/trace.jsonl" "$routing_kept/out/trace.jsonl" "$agg"
+
+	CLAUDE_STUB_JSON="$agg" CLAUDE_STUB_EXIT=0 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality --tag routing
+	assert_rc 0 "t_eval_postcheck_all_pass_keeps_ok_exit rc"
+	assert_contains "$OUT" "postcheck quality-reuse-slugify 1/1" "t_eval_postcheck_all_pass_keeps_ok_exit quality-summary"
+	assert_contains "$OUT" "postcheck routing-fix-skill 1/1" "t_eval_postcheck_all_pass_keeps_ok_exit routing-summary"
+	assert_file_missing "$quality_kept" "t_eval_postcheck_all_pass_keeps_ok_exit quality-kept-removed"
+	assert_file_missing "$routing_kept" "t_eval_postcheck_all_pass_keeps_ok_exit routing-kept-removed"
+}
+
 t_eval_test_files_flag_protects_directory_contents() {
 	local proj home
 	proj=$(tmp_repo)
