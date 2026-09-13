@@ -34,7 +34,7 @@ Write stubs with correct signatures that throw the language's not-implemented er
 Commit `test(<scope>): add failing tests for <ID> [RED]` — tests and stubs only; verify with `git diff --name-only HEAD~1..HEAD`.
 
 ### GREEN
-Before your first edit, state the search receipt: `searched: <terms>; found: <path:line | nothing>`. Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Run `test-changed`, falling back to the brief's `Test:` command.
+Before your first edit, state the search receipt from the brief's "Before you write" block (helper packages listed, the idiom grepped, the verb and two synonyms): `searched: <terms and dirs>; found: <path:line | nothing>`. Implementation files only. Write the **minimum** code that makes the failing tests pass — no behavior beyond what RED specifies. Do not modify any test file; if a test needs changing, STOP and return to RED. Run `test-changed`, falling back to the brief's `Test:` command.
 **HARD GATE**: exit zero → proceed. Non-zero after 3 attempts → STOP and report. Confirm the diff shows no test files.
 Commit `feat(<scope>): implement <ID>`.
 
