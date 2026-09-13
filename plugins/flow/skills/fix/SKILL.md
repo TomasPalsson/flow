@@ -1,7 +1,7 @@
 ---
 name: fix
 description: "Fix a specific broken behaviour permanently: reproduce it as a failing test, find the root cause, change the smallest thing that makes the test pass, and open a PR. Use when something stopped working, crashes, returns the wrong value, or throws an error the user pasted — including \"why am I getting X\", \"this is broken\", \"it worked yesterday\", \"returns X but should return Y\", \"off by one\", \"the test is red\", \"can you sort it out\" — even when the fix looks like a one-line edit, reproduce first — and issue references (`/flow:fix 143`, `#143`, `I-003`). Not for a defect you only want recorded (that is /flow:issue), not for feature work (/flow:spec then /flow:next), not for grinding an already-diagnosed task list (/flow:loop), and not for open-ended exploration or profiling with no fix target."
-argument-hint: "<what's broken, or an issue ref: 143 / #143 / I-003> [--loop] [--max-iterations N]"
+argument-hint: "<what's broken, or an issue ref: 143 / #143 / I-003> [--unattended] [--loop] [--max-iterations N]"
 ---
 
 # /flow:fix — reproduce first, then fix
