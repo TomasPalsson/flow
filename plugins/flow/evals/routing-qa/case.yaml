@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "Is this branch ready to ship? Can you QA it - check for bugs, run quality checks, and see if it's ready to ship?"
   max_turns: 8
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Skill]
-timeout_seconds: 900
 graders:
   - name: fires-qa
     type: tool_used
