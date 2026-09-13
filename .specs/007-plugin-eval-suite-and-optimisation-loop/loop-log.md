@@ -27,3 +27,16 @@ Rulings from the three loop runs: v2 iteration 1 (bounded = exactly one task) ke
 Traces of the four "deterministic" failures showed case defects, not skill defects (fixtures without a stdlib test runner; graders demanding `TASKS.md` from the `bounded` route; the prep judge penalising prep's own file-first design; a loop fixture with nothing runnable). After fixing the cases: `pipeline-flow-feature` 0.96, `pipeline-prep-first-turn` 1.00, `invariant-reproduce-first` 0.78 (order wrong once; `fix` fired once), `routing-loop` 0.67 (fires 1 of 3).
 
 Certification with those four replaced: **pipeline 0.97 · invariant 0.93 · routing 0.89 · quality 0.86**. Remaining below 0.9: `quality-reuse-existing-helper` (a bare prompt no skill claims; out of the pipeline by design) and routing for `loop`/`next`/`qa` at 2 of 3.
+
+## Routing trial 2026-09-13 (f8e3e44: `next` and `qa` descriptions push routing "even when it looks small enough to do directly"), 3 runs each, $2.23
+
+`routing-next` 1.00 (was 0.67), `routing-qa` 0.83 (was 0.67), `routing-loop` 1.00 (unchanged text; its earlier 0.67 was variance). Kept.
+
+## Final certification table (3 runs per case, plugin arm, Bash on)
+
+| tier | mean | below 0.9 |
+|---|---|---|
+| pipeline | 0.97 | none |
+| routing | 0.97 | `routing-qa` 0.83, `routing-fix` 0.89 |
+| invariant | 0.93 | `invariant-reproduce-first` 0.78 |
+| quality | 0.86 | `quality-reuse-existing-helper` 0.17 — a bare "add a property" prompt that no skill claims; the pipeline's discipline only reaches code through `/flow:spec` or `/flow:next` briefs. Ruling: kept as a known gap, not chased with a trigger that would route every one-line edit through a spec. |
