@@ -83,6 +83,11 @@ function slugify(goal) {
   return s || 'loop';
 }
 
+function gitToplevel(cwd, env) {
+  const r = spawnSync('git', ['-C', cwd, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', env });
+  return r.status === 0 ? (r.stdout || '').trim() : null;
+}
+
 function headSha(toplevel) {
   const r = spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
   return r.status === 0 ? (r.stdout || '').trim() : '';
@@ -100,6 +105,6 @@ function humanDuration(startIso, endIso) {
 }
 
 module.exports = {
-  toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, headSha, gitDirty, humanDuration, fmtCost,
+  toInt, toFloat, sha1, lastNLines, firstNLines, capReason, slugify, gitToplevel, headSha, gitDirty, humanDuration, fmtCost,
   ensureLoopGitignore, resolveOnPath,
 };

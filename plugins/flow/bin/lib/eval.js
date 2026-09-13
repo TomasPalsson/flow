@@ -12,7 +12,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { TAGS, EVALS_ROOT, LEDGER_PATH, CONFIG_KEYS, DEFAULT_MODELS, ledgerLine } = require('./eval/contract.js');
-const { resolveOnPath, headSha } = require('./loop/util.js');
+const { resolveOnPath, headSha, gitToplevel } = require('./loop/util.js');
 const postcheck = require('./eval/postcheck.js');
 
 const { stdout, stderr } = process;
@@ -191,11 +191,6 @@ function parseArgs(argv) {
   return out;
 }
 
-function gitToplevel(cwd, env) {
-  const r = spawnSync('git', ['-C', cwd, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', env });
-  return r.status === 0 ? (r.stdout || '').trim() : null;
-}
-
 function printHistory(toplevel) {
   let raw;
   try {
@@ -277,21 +272,21 @@ function executeAndReport(claudePath, childArgv, toplevel, selectedTags, model, 
     fs.unlinkSync(jsonPath);
   } catch { /* best effort */ }
 
-  const data = parsed.data;
+  const report = parsed.data;
   const postResults = postcheckNames.length
-    ? postcheck.runAllPostchecks(toplevel, EVALS_ROOT, path.join(toplevel, 'plugins', 'flow'), env, data.cases, postcheckNames)
+    ? postcheck.runAllPostchecks(toplevel, EVALS_ROOT, path.join(toplevel, 'plugins', 'flow'), env, report.cases, postcheckNames)
     : {};
   const postFailed = postcheck.anyFailed(postResults);
   const postcheckLines = postcheck.formatSummaryLines(postResults);
   const mappedExit = mapExit(spawnResult.status);
-  const rollup = tagRollup(toplevel, data.cases, selectedTags, postResults);
-  const allDeltas = (data.cases || [])
+  const rollup = tagRollup(toplevel, report.cases, selectedTags, postResults);
+  const allDeltas = (report.cases || [])
     .map((c) => c.aggregates && c.aggregates.delta)
     .filter((n) => typeof n === 'number');
-  const meanDelta = data.aggregates && typeof data.aggregates.meanDelta === 'number' ? data.aggregates.meanDelta : avg(allDeltas);
-  const costUsd = typeof data.costUsd === 'number' ? data.costUsd : (data.aggregates && data.aggregates.costUsd) || 0;
-  const partial = mappedExit === EXIT.partial || data.partial === true;
-  const reason = data.reason || '';
+  const meanDelta = report.aggregates && typeof report.aggregates.meanDelta === 'number' ? report.aggregates.meanDelta : avg(allDeltas);
+  const costUsd = typeof report.costUsd === 'number' ? report.costUsd : (report.aggregates && report.aggregates.costUsd) || 0;
+  const partial = mappedExit === EXIT.partial || report.partial === true;
+  const reason = report.reason || '';
 
   appendLedger(
     toplevel,

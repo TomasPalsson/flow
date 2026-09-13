@@ -125,11 +125,11 @@ function runPostchecksForCase(toplevel, evalsRoot, pluginRoot, env, caseName, ru
       EVAL_TRACE: tracePath,
       EVAL_PLUGIN_ROOT: pluginRoot,
     });
-    const result = runOnePostcheck(scriptPath, resolved.dir, childEnv);
-    if (result.pass) {
+    const outcome = runOnePostcheck(scriptPath, resolved.dir, childEnv);
+    if (outcome.pass) {
       pass += 1;
     } else {
-      failures.push({ run: runIndex, reason: result.tail || 'postcheck exited non-zero' });
+      failures.push({ run: runIndex, reason: outcome.tail || 'postcheck exited non-zero' });
     }
     try {
       fs.rmSync(keptDir, { recursive: true, force: true });
