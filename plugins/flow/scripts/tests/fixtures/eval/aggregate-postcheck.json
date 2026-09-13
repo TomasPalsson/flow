@@ -8,12 +8,20 @@
     {
       "name": "quality-reuse-slugify",
       "aggregates": { "score": 1.0, "delta": 0.5 },
-      "runs": [ { "tracePath": "__QUALITY_TRACE__" } ]
+      "arms": {
+        "with": [
+          { "tracePath": "__QUALITY_TRACE__", "score": 1, "passed": true, "graders": [] }
+        ]
+      }
     },
     {
       "name": "routing-fix-skill",
       "aggregates": { "score": 1.0, "delta": 0.5 },
-      "runs": [ { "tracePath": "__ROUTING_TRACE__" } ]
+      "arms": {
+        "with": [
+          { "tracePath": "__ROUTING_TRACE__", "score": 1, "passed": true, "graders": [] }
+        ]
+      }
     }
   ]
 }

@@ -140,7 +140,11 @@ function runPostchecksForCase(toplevel, evalsRoot, pluginRoot, env, caseName, ru
 
 // runAllPostchecks(toplevel, evalsRoot, pluginRoot, env, cases, names) ->
 // {<caseName>: {pass, total, failures}} for every name in `names` that has a
-// matching entry in `cases` (the parsed aggregate's `cases` array).
+// matching entry in `cases` (the parsed aggregate's `cases` array). Per-run
+// data lives at `cases[].arms.with[]` in the CLI's real schemaVersion 1
+// output (post-checks only ever run against the plugin arm, never
+// `arms.without`, the baseline); `c.runs` is a fallback for a shape that
+// isn't the real one.
 function runAllPostchecks(toplevel, evalsRoot, pluginRoot, env, cases, names) {
   const byName = {};
   for (const c of cases || []) byName[c.name] = c;
@@ -148,7 +152,8 @@ function runAllPostchecks(toplevel, evalsRoot, pluginRoot, env, cases, names) {
   for (const name of names) {
     const c = byName[name];
     if (!c) continue;
-    out[name] = runPostchecksForCase(toplevel, evalsRoot, pluginRoot, env, name, c.runs);
+    const runs = (c.arms && c.arms.with) || c.runs;
+    out[name] = runPostchecksForCase(toplevel, evalsRoot, pluginRoot, env, name, runs);
   }
   return out;
 }

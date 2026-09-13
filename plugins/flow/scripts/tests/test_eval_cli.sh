@@ -649,6 +649,60 @@ t_eval_postcheck_all_pass_keeps_ok_exit() {
 	assert_file_missing "$routing_kept" "t_eval_postcheck_all_pass_keeps_ok_exit routing-kept-removed"
 }
 
+# ev_repo_cert_trimmed — a tmp_repo shaped like two real cases from a real
+# `claude plugin eval --json` capture (scratchpad/cert-3runs.json,
+# schemaVersion 1): invariant-never-weaken (tagged invariant) and
+# pipeline-fix-bug (tagged pipeline), each given an executable postcheck.sh
+# that passes. Matches aggregate-cert-trimmed.json's case names.
+ev_repo_cert_trimmed() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/plugins/flow/evals/invariant-never-weaken" "$d/plugins/flow/evals/pipeline-fix-bug"
+	printf 'tags: [invariant]\n' >"$d/plugins/flow/evals/invariant-never-weaken/case.yaml"
+	printf 'tags: [pipeline]\n' >"$d/plugins/flow/evals/pipeline-fix-bug/case.yaml"
+	printf '#!/usr/bin/env bash\nset -u\necho ok\nexit 0\n' \
+		>"$d/plugins/flow/evals/invariant-never-weaken/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/invariant-never-weaken/postcheck.sh"
+	printf '#!/usr/bin/env bash\nset -u\necho ok\nexit 0\n' \
+		>"$d/plugins/flow/evals/pipeline-fix-bug/postcheck.sh"
+	chmod +x "$d/plugins/flow/evals/pipeline-fix-bug/postcheck.sh"
+	printf '%s' "$d"
+}
+
+# ev_cert_trimmed_aggregate <invariant-trace-path> <pipeline-trace-path>
+# <out-file> — aggregate-cert-trimmed.json's placeholders replaced by real
+# (temp, per-test) tracePath values.
+ev_cert_trimmed_aggregate() {
+	sed -e "s#__INVARIANT_TRACE__#$1#" -e "s#__PIPELINE_TRACE__#$2#" \
+		"$EV_FIXTURES/aggregate-cert-trimmed.json" >"$3"
+}
+
+# t_eval_postcheck_reads_real_arms_with_shape — the real `claude plugin eval
+# --json` schema keeps per-run data at cases[].arms.with[], not
+# cases[].runs[]; feed a trimmed copy of a real capture through the stub and
+# confirm the post counts still show up (regression for the runs[] vs
+# arms.with[] mistake).
+t_eval_postcheck_reads_real_arms_with_shape() {
+	local proj home fakebin invariant_kept pipeline_kept agg ledger
+	proj=$(ev_repo_cert_trimmed)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	invariant_kept=$(ev_kept_dir)
+	pipeline_kept=$(ev_kept_dir)
+	agg="$(tmp_dir)/aggregate-cert-trimmed.json"
+	ev_cert_trimmed_aggregate "$invariant_kept/out/trace.jsonl" "$pipeline_kept/out/trace.jsonl" "$agg"
+
+	CLAUDE_STUB_JSON="$agg" CLAUDE_STUB_EXIT=0 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag invariant --tag pipeline
+	assert_rc 0 "t_eval_postcheck_reads_real_arms_with_shape rc"
+	assert_contains "$OUT" "postcheck invariant-never-weaken 1/1" "t_eval_postcheck_reads_real_arms_with_shape invariant-summary"
+	assert_contains "$OUT" "postcheck pipeline-fix-bug 1/1" "t_eval_postcheck_reads_real_arms_with_shape pipeline-summary"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"post":{"pass":1,"total":1}' "t_eval_postcheck_reads_real_arms_with_shape ledger-post-count"
+	assert_file_missing "$invariant_kept" "t_eval_postcheck_reads_real_arms_with_shape invariant-kept-removed"
+	assert_file_missing "$pipeline_kept" "t_eval_postcheck_reads_real_arms_with_shape pipeline-kept-removed"
+}
+
 t_eval_test_files_flag_protects_directory_contents() {
 	local proj home
 	proj=$(tmp_repo)
