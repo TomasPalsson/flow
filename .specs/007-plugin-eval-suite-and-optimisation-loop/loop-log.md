@@ -87,4 +87,5 @@ All four tiers ≥ 0.9. Remaining per-case misses: `quality-reuse-existing-helpe
 | quality (12) | 1.00 | 36/36 | +0.13 | `cert-qri-v1.1-3runs-2026-09-13.json` |
 | pipeline (6) | 0.99 | 9/9 | — | `invalid-session-limit-2026-09-13.json` (pipeline ran clean before the limit) |
 | invariant (3) | 1.00 | — | +0.17 | `partial-weekly-limit-2026-09-13.json` (ran clean before the limit) |
-| routing (10) | 0.87 (global grant) | — | +0.37 | `cert-ri-v1.1b-3runs-2026-09-13.json`; per-case runner certification owed |
+| routing (10) | 0.93 | — | +0.40 | `cert-routing-percase-2026-09-13.json` |
+- Routing certified on the per-case runner (09:15–09:48 UTC, `cert-routing-percase-2026-09-13.json`, $13.50, both arms): **0.93**, delta +0.40 (without the plugin every routing case scores 0.5 or 0). Eight cases 3/3 — audit, loop, next, qa, scrutinize-idea, spec, both must-not-fire cases — plus routing-fix [1, 1, 0] (the no-tools judge) and routing-prep [1, 0, 1] (the interview judge). Ruling: no further edit has evidence behind it; those two are judge-shaped single-run misses inside the known band.
