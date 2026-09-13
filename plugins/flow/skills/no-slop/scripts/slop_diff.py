@@ -7,8 +7,13 @@ import subprocess
 import sys
 
 
-def sh(args, cwd=None):
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+def sh(args, cwd=None, timeout=None):
+    """Run a subprocess. timeout=None (the default) waits indefinitely, same
+    as omitting subprocess.run's own timeout argument; slop_tools.py's tool
+    adapters pass an explicit timeout so a hung external tool can't hang
+    slop-check.
+    """
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
 def repo_root():

@@ -11,13 +11,13 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from slop_diff import sh
+
 TIMEOUT = 60
-
-
-def sh(args, cwd=None):
-    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=TIMEOUT)
 
 
 def norm_path(p, root):
@@ -37,7 +37,7 @@ def run_ruff(toplevel, base, files, added, existing_ns03=frozenset()):
     select = "F401,F841,ARG001,C901,PLR0913,PLR0915,BLE001,E722"
     try:
         r = sh(["uvx", "ruff", "check", "--select", select, "--output-format", "json"] + files,
-               cwd=toplevel)
+               cwd=toplevel, timeout=TIMEOUT)
         if not r.stdout.strip():
             return findings
         items = json.loads(r.stdout)
@@ -68,7 +68,7 @@ def run_tsc(toplevel, base, files, added):
     try:
         r = sh(["npx", "--yes", "-p", "typescript", "tsc", "--noUnusedLocals",
                 "--noUnusedParameters", "--noEmit", "--target", "es2021",
-                "--module", "esnext"] + files, cwd=toplevel)
+                "--module", "esnext"] + files, cwd=toplevel, timeout=TIMEOUT)
     except Exception:
         return findings
     pattern = re.compile(r"^(.+?)\((\d+),(\d+)\): error (TS\d+): (.+)$")
@@ -101,11 +101,12 @@ def run_jscpd(toplevel, base, files, added, all_lines=False):
     report_path = os.path.join(tmpdir, "jscpd-report.json")
     try:
         if all_lines:
-            sh(base_cmd, cwd=toplevel)
+            sh(base_cmd, cwd=toplevel, timeout=TIMEOUT)
         else:
-            r = sh(base_cmd + ["--baseline-from-ref", base, "--fail-on-new-clones"], cwd=toplevel)
+            r = sh(base_cmd + ["--baseline-from-ref", base, "--fail-on-new-clones"],
+                   cwd=toplevel, timeout=TIMEOUT)
             if not os.path.exists(report_path) and "baseline-from-ref" in (r.stderr or "").lower():
-                sh(base_cmd, cwd=toplevel)  # fallback: installed jscpd rejects the flag
+                sh(base_cmd, cwd=toplevel, timeout=TIMEOUT)  # fallback: installed jscpd rejects the flag
         if not os.path.exists(report_path):
             return findings
         with open(report_path) as f:
