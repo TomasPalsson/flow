@@ -326,3 +326,17 @@ The suite goes green because the graders are lenient (llm graders passing everyt
 | research-notes.md | spike facts, hooks, loop verifier API, CLI seams, skill inventory | `.specs/007-plugin-eval-suite-and-optimisation-loop/research-notes.md` |
 | plugin-evals docs | case schema, graders, sandbox, JSON | https://code.claude.com/docs/en/plugin-evals.md |
 | skill-forge workspace | slop research and the forged skill | `.skill-forge/no-slop/` |
+
+## Amendment 2026-09-13 — v1.1: code quality is the target
+
+User priority restated: the code the pipeline writes must be of the highest quality. The v1 quality tier saturated (five of six cases pass without the plugin) and the score never saw the mechanical tells. Scope added, same ACs style:
+
+| ID | Actor | Requirement | Priority |
+|----|-------|-------------|----------|
+| FR-020 | Suite | MUST add six `quality-hard-*` cases whose traps are realistic: a reusable helper two directories away under another name, a guard on a typed value, a mode flag temptation on a shared function, a test that must bite, style drift against a neighbouring file, cleanup temptation on a one-line fix | MUST |
+| FR-021 | `flow eval` | MUST run a case's `postcheck.sh` in the kept workspace after each run (contract: cwd = workspace, `EVAL_CASE`/`EVAL_RUN`/`EVAL_TRACE`/`EVAL_PLUGIN_ROOT`, 120 s, exit 0 = pass), record `post: {pass, total}` per tag in the ledger, and count a case as passed only if graders ≥ threshold and every post-check passed | MUST |
+| FR-022 | `slop-check` | MUST offer `--all-lines --files <paths>` for workspaces without git | MUST |
+| FR-023 | Suite | MUST post-check every quality case with `slop-check --all-lines --strict` and the fix case with a mutation check (revert the fix; the new test must go red) | MUST |
+| FR-024 | Loop | SHOULD run with the verifier restricted to `--tag quality --runs 3` once FR-020..023 land | SHOULD |
+
+Assumption A-007: the mechanical tells found by `slop-check` are a fair proxy for "highest quality" when combined with the LLM rubric graders; mutation testing beyond the fix case is v1.2.
