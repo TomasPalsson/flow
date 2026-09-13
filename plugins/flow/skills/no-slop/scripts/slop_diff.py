@@ -8,11 +8,7 @@ import sys
 
 
 def sh(args, cwd=None, timeout=None):
-    """Run a subprocess. timeout=None (the default) waits indefinitely, same
-    as omitting subprocess.run's own timeout argument; slop_tools.py's tool
-    adapters pass an explicit timeout so a hung external tool can't hang
-    slop-check.
-    """
+    """timeout=None matches subprocess.run's own default; slop_tools.py passes one."""
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
