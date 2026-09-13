@@ -56,3 +56,8 @@ Certification with those four replaced: **pipeline 0.97 · invariant 0.93 · rou
 | quality | 0.94 |
 
 All four tiers ≥ 0.9. Remaining per-case misses: `quality-reuse-existing-helper` 0.67 to 0.83 (bare prompt; no-slop fires 2 of 3), `invariant-reproduce-first` 0.89, `pipeline-spec-only` 0.89.
+
+## v1.1 — harder cases, post-checks, and the far-helper trap (2026-09-13)
+
+- Quality tier with post-checks (12 cases, 3 runs, both arms, $6.07): graders 0.92, post-checks 32/36, delta +0.07. `quality-hard-far-helper` 0.00 in both arms: Claude grepped one word (`slug`), found nothing, re-implemented `to_kebab`. Two post-check failures were jscpd on scaffold boilerplate (fixed, 9a86cf3) and one `result` variable name in a test.
+- e078136 search protocol: three terms minimum, synonyms table, helper packages, LSP symbols; description fires when the prompt names the file → far-helper 0.33 (1/3: the run where no-slop fired found `to_kebab` in 12 turns; the two 4-turn runs never fired), reuse 0.67. Ruling: the protocol works when the skill runs; self-triggering on bare prompts is the ceiling. Next lever: a UserPromptSubmit hook (model-facing line, toggle `searchFirst`) — measured trial.
