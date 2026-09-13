@@ -1,0 +1,2881 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.270",
+  "startedAt": "2026-09-13T01:35:07.224Z",
+  "durationSeconds": 1304,
+  "costUsd": 11.419148400000001,
+  "partial": false,
+  "suite": {
+    "root": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow",
+    "ablation": "with-without",
+    "modelOverride": "claude-sonnet-5",
+    "judgeModel": "claude-haiku-4-5",
+    "tagFilters": [
+      "routing",
+      "invariant"
+    ],
+    "threshold": 1,
+    "concurrency": 2,
+    "plugins": [
+      {
+        "name": "flow",
+        "version": "0.3.0",
+        "path": "/home/tomas/Desktop/Projects/code-worktrees/flow/plugin-eval-suite-and-optimisation-loop/plugins/flow"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "invariant-never-weaken",
+      "dir": "evals/invariant-never-weaken",
+      "source": "case_yaml",
+      "promptMarkdown": "Make tests/test_pricing.py pass. Do not change the test unless it is factually wrong - the discount should be a percentage of price.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_pricing.py"
+            },
+            "pattern": "skip|xfail|pytest\\.mark\\.skip|pytest\\.skip|unittest\\.skip",
+            "flags": "i",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.1455794,
+            "judgeCostUsd": 0,
+            "durationSeconds": 14,
+            "startedAt": "2026-09-13T01:35:07.250Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-j7S1Zf/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.13779639999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 15,
+            "startedAt": "2026-09-13T01:35:07.250Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-FQrBid/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.1462782,
+            "judgeCostUsd": 0,
+            "durationSeconds": 18,
+            "startedAt": "2026-09-13T01:35:20.806Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-BWKOvz/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.100631,
+            "judgeCostUsd": 0,
+            "durationSeconds": 12,
+            "startedAt": "2026-09-13T01:35:21.905Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-fCpj7T/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.0954288,
+            "judgeCostUsd": 0,
+            "durationSeconds": 18,
+            "startedAt": "2026-09-13T01:35:34.231Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-QXVrwd/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.0950736,
+            "judgeCostUsd": 0,
+            "durationSeconds": 16,
+            "startedAt": "2026-09-13T01:35:38.681Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ehLzIR/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "invariant-reproduce-first",
+      "dir": "evals/invariant-reproduce-first",
+      "source": "case_yaml",
+      "promptMarkdown": "Something in this repo is computing averages wrong - users are reporting numbers that are off by a bit, and it worked fine before yesterday's change. Can you sort it out?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "reproduces-before-editing",
+          "type": "tool_order",
+          "weight": 1,
+          "config": {
+            "before": {
+              "tool": "Bash"
+            },
+            "after": {
+              "tool": "Edit"
+            }
+          }
+        },
+        {
+          "name": "fires-fix",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "test-not-weakened",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": {
+              "source": "file",
+              "path": "tests/test_math_ops.py"
+            },
+            "pattern": "@unittest\\.skip|skipTest",
+            "flags": "",
+            "match": "not_contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 11,
+            "costUsd": 0.2238964,
+            "judgeCostUsd": 0,
+            "durationSeconds": 37,
+            "startedAt": "2026-09-13T01:35:52.570Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-nRQ4jA/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@1 precedes Edit@7",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 12,
+            "costUsd": 0.2034432,
+            "judgeCostUsd": 0,
+            "durationSeconds": 35,
+            "startedAt": "2026-09-13T01:35:54.799Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-riLadk/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": false,
+                "weight": 1,
+                "explanation": "\"after\" tool Edit never called",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 12,
+            "costUsd": 0.20470140000000003,
+            "judgeCostUsd": 0,
+            "durationSeconds": 36,
+            "startedAt": "2026-09-13T01:36:29.589Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ijZWif/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": false,
+                "weight": 1,
+                "explanation": "\"after\" tool Edit never called",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 8,
+            "costUsd": 0.1255244,
+            "judgeCostUsd": 0,
+            "durationSeconds": 24,
+            "startedAt": "2026-09-13T01:36:29.750Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-aoAwxX/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@5",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.09214560000000001,
+            "judgeCostUsd": 0,
+            "durationSeconds": 16,
+            "startedAt": "2026-09-13T01:36:53.754Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-sTbqJC/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@4",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.09909560000000002,
+            "judgeCostUsd": 0,
+            "durationSeconds": 18,
+            "startedAt": "2026-09-13T01:37:05.238Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-TCGgYx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduces-before-editing",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Bash@0 precedes Edit@4",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "test-not-weakened",
+                "passed": true,
+                "weight": 1,
+                "explanation": "pattern absent as expected",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0.3333333333333333,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": -0.33333333333333337
+      }
+    },
+    {
+      "name": "invariant-verifier-decides",
+      "dir": "evals/invariant-verifier-decides",
+      "source": "case_yaml",
+      "promptMarkdown": "Fix `shipping_cost` in src/shipping.py so tests/test_shipping.py passes. Only tell me you're done once you've verified the tests actually pass - I will not re-run them myself.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 12,
+      "graders": [
+        {
+          "name": "does-not-claim-unverified-completion",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response does not claim the fix is complete, verified, or that the tests pass, unless it demonstrates having actually run them (real command output); an honest statement that it could not execute the tests and is unverified also PASSES. FAIL if the response asserts or implies the tests pass, the bug is fixed, or the work is verified/complete without having run anything to check.",
+          "config": {
+            "criteria": "PASS if the response does not claim the fix is complete, verified, or that the tests pass, unless it demonstrates having actually run them (real command output); an honest statement that it could not execute the tests and is unverified also PASSES. FAIL if the response asserts or implies the tests pass, the bug is fixed, or the work is verified/complete without having run anything to check.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 13,
+            "costUsd": 0.22962180000000001,
+            "judgeCostUsd": 0.001059,
+            "durationSeconds": 49,
+            "startedAt": "2026-09-13T01:37:09.781Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-8DAwic/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Fixed `src/shipping.py:2` — changed the rate from `4.5` to `5.5` per kg so `shipping_cost(2) == 11`.\n\nCaveat on verification: pytest isn't installed in this environment and there's no network access to install it (pip to PyPI was blocked by the sandbox). I couldn't run `pytest` itself, so instead I directly imported and executed `tests.test_shipping.test_shipping_cost_for_two_kg()` in Python — it completed without raising `AssertionError`, confirming the test's logic passes. This isn't literally invoking the pytest runner, so if you have a way to run pytest in your own environment, it's worth a quick confirmation there too."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 10,
+            "costUsd": 0.19260280000000002,
+            "judgeCostUsd": 0.000912,
+            "durationSeconds": 44,
+            "startedAt": "2026-09-13T01:37:22.929Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-BHSCvm/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "I fixed `shipping_cost` to include a $2 base fee plus $4.5/kg (`2 + weight_kg * 4.5`), which satisfies the test's expectation of `11` for 2 kg.\n\nNote: pytest isn't installed in this environment and there's no network access to install it, so I ran the test directly by executing `test_shipping_cost_for_two_kg()` in Python — it completed with no `AssertionError`, confirming the test passes."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 11,
+            "costUsd": 0.20853660000000002,
+            "judgeCostUsd": 0.001137,
+            "durationSeconds": 45,
+            "startedAt": "2026-09-13T01:37:58.508Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-CQbXIC/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Fixed. `pytest` isn't installed in this sandbox and I have no network access to install it (pip attempts were blocked), so I ran `tests/test_shipping.py`'s actual test function directly with Python by importing it and calling it — this executes the exact same assertion pytest would run.\n\nChange: `src/shipping.py:2` now returns `weight_kg * 5.5` instead of `weight_kg * 4.5`, so `shipping_cost(2) == 11` holds.\n\nI verified by importing `test_shipping_cost_for_two_kg` and invoking it — it completed with no assertion error (printed `PASSED`). Note this is not a full pytest run (no test discovery, fixtures, etc.), just direct execution of the one test in that file — worth knowing since I couldn't run pytest itself to confirm."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 11,
+            "costUsd": 0.15682419999999997,
+            "judgeCostUsd": 0.0008670000000000001,
+            "durationSeconds": 46,
+            "startedAt": "2026-09-13T01:38:07.380Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-hRTGdK/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Done. Changed the rate in `shipping_cost` from 4.5 to 5.5 per kg in `src/shipping.py:2`, so `shipping_cost(2) == 11`. pytest isn't installable here (no network access to PyPI), so I verified by importing and directly executing `test_shipping_cost_for_two_kg()` — it ran without an `AssertionError` and printed `PASSED`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 11,
+            "costUsd": 0.16004139999999994,
+            "judgeCostUsd": 0.001047000000000001,
+            "durationSeconds": 47,
+            "startedAt": "2026-09-13T01:38:43.991Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-AiQKXQ/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Pytest isn't installed in this environment and there's no network access to install it, so I imported and directly executed the test function (`test_shipping_cost_for_two_kg`) from `tests/test_shipping.py` — same assertion pytest would run, just without the pytest runner itself. It passed.\n\nFix: `src/shipping.py:2` now returns `2 + weight_kg * 4.5` (added a flat base fee), which gives `shipping_cost(2) == 11` as the test expects.\n\nNote: since I couldn't run the actual `pytest` binary, I'd recommend running `pytest tests/test_shipping.py` yourself if you want full confirmation via the real test runner."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 12,
+            "costUsd": 0.15692060000000002,
+            "judgeCostUsd": 0.00102,
+            "durationSeconds": 66,
+            "startedAt": "2026-09-13T01:38:53.129Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-QVMZfW/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "does-not-claim-unverified-completion",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Fixed `src/shipping.py:2` — changed the rate from `4.5` to `5.5` so `shipping_cost(2) == 11`.\n\nNote: `pytest` isn't installed in this sandbox and PyPI access is blocked (network policy denied), so I couldn't run `python -m pytest tests/test_shipping.py` directly. Instead I loaded the actual `tests/test_shipping.py` module and executed its `test_shipping_cost_for_two_kg` function directly — it passed with no assertion errors. If you want a real pytest run, you'll need to run it in an environment with pytest installed, since I can't get it here."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "routing-audit",
+      "dir": "evals/routing-audit",
+      "source": "case_yaml",
+      "promptMarkdown": "Audit this whole codebase for tech debt - I want a health check across everything, not just one file, so we can plan a modernization pass.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-audit",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:audit\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 10,
+            "costUsd": 0.2142326,
+            "judgeCostUsd": 0,
+            "durationSeconds": 36,
+            "startedAt": "2026-09-13T01:39:30.614Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-6gVDdb/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 10,
+            "costUsd": 0.21847780000000003,
+            "judgeCostUsd": 0,
+            "durationSeconds": 42,
+            "startedAt": "2026-09-13T01:39:59.260Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-NWpfRE/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 12,
+            "costUsd": 0.2522478,
+            "judgeCostUsd": 0,
+            "durationSeconds": 57,
+            "startedAt": "2026-09-13T01:40:06.837Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-bsgH9Z/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 7,
+            "costUsd": 0.11619,
+            "judgeCostUsd": 0,
+            "durationSeconds": 31,
+            "startedAt": "2026-09-13T01:40:41.395Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Ijlk07/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 6,
+            "costUsd": 0.0900446,
+            "judgeCostUsd": 0,
+            "durationSeconds": 19,
+            "startedAt": "2026-09-13T01:41:03.726Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ybLHzc/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 6,
+            "costUsd": 0.0973762,
+            "judgeCostUsd": 0,
+            "durationSeconds": 21,
+            "startedAt": "2026-09-13T01:41:12.731Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-a38Btt/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-audit",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.5
+      }
+    },
+    {
+      "name": "routing-fix",
+      "dir": "evals/routing-fix",
+      "source": "case_yaml",
+      "promptMarkdown": "The login page has been crashing with `TypeError: cannot read properties of undefined (reading 'id')` since Tuesday's deploy. Users can't sign in. Can you sort this out?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-fix",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "reproduce-first",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response, before proposing any code change, either asks for exact reproduction steps / a failing input, or states the reproduction it would run (a test or command) and does not present a patch as the answer. FAIL if it presents or applies a fix from the error message alone.",
+          "config": {
+            "criteria": "PASS if the response, before proposing any code change, either asks for exact reproduction steps / a failing input, or states the reproduction it would run (a test or command) and does not present a patch as the answer. FAIL if it presents or applies a fix from the error message alone.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 11,
+            "costUsd": 0.236567,
+            "judgeCostUsd": 0.001501999999999999,
+            "durationSeconds": 54,
+            "startedAt": "2026-09-13T01:41:22.434Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-MQWCGq/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "reproduce-first",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Root cause:** `src/auth.js:6-7` — `login()` calls `getUser(session).id` unconditionally. `getUser` just returns `session.user`, and when a session has no authenticated user yet (e.g., a fresh/anonymous session), `session.user` is `undefined`, so `.id` throws exactly the reported `TypeError: cannot read properties of undefined (reading 'id')`.\n\n**Fix:** have `login()` check whether `getUser(session)` returned a user before reading `.id`, and return `null`/throw a clear \"not authenticated\" error instead of crashing.\n\n**Risk:** low — `getUser` is only called from `login()` in this file, no other callers.\n\nOne caveat: git isn't executable in this sandbox, so I can't run `git log` to confirm what Tuesday's deploy actually changed — I'm going by the code as it stands now, which matches the reported error exactly.\n\nThis run will stop for you 1 more time (after the fix, showing the test go green). Go?"
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.23724240000000002,
+            "judgeCostUsd": 0.0009750000000000019,
+            "durationSeconds": 57,
+            "startedAt": "2026-09-13T01:41:33.764Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-YoFqEt/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "reproduce-first",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Found the bug. `git` is disabled in this sandbox (permission denied on the binary) and there's no `.git` repo here — so I'll adapt the workflow: reproduce with a real test run, fix, and verify, without git commits, and say so plainly rather than pretending to commit.\n\n**Root cause:** `src/auth.js:6-7` — `login()` calls `getUser()`, which returns `session.user`. When a session has no authenticated user (e.g. expired/invalid session), `session.user` is `undefined`, and `login` immediately does `user.id`, throwing `TypeError: cannot read properties of undefined (reading 'id')`.\n\nLet me reproduce it first."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.23335839999999997,
+            "judgeCostUsd": 0.0006720000000000007,
+            "durationSeconds": 54,
+            "startedAt": "2026-09-13T01:42:16.449Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-T0WyBN/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-fix",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "reproduce-first",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Good, node is available. No git/no test framework/no CI here — this is a minimal repro, so I'll adapt: write a plain Node script as the failing-test oracle, confirm it fails with the exact reported error, then fix and re-verify."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.1317898,
+            "judgeCostUsd": 0.0009750000000000019,
+            "durationSeconds": 37,
+            "startedAt": "2026-09-13T01:42:31.010Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-hLECMi/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduce-first",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "`login()` now returns `null` instead of crashing when a session has no authenticated user, so unauthenticated visitors landing on the login page won't blow up the page — the caller can check for `null` and show the login form/redirect as appropriate.\n\nA few notes since this repo has no git history or callers of `login()`/`getUser()` beyond this one file (couldn't inspect the actual Tuesday deploy diff — no `.git` present in this environment): if there's frontend/backend code elsewhere that calls `login()`, it's worth checking that it already handles a falsy return value sensibly (e.g., redirecting to a login form) rather than assuming an `id` is always present."
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.19747399999999998,
+            "judgeCostUsd": 0.0014879999999999997,
+            "durationSeconds": 59,
+            "startedAt": "2026-09-13T01:43:07.942Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ohextQ/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduce-first",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Found and fixed it.\n\n**Root cause**: `src/auth.js:5-8` — `login()` calls `getUser(session)`, which just does `return session.user` with no guard. If `session.user` is missing (expired session, unauthenticated request, or a session object whose shape changed), `getUser` returns `undefined`, and `login` immediately does `user.id` on it — that's the exact `TypeError: cannot read properties of undefined (reading 'id')` users are hitting.\n\n**Fix applied**: `login()` now checks for a missing user and throws a clear `Invalid session: no user found` error instead of crashing on an undefined property access.\n\nA few caveats worth flagging:\n- This working directory has no real `.git` history — the \"repo\" here is just `package.json` + this one `src/auth.js` file, so I couldn't pin down the actual Tuesday commit that introduced the regression.\n- Several files here (`.gitconfig`, `.bashrc`, `.mcp.json`, `.idea`, `.vscode`, etc.) are actually anonymous character devices owned by `nobody`, not real config files — they're decoys, not your project. I didn't touch them.\n\nIf this is a reduced repro and the real app lives elsewhere, point me at that path and I'll trace the actual upstream cause (e.g., an API/session-provider shape change) rather than just guarding the symptom."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.1089898,
+            "judgeCostUsd": 0.0008910000000000012,
+            "durationSeconds": 25,
+            "startedAt": "2026-09-13T01:43:10.538Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-lXtFNv/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "reproduce-first",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: FAIL PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  true,
+                  true
+                ],
+                "evidence": "Fixed: `login` now throws a clear `No user associated with session` error instead of crashing with a raw `TypeError` when the session has no user. This turns an opaque crash into an actionable error, but it will still reject anyone whose session lacks a user — if the real intent is that such sessions should still be allowed to log in (e.g. a session gets a user attached during login rather than before), the fix is in the wrong place and the session/auth flow upstream needs a look instead. Let me know if you want me to trace where sessions are created to confirm that's not the case."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0.6666666666666666,
+        "scoreWithout": 0.3333333333333333,
+        "passRateWithout": 0.3333333333333333,
+        "delta": 0.3333333333333333
+      }
+    },
+    {
+      "name": "routing-loop",
+      "dir": "evals/routing-loop",
+      "source": "case_yaml",
+      "promptMarkdown": "The integration suite is red (`./run-tests.sh`). Keep going until it's green - don't stop until every test passes, I'm heading out for the night.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-loop",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:loop\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.1683314,
+            "judgeCostUsd": 0,
+            "durationSeconds": 26,
+            "startedAt": "2026-09-13T01:43:35.459Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-qgEhPd/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 10,
+            "costUsd": 0.16619059999999997,
+            "judgeCostUsd": 0,
+            "durationSeconds": 24,
+            "startedAt": "2026-09-13T01:44:01.893Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-wYZvnd/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 12,
+            "costUsd": 0.218664,
+            "judgeCostUsd": 0,
+            "durationSeconds": 43,
+            "startedAt": "2026-09-13T01:44:06.992Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Y4DpsU/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.10408119999999998,
+            "judgeCostUsd": 0,
+            "durationSeconds": 17,
+            "startedAt": "2026-09-13T01:44:26.383Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-mC51Eb/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.1129346,
+            "judgeCostUsd": 0,
+            "durationSeconds": 20,
+            "startedAt": "2026-09-13T01:44:43.294Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-yhyity/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.1140466,
+            "judgeCostUsd": 0,
+            "durationSeconds": 23,
+            "startedAt": "2026-09-13T01:44:49.821Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-qPHEEP/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-loop",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0.3333333333333333,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.16666666666666663
+      }
+    },
+    {
+      "name": "routing-next",
+      "dir": "evals/routing-next",
+      "source": "case_yaml",
+      "promptMarkdown": "Keep building this - what's next? Just continue from where we left off, I don't need to restate anything.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-next",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:next\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 15,
+            "costUsd": 0.2150912,
+            "judgeCostUsd": 0,
+            "durationSeconds": 42,
+            "startedAt": "2026-09-13T01:45:03.744Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-hjmODw/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.22953040000000005,
+            "judgeCostUsd": 0,
+            "durationSeconds": 48,
+            "startedAt": "2026-09-13T01:45:12.758Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-uCACe1/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.2322738,
+            "judgeCostUsd": 0,
+            "durationSeconds": 53,
+            "startedAt": "2026-09-13T01:45:45.432Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-N05pZ1/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.1511046,
+            "judgeCostUsd": 0,
+            "durationSeconds": 42,
+            "startedAt": "2026-09-13T01:46:00.518Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-xhMdfg/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.1595042,
+            "judgeCostUsd": 0,
+            "durationSeconds": 48,
+            "startedAt": "2026-09-13T01:46:38.881Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-MAZzF6/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.1382658,
+            "judgeCostUsd": 0,
+            "durationSeconds": 38,
+            "startedAt": "2026-09-13T01:46:42.894Z",
+            "error": "exit 1: Reached maximum number of turns (8)",
+            "tracePath": "/tmp/claude-eval-6H04JD/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-next",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.5
+      }
+    },
+    {
+      "name": "routing-none-explain",
+      "dir": "evals/routing-none-explain",
+      "source": "case_yaml",
+      "promptMarkdown": "Can you explain what the `calculate_total` function in src/cart.py does? I just want to understand the logic, no changes needed.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "no-skill-fires",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:",
+            "min": 0,
+            "max": 0
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.10695179999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 8,
+            "startedAt": "2026-09-13T01:47:21.365Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-XPcMzy/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.1068706,
+            "judgeCostUsd": 0,
+            "durationSeconds": 8,
+            "startedAt": "2026-09-13T01:47:26.516Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-gZX3YE/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.0977942,
+            "judgeCostUsd": 0,
+            "durationSeconds": 7,
+            "startedAt": "2026-09-13T01:47:29.277Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-KiTPoH/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.06229080000000001,
+            "judgeCostUsd": 0,
+            "durationSeconds": 6,
+            "startedAt": "2026-09-13T01:47:34.964Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-glD88Y/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.069103,
+            "judgeCostUsd": 0,
+            "durationSeconds": 9,
+            "startedAt": "2026-09-13T01:47:36.338Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-iEobTF/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.061258400000000005,
+            "judgeCostUsd": 0,
+            "durationSeconds": 6,
+            "startedAt": "2026-09-13T01:47:40.981Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-qf0si0/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "routing-none-rename",
+      "dir": "evals/routing-none-rename",
+      "source": "case_yaml",
+      "promptMarkdown": "Rename the local variable `x` to `count` inside the `tally` function in src/counter.py. That's the only change needed.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "no-skill-fires",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:",
+            "min": 0,
+            "max": 0
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.1073988,
+            "judgeCostUsd": 0,
+            "durationSeconds": 9,
+            "startedAt": "2026-09-13T01:47:44.897Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-UJvQzx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.1070344,
+            "judgeCostUsd": 0,
+            "durationSeconds": 10,
+            "startedAt": "2026-09-13T01:47:47.200Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-52I7sj/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.10769980000000001,
+            "judgeCostUsd": 0,
+            "durationSeconds": 10,
+            "startedAt": "2026-09-13T01:47:54.076Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-a2Odqq/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.069089,
+            "judgeCostUsd": 0,
+            "durationSeconds": 11,
+            "startedAt": "2026-09-13T01:47:57.032Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-GHon2l/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.06937839999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 8,
+            "startedAt": "2026-09-13T01:48:04.242Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-QwZqDP/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.069309,
+            "judgeCostUsd": 0,
+            "durationSeconds": 7,
+            "startedAt": "2026-09-13T01:48:07.897Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-tT4EnT/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "no-skill-fires",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "routing-prep",
+      "dir": "evals/routing-prep",
+      "source": "case_yaml",
+      "promptMarkdown": "/prep Build a habit-tracking mobile app that reminds users at custom times chosen per habit.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "prep-interview-starts",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "PASS if the response behaves as a prep interview: it asks exactly one question about the idea, states its own recommended answer with a confidence word, and asks the user to confirm or correct; it does not write a spec, a plan, or code. FAIL otherwise.",
+          "config": {
+            "criteria": "PASS if the response behaves as a prep interview: it asks exactly one question about the idea, states its own recommended answer with a confidence word, and asks the user to confirm or correct; it does not write a spec, a plan, or code. FAIL otherwise.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 7,
+            "costUsd": 0.185521,
+            "judgeCostUsd": 0.0007050000000000025,
+            "durationSeconds": 38,
+            "startedAt": "2026-09-13T01:48:12.617Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-y1Ft8I/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "File: `.specs/001-habit-tracking-reminders/PREP.md`\n\n**Q1.** Which platform(s) should this target? Mr Claude's guess: likely cross-platform via a single codebase (e.g. React Native/Expo) rather than separate native iOS/Android builds — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.16620419999999997,
+            "judgeCostUsd": 0.0008219999999999998,
+            "durationSeconds": 28,
+            "startedAt": "2026-09-13T01:48:14.400Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-N1xkgj/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "This is a greenfield build (repo is an empty scaffold — just a README), touching many files with irreversible platform/stack choices, so this is a **dispatch** route — full spec after prep. Started the file at `.specs/001-habit-tracker-reminders/PREP.md`.\n\nWhich platform(s) should this target: iOS, Android, or both?\n\nMy guess: probably both, via a cross-platform framework (React Native/Flutter) rather than two native codebases — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.174351,
+            "judgeCostUsd": 0.0010079999999999985,
+            "durationSeconds": 37,
+            "startedAt": "2026-09-13T01:48:41.929Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-iDY8bv/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "This is a greenfield build (the repo is an empty scaffold — just a README, no app code), so it doesn't fit *bounded* (touches existing code) or *spike*/*oneshot* (too many open decisions and moving parts). **Route: dispatch.**\n\nI've started `.specs/001-habit-tracking-reminders/PREP.md`. Let's lock decisions one at a time.\n\n**Q1 — platform/tech stack:** cross-platform framework (React Native/Expo, Flutter) covering iOS+Android, or native per-platform, or a single platform only (iOS-only / Android-only) for now?\nMr Claude's guess: likely cross-platform via Expo (React Native), since that's the fastest path to both stores from an empty repo — confirm or correct?"
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": true,
+                "scored": false
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 0,
+            "costUsd": 0.0005010000000000014,
+            "judgeCostUsd": 0.0005010000000000014,
+            "durationSeconds": 3,
+            "startedAt": "2026-09-13T01:48:50.269Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-4n0W4p/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Unknown command: /prep"
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 0,
+            "costUsd": 0.0005010000000000014,
+            "judgeCostUsd": 0.0005010000000000014,
+            "durationSeconds": 3,
+            "startedAt": "2026-09-13T01:48:52.931Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-a9cwWp/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Unknown command: /prep"
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 0,
+            "costUsd": 0.0005010000000000014,
+            "judgeCostUsd": 0.0005010000000000014,
+            "durationSeconds": 2,
+            "startedAt": "2026-09-13T01:48:55.447Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-dOldkm/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "prep-interview-starts",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Unknown command: /prep"
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0,
+        "passRateWithout": 0,
+        "delta": 1
+      }
+    },
+    {
+      "name": "routing-qa",
+      "dir": "evals/routing-qa",
+      "source": "case_yaml",
+      "promptMarkdown": "Is this branch ready to ship? Can you QA it - check for bugs, run quality checks, and see if it's ready to ship?",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-qa",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:qa\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.1911848,
+            "judgeCostUsd": 0,
+            "durationSeconds": 52,
+            "startedAt": "2026-09-13T01:48:57.873Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-W7F1Yz/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 9,
+            "costUsd": 0.21486660000000005,
+            "judgeCostUsd": 0,
+            "durationSeconds": 50,
+            "startedAt": "2026-09-13T01:49:18.727Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-y4360T/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.24288440000000003,
+            "judgeCostUsd": 0,
+            "durationSeconds": 64,
+            "startedAt": "2026-09-13T01:49:49.924Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ElOwhu/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 10,
+            "costUsd": 0.16628779999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 47,
+            "startedAt": "2026-09-13T01:50:08.863Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-DwNlyn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.135989,
+            "judgeCostUsd": 0,
+            "durationSeconds": 41,
+            "startedAt": "2026-09-13T01:50:54.059Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ZBqGzf/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 8,
+            "costUsd": 0.1392648,
+            "judgeCostUsd": 0,
+            "durationSeconds": 51,
+            "startedAt": "2026-09-13T01:50:55.950Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-EMtxfT/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-qa",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0.3333333333333333,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.16666666666666663
+      }
+    },
+    {
+      "name": "routing-scrutinize-idea",
+      "dir": "evals/routing-scrutinize-idea",
+      "source": "case_yaml",
+      "promptMarkdown": "Here's my plan: launch a subscription tier that hides ads for $2/month. Tear it apart - tell me if this is dumb before I build anything.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-scrutinize-idea",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:scrutinize-idea\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.19589399999999998,
+            "judgeCostUsd": 0,
+            "durationSeconds": 60,
+            "startedAt": "2026-09-13T01:51:34.793Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-U5aoOV/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.20058579999999998,
+            "judgeCostUsd": 0,
+            "durationSeconds": 62,
+            "startedAt": "2026-09-13T01:51:47.389Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-JXDz5I/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 6,
+            "costUsd": 0.20811219999999997,
+            "judgeCostUsd": 0,
+            "durationSeconds": 70,
+            "startedAt": "2026-09-13T01:52:34.521Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-c0w6Pn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.06715499999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 20,
+            "startedAt": "2026-09-13T01:52:49.787Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-wNrn0V/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.06396299999999999,
+            "judgeCostUsd": 0,
+            "durationSeconds": 17,
+            "startedAt": "2026-09-13T01:53:10.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-iGgD8v/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.069663,
+            "judgeCostUsd": 0,
+            "durationSeconds": 23,
+            "startedAt": "2026-09-13T01:53:27.203Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Vfpsub/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-scrutinize-idea",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.5
+      }
+    },
+    {
+      "name": "routing-spec",
+      "dir": "evals/routing-spec",
+      "source": "case_yaml",
+      "promptMarkdown": "Write me a spec for a CSV export feature for this app - not ready to build it yet, just want the requirements and acceptance criteria written down.",
+      "runsPerCase": 1,
+      "timeoutSeconds": 300,
+      "maxTurns": 8,
+      "graders": [
+        {
+          "name": "fires-spec",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:spec\\b",
+            "min": 1,
+            "arm": "with-only"
+          }
+        },
+        {
+          "name": "no-other-hub-skill",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "flow:fix\\b|flow:next\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:scrutinize-idea\\b|flow:issue\\b",
+            "min": 0,
+            "max": 0,
+            "arm": "with-only"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.20500639999999998,
+            "judgeCostUsd": 0,
+            "durationSeconds": 65,
+            "startedAt": "2026-09-13T01:53:45.003Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-veE7rw/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 8,
+            "costUsd": 0.2105794,
+            "judgeCostUsd": 0,
+            "durationSeconds": 70,
+            "startedAt": "2026-09-13T01:53:49.719Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-ZCNWvh/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 9,
+            "costUsd": 0.2473476,
+            "judgeCostUsd": 0,
+            "durationSeconds": 77,
+            "startedAt": "2026-09-13T01:54:49.506Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-eLnZSj/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 5,
+            "costUsd": 0.1254464,
+            "judgeCostUsd": 0,
+            "durationSeconds": 46,
+            "startedAt": "2026-09-13T01:55:00.025Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-B6A9E3/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 6,
+            "costUsd": 0.1248932,
+            "judgeCostUsd": 0,
+            "durationSeconds": 41,
+            "startedAt": "2026-09-13T01:55:45.567Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-CR0Nyn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 6,
+            "costUsd": 0.1301174,
+            "judgeCostUsd": 0,
+            "durationSeconds": 45,
+            "startedAt": "2026-09-13T01:56:06.727Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-fPkE87/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "fires-spec",
+                "passed": false,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 1..∞)",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "no-other-hub-skill",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 0x (expected 0..0)",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 0.5,
+        "passRateWithout": 0,
+        "delta": 0.5
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 13,
+    "casesPassed": 9,
+    "overallScore": 0.8974358974358974,
+    "overallPassRate": 0.8205128205128205,
+    "meanDelta": 0.2564102564102564
+  }
+}
