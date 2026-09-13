@@ -44,6 +44,8 @@ Write the test yourself and prove it is a real oracle — **both sides**:
 1. It **fails on HEAD**, and fails with the *reported* error — assert the specific wrong value or message from the bug report, not merely that something raises. A test that is red for the wrong reason (import error, over-broad `assertRaises`) becomes a verifier that can never go green.
 2. Commit it red: `test(<scope>): failing test for <bug>`, and **paste the failing run's output and exit code into the commit body**. On the direct path nothing external checks that this test was ever red — `flow loop init`'s green-verifier refusal only guards the `--loop` path — so this observation *is* the contract. This commit is the reproduction; nothing downstream may edit it.
 
+**NEVER edit a non-test file before the failing test has been RUN and its red output is in front of you** — writing the test is not reproducing; the run is. The first tool call that touches source is an edit only after a Bash call has executed the test and shown the reported failure.
+
 **Prose steps are input to writing that test, never a substitute for it.** If you genuinely cannot write one, say so and stop: *"I can't turn this into a failing test. Here's what I tried: [list]. What am I missing about the environment, steps or input?"*
 
 **Intermittent** (not red on every run): instrument first, collect 3+ failure samples, establish a failure rate over 10+ runs, and make the test assert the *rate*, not a single run. Record the rate in the diagnosis. Do not fix blind.
