@@ -13,7 +13,7 @@ Every case carries exactly one primary tag from `plugins/flow/bin/lib/eval/contr
 
 | Tag | What it measures | Arms scored |
 |---|---|---|
-| `quality` | The code Claude writes under the plugin: reuse, abstraction, guards, comments, scope, test quality — one case per rubric row family, graders lifted from the rubric's grader-mapping table | with-plugin vs. no-plugin baseline (delta is the point) |
+| `quality` | The code Claude writes under the plugin: reuse, abstraction, guards, comments, scope, test quality — one case per rubric row family, graders lifted from the rubric's grader-mapping table, plus six harder `quality-hard-*` cases with the trap moved further from the obvious spot: `far-helper` (the reusable helper lives several files away from the call site), `typed-guard` (a guard on a field a validating `__post_init__` already guarantees), `flag-temptation` (a mode flag on a two-call-site function vs. a second small function), `test-bites` (a test-first test that must actually be able to fail), `style-drift` (match the edited file's own style, not the project's usual one), `scope-creep` (touch nothing beyond the one reported fix in a file full of tempting cleanup) | with-plugin vs. no-plugin baseline (delta is the point) |
 | `routing` | The right skill fires for a plain-language request, and the wrong ones don't; two negative cases prove nothing fires when nothing should | `tool_used` graders are `arm: with-only` — a plugin-fired indicator, not part of the baseline-vs-plugin score |
 | `invariant` | A promise the plugin makes holds regardless of the specific skill: reproduce before fixing, never weaken a test to make it pass, don't claim completion without having verified | both, unless the check only makes sense with the plugin |
 | `pipeline` | The full `/flow:spec` → `/flow:next` pipeline end to end on a fixture, graded on the artifacts and code it produces, not just whether a skill fired: `flow-feature` (`/flow:spec --unattended` then `/flow:next --unattended` repeatedly, unattended build, graded on the route being stated and a real regression test written for the new properties — not a fixed `.specs/` artifact path, since the route it takes decides whether one exists at all), `fix-bug` (patches a bug, graded on the patched source), `spec-first-turn` (its one batched discovery turn states the route and offers every pre-answered position in the same message), `spec-only` (`/flow:spec --unattended` in one shot — no resumed transcript, since the route's approval gate never scales down — graded on what it writes or says and that it never lands the change itself), `prep-first-turn` (first turn asks exactly one hypothesis-led question; writing `PREP.md` before that question is prep's designed behaviour and must not count against it) | `--ablation none`, one run each; the pipeline output itself is the point |
@@ -33,6 +33,18 @@ Each case is one directory `evals/<tier>-<slug>/` with:
 
 `claude plugin eval` reads `case.yaml` itself; nothing here re-implements grading —
 see `plugins/flow/bin/lib/eval.js`'s comment for that decision.
+
+## Post-checks
+
+A case may ship an executable `postcheck.sh` (bash, `set -u`), run once per run
+after `claude plugin eval` returns, cwd'd into that run's workspace with
+`EVAL_CASE`/`EVAL_RUN`/`EVAL_TRACE`/`EVAL_PLUGIN_ROOT` set and a 120s timeout;
+exit 0 passes, non-zero fails, and a case counts as passed only if its grader
+score clears the threshold *and* every run's post-check passed, too (`flow eval`
+prints `postcheck <case> <pass>/<total>`). The standard shape for a quality
+case is `slop-check --all-lines --files <path>...` (no git needed; every line
+of each listed file counts as added) `--strict`, run against the file(s) the
+task should touch.
 
 ## Adding a case
 

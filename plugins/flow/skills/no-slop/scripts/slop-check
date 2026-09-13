@@ -2,12 +2,14 @@
 """slop-check: scan added lines of a git diff for common AI-slop signals.
 
 Usage: slop-check [--base <ref>] [--head <ref>] [--json] [--strict]
-                   [--no-tools] [--files <path>...]
+                   [--no-tools] [--files <path>...] [--all-lines]
 
-Only reports on lines *added* between --base and --head. Exit code is
-always 0 unless --strict is passed and findings > 0. Missing optional
-tools (ruff/tsc/jscpd, in slop_tools.py) never fail the run; those
-checks are silently skipped.
+Only reports on lines *added* between --base and --head. With --all-lines,
+every line of each --files path is treated as added and no git repository
+is required at all (--base/--head are ignored); same finding ids, messages
+and --json shape. Exit code is always 0 unless --strict is passed and
+findings > 0. Missing optional tools (ruff/tsc/jscpd, in slop_tools.py)
+never fail the run; those checks are silently skipped.
 """
 import argparse
 import ast
@@ -119,6 +121,29 @@ def repo_ls(root, head):
 def show_file(root, head, path):
     r = sh(["git", "show", f"{head}:{path}"], cwd=root)
     return r.stdout if r.returncode == 0 else None
+
+def read_file_direct(path):
+    """--all-lines source read: straight off disk, no git involved."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        return None
+
+def build_all_lines(files):
+    """--all-lines: every line of each listed file counts as added."""
+    added_by_file, hunks_by_file, file_status = {}, {}, {}
+    for path in files:
+        text = read_file_direct(path)
+        if text is None:
+            continue
+        added = {i + 1: line for i, line in enumerate(text.splitlines())}
+        added_by_file[path] = added
+        hunk = Hunk()
+        hunk.added = sorted(added.items())
+        hunks_by_file[path] = [hunk]
+        file_status[path] = "added"
+    return added_by_file, hunks_by_file, file_status
 
 def added_text_blob(added):
     """Join added lines into one blob plus an offset->lineno table."""
@@ -342,14 +367,14 @@ def name_similarity_findings(path, new_names, existing_names):
                 "— spelling similarity only")
     return findings
 
-def collect_stdlib_findings(root, head, added_by_file, hunks_by_file):
+def collect_stdlib_findings(root, head, added_by_file, hunks_by_file, all_lines=False):
     """Run every stdlib (non-tool) check over each changed file's added lines."""
     findings, py_trees, existing_ns03 = [], {}, set()
     for path, added in added_by_file.items():
         if not added:
             continue
         if path.endswith(".py"):
-            src = show_file(root, head, path)
+            src = read_file_direct(path) if all_lines else show_file(root, head, path)
             if src is not None:
                 py_finds, tree = py_findings(path, added, src)
                 py_trees[path] = tree
@@ -382,7 +407,7 @@ def collect_name_similarity(root, head, added_by_file, py_trees):
         findings.extend(name_similarity_findings(path, new_names, existing_names))
     return findings
 
-def run_tool_checks(root, base, added_by_file, existing_ns03):
+def run_tool_checks(root, base, added_by_file, existing_ns03, all_lines=False):
     """NS-01/11/12: lazily imports slop_tools.py (never, under --no-tools)."""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import slop_tools
@@ -391,7 +416,7 @@ def run_tool_checks(root, base, added_by_file, existing_ns03):
     findings = []
     findings.extend(slop_tools.run_ruff(root, base, py_files, added_by_file, existing_ns03))
     findings.extend(slop_tools.run_tsc(root, base, ts_files, added_by_file))
-    findings.extend(slop_tools.run_jscpd(root, base, list(added_by_file), added_by_file))
+    findings.extend(slop_tools.run_jscpd(root, base, list(added_by_file), added_by_file, all_lines))
     return findings
 
 def emit(findings, file_status, added_by_file, args):
@@ -424,19 +449,24 @@ def main():
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--no-tools", action="store_true")
     ap.add_argument("--files", nargs="+", default=None)
+    ap.add_argument("--all-lines", action="store_true")
     args = ap.parse_args()
 
-    root = repo_root()
-    base = args.base or default_base(root)
-    pathspecs = args.files or [f"*{e}" for e in CODE_EXTS]
-    added_by_file, hunks_by_file, file_status = parse_diff(root, base, args.head, pathspecs)
+    if args.all_lines:
+        root, base = os.getcwd(), None
+        added_by_file, hunks_by_file, file_status = build_all_lines(args.files or [])
+    else:
+        root = repo_root()
+        base = args.base or default_base(root)
+        pathspecs = args.files or [f"*{e}" for e in CODE_EXTS]
+        added_by_file, hunks_by_file, file_status = parse_diff(root, base, args.head, pathspecs)
     added_by_file = {p: a for p, a in added_by_file.items() if p.endswith(CODE_EXTS)}
 
     findings, py_trees, existing_ns03 = collect_stdlib_findings(
-        root, args.head, added_by_file, hunks_by_file)
+        root, args.head, added_by_file, hunks_by_file, args.all_lines)
     findings.extend(collect_name_similarity(root, args.head, added_by_file, py_trees))
     if not args.no_tools:
-        findings.extend(run_tool_checks(root, base, added_by_file, existing_ns03))
+        findings.extend(run_tool_checks(root, base, added_by_file, existing_ns03, args.all_lines))
 
     return emit(findings, file_status, added_by_file, args)
 

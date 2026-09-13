@@ -246,3 +246,56 @@ t_routing_loop_scaffold_has_a_runnable_check() {
 	[ -f "$s" ] || { _fail "routing-loop scaffold.sh exists" "missing: $s"; return; }
 	assert_contains "$(cat "$s")" "run-tests.sh" "scaffold writes a runnable run-tests.sh"
 }
+
+# ---------------------------------------------------------------------------
+# Post-checks (postcheck-contract.md) - the six quality-hard-* cases each
+# ship case.yaml, an executable scaffold.sh with no `git init` (--all-lines
+# needs no git repo), and an executable postcheck.sh that calls slop-check
+# --all-lines; pipeline-fix-bug's mutation postcheck re-runs the suite via
+# pytest/uvx, falling back to `unittest discover` only when neither is
+# available.
+# ---------------------------------------------------------------------------
+
+EV_QUALITY_HARD_CASES="quality-hard-far-helper quality-hard-typed-guard quality-hard-flag-temptation quality-hard-test-bites quality-hard-style-drift quality-hard-scope-creep"
+
+t_quality_hard_cases_present() {
+	local name
+	for name in $EV_QUALITY_HARD_CASES; do
+		assert_file_exists "$EVALS_DIR/$name/case.yaml" "case dir present: $name/case.yaml"
+	done
+}
+
+t_quality_hard_scaffolds_executable_no_git_init() {
+	local name s
+	for name in $EV_QUALITY_HARD_CASES; do
+		s="$EVALS_DIR/$name/scaffold.sh"
+		if [ -x "$s" ] && ! grep -q 'git init' "$s"; then
+			_pass "executable scaffold.sh with no git init: $name"
+		else
+			_fail "executable scaffold.sh with no git init: $name" "not executable, or has git init: $s"
+		fi
+	done
+}
+
+t_quality_hard_postchecks_executable_call_slop_check_all_lines() {
+	local name p
+	for name in $EV_QUALITY_HARD_CASES; do
+		p="$EVALS_DIR/$name/postcheck.sh"
+		if [ -x "$p" ] && grep -q 'slop-check.*--all-lines' "$p"; then
+			_pass "executable postcheck.sh calling slop-check --all-lines: $name"
+		else
+			_fail "executable postcheck.sh calling slop-check --all-lines: $name" "not executable, or no slop-check --all-lines call: $p"
+		fi
+	done
+}
+
+t_pipeline_fix_bug_postcheck_executable_mentions_unittest() {
+	local p
+	p="$EVALS_DIR/pipeline-fix-bug/postcheck.sh"
+	if [ -x "$p" ]; then
+		_pass "pipeline-fix-bug postcheck.sh is executable"
+	else
+		_fail "pipeline-fix-bug postcheck.sh is executable" "missing or not executable: $p"
+	fi
+	assert_contains "$(cat "$p" 2>/dev/null)" "unittest" "pipeline-fix-bug postcheck.sh mentions unittest"
+}

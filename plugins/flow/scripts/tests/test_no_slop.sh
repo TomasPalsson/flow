@@ -116,6 +116,46 @@ t_noslop_strict_exits_zero_with_no_findings() {
 }
 
 # ---------------------------------------------------------------------------
+# --all-lines: a postcheck.sh's usage — a directory with no git at all,
+# still reports findings by treating every line of the listed files as
+# added; --base/--head are ignored and no repo lookup happens.
+# ---------------------------------------------------------------------------
+
+# plain_copy_of_planted_text_py <dest-dir> — extracts the fixture's planted
+# src/text.py (NS-03/04/05/06 all present in that one file) into <dest-dir>,
+# which is never `git init`-ed.
+plain_copy_of_planted_text_py() {
+	local fixture_repo=$1 plain=$2
+	mkdir -p "$plain/src"
+	git -C "$fixture_repo" show HEAD:src/text.py >"$plain/src/text.py"
+}
+
+t_noslop_all_lines_reports_findings_with_no_git() {
+	local d plain
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	plain=$(tmp_dir)
+	plain_copy_of_planted_text_py "$d" "$plain"
+	run_cmd bash -c 'cd "$1" && exec "$2" --all-lines --files src/text.py --no-tools' \
+		_ "$plain" "$SLOP_CHECK"
+	assert_rc 0 "slop-check --all-lines exits 0 (advisory) with no git repo present"
+	for id in NS-03 NS-04 NS-05 NS-06; do
+		assert_contains "$OUT" "$id" "slop-check --all-lines reports $id with no git"
+	done
+}
+
+t_noslop_all_lines_strict_exits_nonzero() {
+	local d plain
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	plain=$(tmp_dir)
+	plain_copy_of_planted_text_py "$d" "$plain"
+	run_cmd bash -c 'cd "$1" && exec "$2" --all-lines --files src/text.py --no-tools --strict' \
+		_ "$plain" "$SLOP_CHECK"
+	assert_rc 1 "slop-check --all-lines --strict exits 1 on a plain dir with findings"
+}
+
+# ---------------------------------------------------------------------------
 # B4 — --json emits a findings array plus a summary.
 # ---------------------------------------------------------------------------
 

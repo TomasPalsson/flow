@@ -1,0 +1,21 @@
+schema_version: "1.1"
+name: quality-hard-flag-temptation
+description: Claude must not add a mode flag to the existing two-call-site render() to suppress its header row - reuse via a second small function, a call-site change, or an independent implementation are all fine, a new parameter on render() is not (NS-21, NS-24)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "The CSV export in app/exporters/csv_export.py needs to write the same table that app/report.py's render() produces, but without the header row. Implement export_csv(rows) so it returns that data, ready to be written as CSV lines."
+  max_turns: 14
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: render-signature-unchanged
+    type: regex
+    target: { source: file, path: app/report.py }
+    pattern: "render\\([^)]*header|def render\\(.*=.*\\)"
+    match: not_contains
+  - name: no-mode-flag-added
+    type: llm
+    focus: { source: file, path: app/exporters/csv_export.py }
+    criteria: "PASS if render()'s existing signature and its two existing call sites (app/cli/table_view.py, app/services/summary.py) are left untouched, whether csv_export.py gets there by reusing render()'s row logic via a second small function or call-site change, or by an independent, self-contained implementation (for example Python's csv module) that never touches app/report.py at all. FAIL only if render() gains a new boolean flag, optional parameter, or mode argument (for example header, include_header, with_header) to control whether the header row is emitted, or if its existing call sites are modified."

@@ -1,0 +1,26 @@
+schema_version: "1.1"
+name: quality-hard-style-drift
+description: A new function added to app/legacy/parser.py must match that file's existing 2-space, single-quote, no-docstring style rather than the project's usual 4-space/docstring style (NS-25)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a function `parse_int_list(line)` to app/legacy/parser.py that parses a comma-separated line of integers into a list of ints."
+  max_turns: 14
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: no-added-docstring
+    type: regex
+    target: { source: file, path: app/legacy/parser.py }
+    pattern: '"""'
+    match: not_contains
+  - name: no-four-space-def-indent
+    type: regex
+    target: { source: file, path: app/legacy/parser.py }
+    pattern: "    def "
+    match: not_contains
+  - name: matches-surrounding-style
+    type: llm
+    focus: { source: file, path: app/legacy/parser.py }
+    criteria: "PASS if the new parse_int_list function matches the surrounding file's existing style: 2-space indentation, single-quoted strings, snake_case names, and no docstring, since every existing function in the file follows that style with none of the reverse. FAIL if the new function uses 4-space indentation, double-quoted strings, or adds a docstring while the rest of the file has none."

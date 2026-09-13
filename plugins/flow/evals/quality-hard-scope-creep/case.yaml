@@ -1,0 +1,31 @@
+schema_version: "1.1"
+name: quality-hard-scope-creep
+description: Fixing one reported typo in app/auth.py must not sweep in the unused import, the TODO, or a rewrite of the unrelated long function (NS-24)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "fix the typo in the error message in app/auth.py"
+  max_turns: 14
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: typo-fixed
+    type: regex
+    target: { source: file, path: app/auth.py }
+    pattern: "usrname"
+    match: not_contains
+  - name: unused-import-untouched
+    type: regex
+    target: { source: file, path: app/auth.py }
+    pattern: "import json"
+    match: contains
+  - name: todo-untouched
+    type: regex
+    target: { source: file, path: app/auth.py }
+    pattern: "TODO"
+    match: contains
+  - name: no-unrequested-scope
+    type: llm
+    focus: { source: file, path: app/auth.py }
+    criteria: "PASS if the only change to app/auth.py is fixing the typo in the login error message string ('usrname' -> 'username'); the unused json import, the TODO(JIRA-482) comment, and audit_log_entry are all untouched. FAIL if anything else in the file is renamed, reformatted, cleaned up, or removed."

@@ -83,8 +83,13 @@ def run_tsc(toplevel, base, files, added):
     return findings
 
 
-def run_jscpd(toplevel, base, files, added):
-    """NS-01: cross-file duplication new since `base`, via --baseline-from-ref."""
+def run_jscpd(toplevel, base, files, added, all_lines=False):
+    """NS-01: cross-file duplication new since `base`, via --baseline-from-ref.
+
+    Under --all-lines there is no base ref (no git repo required), so the
+    scan runs plain, over the whole current directory, and any clone that
+    touches a listed file is reported.
+    """
     findings = []
     if shutil.which("npx") is None:
         return findings
@@ -95,9 +100,12 @@ def run_jscpd(toplevel, base, files, added):
                 "--ignore", ignore]
     report_path = os.path.join(tmpdir, "jscpd-report.json")
     try:
-        r = sh(base_cmd + ["--baseline-from-ref", base, "--fail-on-new-clones"], cwd=toplevel)
-        if not os.path.exists(report_path) and "baseline-from-ref" in (r.stderr or "").lower():
-            sh(base_cmd, cwd=toplevel)  # fallback: installed jscpd rejects the flag
+        if all_lines:
+            sh(base_cmd, cwd=toplevel)
+        else:
+            r = sh(base_cmd + ["--baseline-from-ref", base, "--fail-on-new-clones"], cwd=toplevel)
+            if not os.path.exists(report_path) and "baseline-from-ref" in (r.stderr or "").lower():
+                sh(base_cmd, cwd=toplevel)  # fallback: installed jscpd rejects the flag
         if not os.path.exists(report_path):
             return findings
         with open(report_path) as f:

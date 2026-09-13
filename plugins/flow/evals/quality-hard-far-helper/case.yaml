@@ -1,0 +1,22 @@
+schema_version: "1.1"
+name: quality-hard-far-helper
+description: Claude must find and reuse the existing to_kebab helper in app/support/strings.py rather than re-implementing slug logic in app/models/post.py (NS-20)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title."
+  max_turns: 14
+  allowed_tools: [Read, Glob, Grep, Write, Edit, Skill]
+graders:
+  - name: uses-existing-to-kebab
+    type: regex
+    target: { source: file, path: app/models/post.py }
+    pattern: "to_kebab"
+    match: contains
+  - name: no-reimplemented-slug
+    type: regex
+    target: { source: file, path: app/models/post.py }
+    pattern: "re\\.sub|import re|\\.lower\\(\\)\\.replace\\("
+    match: not_contains
