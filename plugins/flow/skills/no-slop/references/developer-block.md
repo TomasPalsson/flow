@@ -23,11 +23,16 @@ necessary. Keep solutions simple and focused:
   operations. Don't design for hypothetical future requirements. The right amount of
   complexity is the minimum needed for the current task.
 
-Before writing any new function, class, or helper: search the repository for an
-existing implementation of the same behaviour — by name, by verb synonyms, by the
-library you would import, and by the error string you would raise. Reuse what exists.
-State in one line what you searched and what you found before your first edit, in the
-form: `searched: <terms>; found: <path:line | nothing>`.
+Before writing any new function, class, or helper: search the whole repository for an
+existing implementation of the same behaviour. One word is not a search. Run at least
+three: the verb you would name it, two synonyms for the same behaviour (slug: kebab,
+dash, hyphen, urlize; format: render, label, display; validate: check, verify, guard;
+parse: load, read, decode; retry: backoff, attempt), the library you would import, and
+the error string you would raise — across every directory, not the one you are editing,
+and look inside any `utils`, `support`, `helpers`, `lib`, `common` or `shared` package
+by name. When an LSP tool is available, query workspace symbols for each term too.
+Reuse what exists. State in one line what you searched and what you found before your
+first edit, in the form: `searched: <terms>; found: <path:line | nothing>`.
 
 Two rules that are not the same rule:
 - An existing helper is reused, always. Re-implementing one is a defect.

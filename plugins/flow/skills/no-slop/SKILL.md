@@ -1,6 +1,6 @@
 ---
 name: no-slop
-description: "Stop AI slop in the code Claude writes: no re-implemented helpers, no premature abstractions, no guards on impossible states, no comments that restate code, no unrequested scope, no test slop. Parts: a verbatim developer block for briefs, a `slop` adversary lens, and `scripts/slop-check`. Use WHENEVER you are about to add or change code in an existing repo — 'add a property/field/method/endpoint to X', 'implement X in file Y', a brief for a developer agent (spec, next, fix, build-slices, ultracode) — search the repo for an existing helper first, whenever an adversary reviews a diff, whenever the user says slop, duplicate code, reinvented the wheel, over-engineered, too defensive, comment noise, scope creep, 'keep it minimal', 'this looks AI-generated', or asks how to make Claude write cleaner code. Do NOT use for whole-repo debt sweeps (/audit), post-merge deepening (/flow-deepen), or fixing a specific bug (/fix)."
+description: "Stop AI slop in the code Claude writes: no re-implemented helpers, no premature abstractions, no guards on impossible states, no comments that restate code, no unrequested scope, no test slop. Parts: a verbatim developer block for briefs, a `slop` adversary lens, and `scripts/slop-check`. Use WHENEVER you are about to add or change code in an existing repo — 'add a property/field/method/endpoint to X', 'implement X in file Y', including when the request names the exact file to edit — a brief for a developer agent (spec, next, fix, build-slices, ultracode) — search the repo for an existing helper first, whenever an adversary reviews a diff, whenever the user says slop, duplicate code, reinvented the wheel, over-engineered, too defensive, comment noise, scope creep, 'keep it minimal', 'this looks AI-generated', or asks how to make Claude write cleaner code. Do NOT use for whole-repo debt sweeps (/audit), post-merge deepening (/flow-deepen), or fixing a specific bug (/fix)."
 ---
 
 # no-slop
@@ -25,7 +25,7 @@ Conflate them and the rule becomes either useless ("only two instances, fine") o
 ## Before writing (developer protocol)
 
 1. Read the brief. List every symbol you intend to add.
-2. For each: search by name, by two verb synonyms, by the library you would import, by the error string you would raise. `rg -in '\b(slug|slugify|kebab)\b'`; `rg -n '^(from|import) .*slug'`; for shape, `ast-grep run -p 'def $N($A: str) -> str: $$$' -l python`.
+2. For each: at least three searches across the whole repo, never one word — the verb, two synonyms (slug: kebab, dash, hyphen; format: render, label; validate: check, verify), the library you would import, the error string; plus a look inside any `utils`/`support`/`helpers`/`lib` package. `rg -in '\b(slug|kebab|hyphen)\b'`; `rg -n '^(from|import) .*slug'`; for shape, `ast-grep run -p 'def $N($A: str) -> str: $$$' -l python`; with an LSP tool, workspace symbols for each term.
 3. Write the receipt line: `searched: slug, slugify, kebab, import slugify; found: src/text.py:4`. If found, import it. If nothing, write the function.
 4. Before each guard: name who guarantees the value (type, constructor, prior check, boundary). Only a boundary earns the guard.
 5. Before each comment: WHY, one short line, or nothing. Never WHAT, never the task or the caller.
