@@ -11,19 +11,12 @@ if [ -z "$BASE_SHA" ]; then
 	exit 1
 fi
 
-# The scaffold's pyproject.toml declares pytest, and the fixture's tests use
-# plain test_* functions (not unittest.TestCase), which `unittest discover`
-# cannot see at all - it would report "0 tests, OK" regardless of the bug,
-# so pytest (or uvx pytest, when pytest itself is not importable) is the
-# real runner here; unittest discover is a last-resort fallback only.
+# The fixture is stdlib-runnable (README/pyproject: `python3 -m unittest
+# discover -s tests`), so the same command the model is told to use is the
+# one that judges it; a pytest-style `def test_*` module would be invisible
+# to discover, which the money-test-* graders and the mutation below catch.
 run_tests() {
-	if python3 -c 'import pytest' >/dev/null 2>&1; then
-		python3 -m pytest -q tests >/dev/null 2>&1
-	elif command -v uvx >/dev/null 2>&1; then
-		uvx --quiet pytest -q tests >/dev/null 2>&1
-	else
-		python3 -m unittest discover -s tests >/dev/null 2>&1
-	fi
+	python3 -m unittest discover -s tests >/dev/null 2>&1
 }
 
 run_tests || { echo "suite red after fix"; exit 1; }
