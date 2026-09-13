@@ -40,3 +40,19 @@ Certification with those four replaced: **pipeline 0.97 · invariant 0.93 · rou
 | routing | 0.97 | `routing-qa` 0.83, `routing-fix` 0.89 |
 | invariant | 0.93 | `invariant-reproduce-first` 0.78 |
 | quality | 0.86 | `quality-reuse-existing-helper` 0.17 — a bare "add a property" prompt that no skill claims; the pipeline's discipline only reaches code through `/flow:spec` or `/flow:next` briefs. Ruling: kept as a known gap, not chased with a trigger that would route every one-line edit through a spec. |
+
+## Trials 2 and 3, 2026-09-13 (3 runs each; `trial2-*`, `trial3-*`)
+
+- b774384 `fix` description claims symptom reports ("returns X but should return Y", "off by one", "the test is red"); `no-slop` description claims bare "add a property/field/method to X" prompts → `quality-reuse-existing-helper` 0.17 → 0.83, `routing-qa` 0.83 → 1.00, `invariant-reproduce-first` unchanged 0.78 but `fix` now fires 3/3. Kept.
+- 7116ea6 `fix` §1 NEVER: no source edit before the failing test has been run; `no-slop` description trimmed under 1024 chars → `invariant-reproduce-first` 0.78 → 0.89; reuse case 0.67 (2 of 3; 0.83 before the trim — within the run-to-run band). Kept: the cap is a hard limit.
+
+## Final tiers (3 runs per case, plugin arm, Bash on)
+
+| tier | mean |
+|---|---|
+| pipeline | 0.97 |
+| routing | 0.99 |
+| invariant | 0.96 |
+| quality | 0.94 |
+
+All four tiers ≥ 0.9. Remaining per-case misses: `quality-reuse-existing-helper` 0.67 to 0.83 (bare prompt; no-slop fires 2 of 3), `invariant-reproduce-first` 0.89, `pipeline-spec-only` 0.89.
