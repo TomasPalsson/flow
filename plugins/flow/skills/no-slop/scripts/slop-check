@@ -8,7 +8,7 @@ Only reports on lines *added* between --base and --head. With --all-lines,
 every line of each --files path is treated as added and no git repository
 is required at all (--base/--head are ignored); same finding ids, messages
 and --json shape. Exit code is always 0 unless --strict is passed and
-findings > 0. Missing optional tools (ruff/tsc/jscpd, in slop_tools.py)
+findings > 0. Missing optional tools (ruff/tsc/jscpd/lizard, in slop_tools.py)
 never fail the run; those checks are silently skipped.
 """
 import argparse
@@ -317,15 +317,18 @@ def collect_name_similarity(root, head, added_by_file, py_trees):
     return findings
 
 def run_tool_checks(root, base, added_by_file, existing_ns03, all_lines=False):
-    """NS-01/11/12: lazily imports slop_tools.py (never, under --no-tools)."""
+    """NS-01/11/12/17: lazily imports slop_tools.py (never, under --no-tools)."""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import slop_tools
     py_files = [p for p in added_by_file if p.endswith(".py") and added_by_file[p]]
     ts_files = [p for p in added_by_file if p.endswith(TS_EXTS) and added_by_file[p]]
+    code_files = [p for p in added_by_file if added_by_file[p]]
     findings = []
     findings.extend(slop_tools.run_ruff(root, base, py_files, added_by_file, existing_ns03))
     findings.extend(slop_tools.run_tsc(root, base, ts_files, added_by_file))
     findings.extend(slop_tools.run_jscpd(root, base, list(added_by_file), added_by_file, all_lines))
+    if not all_lines:
+        findings.extend(slop_tools.run_lizard(root, base, code_files, added_by_file))
     return findings
 
 def emit(findings, file_status, added_by_file, args):
