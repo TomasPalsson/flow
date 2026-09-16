@@ -25,14 +25,67 @@ function postCheckoutScript(store) {
     + 'exit 0\n';
 }
 
+// TOK_HITS_SH -> a pure-shell whole-token boundary check (T4b): no id/slug
+// is ever interpolated into a regex (a slug with a regex metacharacter,
+// e.g. "005-c++", still matches literally via `case`/parameter-expansion
+// prefix stripping). Boundary class is [A-Za-z0-9_] only — a '-' no longer
+// counts as a boundary, so "T001-regression" is a hit on real id T001.
+const TOK_HITS_SH = 'tab=$(printf \'\\t\')\n'
+  + 'tok_hits() {\n'
+  + '  rest=$1\n'
+  + '  tok=$2\n'
+  + '  [ -n "$tok" ] || return 1\n'
+  + '  while :; do\n'
+  + '    case "$rest" in\n'
+  + '    *"$tok"*) ;;\n'
+  + '    *) return 1 ;;\n'
+  + '    esac\n'
+  + '    before=${rest%%"$tok"*}\n'
+  + '    after=${rest#*"$tok"}\n'
+  + '    lastc=${before#"${before%?}"}\n'
+  + '    firstc=${after%"${after#?}"}\n'
+  + '    okb=0; oka=0\n'
+  + '    case "$lastc" in [A-Za-z0-9_]) okb=1 ;; esac\n'
+  + '    case "$firstc" in [A-Za-z0-9_]) oka=1 ;; esac\n'
+  + '    [ "$okb" = 0 ] && [ "$oka" = 0 ] && return 0\n'
+  + '    rest=$after\n'
+  + '  done\n'
+  + '}\n';
+
+// IDS_SLUGS_SH -> real ids (T4d: sort -u dedupes across many features'
+// TASKS.md files) and real slugs. T4a: a top-level `.specs` entry is a slug
+// ONLY when it matches NNN-*; only an archive dir (YYYY-MM-DD-NNN-slug)
+// strips the date prefix, and only when the remaining tail is NNN-* too —
+// no generic *-*-*-* fallback that shreds a plain hyphenated dir name.
+// T4d: `${d%/}` / `${b##*/}` instead of a `basename` process per dir.
+const IDS_SLUGS_SH = 'ids=$(grep -h -o -E \'^- \\[[ x~]\\] (T|CHK|G)[0-9]{3}\' "$store"/.specs/*/TASKS.md "$store"/.specs/archive/*/TASKS.md 2>/dev/null | sed -E \'s/^.*\\] //\' | sort -u)\n'
+  + 'slugs=""\n'
+  + 'for d in "$store"/.specs/*/; do\n'
+  + '  [ -d "$d" ] || continue\n'
+  + '  b=${d%/}; b=${b##*/}\n'
+  + '  case "$b" in\n'
+  + '  [0-9][0-9][0-9]-*) slugs="$slugs\n$b" ;;\n'
+  + '  esac\n'
+  + 'done\n'
+  + 'for d in "$store"/.specs/archive/*/; do\n'
+  + '  [ -d "$d" ] || continue\n'
+  + '  b=${d%/}; b=${b##*/}\n'
+  + '  case "$b" in\n'
+  + '  [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9]-*)\n'
+  + '    slugs="$slugs\n${b#[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-}" ;;\n'
+  + '  esac\n'
+  + 'done\n';
+
 // commitMsgScript(store) -> a POSIX sh hook that refuses ONLY real ids/slugs
 // (read from the store's own TASKS.md files and feature dir names) plus a
 // short list of unambiguous spec-vocabulary patterns — not a generic
 // T###/CHK###/G### regex, which false-positived on "Bump G123 driver" or
 // "HTTP T100 support" and missed a `-m "#T001 …"` line (git keeps the '#'
 // for -m; only an editor-cleaned message strips it, so `grep -v '^#'` was
-// wrong). The message is read up to (not including) the `-v` scissors line;
-// everything else, including other '#' lines, is kept.
+// wrong). The message is read up to (not including) the `-v` scissors line.
+// T4c: git's own template comment lines ('#', '# ...', '#<TAB>...') are
+// skipped from BOTH the id/slug scan and the vocabulary scan; a real line
+// that merely starts with '#' (e.g. "#T001 done") is still scanned.
 function commitMsgScript(store) {
   return '#!/bin/sh\n'
     + '# flow-stealth: this repo must not learn about the private specs\n'
@@ -48,28 +101,22 @@ function commitMsgScript(store) {
     + '  echo "commit-msg (flow stealth): \\"$1\\" names a private spec — describe the change for the maintainers instead" >&2\n'
     + '  exit 1\n'
     + '}\n'
-    + '# Real ids: every T###/CHK###/G### that STARTS a task line.\n'
-    + 'for id in $(grep -h -o -E \'^- \\[[ x~]\\] (T|CHK|G)[0-9]{3}\' "$store"/.specs/*/TASKS.md "$store"/.specs/archive/*/TASKS.md 2>/dev/null | sed -E \'s/^.*\\] //\'); do\n'
-    + '  case "$body" in\n'
-    + '  *"$id"*) printf \'%s\\n\' "$body" | grep -Eq "(^|[^A-Za-z0-9_-])$id([^A-Za-z0-9_-]|\\$)" && refuse "$id" ;;\n'
+    + TOK_HITS_SH
+    + IDS_SLUGS_SH
+    + 'scanbody=""\n'
+    + 'while IFS= read -r msgline || [ -n "$msgline" ]; do\n'
+    + '  case "$msgline" in\n'
+    + '  "#") continue ;;\n'
+    + '  "# "*) continue ;;\n'
+    + '  "#$tab"*) continue ;;\n'
     + '  esac\n'
-    + 'done\n'
-    + '# Real slugs: NNN-slug dirs under .specs, and the NNN-slug tail of an\n'
-    + '# archive dir (YYYY-MM-DD-NNN-slug).\n'
-    + 'for d in "$store"/.specs/*/ "$store"/.specs/archive/*/; do\n'
-    + '  [ -d "$d" ] || continue\n'
-    + '  b=$(basename "$d")\n'
-    + '  slug=""\n'
-    + '  case "$b" in\n'
-    + '  [0-9][0-9][0-9]-*) slug=$b ;;\n'
-    + '  *-*-*-*) slug=${b#*-*-*-} ;;\n'
-    + '  esac\n'
-    + '  [ -n "$slug" ] || continue\n'
-    + '  case "$body" in\n'
-    + '  *"$slug"*) printf \'%s\\n\' "$body" | grep -Eq "(^|[^A-Za-z0-9_-])$slug([^A-Za-z0-9_-]|\\$)" && refuse "$slug" ;;\n'
-    + '  esac\n'
-    + 'done\n'
-    + 'hit=$(printf \'%s\\n\' "$body" | grep -Eo \'\\.specs/|TASKS\\.md|PASS-[0-9a-f]{7,}|(^|[^A-Za-z])[Ss]pec [0-9]{3}([^0-9]|$)|Ruling:|/flow:|flow (tick|lint|stealth)\' | head -1)\n'
+    + '  for tok in $ids; do tok_hits "$msgline" "$tok" && refuse "$tok"; done\n'
+    + '  for tok in $slugs; do tok_hits "$msgline" "$tok" && refuse "$tok"; done\n'
+    + '  scanbody="$scanbody$msgline\n"\n'
+    + 'done <<__FLOW_STEALTH_MSG__\n'
+    + '$body\n'
+    + '__FLOW_STEALTH_MSG__\n'
+    + 'hit=$(printf \'%s\\n\' "$scanbody" | grep -Eo \'\\.specs/|TASKS\\.md|PASS-[0-9a-f]{7,}|(^|[^A-Za-z])[Ss]pec [0-9]{3}([^0-9]|$)|Ruling:|/flow:|flow (tick|lint|stealth)\' | head -1)\n'
     + '[ -n "$hit" ] && refuse "$hit"\n'
     + 'exit 0\n';
 }

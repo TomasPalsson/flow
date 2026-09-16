@@ -134,14 +134,18 @@ The same pattern over the outgoing diff belongs in `pre-push` (`git diff @{push}
 
 ---
 
-## 6. What would make this first-class in flow (not built)
+## 6. What made it first-class in flow (built 16 September 2026)
 
-Ranked by value per line. None is needed to use §3 today.
+§3 by hand still works; `flow stealth [<store>]` now does it idempotently, and `/flow:spec --stealth` / `/flow:next --stealth` call it. Nothing is stored as config — every command detects stealth from disk (`.specs` is a symlink resolving outside the repo). What landed, including what three adversarial review rounds forced:
 
-1. **`flow stealth <store>`** — does §3's five commands idempotently, prints what it wrote. Removes the only manual part.
-2. **id-vanished against the store** — in `flow-lint:697-726`, when the TASKS.md path resolves (after `realpath`) outside `$TOPLEVEL`, diff against `HEAD` of the repo that owns the real file instead of skipping silently. Closes the one guard §1 loses.
-3. **Leak lens** — add the §5 pattern to `slop-check` and the adversary `slop` lens when the repo is in stealth mode (the `.specs` entry is untracked), so a leak is caught at review, not only at commit.
-4. **`flow publish` refusal** in stealth mode.
+1. **`flow stealth`** (`bin/lib/stealth.js`, `stealth-move.js`, `stealth-hooks.js`) — migrates an untracked `.specs/`, validates the store (its own git repo even under a dotfiles `$HOME`; not inside, not above, not linked back into the repo; no quote/newline in the path), default store `~/.flow/stealth/<name>-<hash6>` at mode 0700, `--check [--offline] [--json]` reports and suggests.
+2. **The `commit-msg` hook matches the store's real ids and slugs**, not a generic regex: "T001: …", "#T001", "fix T001-regression", "per 001-auth-flow" are refused; "Bump G123 driver", "HTTP T100", git's own `# On branch …` template line are not (the §5 regex blocked both of those, and an agent cannot `--no-verify` past git-guard).
+3. **`flow next`** carries `stealth: {active, store, suggest, reasons, hooks}`, prints a `Stealth:` reminder, warns when the hooks stopped running (`core.hooksPath`), and names `/flow:spec --stealth` in the no-project `Why:` of a repo that looks public (upstream remote, LICENSE, CONTRIBUTING.md).
+4. **id-vanished against the store** — `flow-lint` joins against the HEAD of the repo that physically owns TASKS.md, and `flow tick` commits the store (with a pathspec) so the guard stays armed.
+5. **Shared `.current`** — every worktree sees the store's pointer, so in stealth a matching `flow/<slug>` branch outranks it, identically in `router.js`, `flow-lint` and `specgate.sh` (which now also match `NNN-slug` exactly like the router).
+6. **Stop-gate** walks the `.specs` link, so a sha-less `[x]` is blocked in stealth too; **`flow publish`** refuses.
+
+Still not built: a leak lens in `slop-check` / the adversary `slop` lens for code comments, test names and PR text — the hook covers commit messages only.
 
 Deliberately not proposed: a `FLOW_SPECS_DIR` path knob. It would touch three independent resolvers (`router.js`, `flow-lint`, `specgate.sh`) to do what one symlink already does (M).
 

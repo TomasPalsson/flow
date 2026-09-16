@@ -732,6 +732,95 @@ t_stealth_commit_msg_hook_precise() {
 }
 
 # ---------------------------------------------------------------------------
+# T4a — slug tail-strip only applies to archive dirs; a top-level dir not
+# shaped NNN-slug is never a slug at all (no *-*-*-* fallback stripping).
+# ---------------------------------------------------------------------------
+
+t_stealth_commit_msg_hook_slug_tail_strip_only_for_archive() {
+	local home proj store
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	st_cli_in "$proj" "$home" stealth
+	store=$(readlink "$proj/.specs" 2>/dev/null || true)
+	store=${store%/.specs}
+	mkdir -p "$store/.specs/my-draft-notes-v2"
+	printf 'notes\n' >"$store/.specs/my-draft-notes-v2/notes.md"
+	(cd "$proj" && GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@e.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@e.com git commit -q --allow-empty -m "bump to v2 of the api") >/dev/null 2>&1
+	assert_eq "$?" "0" "a non-NNN- top-level store dir does not fall back to a stripped tail slug"
+	rm -rf "$home" "$proj" "$store"
+}
+
+# ---------------------------------------------------------------------------
+# T4b — pure-shell whole-token matching: no id/slug is ever interpolated
+# into a regex (a slug with regex metacharacters still refuses), and the
+# boundary class is [A-Za-z0-9_] only — a '-' no longer breaks a token.
+# ---------------------------------------------------------------------------
+
+t_stealth_commit_msg_hook_pure_shell_token_boundary() {
+	local home proj store gitenv
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	st_cli_in "$proj" "$home" stealth
+	store=$(readlink "$proj/.specs" 2>/dev/null || true)
+	store=${store%/.specs}
+	gitenv='GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@e.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@e.com'
+
+	mkdir -p "$store/.specs/005-c++"
+	printf 'notes\n' >"$store/.specs/005-c++/notes.md"
+	mkdir -p "$store/.specs/001-x"
+	{
+		printf '# Tasks — x\n'
+		printf 'Spec: spec.md · Base: none · Route: dispatch · Test: `true`\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 a — files: a.js — verify: `true`\n'
+	} >"$store/.specs/001-x/TASKS.md"
+
+	(cd "$proj" && env $gitenv git commit -q --allow-empty -m "port 005-c++ code") >/dev/null 2>&1
+	assert_eq "$?" "1" "a slug with regex metacharacters (005-c++) is refused via pure shell matching"
+
+	(cd "$proj" && env $gitenv git commit -q --allow-empty -m "fix T001-regression") >/dev/null 2>&1
+	assert_eq "$?" "1" "'fix T001-regression' is refused (a dash no longer counts as a boundary)"
+
+	(cd "$proj" && env $gitenv git commit -q --allow-empty -m "Bump G123 driver") >/dev/null 2>&1
+	assert_eq "$?" "0" "'Bump G123 driver' (G123 is not a real id) is still allowed"
+	rm -rf "$home" "$proj" "$store"
+}
+
+# ---------------------------------------------------------------------------
+# T4c — git's own comment lines ('#', '# ...', '#<TAB>...') are not scanned;
+# a real line that merely starts with '#' (e.g. "#T001 done") still is.
+# ---------------------------------------------------------------------------
+
+t_stealth_commit_msg_hook_ignores_git_comment_lines() {
+	local home proj store msgfile
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	st_cli_in "$proj" "$home" stealth
+	store=$(readlink "$proj/.specs" 2>/dev/null || true)
+	store=${store%/.specs}
+	mkdir -p "$store/.specs/001-auth-flow"
+	printf 'spec\n' >"$store/.specs/001-auth-flow/spec.md"
+
+	msgfile=$(tmp_dir)/msg.txt
+	mkdir -p "$(dirname "$msgfile")"
+	printf 'Add constant\n# On branch flow/001-auth-flow\n' >"$msgfile"
+	run_cmd "$proj/.git/hooks/commit-msg" "$msgfile"
+	assert_rc 0 "git's own '# On branch ...' comment line is not scanned"
+
+	mkdir -p "$store/.specs/002-y"
+	{
+		printf '# Tasks — y\n'
+		printf 'Spec: spec.md · Base: none · Route: dispatch · Test: `true`\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 a — files: a.js — verify: `true`\n'
+	} >"$store/.specs/002-y/TASKS.md"
+	printf '#T001 done\n' >"$msgfile"
+	run_cmd "$proj/.git/hooks/commit-msg" "$msgfile"
+	assert_rc 1 "a line like '#T001 done' (not git's template form) is still scanned"
+	rm -rf "$home" "$proj" "$store" "$(dirname "$msgfile")"
+}
+
+# ---------------------------------------------------------------------------
 # R8 — hooks silently disabled later: hooksActive(root), surfaced by
 # `flow next` and `flow stealth --check`.
 # ---------------------------------------------------------------------------
@@ -806,6 +895,113 @@ t_stealth_default_store_dir_mode_0700() {
 	parentmode=$(ls -ld "$parent" 2>/dev/null | cut -c1-10)
 	assert_eq "$parentmode" "drwx------" "<HOME>/.flow/stealth is mode 700"
 	rm -rf "$home" "$proj" "$store"
+}
+
+t_stealth_explicit_store_specs_symlinked_into_repo_refuses() {
+	local home proj out
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	out=$(tmp_dir)
+	mkdir -p "$proj/docs/specs"
+	ln -s "$proj/docs/specs" "$out/.specs"
+	st_cli_in "$proj" "$home" stealth "$out"
+	assert_rc 1 "an explicit store whose .specs symlinks into the repo refuses"
+	assert_file_missing "$proj/docs/specs/.gitignore" "no .gitignore written into repo/docs/specs"
+	assert_file_missing "$proj/.specs" "no .specs link created in the repo"
+	rm -rf "$home" "$proj" "$out"
+}
+
+t_stealth_adopt_link_two_hops_into_repo_refuses() {
+	local home proj out
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	out=$(tmp_dir)
+	mkdir -p "$proj/docs/specs"
+	ln -s "$proj/docs/specs" "$out/.specs"
+	ln -s "$out/.specs" "$proj/.specs"
+	st_cli_in "$proj" "$home" stealth
+	assert_rc 1 "adopting a link whose store resolves (one more hop) into the repo refuses"
+	assert_file_missing "$proj/docs/specs/.gitignore" "no .gitignore written into repo/docs/specs"
+	rm -rf "$home" "$proj" "$out"
+}
+
+t_stealth_store_root_refuses() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	st_cli_in "$proj" "$home" stealth /
+	assert_rc 1 "flow stealth / refuses"
+	assert_contains "$ERR" "above this repo" "refusal message says above this repo"
+	rm -rf "$home" "$proj"
+}
+
+t_stealth_dangling_target_through_alias_not_stealth() {
+	local home proj tmp alias
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	tmp=$(tmp_dir)
+	alias="$tmp/alias"
+	ln -s "$proj" "$alias"
+	ln -s "$alias/nope/.specs" "$proj/.specs"
+	st_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"active": false' "a dangling target reachable back into the repo through an alias is not stealth"
+	rm -rf "$home" "$proj" "$tmp"
+}
+
+t_stealth_default_store_dir_mode_0700_migration() {
+	local home proj target store parent mode parentmode
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-a"
+	printf 'hello\n' >"$proj/.specs/001-a/spec.md"
+	st_cli_in "$proj" "$home" stealth
+	assert_rc 0 "migration onto the default store exits 0"
+	target=$(readlink "$proj/.specs" 2>/dev/null || true)
+	store=${target%/.specs}
+	parent=$(dirname "$store")
+	mode=$(ls -ld "$store" 2>/dev/null | cut -c1-10)
+	assert_eq "$mode" "drwx------" "the migrated default store dir is mode 700"
+	parentmode=$(ls -ld "$parent" 2>/dev/null | cut -c1-10)
+	assert_eq "$parentmode" "drwx------" "<HOME>/.flow/stealth is mode 700 after migration"
+	rm -rf "$home" "$proj" "$store"
+}
+
+t_stealth_exdev_refusal_cleans_up_and_fix_line_works() {
+	local home proj preloaddir preload fixline fixcmd
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-a"
+	printf 'hello\n' >"$proj/.specs/001-a/spec.md"
+	preloaddir=$(tmp_dir)
+	preload="$preloaddir/exdev-preload.js"
+	cat >"$preload" <<'EOF'
+const fs = require('fs');
+const path = require('path');
+const orig = fs.renameSync;
+fs.renameSync = function (src, dest) {
+	if (path.basename(src) === '.specs') {
+		const e = new Error('simulated EXDEV');
+		e.code = 'EXDEV';
+		throw e;
+	}
+	return orig(src, dest);
+};
+EOF
+	export NODE_OPTIONS="--require $preload"
+	st_cli_in "$proj" "$home" stealth
+	unset NODE_OPTIONS
+	assert_rc 1 "EXDEV refusal exits 1"
+	assert_file_missing "$home/.flow" "no leftover <HOME>/.flow after EXDEV refusal"
+	assert_file_exists "$proj/.specs/001-a/spec.md" "spec.md still lives at the original path after EXDEV refusal"
+
+	fixline=$(printf '%s\n' "$ERR" | grep '  fix: mkdir -p')
+	fixcmd=${fixline#*fix: }
+	run_cmd env HOME="$home" PATH="$(dirname "$ST_CLI_PATH"):$PATH" bash -c "cd '$proj' && $fixcmd"
+	assert_rc 0 "the fix line, run in a shell without the preload, succeeds"
+
+	st_cli_in "$proj" "$home" stealth --check --offline --json
+	assert_contains "$OUT" '"active": true' "stealth is active after running the fix line"
+	rm -rf "$home" "$proj" "$preloaddir"
 }
 
 t_stealth_tick_nonstealth_symlinked_feature_dir_no_store_line() {

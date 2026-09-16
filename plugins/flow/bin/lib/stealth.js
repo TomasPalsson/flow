@@ -55,7 +55,10 @@ function detect(root) {
     // path); disagreeing here would scan-fail a plain broken in-tree link.
     let abs;
     try { abs = resolveSymlinkAbs(specsLink); } catch { return { active: false, store: null }; }
-    if (abs === root || abs.startsWith(root + path.sep) || abs === rroot || abs.startsWith(rroot + path.sep)) {
+    // canonicalizeExisting: an alias hop partway down a dangling target can
+    // lexically look outside the repo while really resolving back inside it.
+    const absReal = canonicalizeExisting(abs);
+    if (absReal === root || absReal.startsWith(root + path.sep) || absReal === rroot || absReal.startsWith(rroot + path.sep)) {
       return { active: false, store: null };
     }
     return { active: true, store: path.dirname(abs) };
@@ -223,7 +226,10 @@ function validateStorePath(store, root) {
   if (store === rroot || store.startsWith(rroot + path.sep)) {
     return `store ${store} is inside this repo\n  fix: pick a store path outside ${rroot}`;
   }
-  if (rroot === store || rroot.startsWith(store + path.sep)) {
+  // path.relative, not startsWith(store + sep) — store='/' makes that
+  // prefix '//', which rroot never starts with, so `flow stealth /` slipped through.
+  const rel = path.relative(store, rroot);
+  if (rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)) {
     return `store ${store} is an ancestor of this repo\n  fix: pick a store outside and not above this repo`;
   }
   if (store.indexOf("'") !== -1 || store.indexOf('\n') !== -1) {
@@ -277,7 +283,7 @@ function symlinkState(specsLink, store, storeArg, root) {
   return { alreadyLinked: true, pendingMove: null, store: adoptedStore };
 }
 
-const { dirState, applyPendingMove } = require('./stealth-move.js');
+const { dirState, applyPendingMove, ensureDefaultStoreDirs } = require('./stealth-move.js');
 
 // specsLinkState -> dispatches on what <root>/.specs currently is. Pure
 // validation, no mutation.
@@ -296,21 +302,14 @@ function specsLinkState(specsLink, store, storeArg, root) {
 // store is a repo", so check --show-toplevel resolves to the store itself,
 // not an ancestor.
 //
-// isDefault: when flow picked the store path itself (no explicit arg), both
-// <HOME>/.flow/stealth and the store dir it creates under it get mode 0700
-// — private by default, since flow chose the location and nobody asked for
-// it to be readable. An explicit --store arg's permissions are left alone,
-// and an already-existing dir (this run didn't create it) is never chmoded.
+// isDefault: flow's own pick gets ensureDefaultStoreDirs (0700, both dirs,
+// unconditionally). An explicit --store arg's permissions are left alone.
 function ensureStoreRepo(store, isDefault) {
-  const stealthDir = path.dirname(store);
   if (isDefault) {
-    const stealthDirExisted = fs.existsSync(stealthDir);
-    fs.mkdirSync(stealthDir, { recursive: true });
-    if (!stealthDirExisted) { try { fs.chmodSync(stealthDir, 0o700); } catch { /* best-effort */ } }
+    ensureDefaultStoreDirs(store);
+  } else {
+    fs.mkdirSync(store, { recursive: true });
   }
-  const storeExisted = fs.existsSync(store);
-  fs.mkdirSync(store, { recursive: true });
-  if (isDefault && !storeExisted) { try { fs.chmodSync(store, 0o700); } catch { /* best-effort */ } }
   let realStore = store;
   try { realStore = fs.realpathSync(store); } catch { /* keep as-is */ }
   const top = git(store, ['rev-parse', '--show-toplevel']);
@@ -319,6 +318,29 @@ function ensureStoreRepo(store, isDefault) {
   if (realTop !== realStore) spawnSync('git', ['init', '-q', store], { encoding: 'utf8', timeout: 10000 });
   fs.mkdirSync(path.join(store, '.specs'), { recursive: true });
   appendMissingLines(path.join(store, '.specs', '.gitignore'), ['.current', '.next-call-count']);
+}
+
+// storeSpecsInsideRootMessage(store, root) -> null | error message. A
+// symlink ONE HOP below what resolveStore/symlinkState already validated
+// (<store>/.specs itself pointing back in-tree) defeats their lexical
+// "outside the repo" checks. Resolve where <store>/.specs REALLY lands,
+// fully, before any mutation.
+function storeSpecsInsideRootMessage(store, root) {
+  const storeSpecs = path.join(store, '.specs');
+  let storeSpecsExists = false;
+  try { fs.lstatSync(storeSpecs); storeSpecsExists = true; } catch { storeSpecsExists = false; }
+  let storeSpecsReal;
+  if (storeSpecsExists) {
+    try { storeSpecsReal = fs.realpathSync(storeSpecs); } catch { storeSpecsReal = storeSpecs; }
+  } else {
+    storeSpecsReal = canonicalizeExisting(storeSpecs);
+  }
+  let rroot;
+  try { rroot = fs.realpathSync(root); } catch { rroot = root; }
+  const insideRoot = (r) => storeSpecsReal === r || storeSpecsReal.startsWith(r + path.sep);
+  if (!insideRoot(root) && !insideRoot(rroot)) return null;
+  return `${storeSpecs} resolves inside this repo (${storeSpecsReal}) — stealth would keep the specs in-tree\n`
+    + '  fix: point the store at a location whose .specs is not itself linked back into this repo';
 }
 
 function runSetup(argv, root, stdout, stderr, env) {
@@ -340,13 +362,24 @@ function runSetup(argv, root, stdout, stderr, env) {
   store = state.store;
   const alreadyLinked = state.alreadyLinked;
 
-  const moveErr = applyPendingMove(state.pendingMove, state.cleanEntries || [], specsLink, store);
+  const insideMsg = storeSpecsInsideRootMessage(store, root);
+  if (insideMsg) { stderr.write(`flow stealth: ${insideMsg}\n`); return 1; }
+
+  const moveErr = applyPendingMove(state.pendingMove, state.cleanEntries || [], specsLink, store, isDefault);
   if (moveErr) { stderr.write(`flow stealth: ${moveErr}\n`); return 1; }
 
   ensureStoreRepo(store, isDefault);
   if (!alreadyLinked) fs.symlinkSync(path.join(store, '.specs'), specsLink);
   excludeLocally(root, ['.specs', '.claude/', 'CLAUDE.local.md', 'PROGRESS.md', 'REVIEW.md']);
   const warnings = writeHooks(root, store);
+
+  // Final guard, a backstop that should be unreachable: everything above
+  // says stealth took — confirm detect() actually agrees before telling the
+  // caller it's on.
+  if (!detect(root).active) {
+    stderr.write('flow stealth: stealth did not take effect\n');
+    return 1;
+  }
 
   stdout.write(`flow: stealth on${alreadyLinked ? ' (already)' : ''} — specs live in ${store}/.specs (a private git repo)\n`);
   stdout.write(`  linked  .specs -> ${store}/.specs (hidden by .git/info/exclude)\n`);
