@@ -1,4 +1,4 @@
-# 16 — Specs in repos that must not see them, 2026
+# 17 — Specs in repos that must not see them, 2026
 
 How to run flow — `.specs/NNN-slug/`, `TASKS.md`, gates, `PASS-<sha>.md`, the adversary and `no-slop` — on a repo where the spec may be neither **committed** (public OSS, a client's repo, an upstream contribution) nor **referenced** (no "per spec 004", no link to a private doc in a commit, comment or PR). Written 16 September 2026 from three parallel reads: flow's own source (every place that assumes `.specs/` is in-tree or tracked), a web sweep of how spec/plan tools handle out-of-repo storage, and a sweep of what OSS maintainers accept from agent-built PRs. The recommended setup was then built and run end to end on a throwaway repo (§3).
 
