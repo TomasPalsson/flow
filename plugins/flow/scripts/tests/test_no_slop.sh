@@ -246,3 +246,66 @@ t_noslop_slop_check_is_executable() {
 		_fail "scripts/slop-check is executable" "not executable: $SLOP_CHECK"
 	fi
 }
+
+# ---------------------------------------------------------------------------
+# NS-17 — complexity growth only fires for a function that already existed
+# at base, grew, and ended above the limit; new functions and untouched or
+# simplified functions stay silent (ImpactGate: growing already-complex code
+# costs more than adding new code).
+# ---------------------------------------------------------------------------
+
+# gen_fn <name> <n-if-branches> — an n-branch if-ladder function; CC = n + 1.
+gen_fn() {
+	python3 -c '
+import sys
+name, n = sys.argv[1], int(sys.argv[2])
+lines = [f"def {name}(x):"]
+for i in range(n):
+    lines.append(f"    if x == {i}:")
+    lines.append(f"        return {i}")
+lines.append("    return -1")
+print("\n".join(lines))
+' "$1" "$2"
+}
+
+t_noslop_ns17_flags_growth_in_existing_function_only() {
+	command -v uvx >/dev/null || return 0
+	local d
+	d=$(tmp_dir)
+	git -C "$d" init -q
+	git -C "$d" config user.email "fixture@example.com"
+	git -C "$d" config user.name "no-slop fixture"
+	git -C "$d" config commit.gpgsign false
+	mkdir -p "$d/src"
+	{
+		gen_fn grows 8      # CC 9 at base
+		echo
+		gen_fn stays_big 14 # CC 15, never touched
+		echo
+		gen_fn shrinks 11   # CC 12 at base
+	} >"$d/src/calc.py"
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "base: calc.py"
+	git -C "$d" tag base
+	{
+		gen_fn grows 11     # CC 12: grows past the limit
+		echo
+		gen_fn stays_big 14 # unchanged
+		echo
+		gen_fn shrinks 10   # CC 11: shrank, still above the limit but must not fire
+		echo
+		gen_fn fresh 3      # new function, CC 4
+		echo
+		gen_fn fresh_big 11 # new function, CC 12: new, must not fire
+	} >"$d/src/calc.py"
+	git -C "$d" add -A
+	git -C "$d" commit -q -m "head: calc.py"
+
+	run_cmd bash -c 'cd "$1" && python3 -c "import sys; sys.path.insert(0, sys.argv[1]); import slop_diff, slop_tools; a,_,_ = slop_diff.parse_diff(\".\", \"base\", \"HEAD\", [\"*.py\"]); print(slop_tools.run_lizard(\".\", \"base\", list(a), a))" "$2"' _ "$d" "$SKILL_DIR/scripts"
+	assert_contains "$OUT" "NS-17" "run_lizard flags NS-17"
+	assert_contains "$OUT" "grows" "NS-17 names the grown function"
+	assert_contains "$OUT" "9->12" "NS-17 reports the CC before->after"
+	assert_not_contains "$OUT" "stays_big" "NS-17 stays silent on an untouched function"
+	assert_not_contains "$OUT" "shrinks" "NS-17 stays silent on a function that got simpler"
+	assert_not_contains "$OUT" "fresh" "NS-17 stays silent on new functions"
+}
