@@ -150,6 +150,14 @@ function resolveFeature(root, branch, env) {
     if (hit) return { dirs, slug: hit, via: '$FLOW_SPEC' };
     return { dirs, slug: null, via: '$FLOW_SPEC', miss: e.FLOW_SPEC.trim() };
   }
+  // Stealth: .specs/.current lives in the store and is shared by every
+  // worktree through the link, so a worktree on flow/<slug> would otherwise
+  // route to whatever feature another worktree last made current. The
+  // branch wins here only when it names a real feature dir.
+  if (/^flow\//.test(branch || '') && require('./stealth.js').detect(root).active) {
+    const hit = matchSlug(dirs, branch.replace(/^flow\//, ''));
+    if (hit) return { dirs, slug: hit, via: `branch ${branch} (stealth)` };
+  }
   const cur = safeRead(path.join(specsDir, '.current'));
   if (cur !== null) {
     const want = cur.split('\n')[0].trim();
@@ -290,6 +298,27 @@ function prNumber(root, branch) {
 // route(root, ctx, opts) — the state machine
 // ─────────────────────────────────────────────────────────────────────────────
 
+// danglingStealthLink(st, specsDir) -> a scan-failed result when a stealth
+// link's store is gone (featureDirs maps that ENOENT to `[]`, which would
+// otherwise silently route no-project), else null.
+function danglingStealthLink(st, specsDir) {
+  if (!st.active || fs.existsSync(specsDir)) return null;
+  return mk('scan-failed', 'flow doctor',
+    `STOP: .specs links to ${st.store}/.specs, which does not exist — restore the store or re-run flow stealth ${st.store}`);
+}
+
+// withStealthHint(r, st, root) -> r, with the no-project stealth suggestion
+// appended when this repo looks public and is not already stealth.
+function withStealthHint(r, st, root) {
+  if (st.active) return r;
+  const reasons = require('./stealth.js').publicSignals(root);
+  if (!reasons.length) return r;
+  r.stealth.suggest = true;
+  r.stealth.reasons = reasons;
+  r.why += ` · this repo looks public (${reasons.join(', ')}) — /flow:spec --stealth keeps the specs out of it`;
+  return r;
+}
+
 function mk(state, command, why, extra) {
   return Object.assign({
     state,
@@ -308,6 +337,7 @@ function route(root, ctx, opts) {
   const env = o.env || process.env;
   const branch = ctx.branch || '';
   const specsDir = path.join(root, '.specs');
+  const st = require('./stealth.js').detect(root);
   const gates = {
     blocked: false,
     lint_error: false,
@@ -317,6 +347,7 @@ function route(root, ctx, opts) {
   };
   const done = (r) => {
     r.gates = gates;
+    r.stealth = { active: st.active, store: st.store, suggest: false, reasons: [] };
     return r;
   };
 
@@ -328,6 +359,8 @@ function route(root, ctx, opts) {
     return done(mk('scan-failed', 'flow doctor',
       `STOP: cannot read ${specsDir} (${found.error}) — refusing to report clean`));
   }
+  const dangling = danglingStealthLink(st, specsDir);
+  if (dangling) { gates.scan_failed = true; return done(dangling); }
   const dirs = found.dirs;
 
   // ── 1a · blocked. A presence test no fenced example or quoted Ruling: can fake.
@@ -358,7 +391,7 @@ function route(root, ctx, opts) {
     // rather than reporting "nothing unchecked anywhere" at someone who is
     // three seconds into a feature.
     if (dirs.length === 0) {
-      return done(mk('no-project', '/flow:spec', 'nothing in flight — no .specs/NNN-slug/ on disk'));
+      return withStealthHint(done(mk('no-project', '/flow:spec', 'nothing in flight — no .specs/NNN-slug/ on disk')), st, root);
     }
     if (activeSlug) {
       return done(mk('no-project', '/flow:spec',

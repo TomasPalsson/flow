@@ -16,6 +16,11 @@ function gh(root, args) {
 
 function run(argv, root, io, env) {
   const { stdout, stderr } = io;
+  const st = require('./stealth.js').detect(root);
+  if (st.active) {
+    stderr.write(`flow publish: stealth mode — issues would name the private tasks in public\n  fix: nothing to do; the tasks stay in ${st.store}\n`);
+    return 1;
+  }
   const dry = argv.includes('--dry-run');
   const resolved = resolveFeature(root, '', env);
   if (!resolved.slug) {

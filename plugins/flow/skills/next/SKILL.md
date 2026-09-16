@@ -1,6 +1,6 @@
 ---
 name: next
-description: "The only build verb. Reads `flow next --json`, does exactly the one thing that state names, and stops: draft TASKS.md, build one wave of tasks through fresh developer subagents, run a phase's independent test, run the gates and write PASS-<sha>.md, open or promote the PR, archive a merged feature. Every turn ends with a /clear recommendation, and position is recomputed from disk so /clear, a crash or a compaction self-heals. Use WHENEVER a feature directory is current (`.specs/.current`) and the user says /flow:next, \"next\", \"keep building\", \"continue the build\", \"what's next\", \"keep going\", \"continue from where we left off\", \"ship it\" — even when the next task looks small enough to do directly; the router, not you, decides what one thing happens. Flags: --force, --escalate, --qa, --unattended. Not for opening a feature (that is /flow:spec) and not for a bug (/flow:fix)."
+description: "The only build verb. Reads `flow next --json`, does exactly the one thing that state names, and stops: draft TASKS.md, build one wave of tasks through fresh developer subagents, run a phase's independent test, run the gates and write PASS-<sha>.md, open or promote the PR, archive a merged feature. Every turn ends with a /clear recommendation, and position is recomputed from disk so /clear, a crash or a compaction self-heals. Use WHENEVER a feature directory is current (`.specs/.current`) and the user says /flow:next, \"next\", \"keep building\", \"continue the build\", \"what's next\", \"keep going\", \"continue from where we left off\", \"ship it\" — even when the next task looks small enough to do directly; the router, not you, decides what one thing happens. Flags: --force, --escalate, --qa, --unattended, --stealth. Not for opening a feature (that is /flow:spec) and not for a bug (/flow:fix)."
 ---
 
 # /flow:next — do the one thing
@@ -77,6 +77,19 @@ All `T###` done, `G###` open:
 
 `shipped` and merged → archive with `git mv .specs/<NNN-slug> .specs/archive/<YYYY-MM-DD>-<NNN-slug>` and append the `LEDGER.md` line. When `TASKS.md` carried an `Issue:` line, this is also the one place moment 2 fires — post the shipped comment and close the issue per [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md) §4, marker checked first. Never close an issue whose feature did not merge. An atomic directory move has no field to desync, so "shipped" cannot be faked or forgotten.
 
+In stealth, §Stealth below changes the push name, the PR body and the archive.
+
+## Stealth
+
+Read `stealth` from `flow next --json`; when `active`:
+
+1. No `.specs/` paths, task/gate ids, spec numbers, `PASS-` names or `Ruling:` labels in commit messages, code comments, test names, the PR title/body or a pushed branch name. The `commit-msg` hook refuses the message; the rest is on you. When `stealth.hooks` is `false` the hooks are not running — run `flow stealth` and follow its `warn:` line before the next commit. Tell every developer subagent its commit message describes the change, never the task id.
+2. `flow tick` also commits the store so `flow lint` keeps catching a deleted task; if it prints `store not committed`, commit the store by hand.
+3. Gates run the project's own test/lint commands; `PASS-<sha>.md` and `verify/` land in the store as usual.
+4. Ship: read CONTRIBUTING.md and any AI policy first; push under a plain name (`git push -u origin HEAD:<plain-name>`, `gh pr create --head <plain-name>`); the PR body carries each `Ruling:` reworded as plain rationale for the maintainers, not as labelled lines.
+5. Archive with `mv`, not `git mv` (the directory is in the store), then commit the store.
+6. Never `flow publish` — it refuses in stealth anyway.
+
 ## Flags
 
 | Flag | Effect |
@@ -85,6 +98,7 @@ All `T###` done, `G###` open:
 | `--escalate` | Ratchet the route up (`bounded` → `oneshot` → `dispatch`) and rewrite the header. One-way; a downgrade needs `--force` and a `Ruling:` line. |
 | `--qa` | Run the `qa` skill as an extra gate. |
 | `--unattended` | Auto-resolve DECISION gates on the recommendation already stated, recording each as an Assumption. It resolves decisions, **never evidence**: exit codes, the re-run `verify:`, browser evidence and the `verify/` artifacts are identical in both modes. The verification gate is **deferred, not skipped** — the PR stays draft. The `.next-call-count` gate is what bounds the loop. |
+| `--stealth` | Run `flow stealth` first (moves an untracked `.specs/` into a private store), then route as usual. Stealth is read from disk after that; the flag is never needed twice. |
 
 ## Ending the turn
 

@@ -207,6 +207,71 @@ t_spec_gate_branch_resolves_the_feature_without_a_pointer() {
 	rm -rf "$repo"
 }
 
+# Stealth: .specs is a symlink into a separate store repo, shared by every
+# worktree. flow/<slug> has to outrank .specs/.current there, or a worktree
+# routes to whatever feature another worktree last made current; $FLOW_SPEC
+# still outranks the branch.
+t_spec_gate_stealth_branch_wins_over_shared_current() {
+	local repo store scripts base
+	scripts=$(_spec_scripts_dir)
+	repo=$(tmp_repo)
+	store=$(tmp_repo)
+	mkdir -p "$store/.specs"
+	ln -s "$store/.specs" "$repo/.specs"
+	git -C "$repo" checkout -qb flow/x
+	mkdir -p "$repo/src"
+	_spec_approved_tasks "$repo"
+	base=$(git -C "$repo" rev-parse --short HEAD)
+	mkdir -p "$repo/.specs/002-y"
+	{
+		printf '# Tasks — Y\n'
+		printf 'Spec: spec.md · Design: none · Base: %s · Route: oneshot · Test: `true`\n' "$base"
+		printf 'Approved: 2026-01-01 by user\n\n'
+		printf '## Phase 1 — Y\nGoal: y.\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 y — files: src/y.ts\n'
+	} >"$repo/.specs/002-y/TASKS.md"
+	printf '002-y\n' >"$repo/.specs/.current"
+
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_stealth_branch_wins_over_shared_current branch-wins-allows"
+
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts" FLOW_SPEC="002-y"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_spec_gate_stealth_branch_wins_over_shared_current flow-spec-still-outranks-branch"
+	assert_contains "$OUT" ".specs/002-y/TASKS.md" "t_spec_gate_stealth_branch_wins_over_shared_current names-the-flow-spec-file"
+	rm -rf "$repo" "$store"
+}
+
+# R4 — a branch slug must match a feature dir's NNN- stripped name EXACTLY,
+# not any directory ending in "-<slug>" (flow/login must not pick
+# 001-auth-login over 002-login).
+t_spec_gate_branch_slug_matches_exact_nnn_prefix() {
+	local repo scripts base
+	scripts=$(_spec_scripts_dir)
+	repo=$(tmp_repo)
+	git -C "$repo" checkout -qb flow/login
+	mkdir -p "$repo/src" "$repo/.specs/001-auth-login" "$repo/.specs/002-login" "$repo/.specs/003-other"
+	base=$(git -C "$repo" rev-parse --short HEAD)
+	(
+		cd "$repo" || exit 1
+		{
+			printf '# Tasks — auth-login\n'
+			printf 'Spec: spec.md · Design: none · Base: %s · Route: oneshot · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: p.\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 p — files: src/a.ts\n'
+		} >.specs/001-auth-login/TASKS.md # deliberately UNAPPROVED — a wrong resolve to this dir would deny
+		{
+			printf '# Tasks — login\n'
+			printf 'Spec: spec.md · Design: none · Base: %s · Route: oneshot · Test: `true`\n' "$base"
+			printf 'Approved: 2026-01-01 by user\n\n'
+			printf '## Phase 1 — p\nGoal: p.\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 p — files: src/a.ts — verify: `true`\n'
+		} >.specs/002-login/TASKS.md
+	)
+	run_hook "$SCAN_DIR/spec-gate.sh" "{\"tool_input\":{\"file_path\":\"$repo/src/a.ts\"}}" CLAUDE_PROJECT_DIR="$repo" CC_SCRIPTS_DIR="$scripts"
+	assert_eq "$OUT" "" "t_spec_gate_branch_slug_matches_exact_nnn_prefix: flow/login resolves 002-login (approved), allows the edit"
+	rm -rf "$repo"
+}
+
 # Nothing in the hooks may name .claude/feature-plan.local.md any more (K-E 4).
 t_spec_gate_hooks_never_name_the_old_plan_file() {
 	local hits

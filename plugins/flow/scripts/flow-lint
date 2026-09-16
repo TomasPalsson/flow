@@ -74,28 +74,71 @@ done
 TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null || true)
 
 # ---------- resolve the active TASKS.md the way the router does ----------
+
+# _rf_is_stealth <root> — rc 0 when <root>/.specs is a symlink whose physical
+# target is outside <root>'s own physical path (docs/research/16-stealth-
+# specs-2026.md §0/§3): a private store, not an in-tree directory.
+_rf_is_stealth() {
+  [ -L "$1/.specs" ] || return 1
+  local rootp specsp
+  rootp=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+  specsp=$(cd "$1/.specs" 2>/dev/null && pwd -P) || return 1
+  case "$specsp" in
+  "$rootp"/*) return 1 ;;
+  esac
+  return 0
+}
+
+# _rf_slug_exists <root> <slug> — rc 0 when <slug> names a .specs/ feature
+# dir, exactly or with its NNN- prefix stripped (the same match below).
+# [0-9][0-9][0-9]-$slug, not *-$slug: flow/login must match 002-login, not
+# 001-auth-login (the router's own match is d.slice(4) === slug — an EXACT
+# NNN- prefix strip, not "ends with -slug").
+_rf_slug_exists() {
+  [ -d "$1/.specs/$2" ] && return 0
+  local d
+  for d in "$1"/.specs/[0-9][0-9][0-9]-"$2"; do
+    [ -d "$d" ] && return 0
+  done
+  return 1
+}
+
 resolve_file() {
   [ -n "$FILE" ] && return 0
-  local root=${TOPLEVEL:-.} slug=""
+  local root=${TOPLEVEL:-.} slug="" br bslug
   if [ -n "${FLOW_SPEC:-}" ]; then
     slug=$FLOW_SPEC
-  elif [ -f "$root/.specs/.current" ]; then
-    slug=$(head -1 "$root/.specs/.current" | tr -d '\r' | tr -d '[:space:]')
   else
-    local br
-    br=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    case "$br" in
-    flow/*) slug=${br#flow/} ;;
-    esac
+    # Stealth: .specs/.current lives in the store and is shared by every
+    # worktree through the link, so flow/<slug> has to outrank it here or a
+    # worktree routes to whatever feature another worktree last made current.
+    if _rf_is_stealth "$root"; then
+      br=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+      case "$br" in
+      flow/*)
+        bslug=${br#flow/}
+        _rf_slug_exists "$root" "$bslug" && slug=$bslug
+        ;;
+      esac
+    fi
+    if [ -z "$slug" ] && [ -f "$root/.specs/.current" ]; then
+      slug=$(head -1 "$root/.specs/.current" | tr -d '\r' | tr -d '[:space:]')
+    fi
+    if [ -z "$slug" ]; then
+      br=${br:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)}
+      case "$br" in
+      flow/*) slug=${br#flow/} ;;
+      esac
+    fi
   fi
   [ -z "$slug" ] && return 1
   if [ -f "$root/.specs/$slug/TASKS.md" ]; then
     FILE="$root/.specs/$slug/TASKS.md"
     return 0
   fi
-  # branch slug may omit the NNN- prefix
+  # branch slug may omit the NNN- prefix — match it exactly, not "ends with"
   local d
-  for d in "$root"/.specs/*-"$slug"; do
+  for d in "$root"/.specs/[0-9][0-9][0-9]-"$slug"; do
     if [ -f "$d/TASKS.md" ]; then
       FILE="$d/TASKS.md"
       return 0
@@ -695,34 +738,51 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
 fi
 
 # ---------- ID-vanish diff against HEAD: ----------
-if [ "$GIT_OK" -eq 1 ]; then
+# In stealth, $FILE physically lives in another git repo (the store): the
+# check must join against that repo's HEAD, not the target's.
+check_vanished_ids() { # gitdir rel
+  local gitdir=$1 relp=$2 old_ids oid
+  git -C "$gitdir" rev-parse --verify -q HEAD >/dev/null 2>&1 || return 0
+  git -C "$gitdir" cat-file -e "HEAD:$relp" 2>/dev/null || return 0
+  # fence-aware on the HEAD side too: a fenced example in the committed
+  # file was never a task, so its disappearance is not a deletion.
+  old_ids=$(git -C "$gitdir" show "HEAD:$relp" 2>/dev/null | awk '
+    BEGIN { fence = 0 }
+    { line = $0; sub(/\r$/, "", line); sub(/^[ \t]+/, "", line) }
+    line ~ /^```/ || line ~ /^~~~/ { fence = !fence; next }
+    fence { next }
+    line ~ /^- \[[ x~]\] / {
+      sub(/^- \[[ x~]\][ \t]*/, "", line)
+      split(line, w, " ")
+      print w[1]
+    }')
+  for oid in $old_ids; do
+    case "$oid" in
+    T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9] | G[0-9][0-9][0-9]) ;;
+    *) continue ;;
+    esac
+    if ! idx_of "$oid"; then
+      add_err 0 "$oid" "id-vanished" "$oid was in $relp at HEAD and is gone from the working copy" "TASKS.md is append-only: restore $oid and mark it '- [~] $oid … — dropped: <reason>' instead of deleting it"
+    fi
+  done
+}
+
+FILE_PHYSDIR=$(cd "$(dirname "$FILE")" 2>/dev/null && pwd -P || true)
+FILE_TOP=""
+[ -n "$FILE_PHYSDIR" ] && FILE_TOP=$(git -C "$FILE_PHYSDIR" rev-parse --show-toplevel 2>/dev/null || true)
+
+if [ -n "$FILE_TOP" ] && [ "$FILE_TOP" != "$TOPLEVEL" ]; then
+  # stealth: FILE's physical directory is outside the target repo.
+  reldir=${FILE_PHYSDIR#"$FILE_TOP"/}
+  [ "$reldir" = "$FILE_PHYSDIR" ] && reldir=""
+  rel="${reldir:+$reldir/}${FILE##*/}"
+  check_vanished_ids "$FILE_TOP" "$rel"
+elif [ "$GIT_OK" -eq 1 ]; then
   rel=${FILE#"$TOPLEVEL"/}
   case "$rel" in
   /*) rel="" ;;
   esac
-  if [ -n "$rel" ] && git cat-file -e "HEAD:$rel" 2>/dev/null; then
-    # fence-aware on the HEAD side too: a fenced example in the committed
-    # file was never a task, so its disappearance is not a deletion.
-    old_ids=$(git show "HEAD:$rel" 2>/dev/null | awk '
-      BEGIN { fence = 0 }
-      { line = $0; sub(/\r$/, "", line); sub(/^[ \t]+/, "", line) }
-      line ~ /^```/ || line ~ /^~~~/ { fence = !fence; next }
-      fence { next }
-      line ~ /^- \[[ x~]\] / {
-        sub(/^- \[[ x~]\][ \t]*/, "", line)
-        split(line, w, " ")
-        print w[1]
-      }')
-    for oid in $old_ids; do
-      case "$oid" in
-      T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9] | G[0-9][0-9][0-9]) ;;
-      *) continue ;;
-      esac
-      if ! idx_of "$oid"; then
-        add_err 0 "$oid" "id-vanished" "$oid was in $rel at HEAD and is gone from the working copy" "TASKS.md is append-only: restore $oid and mark it '- [~] $oid … — dropped: <reason>' instead of deleting it"
-      fi
-    done
-  fi
+  [ -n "$rel" ] && check_vanished_ids "$TOPLEVEL" "$rel"
 fi
 
 # ---------- header rules ----------

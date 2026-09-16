@@ -82,6 +82,7 @@ CLI slice lands:
 | `flow lint [--waves] [--json]` | Parse the active `TASKS.md`: ERROR/WARN/INFO, every ERROR carrying its own `fix:` string, `[P]` disjointness proved per wave |
 | `flow tick <ID> [--dir <spec-dir>] [--by user]` | The only writer of `[x]` — it measures `git rev-parse --short HEAD` itself |
 | `flow use <NNN-slug>` | Write `.specs/.current` |
+| `flow stealth [<store>] [--check [--offline] [--json]]` | Move an untracked `.specs/` into a private store repo, link it back, hide it in `.git/info/exclude`; `--check` only reports |
 | `flow publish` | Mirror unchecked tasks to GitHub issues. Off the pipeline; only when asked |
 
 ```
@@ -114,9 +115,12 @@ Commands:
   lint [<TASKS.md>] [--json] [--waves]              Check a TASKS.md against the task grammar:
                                                      [P] disjointness per wave, missing verify:,
                                                      ticks that no commit backs
-  tick <ID> [--dir <d>] [--by user]                 The only writer of [x] — measures the sha
-                                                     rather than trusting a claim
+  tick <ID> [--dir <d>] [--by user] [--sha <c>]     The only writer of [x] — records the newest
+                                                     commit since Base touching the task's files:
+                                                     (or --sha), never a claim
   use <NNN-slug>                                    Point .specs/.current at one feature
+  stealth [<store>] [--check [--offline] [--json]]  Move .specs/ into a private store repo
+                                                     outside this one (--check only reports)
   publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
                                                      GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic

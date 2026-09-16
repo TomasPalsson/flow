@@ -303,6 +303,46 @@ t_flowlint_vanished_id_is_error() {
 	rm -rf "$d"
 }
 
+# ---------------------------------------------------------------------------
+# flow-lint — stealth: .specs is a symlink into a separate store repo. Built
+# by hand with git+ln (no dependency on `flow stealth`).
+# ---------------------------------------------------------------------------
+
+_stealth_pair() { # sets $D (target repo) and $STORE (store repo, .specs symlinked from D)
+	D=$(tmp_repo)
+	STORE=$(tmp_repo)
+	(
+		cd "$STORE" || exit 1
+		mkdir -p .specs/001-x
+		base=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — x\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 make a — files: src/a.py — verify: `true`\n'
+			printf '\n## Gates\n- [ ] G001 clean — verify: `true`\n'
+		} >.specs/001-x/TASKS.md
+		git add -A && git commit -qm tasks
+	) >/dev/null 2>&1
+	ln -s "$STORE/.specs" "$D/.specs"
+}
+
+t_flowlint_stealth_store_vanished_id_is_error() {
+	_stealth_pair
+	grep -v 'T001' "$STORE/.specs/001-x/TASKS.md" >t && mv t "$STORE/.specs/001-x/TASKS.md"
+	OUT=$(cd "$D" && bash "$FLOW_LINT" .specs/001-x/TASKS.md 2>&1)
+	assert_contains "$OUT" "id-vanished" "an id deleted from a stealth store's working copy is caught from the target"
+	assert_contains "$OUT" "T001" "the vanished id is named"
+	rm -rf "$D" "$STORE"
+}
+
+t_flowlint_stealth_store_no_deletion_is_ok() {
+	_stealth_pair
+	OUT=$(cd "$D" && bash "$FLOW_LINT" .specs/001-x/TASKS.md 2>&1)
+	assert_not_contains "$OUT" "id-vanished" "nothing deleted in the store means no id-vanished"
+	rm -rf "$D" "$STORE"
+}
+
 t_flowlint_resolves_the_active_feature_from_dot_current() {
 	local d
 	d=$(_lying_repo)
@@ -311,6 +351,99 @@ t_flowlint_resolves_the_active_feature_from_dot_current() {
 	assert_contains "$OUT" '001-x/TASKS.md' "flow-lint with no argument resolves via .specs/.current"
 	OUT=$(cd "$d/src" && bash "$FLOW_LINT" --json 2>&1)
 	assert_contains "$OUT" '001-x/TASKS.md' "the same resolution happens from a subdirectory"
+	rm -rf "$d"
+}
+
+t_flowlint_stealth_branch_wins_over_shared_current() {
+	local d store base
+	d=$(tmp_repo)
+	store=$(tmp_repo)
+	(
+		cd "$store" || exit 1
+		mkdir -p .specs/001-x .specs/002-y
+		base=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — x\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 make a — files: src/a.py — verify: `true`\n'
+		} >.specs/001-x/TASKS.md
+		{
+			printf '# Tasks — y\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 make b — files: src/b.py — verify: `true`\n'
+		} >.specs/002-y/TASKS.md
+		git add -A && git commit -qm tasks
+	) >/dev/null 2>&1
+	ln -s "$store/.specs" "$d/.specs"
+	printf '002-y\n' >"$d/.specs/.current"
+	(cd "$d" && git checkout -qb flow/x) >/dev/null 2>&1
+
+	OUT=$(cd "$d" && bash "$FLOW_LINT" --json 2>&1)
+	assert_contains "$OUT" '001-x/TASKS.md' "stealth: branch flow/x outranks .specs/.current=002-y"
+	rm -rf "$d" "$store"
+}
+
+# R4 — a branch slug must match a feature dir's NNN- stripped name EXACTLY.
+# flow/login used to resolve to 001-auth-login (matched by the *-$slug glob)
+# instead of 002-login (the real match); the fix is [0-9][0-9][0-9]-$slug.
+t_flowlint_branch_slug_matches_exact_nnn_prefix() {
+	local d base
+	d=$(tmp_repo)
+	(
+		cd "$d" || exit 1
+		mkdir -p .specs/001-auth-login .specs/002-login .specs/003-other
+		base=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — auth-login\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 do it — files: a.py — verify: `true`\n'
+		} >.specs/001-auth-login/TASKS.md
+		{
+			printf '# Tasks — login\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T009 do it — files: a.py\n' # no verify: — a distinct ERROR only 002-login has
+		} >.specs/002-login/TASKS.md
+		{
+			printf '# Tasks — other\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 do it — files: a.py — verify: `true`\n'
+		} >.specs/003-other/TASKS.md
+		git add -A && git commit -qm tasks
+		git checkout -qb flow/login
+	) >/dev/null 2>&1
+	OUT=$(cd "$d" && bash "$FLOW_LINT" --json 2>&1)
+	assert_contains "$OUT" '002-login/TASKS.md' "branch flow/login resolves 002-login, not 001-auth-login (exact NNN- match)"
+	assert_contains "$OUT" 'T009 has no verify' "the ERROR planted only in 002-login is present, proving it was linted"
+	rm -rf "$d"
+}
+
+# R5 — a present-but-blank .current is not a decision: it falls through to
+# the branch, matching router.js and specgate.sh (both guard the miss with
+# `if (want)` / `[ -n ... ]`). Pinning round 1's fix.
+t_flowlint_blank_current_falls_through_to_branch() {
+	local d base
+	d=$(tmp_repo)
+	(
+		cd "$d" || exit 1
+		mkdir -p .specs/001-aaa
+		base=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — aaa\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [ ] T001 do it — files: a.py — verify: `true`\n'
+		} >.specs/001-aaa/TASKS.md
+		: >.specs/.current # present but blank
+		git add -A && git commit -qm tasks
+		git checkout -qb flow/aaa
+	) >/dev/null 2>&1
+	OUT=$(cd "$d" && bash "$FLOW_LINT" --json 2>&1)
+	assert_contains "$OUT" '001-aaa/TASKS.md' "a present-but-blank .current falls through to the branch, not a resolve failure"
 	rm -rf "$d"
 }
 

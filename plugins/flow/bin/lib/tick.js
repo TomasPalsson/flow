@@ -23,6 +23,59 @@ function git(root, args) {
   return { ok: r.status === 0, out: (r.stdout || '').trim() };
 }
 
+// commitStoreAfterTick(root, featureDir, slug, id, sha, stdout) — when the
+// feature dir lives outside this repo (stealth), commit the tick there too
+// so flow lint keeps being able to catch a deleted task. Never changes
+// tick's own exit code; a non-stealth tick calls this and it is a no-op —
+// and prints NOTHING, so a non-stealth tick's output stays byte-identical.
+//
+// Commit only when detect(root).active AND the feature dir's own git
+// toplevel really IS detect(root).store — `git -C <dir> rev-parse
+// --git-dir` succeeds for any dir inside SOME repo, so without this check a
+// store nested under an outer repo (HOME as a dotfiles repo) would commit
+// the private specs into that outer repo instead.
+function commitStoreAfterTick(root, featureDir, slug, id, sha, stdout) {
+  const st = require('./stealth.js').detect(root);
+  if (!st.active) return;
+
+  let realFeatureDir = featureDir;
+  try { realFeatureDir = fs.realpathSync(featureDir); } catch { /* keep as-is */ }
+
+  const top = git(realFeatureDir, ['rev-parse', '--show-toplevel']);
+  if (!top.ok) {
+    stdout.write(`flow: store not committed (${realFeatureDir} is not a git repo) — commit it by hand so flow lint can catch a deleted task\n`);
+    return;
+  }
+  let realStoreTop = top.out;
+  try { realStoreTop = fs.realpathSync(realStoreTop); } catch { /* keep as-is */ }
+  let realStore = st.store;
+  try { realStore = fs.realpathSync(realStore); } catch { /* keep as-is */ }
+  if (realStoreTop !== realStore) {
+    stdout.write(`flow: store not committed (store is not its own git repo) — commit ${realStoreTop} by hand so flow lint can catch a deleted task\n`);
+    return;
+  }
+
+  const storeTop = realStoreTop;
+  const added = git(storeTop, ['add', '-A', '--', realFeatureDir]);
+  if (!added.ok) {
+    stdout.write(`flow: store not committed (git add failed in ${storeTop}) — commit ${storeTop} by hand so flow lint can catch a deleted task\n`);
+    return;
+  }
+  const diff = spawnSync('git', ['-C', storeTop, 'diff', '--cached', '--quiet'], { encoding: 'utf8', timeout: 15000 });
+  if (diff.status !== 1) {
+    stdout.write(`flow: store not committed (nothing staged in ${storeTop}) — commit ${storeTop} by hand so flow lint can catch a deleted task\n`);
+    return;
+  }
+  // Pathspec: pre-staged unrelated store files (another feature dir mid-edit)
+  // must not be swept into this commit.
+  const commit = git(storeTop, ['commit', '-q', '-m', `${slug}: ${id} done at ${sha}`, '--', realFeatureDir]);
+  if (!commit.ok) {
+    stdout.write(`flow: store not committed (git commit failed in ${storeTop}) — commit ${storeTop} by hand so flow lint can catch a deleted task\n`);
+    return;
+  }
+  stdout.write(`flow: store committed (${storeTop})\n`);
+}
+
 // Which commit a tick records. `--sha` wins once verified; otherwise the newest
 // commit since Base that touched the task's files:. None → HEAD, and
 // flow-lint's done-touches-nothing says why.
@@ -113,6 +166,7 @@ function run(argv, root, io, env) {
   lines[hit] = lines[hit].replace(/^- \[ \]/, '- [x]').replace(/\s*$/, '') + suffix;
   fs.writeFileSync(tasksPath, lines.join('\n'));
   resetCount(root);
+  commitStoreAfterTick(root, featureDir, path.basename(featureDir), id, sha, stdout);
   stdout.write(`flow: ${id} ticked at ${sha} (${path.relative(root, tasksPath)})\n`);
   return 0;
 }

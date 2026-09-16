@@ -1,6 +1,6 @@
 ---
 name: spec
-description: "The only door into a flow build: compute the route (bounded | oneshot | dispatch) from intent gaps, irreversibles and footprint, run ONE batched discovery turn of pre-answered assumptions, write only the artifacts that route needs (nothing, TASKS.md, or spec.md + TASKS.md + design.md), point .specs/.current at it and lint it. Triggers: /flow:spec, \"spec this\", \"write a spec for\", \"build me X\", PRD, requirements doc, design doc, acceptance criteria, \"how should this be structured\". Flags: --amend \"<change>\", --interview, --unattended. Not for building it (that is /flow:next), not for a bug (/flow:fix)."
+description: "The only door into a flow build: compute the route (bounded | oneshot | dispatch) from intent gaps, irreversibles and footprint, run ONE batched discovery turn of pre-answered assumptions, write only the artifacts that route needs (nothing, TASKS.md, or spec.md + TASKS.md + design.md), point .specs/.current at it and lint it. Triggers: /flow:spec, \"spec this\", \"write a spec for\", \"build me X\", PRD, requirements doc, design doc, acceptance criteria, \"how should this be structured\". Flags: --amend \"<change>\", --interview, --unattended, --stealth. Not for building it (that is /flow:next), not for a bug (/flow:fix)."
 ---
 
 # /flow:spec — the only door
@@ -56,11 +56,18 @@ Two items are never dropped: the negative-scope position (what this will NOT do)
 
 **`bounded`** — no directory, no spec file. Print the plan in chat (what changes, the test that proves it, the one risk), ask **"Go?"**, and stop. After it lands, append one line to `.specs/LEDGER.md`: `<date> bounded — <title> — <sha>`.
 
-**`oneshot` and `dispatch`** — allocate the directory with `${CLAUDE_PLUGIN_ROOT}/scripts/new-spec "<Title>" --dir .specs --current` (add `--reuse .specs/NNN-<slug>` when the PREP.md gate fired; never allocate a second number for a prepped feature). Then:
+**`oneshot` and `dispatch`** — allocate the directory with `${CLAUDE_PLUGIN_ROOT}/scripts/new-spec "<Title>" --dir .specs --current` — after §4a's `flow stealth` when `--stealth` was passed or its position was accepted — (add `--reuse .specs/NNN-<slug>` when the PREP.md gate fired; never allocate a second number for a prepped feature). Then:
 
 - `dispatch` only: write `spec.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/spec.md`](../../flow-templates/spec.md) — ~110 lines, every placeholder filled from the discovery turn or recorded as an Assumption. When the PREP.md gate fired, **write `spec.md` beside** that `PREP.md`, in its directory. No technology names in §4; those belong in `design.md`.
 - `dispatch` only, and only when the seam trigger fires — two or more tasks share a name, an id type, an error shape, a module boundary or a resource — read [`references/design.md`](references/design.md) in full and write `design.md`. One task, or no shared seam: skip it and write `Design: none` in the header. Never paste any of `design.md` into a task agent but its own `## Contract` block.
 - both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it.
+
+## 4a. Stealth — specs this repo must never see
+
+- `--stealth`: before `new-spec`, run `flow stealth` (idempotent, once per clone). It moves any untracked `.specs/` into a private store repo outside the target, links it back, hides it in `.git/info/exclude`, and installs a `post-checkout` hook (re-links in new worktrees) and a `commit-msg` hook (blocks spec vocabulary). Nothing else in the skill changes; `flow next` detects stealth from disk, so the flag is never needed again.
+- Suggesting it: on `oneshot`/`dispatch`, when no `.specs/` exists yet, run `flow stealth --check --json`. When `suggest` is true, the discovery turn carries a stated position: `N. Stealth: this repo looks public (<reasons>) — the specs will live in a private store outside it. Reply N to keep them in-tree.` Silence accepts → run `flow stealth` before `new-spec`. `flow next`'s no-project `Why:` names the same hint.
+- `bounded` writes no directory, so there is nothing to hide — only the no-leak rule applies.
+- When stealth is active (`flow next --json` → `stealth.active`): never write `.specs/` paths, `T###`/`CHK###`/`G###` ids, spec numbers or `Ruling:` labels into anything the target repo keeps.
 
 ## 5. Judge — dispatch only, one pass
 
@@ -98,3 +105,4 @@ Then `flow lint` and the `Next:` line as in §6.
 - **NEVER** re-ask a decision recorded as a `D-NN` in PREP.md — the user already made it, a second answer silently forks the record, and re-asking teaches them the file is decorative.
 - **NEVER** hand off to GitHub issues. Work items live in `TASKS.md`; `flow publish` mirrors them only when someone asks.
 - **NEVER** end without the router's `Next:` line. A spec whose next step lives only in this transcript does not survive `/clear`.
+- **NEVER** commit, link or name a spec in a repo where `stealth.active` is true (the hook catches the commit message; code comments, test names and PR text are on you).

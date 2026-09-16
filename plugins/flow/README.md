@@ -16,6 +16,7 @@ Two slash commands, and the CLI they lean on. There is no third door.
 | `flow lint [--waves] [--json]` | Parses `TASKS.md`: ERROR/WARN/INFO, each ERROR with its own `fix:` string, `[P]` disjointness proved per wave. |
 | `flow tick <ID>` | The only writer of `[x]`. Measures the sha itself. |
 | `flow use <NNN-slug>` | Writes `.specs/.current`. Only needed with two features open. |
+| `flow stealth [<store>] [--check [--offline] [--json]]` | Moves an untracked `.specs/` into a private store repo outside the target, links it back, hides it in `.git/info/exclude`, installs `post-checkout`/`commit-msg` hooks. `--check` only reports. |
 | `flow publish` | Optional leaf: mirror unchecked tasks to GitHub issues. Never called by the pipeline. |
 | `flow statusline [--install\|--print]` | Cached, read-only mirror of `flow next --peek` for Claude Code's `statusLine` hook. Never blocks a render; `--install` wires it into `~/.claude/settings.json`, `--print` hands you the snippet instead. |
 
@@ -28,6 +29,15 @@ five fields a spec needs — never fixed inline. An issue reference (`143`,
 `/flow:spec` and `/flow:fix`: the body and every comment become discovery
 input. Flow writes back exactly twice — picked up, and shipped — per
 `skills/shared/issue-refs.md`. GitHub is never a routing predicate.
+
+### Stealth mode
+
+For a public or client repo where the spec itself must not ship: `/flow:spec
+--stealth` (or `flow stealth` by hand, once per clone) moves `.specs/` into a
+private git repo outside the target, links it back as an untracked symlink,
+and hooks re-link it in new worktrees while blocking spec vocabulary from
+commit messages. Nothing is saved as config — `flow next` detects stealth
+from disk on every call, so every other command behaves exactly as before.
 
 ## State on disk — six files, no transcript
 

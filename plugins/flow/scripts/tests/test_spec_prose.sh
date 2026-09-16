@@ -196,3 +196,20 @@ t_v8_spec_documents_its_three_flags() {
 	assert_contains "$content" '## 7. `--amend "<change>"`' \
 		"spec/SKILL.md documents --amend"
 }
+
+# ---------------------------------------------------------------------------
+# spec/SKILL.md: stealth mode (--stealth, flow stealth --check)
+# ---------------------------------------------------------------------------
+
+t_v8_spec_documents_stealth() {
+	local content
+	content=$(cat "$SPEC_SKILL")
+	assert_contains "$content" '--stealth' \
+		"spec/SKILL.md's description Flags: list names --stealth"
+	assert_contains "$content" '## 4a. Stealth' \
+		"spec/SKILL.md has a Stealth section"
+	assert_contains "$content" '`flow stealth --check' \
+		"spec/SKILL.md documents flow stealth --check"
+	assert_contains "$content" 'NEVER** commit, link or name a spec in a repo where `stealth.active` is true' \
+		"spec/SKILL.md's NEVER list bans naming a spec under stealth"
+}

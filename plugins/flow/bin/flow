@@ -169,6 +169,8 @@ ${C.accent}Commands:${C.reset}
                                                      commit since Base touching the task's files:
                                                      (or --sha), never a claim
   use <NNN-slug>                                    Point .specs/.current at one feature
+  stealth [<store>] [--check [--offline] [--json]]  Move .specs/ into a private store repo
+                                                     outside this one (--check only reports)
   publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
                                                      GitHub issues. Never on the pipeline
   loop <subcommand> [options]                       Run a task until a deterministic
@@ -2784,10 +2786,8 @@ function computeNext(cwd, opts) {
 function excludeMarkerLocally(dir, rel) {
   const top = spawnSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' });
   if (top.status !== 0) return;
-  const exclude = path.join(top.stdout.trim(), '.git', 'info', 'exclude');
   try {
-    const cur = safeRead(exclude) || '';
-    if (cur.indexOf(rel) === -1) fs.appendFileSync(exclude, `${cur.endsWith('\n') || cur === '' ? '' : '\n'}${rel}\n`);
+    require('./lib/stealth.js').excludeLocally(top.stdout.trim(), [rel]);
   } catch { /* not fatal */ }
 }
 
@@ -2843,6 +2843,15 @@ function cmdNext(argv) {
     // other passive observer (flow doctor asks in-process with count:false).
     count: !argv.includes('--peek'),
   });
+  // Router.js stays pure fs — whether the hooks stealth installed are still
+  // the ones that will run is a git question, asked here instead.
+  let stealthOut = result.stealth || null;
+  let hooksOk = null;
+  if (stealthOut && stealthOut.active) {
+    const root = gitToplevel(process.cwd()) || process.cwd();
+    hooksOk = require('./lib/stealth.js').hooksActive(root);
+    stealthOut = Object.assign({}, stealthOut, { hooks: hooksOk });
+  }
   if (jsonMode) {
     stdout.write(JSON.stringify({
       state: result.state,
@@ -2854,6 +2863,7 @@ function cmdNext(argv) {
       gates: result.gates,
       feature: result.feature,
       wave: result.wave,
+      stealth: stealthOut,
     }, null, 2) + '\n');
     return 0;
   }
@@ -2863,6 +2873,12 @@ function cmdNext(argv) {
   stdout.write(`Next: ${oneLine(result.command)}\n`);
   if (result.why) stdout.write(`Why: ${oneLine(result.why)}\n`);
   if (result.after) stdout.write(`Then: ${oneLine(result.after)}\n`);
+  if (result.stealth && result.stealth.active) {
+    stdout.write(`Stealth: specs live in ${oneLine(result.stealth.store)} — keep .specs paths, T###/CHK###/G### ids and spec numbers out of commits, comments, test names, PR text and pushed branch names\n`);
+    if (!hooksOk) {
+      stdout.write('Stealth: hooks are not active (core.hooksPath set or hooks replaced) — run flow stealth to see how to restore them\n');
+    }
+  }
   return 0;
 }
 
@@ -3089,7 +3105,7 @@ function cmdStatusline(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3175,6 +3191,14 @@ function main() {
   else if (cmd === 'lint') process.exit(require('./lib/lint.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'tick') process.exit(require('./lib/tick.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'use') process.exit(require('./lib/use.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }));
+  else if (cmd === 'stealth') {
+    const stealthRoot = gitToplevel(process.cwd());
+    if (!stealthRoot) {
+      stderr.write(`${C.error}flow stealth: not a git repo${C.reset}\n`);
+      process.exit(2);
+    }
+    process.exit(require('./lib/stealth.js').run(rest, stealthRoot, { stdout, stderr }, process.env));
+  }
   else if (cmd === 'publish') process.exit(require('./lib/publish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'eval') process.exit(require('./lib/eval.js').run(rest, process.cwd(), process.env));

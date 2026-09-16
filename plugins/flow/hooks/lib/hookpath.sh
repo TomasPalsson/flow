@@ -219,17 +219,13 @@ EOF
 	return 1
 }
 
-hook_changed_since() {
-	local stamp=$1 dir p f first args
-	[ -n "$stamp" ] || return 0
-	[ -f "$stamp" ] || return 0
-	dir=$(hook_project_dir)
-	[ -d "$dir" ] || return 0
-	# -prune, never -not -path: it stops find descending and BSD find agrees.
-	# A worktree's .git is a FILE; -name prunes that too. -mindepth 1 keeps the
-	# start point out of the -name test, so a project dir called "build" or
-	# "dist" does not prune itself away into an empty change set.
-	args=("$dir" -mindepth 1 '(')
+# _hook_find_changed <start-dir> <stamp> — one find-newer walk from
+# <start-dir>, same prune/filter rules, printed through hook_excluded_path.
+# Factored out so the plain walk and the stealth walk below build IDENTICAL
+# find args off different start points.
+_hook_find_changed() {
+	local start=$1 stamp=$2 p first args
+	args=("$start" -mindepth 1 '(')
 	first=1
 	while IFS= read -r p; do
 		[ -z "$p" ] && continue
@@ -242,4 +238,29 @@ EOF
 	find "${args[@]}" 2>/dev/null | while IFS= read -r f; do
 		hook_excluded_path "$f" || printf '%s\n' "$f"
 	done
+}
+
+hook_changed_since() {
+	local stamp=$1 dir specs_link
+	[ -n "$stamp" ] || return 0
+	[ -f "$stamp" ] || return 0
+	dir=$(hook_project_dir)
+	[ -d "$dir" ] || return 0
+	# -prune, never -not -path: it stops find descending and BSD find agrees.
+	# A worktree's .git is a FILE; -name prunes that too. -mindepth 1 keeps the
+	# start point out of the -name test, so a project dir called "build" or
+	# "dist" does not prune itself away into an empty change set.
+	_hook_find_changed "$dir" "$stamp"
+	# Stealth (docs/research/16): .specs is a SYMLINK to a private store repo,
+	# so the walk above never descends into it — find without -L does not
+	# follow a symlink component, only lists it as a non-"-type f" leaf. A
+	# sha-less `[x]` (or any other change) written there this turn would
+	# never be seen. Walk it too, starting at "$specs_link/" — the trailing
+	# slash follows the start link itself, nothing past it — with the exact
+	# same stamp/prune/filter rules, so paths print in the same .specs/...
+	# form the plain walk already emits (never `find -L` on the whole tree).
+	specs_link="$dir/.specs"
+	if [ -L "$specs_link" ] && [ -d "$specs_link" ]; then
+		_hook_find_changed "$specs_link/" "$stamp"
+	fi
 }

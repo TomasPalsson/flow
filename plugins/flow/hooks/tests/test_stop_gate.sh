@@ -295,6 +295,32 @@ t_stop_r4_dot_current_is_the_active_feature() {
 	rm -rf "$repo"
 }
 
+# R7 (docs/research/16 stealth): .specs is a symlink to a private STORE repo.
+# Plain `find` does not follow that symlink, so hook_changed_since used to
+# never see a write inside it — R4's "only lint the file THIS turn touched"
+# gate (_tasks_changed) stayed 0 and a lint ERROR written in the store never
+# blocked the turn. (K-E(1)'s sha-less-tick check reads the active TASKS.md
+# unconditionally, not gated on _tasks_changed, so it is not a fair test of
+# this walk — R4 is.)
+t_stop_r4_stealth_store_tasks_file_in_delta_is_linted() {
+	local repo store sid
+	repo=$(tmp_repo)
+	store=$(tmp_repo)
+	sid="stop-r4-stealth-$$"
+	rm -rf "$repo/.specs"
+	mkdir -p "$store/.specs"
+	ln -s "$store/.specs" "$repo/.specs"
+	_stop_stamp "$sid" "$repo"
+	_stop_tasks "$store" "- [ ] T002 no verify here — files: src/b.ts"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_r4_stealth_store_tasks_file_in_delta_is_linted rc"
+	assert_contains "$OUT" '"decision":"block"' "t_stop_r4_stealth_store_tasks_file_in_delta_is_linted blocks"
+	assert_contains "$OUT" "flow-lint" "t_stop_r4_stealth_store_tasks_file_in_delta_is_linted names-flow-lint"
+	assert_contains "$OUT" "T002 has no verify" "t_stop_r4_stealth_store_tasks_file_in_delta_is_linted names-the-error"
+	_stop_forget "$sid"
+	rm -rf "$repo" "$store"
+}
+
 # --- K-E(1): a sha-less [x] is not a tick ---------------------------------
 t_stop_ke_sha_less_tick_blocks_the_turn() {
 	local repo sid

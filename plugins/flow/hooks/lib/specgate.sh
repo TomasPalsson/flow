@@ -72,6 +72,32 @@ _sg20_is_source() {
 	return 0
 }
 
+# _sg_is_stealth <root> — rc 0 when <root>/.specs is a symlink whose physical
+# target is outside <root>'s own physical path (docs/research/16-stealth-
+# specs-2026.md §0/§3): a private store, not an in-tree directory.
+_sg_is_stealth() {
+	[ -L "$1/.specs" ] || return 1
+	_si_root=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+	_si_specs=$(cd "$1/.specs" 2>/dev/null && pwd -P) || return 1
+	case "$_si_specs" in
+	"$_si_root"/*) return 1 ;;
+	esac
+	return 0
+}
+
+# _sg_slug_exists <root> <slug> — rc 0 when <slug> names a .specs/ feature
+# dir, exactly or with its NNN- prefix stripped (the same match below).
+# [0-9][0-9][0-9]-$slug, not *-$slug: flow/login must match 002-login, not
+# 001-auth-login (the router's own match is d.slice(4) === slug — an EXACT
+# NNN- prefix strip, not "ends with -slug").
+_sg_slug_exists() {
+	[ -d "$1/.specs/$2" ] && return 0
+	for _se_d in "$1"/.specs/[0-9][0-9][0-9]-"$2"; do
+		[ -d "$_se_d" ] && return 0
+	done
+	return 1
+}
+
 # _sg_tasks_path <project-dir> — the ACTIVE feature's TASKS.md, absolute.
 # Prints "" and returns 1 when no feature resolves; prints the path (which need
 # not exist yet, so a deny can name it) and returns 0 otherwise.
@@ -82,14 +108,26 @@ _sg_tasks_path() {
 	if [ -n "${FLOW_SPEC:-}" ]; then
 		_tp_slug=$FLOW_SPEC
 	else
-		if [ -f "$_tp_root/.specs/.current" ]; then
+		# Stealth: .specs/.current lives in the store and is shared by every
+		# worktree through the link, so flow/<slug> has to outrank it here or a
+		# worktree routes to whatever feature another worktree last made current.
+		if _sg_is_stealth "$_tp_root"; then
+			_tp_br=$(git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null)
+			case "$_tp_br" in
+			flow/*)
+				_tp_bslug=${_tp_br#flow/}
+				_sg_slug_exists "$_tp_root" "$_tp_bslug" && _tp_slug=$_tp_bslug
+				;;
+			esac
+		fi
+		if [ -z "$_tp_slug" ] && [ -f "$_tp_root/.specs/.current" ]; then
 			_tp_slug=$(head -1 "$_tp_root/.specs/.current" 2>/dev/null | tr -d '\r' | tr -d '[:space:]')
 		fi
 		# A present-but-blank .current is not a decision: router.js guards its
 		# miss with `if (want)` and falls through to the branch. Match it, or a
 		# zero-byte file wedges the gate against a `flow next` that says BUILD.
 		if [ -z "$_tp_slug" ]; then
-			_tp_br=$(git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null)
+			_tp_br=${_tp_br:-$(git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null)}
 			case "$_tp_br" in
 			flow/*) _tp_slug=${_tp_br#flow/} ;;
 			esac
@@ -103,8 +141,8 @@ _sg_tasks_path() {
 		printf '%s/.specs/%s/TASKS.md' "$_tp_root" "$_tp_slug"
 		return 0
 	fi
-	# a branch slug may omit the directory's NNN- prefix
-	for _tp_d in "$_tp_root"/.specs/*-"$_tp_slug"; do
+	# a branch slug may omit the directory's NNN- prefix — match it exactly
+	for _tp_d in "$_tp_root"/.specs/[0-9][0-9][0-9]-"$_tp_slug"; do
 		[ -d "$_tp_d" ] || continue
 		printf '%s/TASKS.md' "$_tp_d"
 		return 0

@@ -264,12 +264,26 @@ t_v2_next_archives_with_git_mv() {
 t_v2_next_flags_table_documents_every_flag() {
 	local content flag
 	content=$(cat "$NEXT_SKILL")
-	for flag in --force --escalate --qa --unattended; do
+	for flag in --force --escalate --qa --unattended --stealth; do
 		assert_contains "$content" "| \`$flag\` |" \
 			"next/SKILL.md's flag table has a row for $flag"
 	done
 	assert_contains "$content" 'It resolves decisions, **never evidence**' \
 		"next/SKILL.md states --unattended resolves decisions but never evidence"
+}
+
+# ---------------------------------------------------------------------------
+# next/SKILL.md: stealth mode — archives with mv, not git mv, since the
+# directory lives in the store repo, not the target's working tree
+# ---------------------------------------------------------------------------
+
+t_v2_next_stealth_archives_with_mv_not_git_mv() {
+	local content
+	content=$(cat "$NEXT_SKILL")
+	assert_contains "$content" '## Stealth' \
+		"next/SKILL.md has a Stealth section"
+	assert_contains "$content" 'Archive with `mv`' \
+		"next/SKILL.md's Stealth section archives with mv, not git mv"
 }
 
 # The per-task loop the skill hands to every developer subagent must not name
