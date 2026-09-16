@@ -48,13 +48,13 @@ The evidence rule: no receipt, no finding. `path:line` plus the command that pro
 scripts/slop-check [--base <ref>] [--head <ref>] [--json] [--strict] [--no-tools] [--files <path>...]
 ```
 
-Stdlib Python (`slop-check` plus the diff/hunk machinery in `slop_diff.py` and the optional-tool adapters in `slop_tools.py`, both beside it), scoped to **added lines only** (a one-line edit in a legacy file must not re-report the file). Always advisory: exit 0 unless `--strict`. Checks NS-03 to NS-10, NS-13, NS-15, NS-16 on its own in under a second; with `uvx ruff`, `npx tsc`, and `npx jscpd` present it adds NS-11, NS-12 and NS-01 (new clones versus the base ref, identifiers normalised, `--min-tokens 15` because agent-written functions are short). Missing tools are skipped silently. A purpose-built tool in this niche self-reports 36.7% false positives, which is why this layer never blocks; the lens confirms.
+Stdlib Python (`slop-check` plus the diff/hunk machinery in `slop_diff.py` and the optional-tool adapters in `slop_tools.py`, both beside it), scoped to **added lines only** (a one-line edit in a legacy file must not re-report the file). Always advisory: exit 0 unless `--strict`. Checks NS-03 to NS-10, NS-13, NS-15, NS-16 on its own in under a second; with `uvx ruff`, `uvx lizard`, `npx tsc`, and `npx jscpd` present it adds NS-11, NS-12, NS-17 (complexity growth in a function that already existed) and NS-01 (new clones versus the base ref, identifiers normalised, `--min-tokens 15` because agent-written functions are short). Missing tools are skipped silently. A purpose-built tool in this niche self-reports 36.7% false positives, which is why this layer never blocks; the lens confirms.
 
 What it cannot see, by measurement: comments that restate code (near-zero recall for any token heuristic), guards on already-guaranteed values, premature abstractions, semantic reinvention. Those are lens rows.
 
 ## The rubric
 
-**Load [`references/rubric.md`](references/rubric.md)** when scoring a diff, when writing an eval grader, or when someone asks "is this slop?". Every row is a PASS condition, a detector, a severity, and a false-positive guard. Rows NS-01 to NS-16 are mechanical; NS-20 to NS-29 are lens or pipeline. The "What is not slop" list is binding: boundaries keep their guards, entry points keep their broad catch, public APIs keep their docstrings, three similar lines stay three lines.
+**Load [`references/rubric.md`](references/rubric.md)** when scoring a diff, when writing an eval grader, or when someone asks "is this slop?". Every row is a PASS condition, a detector, a severity, and a false-positive guard. NS-01 to NS-17 are mechanical; NS-20 to NS-29 are lens or pipeline. The "What is not slop" list is binding: boundaries keep their guards, entry points keep their broad catch, public APIs keep their docstrings, three similar lines stay three lines.
 
 ## Wiring it into a pipeline
 

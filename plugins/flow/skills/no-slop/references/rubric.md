@@ -14,6 +14,7 @@ Severity is one of `block` (an adversary reports it as a finding that must be fi
 | ID | PASS condition | Detector | Severity | False-positive guard |
 |---|---|---|---|---|
 | NS-01 | No added block of ≥ 3 lines / 15 tokens duplicates code that exists at base, in any file, after renaming identifiers | `slop-check` via jscpd `--ignore-identifiers --baseline-from-ref` | advise | Excludes tests, generated code, lock files. A same-shape block that two independently deployed services must own separately needs a comment saying so. |
+| NS-17 | No function that exists at base ends the diff with higher cyclomatic complexity than it started AND above 10 (ruff C901's default) | `slop-check` via lizard, old side = merge-base | advise | New functions are not scored (ImpactGate's rule: growing already-complex code costs more than adding new code; absolute size of new code is NS-12's job). A function that got simpler, or grew but stays ≤ 10, passes. Splitting a function only to dodge the number is NS-21's business, not a pass. |
 | NS-20 | No new function or block re-implements behaviour an existing repo helper, stdlib call, or already-imported library provides | lens (checks the search receipt, then runs the search itself) | block | A wrapper that changes the contract (different input type, added caching) is not a re-implementation; it must call the existing helper inside. |
 | NS-21 | No new helper, interface, base class, parameter, flag or config key has fewer than three real call sites or users in the diff plus base | lens | block | A second implementation that the spec names, or a hot path measured in the brief, earns the abstraction at two. |
 | NS-27 | The developer's report contains one search receipt line before the first edit: what was searched (names, verbs, imports, error strings) and what was found | lens (reads the developer report) | block | A slice that only edits existing bodies with no new symbol needs no receipt. |
@@ -71,7 +72,7 @@ Severity is one of `block` (an adversary reports it as a finding that must be fi
 
 | Rubric row | Grader type | Target |
 |---|---|---|
-| NS-01, NS-03 to NS-10, NS-13, NS-15, NS-16 | `regex` `match: not_contains` on `{source: file, path}` or the script's `--json` output | file |
+| NS-01, NS-03 to NS-10, NS-13, NS-15 to NS-17 | `regex` `match: not_contains` on `{source: file, path}` or the script's `--json` output | file |
 | NS-20 | `regex` `contains` the existing helper's name in the edited file, plus `not_contains` the re-implementation's tell (`re.sub`, `new RegExp`, hand-rolled loop) | file |
 | NS-27 | `regex` on `last_message` for `searched .* found` | last_message |
 | NS-21 to NS-26, NS-29 | `llm` with the row's PASS condition as the criteria, `focus: {source: file, path}` | file |
