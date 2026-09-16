@@ -3,7 +3,7 @@
 // stealth.js — `flow stealth [<store>] [--check [--offline] [--json]]` and the
 // detect() every other command (router, tick, publish) calls on every route.
 // Stealth = <toplevel>/.specs is an UNTRACKED SYMLINK to <store>/.specs, a
-// private git repo outside the target repo (docs/research/16-stealth-specs-
+// private git repo outside the target repo (docs/research/17-stealth-specs-
 // 2026.md §0, §3). Nothing is saved as config — every command reads disk.
 
 const fs = require('fs');

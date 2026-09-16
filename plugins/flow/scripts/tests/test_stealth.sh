@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test_stealth.sh — `flow stealth` (docs/research/16-stealth-specs-2026.md):
+# test_stealth.sh — `flow stealth` (docs/research/17-stealth-specs-2026.md):
 # the private-store setup, its detect() used by next/tick/publish, and the
 # two git hooks it installs. t_stealth_* functions, sourced by run.sh.
 set -u
