@@ -9,7 +9,7 @@ One turn of discovery, one route decision, the smallest set of files that route 
 
 ## 0. Empty input, and the speccability guard
 
-`/flow:spec` with no description: *"Describe it in 1–3 sentences and I'll route it."* A description with no problem, no user and no domain signal is not a small spec, it is an unspeccable one: ask for (1) the problem, (2) whose, (3) what they do today instead — and stop until they answer. This guard holds under `--unattended` too; nothing can invent a problem statement.
+`/flow:spec` with no description: *"Describe it in 1–3 sentences and I'll route it."* A description with no problem, no user and no domain signal is not a small spec, it is an unspeccable one: ask for (1) the problem, (2) whose, (3) what they do today instead — and stop until they answer. If they can't answer yet, name `/flow:develop-idea` in that stop message — it grows a sliver into a seed PREP.md that `/flow:prep` then finishes; never invoke it from here. This guard holds under `--unattended` too; nothing can invent a problem statement.
 
 **An issue reference satisfies this guard.** `/flow:spec 143`, `#143`, `I-003` or "do issue 143" — resolve it per [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md), read in full before doing anything else. Its Problem / Whose / Today become the description and its `Verify` seeds §6, so you ask only what the issue left empty.
 

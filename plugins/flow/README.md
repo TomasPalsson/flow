@@ -21,7 +21,9 @@ Two slash commands, and the CLI they lean on. There is no third door.
 | `flow statusline [--install\|--print]` | Cached, read-only mirror of `flow next --peek` for Claude Code's `statusLine` hook. Never blocks a render; `--install` wires it into `~/.claude/settings.json`, `--print` hands you the snippet instead. |
 
 Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
-`/flow:spec` consolidates from. Unattended runs are `/flow:loop`. A defect
+`/flow:spec` consolidates from. Only a sliver of an idea? `/flow:develop-idea`
+grows it first and, on your yes, leaves a seed `PREP.md` that `/flow:prep`
+resumes. Unattended runs are `/flow:loop`. A defect
 spotted while building something else is parked with `/flow:issue` — a GitHub
 issue when `gh` is available, else an `.specs/ISSUES.md` entry carrying the
 five fields a spec needs — never fixed inline. An issue reference (`143`,

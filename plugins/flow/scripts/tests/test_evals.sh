@@ -24,7 +24,7 @@ else
 	EV_VALID_TAGS="$EV_FALLBACK_TAGS"
 fi
 
-EV_REQUIRED_CASES="quality-reuse-existing-helper quality-no-premature-abstraction quality-no-impossible-guards quality-no-comment-noise quality-no-unrequested-scope quality-test-can-fail routing-fix routing-next routing-spec routing-loop routing-prep routing-scrutinize-idea routing-qa routing-audit routing-none-explain routing-none-rename invariant-reproduce-first invariant-never-weaken invariant-verifier-decides"
+EV_REQUIRED_CASES="quality-reuse-existing-helper quality-no-premature-abstraction quality-no-impossible-guards quality-no-comment-noise quality-no-unrequested-scope quality-test-can-fail routing-fix routing-next routing-spec routing-loop routing-prep routing-scrutinize-idea routing-qa routing-audit routing-none-explain routing-none-rename invariant-reproduce-first invariant-never-weaken invariant-verifier-decides routing-develop-idea"
 
 ev_tag_is_valid() {
 	local tag=$1 t

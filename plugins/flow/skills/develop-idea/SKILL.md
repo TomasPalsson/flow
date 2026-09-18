@@ -115,6 +115,7 @@ A list of 15 undifferentiated problems demoralizes. *One fatal flaw, eight fixab
 You develop ideas. When the work has shifted, say so and point to the right tool:
 
 - The idea is developed and the user now wants a **verdict** / honest teardown / "should I actually do this" → **`scrutinize-idea`**.
+- It's **software to build in this repo** and its decisions are still open → **a seed `PREP.md`, then `/flow:prep`**. This goes ahead of `grill-me` and `brainstorm` below for in-repo software: prep is grill-me plus the file `/flow:spec` reads, and brainstorm is for when there is no idea yet, only a codebase to improve. Already decided → `/flow:spec` directly. **MANDATORY — READ ENTIRE FILE before writing a seed:** [`references/flow-seed.md`](references/flow-seed.md).
 - The idea has hardened into a **concrete plan** with real sub-decisions to resolve → **`grill-me`**.
 - It's about improving an **existing codebase** → **`brainstorm`**.
 - They're ready to write a **formal spec** → **`/flow:spec`**.

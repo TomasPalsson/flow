@@ -4,7 +4,7 @@
 # .specs/007-plugin-eval-suite-and-optimisation-loop/spec.md FR-012, AC-030,
 # FR-013, Journey 2) (B20, B21, B22).
 #
-# Checks the four pipeline-* case dirs exist, each case.yaml's tags/runs/
+# Checks every pipeline-* case dir in PL_ALL_CASES exists, each case.yaml's tags/runs/
 # max_turns/timeout_seconds meet the pipeline tier's minimums, every
 # scaffold.sh is executable and builds a real git repo (`git init`), and the
 # pipeline-flow-feature case carries the specific graders the reuse-not-
@@ -15,7 +15,7 @@ set -u
 
 PL_EVALS_DIR="$SCAN_DIR/../evals"
 PL_BUILD_CASES="pipeline-flow-feature pipeline-fix-bug"
-PL_FIRST_TURN_CASES="pipeline-spec-first-turn pipeline-prep-first-turn"
+PL_FIRST_TURN_CASES="pipeline-spec-first-turn pipeline-prep-first-turn pipeline-prep-resume-seed"
 PL_SPEC_ONLY_CASE="pipeline-spec-only"
 PL_ALL_CASES="$PL_BUILD_CASES $PL_FIRST_TURN_CASES $PL_SPEC_ONLY_CASE"
 
@@ -26,7 +26,7 @@ pl_field() {
 }
 
 # ---------------------------------------------------------------------------
-# B20 — the four case dirs exist, tagged pipeline (and needs-bash for the
+# B20 — every PL_ALL_CASES dir exists, tagged pipeline (and needs-bash for the
 # two build cases), runs: 1.
 # ---------------------------------------------------------------------------
 
@@ -226,7 +226,14 @@ t_pipeline_scaffolds_build_a_repo_in_an_empty_dir() {
 		d=$(tmp_dir)
 		pl_scaffold_into "$d" "$name"
 		assert_rc 0 "scaffold builds a repo in an empty dir: $name"
-		assert_file_exists "$d/src/posts.py" "scaffolded repo has src/posts.py: $name"
+		case "$name" in
+		pipeline-prep-resume-seed)
+			assert_file_exists "$d/.specs/001-habit-reminders/PREP.md" "scaffolded repo has .specs/001-habit-reminders/PREP.md: $name"
+			;;
+		*)
+			assert_file_exists "$d/src/posts.py" "scaffolded repo has src/posts.py: $name"
+			;;
+		esac
 		assert_eq "$(git -C "$d" rev-list --count HEAD 2>/dev/null)" "1" "scaffolded repo has one base commit: $name"
 		rm -rf "$d"
 	done

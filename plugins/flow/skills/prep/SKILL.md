@@ -16,9 +16,18 @@ budget, and a route.
 
 ## Step 0 — Classify the route, out loud
 
+A bare `/flow:prep` first looks for an unfinished interview: a
+`.specs/NNN-*/PREP.md` with `Status: interviewing` and no `spec.md` beside
+it. One found → resume it (Step 2's resume rule) instead of asking for the
+idea. More than one → list each (path + title) and ask which; that pick is
+not one of the 12 questions. None → the empty-idea rule below applies.
+
 If the idea is empty (`/flow:prep` alone) or has no problem, no user and no
 domain signal, ask for it in one to three sentences and wait — nothing below
-runs on an invented problem statement.
+runs on an invented problem statement. If the user can't say the problem or
+whose it is yet, name `/flow:develop-idea` in that same message — it grows a
+sliver into an idea and leaves a seed PREP.md this skill resumes. Never
+invoke it from here.
 
 An issue reference (`/flow:prep 143`, `#143`, `I-003`, "prep issue 143") is a
 valid idea: resolve it per
@@ -37,9 +46,12 @@ user may override with one word:
 - **dispatch** — anything else.
 
 The ratchet is one-way: if doubt appears later in the interview, upgrade the
-route, never downgrade it. `spike` and `bounded` end in chat (`Status: done in
-chat`) — there is no spec to prep for. Say so, deliver the short design or the
-recommendation directly in chat, and keep PREP.md as the record.
+route, never downgrade it. The ratchet starts at the first answer: a PREP.md
+still at `Questions: 0` (a `/flow:develop-idea` seed, or a prep that dropped
+before Q1) is classified fresh, and its `Route:` line is ignored. `spike` and
+`bounded` end in chat (`Status: done in chat`) — there is no spec to prep for.
+Say so, deliver the short design or the recommendation directly in chat, and
+keep PREP.md as the record.
 
 ## Step 1 — Explore before asking
 
@@ -54,7 +66,14 @@ Allocate `.specs/NNN-<slug>/PREP.md`: `NNN` = max existing `.specs/NNN-*` + 1
 (`001` if none; create `.specs/` if absent), `slug` = lowercase ASCII
 `[a-z0-9-]` from the idea, max 40 chars. If a `.specs/*-<slug>/PREP.md` with
 `Status: interviewing` already exists, resume it — do not re-ask any recorded
-`D-NN`.
+`D-NN`. A seed from `/flow:develop-idea` holds what the user already said:
+its first turn reads the `unconfirmed` `A-NN` lines and `## Not this` back
+as ONE block with ONE ask — "reply with what's wrong, or 'right'" — and that
+is Q1. It is a read-back of the user's own answers, not a batch of new
+questions, and it satisfies rule 4's Not-this probe; mark each line
+`confirmed Q1` or `corrected Q1`. Nothing in the seed is re-asked open;
+from Q2, rule 1 holds again. Keep its `Seed:` line (the user's own first
+words) on every rewrite.
 
 Write the file from `references/prep-template.md` BEFORE the first question,
 with `Questions: 0 of 12`, and rewrite it after EVERY answer: bump the

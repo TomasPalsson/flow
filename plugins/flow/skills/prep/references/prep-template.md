@@ -1,6 +1,8 @@
 # PREP.md template
 
-No YAML frontmatter — metadata is the second line. Each section's job:
+No YAML frontmatter — metadata is the second line. A seed from
+`/flow:develop-idea` adds a third, `Seed: "<the user's own first words>" —
+user, via /flow:develop-idea`; keep it on every rewrite. Each section's job:
 
 - **Decisions** — locked; the spec copies these verbatim, never re-asks.
 - **Not this** — becomes the spec's §2.2 Non-goals verbatim; build must not
