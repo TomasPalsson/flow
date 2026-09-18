@@ -12,8 +12,12 @@ execution:
 graders:
   - name: resumes-the-seed
     type: llm
-    criteria: "PASS if the reply resumes the existing .specs/001-habit-reminders/PREP.md: it talks about habit reminders, never asks the user to describe or restate their idea, and ends with exactly one ask - either one question, or the seed's assumptions and Not this list read back as a single block followed by one confirm-or-correct ask (for example \"reply with what's wrong, or 'right'\"). Updating PREP.md before the ask is expected and must not count against it, and so is prep's one-line route statement with its standing offer to override it (for example \"Say a route name if you'd rather override\") - that line is not an ask. FAIL if it asks what the idea is, starts a new .specs directory, writes a spec, or ends with two or more separate asks (for example a separate \"confirm or correct?\" after each of several bullets)."
+    criteria: "PASS if the message lists the seed's recorded points back to the user (forgetting a habit at the moment it matters; one person tracking 3-5 habits on a phone; no social or sharing features) and asks the user to say what is wrong with them. FAIL if instead it asks a new question about any one of those points, asks the user to describe their idea, or writes a spec."
   - name: does-not-ask-for-the-idea
     type: regex
     pattern: "[Dd]escribe (it|your idea|the idea)|[Ww]hat('s| is) (the|your) idea"
+    match: not_contains
+  - name: one-ask-not-one-per-line
+    type: regex
+    pattern: "[Cc]onfirm or correct\\?[\\s\\S]*[Cc]onfirm or correct\\?"
     match: not_contains

@@ -66,7 +66,8 @@ Allocate `.specs/NNN-<slug>/PREP.md`: `NNN` = max existing `.specs/NNN-*` + 1
 (`001` if none; create `.specs/` if absent), `slug` = lowercase ASCII
 `[a-z0-9-]` from the idea, max 40 chars. If a `.specs/*-<slug>/PREP.md` with
 `Status: interviewing` already exists, resume it — do not re-ask any recorded
-`D-NN`. A seed from `/flow:develop-idea` holds what the user already said:
+`D-NN`. A seed from `/flow:develop-idea` (a `Seed:` line under the header
+marks it) holds what the user already said:
 its first turn reads the `unconfirmed` `A-NN` lines and `## Not this` back
 as ONE block with ONE ask — "reply with what's wrong, or 'right'" — and that
 is Q1. It is a read-back of the user's own answers, not a batch of new
@@ -84,7 +85,9 @@ interview. Print the path once.
 ## Step 3 — Interview rules
 
 1. **One decision per turn, open phrasing.** Naming a decision's own
-   candidates ("Postgres, MySQL or SQLite?") is still one question.
+   candidates ("Postgres, MySQL or SQLite?") is still one question. One
+   exception: Q1 of a resumed seed (a PREP.md with a `Seed:` line) is the
+   one-block read-back in Step 2, not a question about any single line.
 2. **Then one line of hypothesis with a confidence WORD (likely, probably,
    fairly confident — never a bare percentage), ending "— confirm or
    correct?"**, so a one-word reply locks it: *"Mr Claude's guess: likely 409

@@ -26,6 +26,7 @@ mkdir -p .specs/001-habit-reminders
 cat >.specs/001-habit-reminders/PREP.md <<'MD'
 # Prep — Habit reminders
 Gathered: 2026-09-18 · Questions: 0 of 12 · Route: dispatch · Status: interviewing
+Seed: "some kind of habit thing? I keep forgetting stuff I meant to do daily" — user, via /flow:develop-idea
 
 ## Decisions
 ## Not this
