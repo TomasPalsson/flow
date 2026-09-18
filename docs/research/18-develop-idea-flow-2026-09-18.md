@@ -135,11 +135,13 @@ Specific to this wiring, measured on 2026-09-18 (claude-sonnet-5, haiku judge):
 
 - `routing-develop-idea` 3/3 with the plugin (0/3 without); `routing-spec`, `routing-prep` and
   `routing-scrutinize-idea` still 1/1 with `develop-idea` in their negative lists.
-- `pipeline-prep-resume-seed` went 1/2 → 2/3 read-backs → 0/3 → 3/3. The misses were two real prose
-  gaps: "read back" with no shape let one run ask three separate confirm-or-correct questions, and the
-  resume rule never said how prep recognises a seed; a fixture without the `Seed:` line then made all
-  three runs fall back to one question per line. The fix names the `Seed:` line as the marker and makes
-  the read-back rule 1's one exception.
+- `pipeline-prep-resume-seed`, five rounds: (1) 1/2 — "read back" had no shape, and one run asked
+  three separate confirm-or-correct questions; (2) after the one-block rule, 2 of 3 runs did the
+  read-back, but a tangled judge prompt scored all three FAIL; (3) with a simpler judge, 0/3 for a real
+  reason — the fixture had no `Seed:` line and the resume rule never said how prep recognises a seed, so
+  every run fell back to one question per line; (4) with the `Seed:` line named as the marker, in the
+  fixture, and the read-back made rule 1's one exception: 3/3; (5) 3/3 again, with a file check that
+  the `Seed:` line survives prep's rewrite.
 - develop-idea's Commit stage, played by Sonnet agents in scratch repos against the real skill files:
   software + "yes" wrote a lint-clean seed that `flow next` routes to `/flow:prep` (2/2); an essay idea
   wrote no seed (1/1); "sounds good" wrote a seed on the first prose (1/1 wrong) and wrote nothing on

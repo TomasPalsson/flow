@@ -17,6 +17,11 @@ graders:
     type: regex
     pattern: "[Dd]escribe (it|your idea|the idea)|[Ww]hat('s| is) (the|your) idea"
     match: not_contains
+  - name: seed-line-survives
+    type: regex
+    target: { source: file, path: .specs/001-habit-reminders/PREP.md }
+    pattern: "Seed: \"some kind of habit thing"
+    match: contains
   - name: one-ask-not-one-per-line
     type: regex
     pattern: "[Cc]onfirm or correct\\?[\\s\\S]*[Cc]onfirm or correct\\?"
