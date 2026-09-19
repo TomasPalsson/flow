@@ -258,6 +258,26 @@ process.stdout.write(JSON.stringify(rows));
 	assert_contains "$rows" '"status":"PASS"' "t_doctor_personal_paths_real_repo_root_pass pass-row"
 }
 
+# The exclusion is a path-segment match (a dir literally named "fixtures"
+# whose parent is literally named "tests"), not a string suffix — a dir that
+# merely ends in "tests/fixtures" (e.g. .../unittests/fixtures) must still be
+# walked and its leaks reported.
+t_doctor_personal_paths_fixture_exclusion_is_segment_exact() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/demo/skills/unittests/fixtures"
+	printf 'see /Users/alice/work\n' >"$repo/plugins/demo/skills/unittests/fixtures/LEAK.md"
+	mkdir -p "$repo/plugins/demo/hooks/tests/fixtures"
+	printf 'see /Users/alice/work\n' >"$repo/plugins/demo/hooks/tests/fixtures/LEAK.md"
+
+	pp_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" "plugins/demo/skills/unittests/fixtures/LEAK.md:1: personal path /Users/alice/ — use \$HOME, ~ or \${CLAUDE_PLUGIN_ROOT}" "t_doctor_personal_paths_fixture_exclusion_is_segment_exact suffix-match-still-warns"
+	assert_not_contains "$rows" "plugins/demo/hooks/tests/fixtures/LEAK.md" "t_doctor_personal_paths_fixture_exclusion_is_segment_exact exact-tests-fixtures-ignored"
+
+	rm -rf "$repo"
+}
+
 # ---------------------------------------------------------------------------
 # reference-docs (T008, B9)
 # ---------------------------------------------------------------------------
