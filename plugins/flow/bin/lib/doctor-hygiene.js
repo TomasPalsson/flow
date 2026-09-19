@@ -133,7 +133,10 @@ function personalPathsRoots(pluginsDir) {
 }
 
 // Collects { abs, rel } for every regular file under `dir`, skipping
-// node_modules, .git and a tests/fixtures dir (fixture text is never shipped).
+// node_modules, .git and a tests/fixtures dir (fixture text is never
+// shipped) — a path-segment match: the dir is named exactly "fixtures" and
+// its parent is named exactly "tests", not merely a path ending in that
+// string (e.g. skills/unittests/fixtures must still be walked).
 function personalPathsWalk(dir, rel, out) {
   let entries;
   try {
@@ -145,7 +148,7 @@ function personalPathsWalk(dir, rel, out) {
     if (e.name === 'node_modules' || e.name === '.git') continue;
     const entryRel = rel ? `${rel}/${e.name}` : e.name;
     if (e.isDirectory()) {
-      if (entryRel.endsWith('tests/fixtures')) continue;
+      if (e.name === 'fixtures' && path.basename(rel) === 'tests') continue;
       personalPathsWalk(path.join(dir, e.name), entryRel, out);
     } else if (e.isFile()) {
       out.push({ abs: path.join(dir, e.name), rel: entryRel });
