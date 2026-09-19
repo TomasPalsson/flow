@@ -75,15 +75,20 @@ hyg_add_worktree() {
 }
 
 # hyg_commit_extra <path> <days-ago> — one extra commit ahead of base in the
-# worktree at <path>, dated <days-ago> days back.
+# worktree at <path>, dated <days-ago> days back. The added file is named
+# after <path>'s own basename so sibling worktrees branched from each other
+# (e.g. unmerged-old branching from merged's fast-forwarded tip) always add
+# genuinely new content instead of silently no-op-ing on a file that already
+# exists in their history.
 hyg_commit_extra() {
-	local path days gitdate
+	local path days gitdate marker
 	path=$1
 	days=$2
 	gitdate=$(hyg_days_ago_git_date "$days")
-	printf 'extra\n' >"$path/extra.txt"
-	(cd "$path" && git add extra.txt) >/dev/null 2>&1
-	(cd "$path" && GIT_AUTHOR_DATE="$gitdate" GIT_COMMITTER_DATE="$gitdate" git commit -q -m "extra work") >/dev/null 2>&1
+	marker=$(basename "$path")
+	printf '%s\n' "$marker" >"$path/extra-$marker.txt"
+	(cd "$path" && git add "extra-$marker.txt") >/dev/null 2>&1
+	(cd "$path" && GIT_AUTHOR_DATE="$gitdate" GIT_COMMITTER_DATE="$gitdate" git commit -q -m "extra work ($marker)") >/dev/null 2>&1
 }
 
 # hyg_age_dir <path> <days-ago> — sets <path>'s own mtime; call last, after
@@ -101,15 +106,17 @@ hyg_age_dir() {
 # ---------------------------------------------------------------------------
 
 t_hyg_three_worktrees_exactly_two_warn() {
-	local repo merged unmerged_old fresh rows warn_count
+	local repo merged unmerged_old fresh rows warn_count merged_rel unmerged_rel fresh_rel
 	repo=$(tmp_repo)
 	merged="$repo/.claude/worktrees/merged"
 	unmerged_old="$repo/.claude/worktrees/unmerged-old"
 	fresh="$repo/.claude/worktrees/fresh"
 
-	# merged + clean, idle 2 days: same commit as base (worktree add adds no
-	# commits of its own), so merge-base --is-ancestor trivially succeeds.
+	# merged + clean, idle 2 days: a commit dated 2 days back, then
+	# fast-forwarded into base so it stays an ancestor of base's HEAD.
 	hyg_add_worktree "$repo" hyg-merged "$merged"
+	hyg_commit_extra "$merged" 2
+	git -C "$repo" merge -q --ff-only hyg-merged >/dev/null 2>&1
 	hyg_age_dir "$merged" 2
 
 	# unmerged, idle 20 days: one commit ahead of base.
@@ -123,13 +130,18 @@ t_hyg_three_worktrees_exactly_two_warn() {
 
 	hyg_check "$repo"
 	rows="$OUT"
+	# git canonicalizes worktree paths (/var -> /private/var on macOS), so
+	# assertions match the path's stable suffix, never the raw bash variable.
+	merged_rel=${merged#"$repo"}
+	unmerged_rel=${unmerged_old#"$repo"}
+	fresh_rel=${fresh#"$repo"}
 	warn_count=$(printf '%s' "$rows" | grep -o '"status":"WARN"' | wc -l | tr -d ' ')
 	assert_eq "$warn_count" "2" "t_hyg_three_worktrees_exactly_two_warn warn-count"
-	assert_contains "$rows" "is merged and clean" "t_hyg_three_worktrees_exactly_two_warn merged-clean-wording"
-	assert_contains "$rows" "safe to remove: git worktree remove $merged" "t_hyg_three_worktrees_exactly_two_warn merged-fix-command"
-	assert_contains "$rows" "commits not in base" "t_hyg_three_worktrees_exactly_two_warn commits-not-in-base-wording"
-	assert_contains "$rows" "review, then: git worktree remove $unmerged_old" "t_hyg_three_worktrees_exactly_two_warn unmerged-fix-command"
-	assert_not_contains "$rows" "$fresh" "t_hyg_three_worktrees_exactly_two_warn fresh-worktree-not-reported"
+	assert_contains "$rows" "$merged_rel (branch hyg-merged) is merged and clean" "t_hyg_three_worktrees_exactly_two_warn merged-clean-wording"
+	assert_contains "$rows" "safe to remove: git worktree remove" "t_hyg_three_worktrees_exactly_two_warn merged-fix-command"
+	assert_contains "$rows" "$unmerged_rel idle 20d (1 commits not in base, clean)" "t_hyg_three_worktrees_exactly_two_warn commits-not-in-base-wording"
+	assert_contains "$rows" "review, then: git worktree remove" "t_hyg_three_worktrees_exactly_two_warn unmerged-fix-command"
+	assert_not_contains "$rows" "$fresh_rel" "t_hyg_three_worktrees_exactly_two_warn fresh-worktree-not-reported"
 
 	git -C "$repo" worktree remove --force "$merged" >/dev/null 2>&1 || true
 	git -C "$repo" worktree remove --force "$unmerged_old" >/dev/null 2>&1 || true
