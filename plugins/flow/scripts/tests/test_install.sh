@@ -571,3 +571,76 @@ t_install_self_referential_home_does_not_eat_the_source() {
 	fi
 	rm -rf "$home" "$dotfiles"
 }
+
+# ---------------------------------------------------------------------------
+# B11 — write confinement: a normal successful `flow install` writes only
+# inside its own claimed set (its ~/.claude/<item> links, ~/.local/bin, and
+# the dirs it creates along the way) and never touches the dotfiles/source
+# tree it reads from — chmod (the one write install makes there, +x on
+# hooks/scripts/the CLI) bumps only ctime, never mtime, so it is invisible to
+# the mtime-based `find -newer` probe below and rightly absent from the
+# claimed set. A directory only ever appears here through its OWN mtime (a
+# child was added under it), so it is allowed exactly when an allowed path
+# lives directly inside it.
+# ---------------------------------------------------------------------------
+
+t_install_writes_only_claimed_paths() {
+	local home dotfiles scratch marker before_file after_file newpaths_file newpaths vanished violations p
+	home=$(tmp_dir)
+	dotfiles=$(tmp_dir)
+	rm -rf "$dotfiles"
+	# fully-wired (not the minimal stub): doctor's own checklist must be clean
+	# so a genuine confinement violation is never masked by an unrelated FAIL.
+	_install_write_fully_wired_dotfiles "$dotfiles"
+	scratch=$(tmp_dir)
+
+	before_file="$scratch/before"
+	after_file="$scratch/after"
+	newpaths_file="$scratch/newpaths"
+	find "$home" "$dotfiles" | LC_ALL=C sort >"$before_file"
+
+	marker="$scratch/marker"
+	touch "$marker"
+	sleep 1
+
+	_install_cli "$home" install --dotfiles "$dotfiles"
+	assert_rc 0 "t_install_writes_only_claimed_paths install exits 0"
+
+	find "$home" "$dotfiles" | LC_ALL=C sort >"$after_file"
+	find "$home" "$dotfiles" -newer "$marker" 2>/dev/null | LC_ALL=C sort >"$newpaths_file"
+	newpaths=$(cat "$newpaths_file")
+	vanished=$(LC_ALL=C comm -23 "$before_file" "$after_file")
+
+	violations=""
+	while IFS= read -r p; do
+		[ -n "$p" ] || continue
+		case "$p" in
+		"$home") ;;
+		"$home/.claude") ;;
+		"$home/.claude/skills") ;;
+		"$home/.claude/agents") ;;
+		"$home/.claude/commands") ;;
+		"$home/.claude/scripts") ;;
+		"$home/.claude/hooks") ;;
+		"$home/.claude/workflows") ;;
+		"$home/.claude/flow-templates") ;;
+		"$home/.claude/settings.json") ;;
+		"$home/.claude/CLAUDE.md") ;;
+		"$home/.claude/transcript-backups") ;;
+		"$home/.claude/subagent-log") ;;
+		"$home/.local") ;;
+		"$home/.local/bin") ;;
+		"$home/.local/bin/flow") ;;
+		*) violations="$violations
+$p" ;;
+		esac
+	done <"$newpaths_file"
+
+	assert_eq "$violations" "" "t_install_writes_only_claimed_paths every write lies in the claimed set"
+	assert_eq "$vanished" "" "t_install_writes_only_claimed_paths nothing vanished"
+	assert_contains "$newpaths" "$home/.claude/skills" "t_install_writes_only_claimed_paths sanity: skills link observed"
+	assert_contains "$newpaths" "$home/.local/bin/flow" "t_install_writes_only_claimed_paths sanity: harness bin observed"
+	assert_not_contains "$newpaths" "$dotfiles/claude" "t_install_writes_only_claimed_paths sanity: dotfiles source tree untouched"
+
+	rm -rf "$home" "$dotfiles" "$scratch"
+}

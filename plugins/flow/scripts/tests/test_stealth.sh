@@ -1026,3 +1026,71 @@ t_stealth_tick_nonstealth_symlinked_feature_dir_no_store_line() {
 	assert_eq "$after" "$before" "the symlink's target repo gets no commit"
 	rm -rf "$proj" "$other" "$home"
 }
+
+# ---------------------------------------------------------------------------
+# B11 — write confinement: a normal successful `flow stealth` writes only
+# inside its own claimed set — the .specs link, .git/info/exclude and
+# .git/hooks/{post-checkout,commit-msg} in the project tree, plus the store
+# under $HOME/.flow/stealth (git init there creates its own internal tree; the
+# whole store subtree is treated as one claimed area rather than enumerated
+# file by file). The code never writes .git/config in this flow (only a
+# `config --get` read), so it stays OUT of the allowlist on purpose — if a
+# future change starts writing it, this test must fail, not grow to allow it
+# silently. A directory only ever appears here through its OWN mtime (a child
+# was added under it), so it is allowed exactly when an allowed path lives
+# directly inside it (or, for the store, anywhere below it).
+# ---------------------------------------------------------------------------
+
+t_stealth_writes_only_claimed_paths() {
+	local home proj scratch marker before_file after_file newpaths_file newpaths vanished violations p store
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	scratch=$(tmp_dir)
+
+	before_file="$scratch/before"
+	after_file="$scratch/after"
+	newpaths_file="$scratch/newpaths"
+	find "$home" "$proj" | LC_ALL=C sort >"$before_file"
+
+	marker="$scratch/marker"
+	touch "$marker"
+	sleep 1
+
+	st_cli_in "$proj" "$home" stealth
+	assert_rc 0 "t_stealth_writes_only_claimed_paths stealth exits 0"
+
+	find "$home" "$proj" | LC_ALL=C sort >"$after_file"
+	find "$home" "$proj" -newer "$marker" 2>/dev/null | LC_ALL=C sort >"$newpaths_file"
+	newpaths=$(cat "$newpaths_file")
+	vanished=$(LC_ALL=C comm -23 "$before_file" "$after_file")
+
+	violations=""
+	while IFS= read -r p; do
+		[ -n "$p" ] || continue
+		case "$p" in
+		"$home") ;;
+		"$home/.flow") ;;
+		"$home/.flow"/*) ;;
+		"$proj") ;;
+		"$proj/.specs") ;;
+		"$proj/.git/info/exclude") ;;
+		"$proj/.git/hooks") ;;
+		"$proj/.git/hooks/post-checkout") ;;
+		"$proj/.git/hooks/commit-msg") ;;
+		*) violations="$violations
+$p" ;;
+		esac
+	done <"$newpaths_file"
+
+	assert_eq "$violations" "" "t_stealth_writes_only_claimed_paths every write lies in the claimed set"
+	assert_eq "$vanished" "" "t_stealth_writes_only_claimed_paths nothing vanished"
+	assert_contains "$newpaths" "$proj/.specs" "t_stealth_writes_only_claimed_paths sanity: .specs link observed"
+	assert_contains "$newpaths" "$proj/.git/hooks/post-checkout" "t_stealth_writes_only_claimed_paths sanity: post-checkout hook observed"
+	assert_contains "$newpaths" "$proj/.git/hooks/commit-msg" "t_stealth_writes_only_claimed_paths sanity: commit-msg hook observed"
+	assert_contains "$newpaths" "$home/.flow" "t_stealth_writes_only_claimed_paths sanity: store area observed"
+	assert_not_contains "$newpaths" "$proj/.git/config" "t_stealth_writes_only_claimed_paths sanity: .git/config untouched by this flow"
+
+	store=$(readlink "$proj/.specs" 2>/dev/null || true)
+	store=${store%/.specs}
+	rm -rf "$home" "$proj" "$store" "$scratch"
+}
