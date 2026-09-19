@@ -1,5 +1,6 @@
 # Tasks — ECC borrows
 Approved: 2026-09-19 by user
+Verified: 2026-09-19 by user
 Spec: spec.md · Design: design.md · Base: 5a95afa · Route: dispatch · Test: `bash plugins/flow/hooks/tests/run.sh && bash plugins/flow/scripts/tests/run.sh`
 
 ## Behaviors
@@ -48,6 +49,6 @@ Independent test: `TEST_ONLY=test_install.sh bash plugins/flow/scripts/tests/run
 - [x] T010 [P] Install and stealth write confinement (B11): add t_install_writes_only_claimed_paths to test_install.sh and t_stealth_writes_only_claimed_paths to test_stealth.sh, reusing each file's own fixtures and CLI helper: record a `find` listing of the fixture HOME, dotfiles/source and project trees, touch a marker, sleep 1, run a normal successful `flow install` / `flow stealth`, then collect every path newer than the marker (`find -newer`) and every path that vanished; assert each lies inside the command's claimed set, written as an explicit allowlist taken from the command's --help, --dry-run output and code (install: its ~/.claude links, ~/.local/bin and the dirs it creates; stealth: the .specs link, .git/info/exclude, .git/hooks/post-checkout and commit-msg, .git/config only if the code writes it, and the store under $HOME/.flow/stealth); a directory counts as changed only through its own mtime and is allowed when an allowed path lives in it; an unexpected write the code really makes is recorded in NOTES.md as `Discovered:` and fails the test rather than being added to the allowlist silently; prove each test can go red by planting a stray write once, then remove the plant; BSD-portable (no stat -c/-f, no find -printf, no date -d) — files: plugins/flow/scripts/tests/test_install.sh, plugins/flow/scripts/tests/test_stealth.sh — verify: `TEST_ONLY=test_install.sh bash plugins/flow/scripts/tests/run.sh && TEST_ONLY=test_stealth.sh bash plugins/flow/scripts/tests/run.sh` — after: T000, T012 — done: e18d678
 
 ## Gates
-- [ ] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh`
-- [ ] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md`
-- [ ] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'`
+- [x] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh` — done: 95eff35
+- [x] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md` — done: 95eff35
+- [x] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'` — done: 95eff35
