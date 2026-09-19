@@ -470,7 +470,7 @@ function route(root, ctx, opts) {
   // ── 5 · unapproved. HARD GATE — the first of the only two stored human facts.
   if (!L.header.approved) {
     const n = (L.tasks || []).filter((t) => t.kind === 'task').length;
-    return done(mk('unapproved', `read ${feature.dir}/TASKS.md, reply "approved"`,
+    return done(mk('unapproved', `reply "approved" — full plan: ${feature.dir}/TASKS.md`,
       `${n} tasks planned on route ${feature.route || 'unset'}; nothing runs until you approve`,
       { feature, human_gate: true }));
   }

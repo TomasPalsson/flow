@@ -79,9 +79,10 @@ In this order, every run that wrote a directory:
 
 1. `flow use <NNN-slug>` — points `.specs/.current` at it
 2. `flow lint` — fix every ERROR it prints before you stop; each one carries its own `fix:` string
-3. print the truthful gate manifest: **"This run will stop for you N times"** — count them for real (the approval gate, every `CHK###`, the verification gate, and the PR), and name where
-4. **issue runs only** — post the "picked up" comment per `shared/issue-refs.md` §4 moment 1, after checking the marker so a re-run or an `--amend` updates it instead of posting twice. A `gh` failure here is one clause of output, never a stop.
-5. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: read .specs/003-entry-tagging/TASKS.md, reply "approved"`
+3. print **What will happen** — the plan in plain words, so the user can approve without opening `TASKS.md`: one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths
+4. print the truthful gate manifest: **"This run will stop for you N times"** — count them for real (the approval gate, every `CHK###`, the verification gate, and the PR), and name each one in plain words — what the user is asked to look at, never a bare ID or file name
+5. **issue runs only** — post the "picked up" comment per `shared/issue-refs.md` §4 moment 1, after checking the marker so a re-run or an `--amend` updates it instead of posting twice. A `gh` failure here is one clause of output, never a stop.
+6. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`
 
 ## 7. `--amend "<change>"`
 

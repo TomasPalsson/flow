@@ -175,6 +175,25 @@ t_v8_spec_handoff_order_and_manifest() {
 	fi
 }
 
+# The approval gate is approvable without opening TASKS.md: both doors print
+# the same plain-words plan, and neither tells the user to read the file first.
+t_v8_approval_gate_prints_plain_plan() {
+	local skill row
+	for skill in "$SPEC_SKILL" "$NEXT_SKILL"; do
+		assert_contains "$(cat "$skill")" 'no task IDs, no file paths' \
+			"$(basename "$(dirname "$skill")")/SKILL.md carries the plain-plan rule"
+		assert_not_contains "$(cat "$skill")" 'Next: read .specs/003-entry-tagging/TASKS.md' \
+			"$(basename "$(dirname "$skill")")/SKILL.md no longer tells the user to read TASKS.md"
+	done
+	assert_contains "$(cat "$SPEC_SKILL")" '**What will happen**' \
+		"spec/SKILL.md hands off with the plain-words plan"
+	row=$(grep '^| `unapproved`' "$NEXT_SKILL")
+	assert_contains "$row" '**What will happen**' \
+		"next/SKILL.md prints the plain-words plan at the unapproved gate"
+	assert_not_contains "$(cat "$SCAN_DIR/../skills/flow-deepen/SKILL.md")" 'read TASKS.md and reply' \
+		"flow-deepen/SKILL.md, the third door into the gate, no longer tells the user to read TASKS.md"
+}
+
 t_v8_spec_amend_is_append_only_and_clears_approved() {
 	local content
 	content=$(cat "$SPEC_SKILL")

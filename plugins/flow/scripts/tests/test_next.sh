@@ -329,7 +329,8 @@ t_next_row5_unapproved_is_a_hard_gate() {
 	nx_cli_in "$proj" "$home" next --json
 	assert_contains "$OUT" '"state": "unapproved"' "a TASKS.md with no Approved: is unapproved"
 	assert_contains "$OUT" '"human_gate": true' "row 5 is flagged as a human gate"
-	assert_contains "$OUT" 'reply' "row 5 asks the human for the word"
+	assert_contains "$OUT" '"command": "reply' "row 5 asks for the word first, not a read of TASKS.md"
+	assert_contains "$OUT" 'full plan: .specs/001-x/TASKS.md' "row 5 still names where the full plan lives"
 	assert_contains "$OUT" '"after": null' "a hard gate never asks for a /clear"
 	rm -rf "$home" "$proj"
 }

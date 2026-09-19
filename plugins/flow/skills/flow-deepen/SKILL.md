@@ -104,7 +104,7 @@ Each slice runs in its OWN fresh session — eight refactors in one context and 
 
 **ALWAYS end with the next step (so the user never has to remember the flow):**
 
-> *"Deepening phase appended to `<SPEC-DIR>/TASKS.md` (N tasks, M checkpoints), all behavior-preserving and characterization-test-gated; `flow lint` is clean and `Approved:` is cleared. **Next in the flow:** read TASKS.md and reply \"approved\" — then `/flow:next` builds wave 1. (Flow: `/flow:spec → /flow:next → [merged] → flow-deepen → /flow:next`.)"*
+> *"Deepening phase appended to `<SPEC-DIR>/TASKS.md` (N tasks, M checkpoints), all behavior-preserving and characterization-test-gated; `flow lint` is clean and `Approved:` is cleared. **Next in the flow:** reply \"approved\" (the table above is the plan) — then `/flow:next` builds wave 1. (Flow: `/flow:spec → /flow:next → [merged] → flow-deepen → /flow:next`.)"*
 
 ---
 

@@ -27,7 +27,7 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 | `prep-ready` | `Next: /flow:spec`. A `PREP.md` is ready and has no `spec.md` — `/flow:spec` reuses that directory. |
 | `ambiguous` | `Next: flow use <NNN-slug>`. **Never guess** which feature is live. |
 | `drafting` | Write `TASKS.md` (§Drafting below), then stop. |
-| `unapproved` | HARD GATE. Print the router's line verbatim and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. |
+| `unapproved` | HARD GATE. Read `TASKS.md` and print **What will happen** — one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths — then the router's line verbatim, and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. |
 | `building` | Build exactly the wave the router names (§Building). |
 | `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. |
 | `gating` | Run the `## Gates` (§Gates). |
@@ -108,7 +108,7 @@ Read `stealth` from `flow next --json`; when `active`:
 Next: /clear, then /flow:next
 ```
 
-The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: read .specs/003-entry-tagging/TASKS.md, reply "approved"`. One `Next:` line, always last, always one runnable token or one literal instruction.
+The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`. One `Next:` line, always last, always one runnable token or one literal instruction.
 
 ## NEVER
 
