@@ -7,9 +7,11 @@
 #
 # The window is read from the session transcript's last usage-bearing
 # record: only the newest 262144 bytes are scanned (a file that small is
-# read whole), and the tail's first line is dropped when the file is bigger
-# than that — a byte-offset tail almost certainly lands mid-line. tokens =
-# input_tokens + cache_read_input_tokens + cache_creation_input_tokens, the
+# read whole). A byte-offset tail almost certainly starts mid-line; that
+# partial first line — and any other malformed line — is parsed on its own
+# (see _cp_jq_usage below), so it fails to parse by itself and is skipped
+# without disturbing the lines around it. tokens = input_tokens +
+# cache_read_input_tokens + cache_creation_input_tokens, the
 # same three fields that partition a turn's prompt. The window is 1M once
 # tokens already exceed the 200k default, the model id carries the "[1m]"
 # marker, or it is a known large-window family (claude-opus-5,
@@ -46,25 +48,24 @@ _cp_known_family() {
 _cp_transcript=$(hook_field '.transcript_path')
 [ -r "$_cp_transcript" ] || hook_ok
 
-_cp_size=$(wc -c <"$_cp_transcript" 2>/dev/null | tr -d '[:space:]')
-case "$_cp_size" in '' | *[!0-9]*) hook_ok ;; esac
-
-# tokens and model, tab-joined, one output line per matching record. The
-# byte-tail (and, when truncated, its dropped partial first line) stay in
+# tokens and model, tab-joined, one output line per matching record. -R
+# (raw input) makes jq read the tail one line at a time instead of parsing
+# it as one JSON value stream; fromjson? then parses each line on its own
+# and the ? swallows that one line's failure, so a malformed line (the
+# partial first line of a truncated tail, or any other broken write) is
+# skipped instead of aborting jq for the rest of the tail — jq's default
+# stream mode does NOT recover from a bad line the way a single self
+# contained garbage token might suggest: one truly malformed value stops it
+# from emitting anything for every value after it. The byte-tail stays in
 # the pipe between tail and jq instead of a bash variable — capturing
 # 256KiB into a variable and printf-ing it back out for jq costs far more
-# than jq spends parsing it. jq recovers after a malformed line and keeps
-# emitting valid ones, so a broken trailing record naturally falls back to
-# an earlier line; the LAST output line is the most recent match.
+# than jq spends parsing it. The LAST output line is the most recent match.
 _cp_jq_usage='
+	fromjson? |
 	select(.message.usage != null) |
 	[((.message.usage.input_tokens // 0) + (.message.usage.cache_read_input_tokens // 0) + (.message.usage.cache_creation_input_tokens // 0)), (.message.model // "")] | @tsv
 '
-if [ "$_cp_size" -gt 262144 ]; then
-	_cp_lines=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | tail -n +2 | jq -r "$_cp_jq_usage" 2>/dev/null)
-else
-	_cp_lines=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | jq -r "$_cp_jq_usage" 2>/dev/null)
-fi
+_cp_lines=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | jq -R -r "$_cp_jq_usage" 2>/dev/null)
 [ -z "$_cp_lines" ] && hook_ok
 _cp_line=${_cp_lines##*$'\n'}
 
