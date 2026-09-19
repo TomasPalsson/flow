@@ -46,11 +46,9 @@ t_forge_reuse_check_greps_skill_dirs() {
 		"Step 0 searches existing skills with grep -ril"
 	assert_contains "$content" 'plugins/*/skills/*/SKILL.md' \
 		"Step 0 searches plugin skills"
-	# shellcheck disable=SC2088  # literal doc text under test, no expansion intended
-	assert_contains "$content" '~/.claude/skills/*/SKILL.md' \
+	assert_contains "$content" '~'/.claude/skills/'*'/SKILL.md \
 		"Step 0 searches user-level skills"
-	# shellcheck disable=SC2088  # literal doc text under test, no expansion intended
-	assert_contains "$content" '~/.claude/skills/*/skills/*/SKILL.md' \
+	assert_contains "$content" '~'/.claude/skills/'*'/skills/'*'/SKILL.md \
 		"Step 0 searches nested user-level skills"
 }
 
