@@ -1201,6 +1201,64 @@ t_quality_tamper_snapshot_dir_symlink_refused() {
 	rm -rf "$repo" "$victim"
 }
 
+# B6: hidden-unicode scan over hook/skill/agent/gate-config files. A zero-width
+# or bidi control character added to one of these hides text from a human
+# reader, so this is checked independently of the skip/threshold detectors
+# above and reported with its own message naming the code point.
+t_quality_tamper_hidden_unicode_skill_md_zero_width_rc2() {
+	local repo zwsp
+	repo=$(tmp_repo)
+	zwsp=$'\xE2\x80\x8B'
+	mkdir -p "$repo/skills/forge"
+	printf '# Skill Forge\n\nDo the thing.\n' >"$repo/skills/forge/SKILL.md"
+	_q_commit "$repo" skill
+	printf '# Skill Forge\n\nDo the%sthing.\n' "$zwsp" >"$repo/skills/forge/SKILL.md"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-u1\",\"tool_input\":{\"file_path\":\"$repo/skills/forge/SKILL.md\"}}"
+	assert_rc 2 "t_quality_tamper_hidden_unicode_skill_md_zero_width_rc2 rc"
+	assert_contains "$ERR" "U+200B" "t_quality_tamper_hidden_unicode_skill_md_zero_width_rc2 codepoint"
+	assert_contains "$ERR" "invisible" "t_quality_tamper_hidden_unicode_skill_md_zero_width_rc2 message"
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u1"
+}
+
+t_quality_tamper_hidden_unicode_agents_md_bidi_override_rc2() {
+	local repo rlo
+	repo=$(tmp_repo)
+	rlo=$'\xE2\x80\xAE'
+	mkdir -p "$repo/agents"
+	printf 'You are an agent.\n' >"$repo/agents/x.md"
+	_q_commit "$repo" agent
+	printf 'You are an%sagent.\n' "$rlo" >"$repo/agents/x.md"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-u2\",\"tool_input\":{\"file_path\":\"$repo/agents/x.md\"}}"
+	assert_rc 2 "t_quality_tamper_hidden_unicode_agents_md_bidi_override_rc2 rc"
+	assert_contains "$ERR" "U+202E" "t_quality_tamper_hidden_unicode_agents_md_bidi_override_rc2 codepoint"
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u2"
+}
+
+t_quality_tamper_hidden_unicode_skill_md_harmless_rc0() {
+	local repo
+	repo=$(tmp_repo)
+	mkdir -p "$repo/skills/forge"
+	printf '# Skill Forge\n\nDo the thing.\n' >"$repo/skills/forge/SKILL.md"
+	_q_commit "$repo" skill
+	printf '# Skill Forge\n\nDo the other thing.\n' >"$repo/skills/forge/SKILL.md"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-u3\",\"tool_input\":{\"file_path\":\"$repo/skills/forge/SKILL.md\"}}"
+	assert_rc 0 "t_quality_tamper_hidden_unicode_skill_md_harmless_rc0 rc"
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u3"
+}
+
+t_quality_tamper_hidden_unicode_non_scope_file_rc0() {
+	local repo zwsp
+	repo=$(tmp_repo)
+	zwsp=$'\xE2\x80\x8B'
+	mkdir -p "$repo/src"
+	printf 'console.log(1);\n' >"$repo/src/app.js"
+	_q_commit "$repo" app
+	printf 'console.log(1);%s\n' "$zwsp" >"$repo/src/app.js"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-u4\",\"tool_input\":{\"file_path\":\"$repo/src/app.js\"}}"
+	assert_rc 0 "t_quality_tamper_hidden_unicode_non_scope_file_rc0 rc"
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u4"
+}
+
 # ---------------------------------------------------------------------------
 # stop-gate.sh — SPEC C10. The change set is find-newer over the turn stamp
 # and nothing else (B6/FU-04), so every fixture that must be gated starts its
