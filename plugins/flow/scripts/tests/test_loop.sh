@@ -479,6 +479,43 @@ EOF
 	rm -rf "$home" "$proj" "$fakebin"
 }
 
+# B1 regression: a blank/unparseable started_at makes Date.parse return NaN,
+# which must not crash childTimeoutMs's minutes-left arithmetic — the driver
+# must fall back to the 60-minute cap and still spawn the child instead of
+# throwing an uncaught RangeError (ERR_OUT_OF_RANGE) out of spawnSync.
+t_loop_run_child_timeout_bad_started_at_b1() {
+	local proj home fakebin countfile
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+
+	sed 's#^started_at: .*#started_at: #' "$proj/.claude/loop/loop.md" >"$proj/.claude/loop/loop.md.new"
+	mv "$proj/.claude/loop/loop.md.new" "$proj/.claude/loop/loop.md"
+
+	fakebin=$(tmp_dir)
+	countfile="$fakebin/count"
+	printf '0' >"$countfile"
+	cat >"$fakebin/claude" <<EOF
+#!/bin/sh
+n=\$(cat "$countfile")
+n=\$((n + 1))
+printf '%s' "\$n" >"$countfile"
+touch done.txt
+printf '{"total_cost_usd":0,"session_id":"x","is_error":false,"duration_ms":1}\n'
+EOF
+	chmod +x "$fakebin/claude"
+
+	lp_cli_env_in "$proj" "$home" "$fakebin" loop run
+	assert_not_contains "$OUT
+$ERR" "RangeError" "t_loop_run_child_timeout_bad_started_at_b1 no-rangeerror"
+	assert_not_contains "$OUT
+$ERR" "ERR_OUT_OF_RANGE" "t_loop_run_child_timeout_bad_started_at_b1 no-out-of-range"
+	assert_rc 0 "t_loop_run_child_timeout_bad_started_at_b1 rc"
+	assert_eq "$(cat "$countfile")" "1" "t_loop_run_child_timeout_bad_started_at_b1 spawned"
+
+	rm -rf "$home" "$proj" "$fakebin"
+}
+
 # ---------------------------------------------------------------------------
 # status / stop CLI
 # ---------------------------------------------------------------------------
