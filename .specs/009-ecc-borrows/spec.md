@@ -149,3 +149,9 @@ None.
 - **What changed**: §5 "Context hook cost" from ≤ 50 ms to ≤ 80 ms per call.
 - **Why**: 50 ms was set before any measurement. Measured on a real 3.4 MB transcript after one optimisation round (one jq call, no bash-variable copy of the tail): 40–60 ms, median 50 ms; the untouched floor is shared hook plumbing (hookout.sh input parsing, `hook_field`, `_json_str`) that every flow hook pays — `git-guard.sh`, which runs beside it in the same PreToolUse group, takes 30 ms. A second optimisation round would trade clarity for single-digit milliseconds.
 - **Unchanged**: every FR, every other NFR, the 256 KiB read cap.
+
+## Amendment 2026-09-19 c
+
+- **What changed**: T013 appended (Phase 5, B12) — `flow lint`'s done-touches-nothing join uses pathspec semantics, the same question `flow tick` already asks; G001–G003 unticked to be re-run after it; G003 now also covers test_flow_lint.sh.
+- **Why**: dogfooding this spec to the gating state exposed it. `flow tick G001` recorded 95eff35 (a pathspec match on `files: .`), then `flow lint` rejected the same tick as done-touches-nothing (an exact-filename match that `.` can never satisfy), so the router reported `lying` and no spec whose gates use the template's `files: .` could ever reach `unverified`. A directory in any task's `files:` hits the same wall.
+- **Unchanged**: §2.2 non-goals, FR-01..FR-12, every other task.

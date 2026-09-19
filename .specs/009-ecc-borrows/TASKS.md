@@ -1,6 +1,5 @@
 # Tasks — ECC borrows
 Approved: 2026-09-19 by user
-Verified: 2026-09-19 by user
 Spec: spec.md · Design: design.md · Base: 5a95afa · Route: dispatch · Test: `bash plugins/flow/hooks/tests/run.sh && bash plugins/flow/scripts/tests/run.sh`
 
 ## Behaviors
@@ -18,6 +17,7 @@ Spec: spec.md · Design: design.md · Base: 5a95afa · Route: dispatch · Test: 
 | B9 (P1) | Given hooks.md or scripts.md out of step with the files, when doctor runs, then it WARNs per mismatch | T008 | t_doctor_reference_docs_* |
 | B10 (P2) | Given a skill-forge request that matches an existing skill, when Step 0 runs, then it stops and offers three choices | T009 | t_skill_forge_step0_* |
 | B11 (P1) | Given flow install or flow stealth, when it runs in a fixture HOME, then nothing outside its claimed paths changes | T010 | t_install_writes_only_claimed_paths, t_stealth_writes_only_claimed_paths |
+| B12 (P0) | Given a ticked task whose files: is `.` or a directory, when flow lint joins its done: commit, then a commit that changed a path under it passes | T013 | t_lint_done_touches_dot_and_directory |
 
 ## Phase 1 — Green baseline and silent failures
 Goal: the suite can go green, a hung loop child dies, and a dead review lens is always reported.
@@ -48,7 +48,12 @@ Goal: install and stealth are proven to write only where they say they do.
 Independent test: `TEST_ONLY=test_install.sh bash plugins/flow/scripts/tests/run.sh && TEST_ONLY=test_stealth.sh bash plugins/flow/scripts/tests/run.sh`
 - [x] T010 [P] Install and stealth write confinement (B11): add t_install_writes_only_claimed_paths to test_install.sh and t_stealth_writes_only_claimed_paths to test_stealth.sh, reusing each file's own fixtures and CLI helper: record a `find` listing of the fixture HOME, dotfiles/source and project trees, touch a marker, sleep 1, run a normal successful `flow install` / `flow stealth`, then collect every path newer than the marker (`find -newer`) and every path that vanished; assert each lies inside the command's claimed set, written as an explicit allowlist taken from the command's --help, --dry-run output and code (install: its ~/.claude links, ~/.local/bin and the dirs it creates; stealth: the .specs link, .git/info/exclude, .git/hooks/post-checkout and commit-msg, .git/config only if the code writes it, and the store under $HOME/.flow/stealth); a directory counts as changed only through its own mtime and is allowed when an allowed path lives in it; an unexpected write the code really makes is recorded in NOTES.md as `Discovered:` and fails the test rather than being added to the allowlist silently; prove each test can go red by planting a stray write once, then remove the plant; BSD-portable (no stat -c/-f, no find -printf, no date -d) — files: plugins/flow/scripts/tests/test_install.sh, plugins/flow/scripts/tests/test_stealth.sh — verify: `TEST_ONLY=test_install.sh bash plugins/flow/scripts/tests/run.sh && TEST_ONLY=test_stealth.sh bash plugins/flow/scripts/tests/run.sh` — after: T000, T012 — done: e18d678
 
+## Phase 5 — Found while gating
+Goal: `flow lint` and `flow tick` agree on what a task's `files:` covers, so a ticked gate (`files: .`) or a task that lists a directory lints clean.
+Independent test: `TEST_ONLY=test_flow_lint.sh bash plugins/flow/scripts/tests/run.sh`
+- [ ] T013 flow-lint's done-touches-nothing join uses git pathspec semantics, like flow tick (B12): plugins/flow/scripts/flow-lint (~line 710) decides whether a done: commit touched a task's files: by an exact-line `grep -Fxq` of each entry against `git show --name-only`, so `.` (every gate in flow-templates/TASKS.md) and any directory entry never match, while flow tick (bin/lib/tick.js:99) picks the commit with `git log -- <files>`, a pathspec — the two disagree and the router reports a ticked gate as `lying`; make the lint ask git the same pathspec question tick asks (the done: commit touched a path under any files: entry, evaluated from the repo top-level), keep the exact-file behaviour for plain file entries and every existing done-touches-nothing, done-sha-* and done-no-files test green; add t_lint_done_touches_dot_and_directory to test_flow_lint.sh — a repo whose ticked G001 has `files: .` and a ticked T002 whose files: is a directory that its done: commit changed a file inside → no done-touches-nothing ERROR, while a T003 whose done: commit touched nothing under its directory still gets the ERROR — files: plugins/flow/scripts/flow-lint, plugins/flow/scripts/tests/test_flow_lint.sh — verify: `TEST_ONLY=test_flow_lint.sh bash plugins/flow/scripts/tests/run.sh`
+
 ## Gates
-- [x] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh` — done: 95eff35
-- [x] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md` — done: 95eff35
-- [x] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'` — done: 95eff35
+- [ ] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh`
+- [ ] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md`
+- [ ] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh test_flow_lint.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'`
