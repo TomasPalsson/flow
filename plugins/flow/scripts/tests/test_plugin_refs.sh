@@ -35,14 +35,22 @@ t_pref_no_legacy_refs_outside_documented_exceptions() {
 	# t_pref_pr_reviewer_uses_plugin_root_for_post_review), and a bare
 	# "`.claude/skills/`" mention in project-detection.md with no path
 	# segment after it (nothing for ${CLAUDE_PLUGIN_ROOT} to substitute,
-	# matching skills-lint's own bare-prefix exemption).
+	# matching skills-lint's own bare-prefix exemption), and skill-forge's
+	# Step 0 reuse-check sentence, which names `~/.claude/skills/*/SKILL.md`
+	# and `~/.claude/skills/*/skills/*/SKILL.md` as places to grep for an
+	# existing skill before building fresh (the same category as the
+	# claude-improver exception above — it names the USER's personal skill
+	# directories as a search target, never this plugin's own files;
+	# test_skill_forge.sh pins that literal path, so rewording the skill
+	# is not the fix).
 	hits=$(grep -rnE '\.claude/skills/|~/\.claude/|\$HOME/\.claude/' --include='*.md' "$SKILLS_DIR_PREF" 2>/dev/null |
 		grep -vF "/shared/agent-browser-reference.md:" |
 		grep -vF "/qa/references/agent-prompts.md:" |
 		grep -vF "/qa/SKILL.md:133:" |
 		grep -vF "/claude-improver/" |
 		grep -vF ".claude/skills/pr-reviewer" |
-		grep -vF 'Check for `.claude/skills/` in the project')
+		grep -vF 'Check for `.claude/skills/` in the project' |
+		grep -vE '/skill-forge/SKILL\.md:[0-9]+:.*`grep -ril`')
 	assert_eq "$hits" "" "no legacy .claude/skills, ~/.claude, or \$HOME/.claude references remain under skills/ outside the documented exceptions"
 }
 
