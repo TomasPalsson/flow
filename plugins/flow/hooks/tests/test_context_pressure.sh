@@ -137,6 +137,24 @@ t_context_pressure_malformed_last_line_uses_previous_usage() {
 	rm -rf "$d"
 }
 
+t_context_pressure_malformed_middle_line_uses_latest_valid() {
+	local d transcript sid
+	d=$(tmp_dir)
+	transcript="$d/transcript.jsonl"
+	sid="cp-malformed-middle"
+	rm -f "$(_cp_state_file "$sid")"
+
+	_cp_append_usage "$transcript" 170000 "claude-sonnet-4-5"
+	printf 'garbage {{{\n' >>"$transcript"
+	_cp_append_usage "$transcript" 320000 "claude-sonnet-4-5"
+	_cp_run "$sid" "$transcript"
+	assert_rc 0 "malformed middle rc"
+	assert_contains "$OUT" "~320k tokens of a ~1000k window" "a malformed middle line does not hide the later valid record"
+
+	rm -f "$(_cp_state_file "$sid")"
+	rm -rf "$d"
+}
+
 t_context_pressure_flow_off_marker_is_silent() {
 	local repo d transcript sid
 	repo=$(tmp_repo)
