@@ -1,5 +1,6 @@
 # Tasks — ECC borrows
 Approved: 2026-09-19 by user
+Verified: 2026-09-19 by user
 Spec: spec.md · Design: design.md · Base: 5a95afa · Route: dispatch · Test: `bash plugins/flow/hooks/tests/run.sh && bash plugins/flow/scripts/tests/run.sh`
 
 ## Behaviors
@@ -54,6 +55,6 @@ Independent test: `TEST_ONLY=test_flow_lint.sh bash plugins/flow/scripts/tests/r
 - [x] T013 flow-lint's done-touches-nothing join uses git pathspec semantics, like flow tick (B12): plugins/flow/scripts/flow-lint (~line 710) decides whether a done: commit touched a task's files: by an exact-line `grep -Fxq` of each entry against `git show --name-only`, so `.` (every gate in flow-templates/TASKS.md) and any directory entry never match, while flow tick (bin/lib/tick.js:99) picks the commit with `git log -- <files>`, a pathspec — the two disagree and the router reports a ticked gate as `lying`; make the lint ask git the same pathspec question tick asks (the done: commit touched a path under any files: entry, evaluated from the repo top-level), keep the exact-file behaviour for plain file entries and every existing done-touches-nothing, done-sha-* and done-no-files test green; add t_lint_done_touches_dot_and_directory to test_flow_lint.sh — a repo whose ticked G001 has `files: .` and a ticked T002 whose files: is a directory that its done: commit changed a file inside → no done-touches-nothing ERROR, while a T003 whose done: commit touched nothing under its directory still gets the ERROR — files: plugins/flow/scripts/flow-lint, plugins/flow/scripts/tests/test_flow_lint.sh — verify: `TEST_ONLY=test_flow_lint.sh bash plugins/flow/scripts/tests/run.sh` — done: a6ce392
 
 ## Gates
-- [ ] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh`
-- [ ] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md`
-- [ ] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh test_flow_lint.sh test_plugin_refs.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'`
+- [x] G001 hook suite green — files: . — verify: `bash plugins/flow/hooks/tests/run.sh` — done: d467d04
+- [x] G002 branch review clean — files: . — verify: `test -f .specs/009-ecc-borrows/PASS-$(git rev-parse --short HEAD).md` — done: d467d04
+- [x] G003 every scripts test file this feature touches is green, static checks included — files: . — verify: `bash -c 'for f in test_loop.sh test_workflows.sh test_agents.sh test_skill_forge.sh test_doctor_hygiene.sh test_install.sh test_stealth.sh test_flow_lint.sh test_plugin_refs.sh; do TEST_ONLY=$f bash plugins/flow/scripts/tests/run.sh >/dev/null || exit 1; done'` — done: d467d04
