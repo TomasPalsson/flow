@@ -213,6 +213,101 @@ function personalPathsCheck(push, repoRoot) {
   }
 }
 
-function referenceDocsCheck(push, repoRoot) {}
+// basenames of the *.sh files directly under `dir` — no recursion into
+// lib/ or tests/, and no executable requirement (a hook that lost its
+// +x bit is still a hook the docs must cover).
+function referenceDocsShNames(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries.filter((e) => e.isFile() && e.name.endsWith('.sh')).map((e) => e.name);
+}
+
+// regular, executable files directly under `dir` whose name has no dot —
+// the same "is this a shipped CLI script" shape flow doctor's own
+// --help/install checks use (bin/flow's `(st.mode & 0o111) !== 0`).
+function referenceDocsScriptNames(dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const names = [];
+  for (const e of entries) {
+    if (!e.isFile() || e.name.indexOf('.') !== -1) continue;
+    let stat;
+    try {
+      stat = fs.statSync(path.join(dir, e.name));
+    } catch {
+      continue;
+    }
+    if ((stat.mode & 0o111) !== 0) names.push(e.name);
+  }
+  return names;
+}
+
+// text of every level-2 (`## `) heading in `docPath`, in document order.
+function referenceDocsHeadings(docPath) {
+  let text;
+  try {
+    text = fs.readFileSync(docPath, 'utf8');
+  } catch {
+    return [];
+  }
+  const headings = [];
+  for (const line of text.split('\n')) {
+    const m = /^## (.+)$/.exec(line);
+    if (m) headings.push(m[1].trim());
+  }
+  return headings;
+}
+
+// One WARN line per name with no matching section, then one per section
+// with no matching name — `sections` is already narrowed to the headings
+// that document `names` (hooks.md's non-hook headings, e.g. "hooks.json",
+// are never in that set).
+function referenceDocsDrift(docBasename, names, sections) {
+  const nameSet = new Set(names);
+  const sectionSet = new Set(sections);
+  const warnings = [];
+  for (const name of names) {
+    if (!sectionSet.has(name)) warnings.push(`${docBasename} has no section for ${name}`);
+  }
+  for (const section of sections) {
+    if (!nameSet.has(section)) warnings.push(`${docBasename} documents ${section}, which does not exist`);
+  }
+  return warnings;
+}
+
+function referenceDocsCheck(push, repoRoot) {
+  const hooksDocPath = path.join(repoRoot, 'docs', 'reference', 'hooks.md');
+  try {
+    fs.statSync(hooksDocPath);
+  } catch {
+    return;
+  }
+
+  const hookNames = referenceDocsShNames(path.join(repoRoot, 'plugins', 'flow', 'hooks'));
+  const hookSections = referenceDocsHeadings(hooksDocPath).filter((h) => h.endsWith('.sh'));
+
+  const scriptsDocPath = path.join(repoRoot, 'docs', 'reference', 'scripts.md');
+  const scriptNames = referenceDocsScriptNames(path.join(repoRoot, 'plugins', 'flow', 'scripts'));
+  const scriptSections = referenceDocsHeadings(scriptsDocPath);
+
+  const warnings = [
+    ...referenceDocsDrift('hooks.md', hookNames, hookSections),
+    ...referenceDocsDrift('scripts.md', scriptNames, scriptSections),
+  ];
+
+  if (warnings.length === 0) {
+    push('reference-docs', 'PASS', 'reference docs match shipped hooks and scripts');
+    return;
+  }
+  for (const w of warnings) push('reference-docs', 'WARN', w);
+}
 
 module.exports = { REPO_ROOT, worktreeHygieneCheck, personalPathsCheck, referenceDocsCheck };

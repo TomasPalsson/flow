@@ -8,6 +8,16 @@ Lifecycle hooks in `plugins/flow/hooks/`, registered by the plugin's `hooks/hook
 codebase-map.sh — SessionStart hook (also fires on compact, per the
 ```
 
+## context-pressure.sh
+
+```
+context-pressure.sh — PreToolUse hook.
+```
+
+Registered on both the `Bash` and `Edit|Write|NotebookEdit` matcher groups. Warns once per 60k-token bucket that the context window is filling — read from the session transcript's last usage-bearing record — so the model finishes the current step and records where it left off (in TASKS.md / PROGRESS.md) before `/compact` or `/clear` loses the thread. Never blocks and never writes anything else to stdout.
+
+Escape hatch: `flow off` for the directory (via `hook_skip_if_off`).
+
 ## format-lint.sh
 
 ```
@@ -67,6 +77,16 @@ postcompact-context.sh — PostCompact hook.
 pre-compact-backup.sh — PreCompact hook.
 ```
 
+## search-first.sh
+
+```
+search-first.sh — UserPromptSubmit hook.
+```
+
+A prompt that asks to add/implement/create/introduce a new symbol (a property, field, method, function, helper, endpoint, route, class or attribute) gets one line of model-facing context: search the repo before writing new code. Slash commands are left alone.
+
+Escape hatch: `CC_SEARCH_FIRST=0` for one command (any other value forces it on, env always wins), else `searchFirst: false` in `.claude/flow.config.json`, else on by default.
+
 ## session-context.sh
 
 ```
@@ -102,6 +122,8 @@ subagent-log.sh — SubagentStop hook (async: true).
 ```
 tamper-notice.sh — PostToolUse/Edit|Write|NotebookEdit hook.
 ```
+
+A hook script, a skill/agent doc, or a hooks/mcp config (`*/hooks/*.sh`, `*/skills/*/SKILL.md`, `*/agents/*.md`, `hooks.json`, `.mcp.json`) also gets a hidden-unicode scan: the lines this edit *added* are checked for zero-width space/joiner (U+200B–U+200D), bidi-control (U+200E/U+200F, U+202A–U+202E, U+2066–U+2069), word-joiner/invisible-operator (U+2060–U+2064) and BOM (U+FEFF) code points — any of which can hide text from a human reviewer. A hit reports the offending line and its code point (escape: state why it must stay, or `flow off` in the directory).
 
 ## tool-stamp.sh
 
