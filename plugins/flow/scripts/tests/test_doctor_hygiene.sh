@@ -257,3 +257,85 @@ process.stdout.write(JSON.stringify(rows));
 	assert_not_contains "$rows" '"status":"WARN"' "t_doctor_personal_paths_real_repo_root_pass no-warn"
 	assert_contains "$rows" '"status":"PASS"' "t_doctor_personal_paths_real_repo_root_pass pass-row"
 }
+
+# ---------------------------------------------------------------------------
+# reference-docs (T008, B9)
+# ---------------------------------------------------------------------------
+
+# rd_check <repoRoot> — calls referenceDocsCheck(push, repoRoot) directly,
+# collecting rows as a JSON array into OUT.
+rd_check() {
+	RD_REPO_ROOT="$1" hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.referenceDocsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, process.env.RD_REPO_ROOT);
+process.stdout.write(JSON.stringify(rows));
+'
+}
+
+t_doctor_reference_docs_missing_section_warns() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/flow/hooks" "$repo/docs/reference"
+	printf '#!/usr/bin/env bash\n' >"$repo/plugins/flow/hooks/foo.sh"
+	printf '# Hooks\n' >"$repo/docs/reference/hooks.md"
+
+	rd_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" '"status":"WARN"' "t_doctor_reference_docs_missing_section_warns warn-status"
+	assert_contains "$rows" "hooks.md has no section for foo.sh" "t_doctor_reference_docs_missing_section_warns wording"
+
+	rm -rf "$repo"
+}
+
+t_doctor_reference_docs_stale_section_warns() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/docs/reference"
+	printf '# Hooks\n' >"$repo/docs/reference/hooks.md"
+	printf '# Scripts\n\n## ghost\n\n```\nghost --help\n```\n' >"$repo/docs/reference/scripts.md"
+
+	rd_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" '"status":"WARN"' "t_doctor_reference_docs_stale_section_warns warn-status"
+	assert_contains "$rows" "scripts.md documents ghost, which does not exist" "t_doctor_reference_docs_stale_section_warns wording"
+
+	rm -rf "$repo"
+}
+
+t_doctor_reference_docs_matched_fixture_pass() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/flow/hooks" "$repo/plugins/flow/scripts" "$repo/docs/reference"
+	printf '#!/usr/bin/env bash\n' >"$repo/plugins/flow/hooks/a.sh"
+	printf '#!/usr/bin/env bash\n' >"$repo/plugins/flow/hooks/b.sh"
+	printf '#!/usr/bin/env bash\necho c\n' >"$repo/plugins/flow/scripts/c"
+	printf '#!/usr/bin/env bash\necho d\n' >"$repo/plugins/flow/scripts/d"
+	chmod +x "$repo/plugins/flow/scripts/c" "$repo/plugins/flow/scripts/d"
+	printf '# Hooks\n\n## a.sh\n\n```\na.sh — PreToolUse hook.\n```\n\n## b.sh\n\n```\nb.sh — PreToolUse hook.\n```\n' >"$repo/docs/reference/hooks.md"
+	printf '# Scripts\n\n## c\n\n```\nUsage: c\n```\n\n## d\n\n```\nUsage: d\n```\n' >"$repo/docs/reference/scripts.md"
+
+	rd_check "$repo"
+	rows="$OUT"
+	assert_not_contains "$rows" "WARN" "t_doctor_reference_docs_matched_fixture_pass no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_doctor_reference_docs_matched_fixture_pass pass-row"
+
+	rm -rf "$repo"
+}
+
+t_doctor_reference_docs_real_repo_root_pass() {
+	local rows
+	hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.referenceDocsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, hygiene.REPO_ROOT);
+process.stdout.write(JSON.stringify(rows));
+'
+	rows="$OUT"
+	assert_not_contains "$rows" '"status":"WARN"' "t_doctor_reference_docs_real_repo_root_pass no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_doctor_reference_docs_real_repo_root_pass pass-row"
+}
