@@ -274,14 +274,13 @@ fi
 
 _matched=$(printf '%s\n' "$_matched" | sed '/^$/d')
 
-if [ -n "$_matched" ]; then
-	hook_feedback "$file_path
-$_matched
-You just disabled or weakened a check. If that is intentional and correct, state which check and why in your reply; otherwise revert it. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
-fi
-
 # B6: zero-width space/joiner, bidi-control and BOM code points — each a raw
 # UTF-8 byte pattern so the match is exact regardless of the caller's locale.
+# Detected before either message is sent: a path can be in both classes (a
+# hook test file matches */tests/* AND */hooks/*.sh), and hook_feedback exits
+# on its first call — computing both first lets one call report both.
+_tn_uni_hit=""
+_tn_uni_cp=""
 if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
 	_tn_uni_cps=(U+200B U+200C U+200D U+200E U+200F U+202A U+202B U+202C U+202D U+202E U+2060 U+2061 U+2062 U+2063 U+2064 U+2066 U+2067 U+2068 U+2069 U+FEFF)
 	_tn_uni_bytes=(
@@ -291,8 +290,6 @@ if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
 		$'\xE2\x81\xA6' $'\xE2\x81\xA7' $'\xE2\x81\xA8' $'\xE2\x81\xA9'
 		$'\xEF\xBB\xBF'
 	)
-	_tn_uni_hit=""
-	_tn_uni_cp=""
 	_tn_uni_i=0
 	while [ "$_tn_uni_i" -lt "${#_tn_uni_bytes[@]}" ]; do
 		_tn_uni_hit=$(printf '%s\n' "$_added" | LC_ALL=C grep -F "${_tn_uni_bytes[$_tn_uni_i]}" | head -1)
@@ -302,11 +299,30 @@ if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
 		fi
 		_tn_uni_i=$((_tn_uni_i + 1))
 	done
-	if [ -n "$_tn_uni_hit" ]; then
-		hook_feedback "$file_path
-$_tn_uni_hit
+fi
+
+_tn_weakened_block=""
+if [ -n "$_matched" ]; then
+	_tn_weakened_block="$_matched
+You just disabled or weakened a check. If that is intentional and correct, state which check and why in your reply; otherwise revert it. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
+fi
+
+_tn_unicode_block=""
+if [ -n "$_tn_uni_hit" ]; then
+	_tn_unicode_block="$_tn_uni_hit
 That line carries an invisible control character ($_tn_uni_cp) — it can hide text from a human reader. Remove it, or state in your reply why it must stay. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
-	fi
+fi
+
+if [ -n "$_tn_weakened_block" ] && [ -n "$_tn_unicode_block" ]; then
+	hook_feedback "$file_path
+$_tn_weakened_block
+$_tn_unicode_block"
+elif [ -n "$_tn_weakened_block" ]; then
+	hook_feedback "$file_path
+$_tn_weakened_block"
+elif [ -n "$_tn_unicode_block" ]; then
+	hook_feedback "$file_path
+$_tn_unicode_block"
 fi
 
 hook_ok
