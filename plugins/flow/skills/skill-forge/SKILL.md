@@ -26,6 +26,17 @@ Create expert-grade Skills by researching deeply before writing a single line. M
 │  iterations OR score ≥ 96/120 (80%, production-ready)                │
 └──────────────────────────────────────────────────────────────────────┘
 ```
+Step 0 (reuse check, below) runs before Research — look before you build.
+
+---
+
+## Step 0: Reuse check — before any research
+
+Derive 3–6 keywords and synonyms from the request. `grep -ril` them over `plugins/*/skills/*/SKILL.md` (when in a plugin repo), `~/.claude/skills/*/SKILL.md`, and `~/.claude/skills/*/skills/*/SKILL.md`, then read each hit's frontmatter `description`.
+
+A close match — its description covers the request's core trigger — STOPS before Step 1 and offers exactly three choices: use the existing skill, improve it with `skill-improver`, or build fresh anyway.
+
+No close match: print one receipt line and continue — `reuse check: searched <terms> in <dirs>; nothing close`
 
 ---
 
