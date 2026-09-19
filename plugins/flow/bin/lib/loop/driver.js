@@ -71,12 +71,11 @@ function saveIterationJson(toplevel, n, payload) {
   fs.writeFileSync(path.join(dir, name), JSON.stringify(payload, null, 2));
 }
 
-// B1: the child's wall-clock cap — time left under front.max_minutes (a
-// fresh loop always carries one; unset reads as no minute cap, so fall back
-// to the 60 min ceiling alone), capped at 60 min either way. Floored at 1 s
-// so a cap that has nearly elapsed still enforces one instead of spawnSync
-// treating <=0 as "no timeout". FLOW_LOOP_CHILD_TIMEOUT_SEC overrides it for
-// tests that cannot wait minutes.
+// B1: the child's wall-clock cap — time left under front.max_minutes (0
+// means unset, so only the 60 min ceiling applies), capped at 60 min either
+// way, floored at 1 s (spawnSync treats a timeout <= 0 as "no timeout", so a
+// near-elapsed cap must still round up to one). FLOW_LOOP_CHILD_TIMEOUT_SEC
+// overrides it for tests that cannot wait minutes.
 function childTimeoutMs(front, env) {
   const envSec = toInt(env && env.FLOW_LOOP_CHILD_TIMEOUT_SEC);
   if (envSec > 0) return Math.max(1, envSec) * 1000;
