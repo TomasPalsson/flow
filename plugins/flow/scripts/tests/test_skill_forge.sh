@@ -5,6 +5,11 @@
 
 FORGE_SKILL="$SCAN_DIR/../skills/skill-forge/SKILL.md"
 
+# _forge_content → full content of skill-forge/SKILL.md
+_forge_content() {
+	cat "$FORGE_SKILL"
+}
+
 # _forge_process_block → content of "## The Process" section, stopping
 # before Step 0's own heading (and before Step 1, as a fallback if Step 0
 # is missing) — isolates the short mention from the dedicated section.
@@ -36,7 +41,7 @@ t_forge_process_overview_mentions_step0() {
 
 t_forge_reuse_check_greps_skill_dirs() {
 	local content
-	content=$(cat "$FORGE_SKILL")
+	content=$(_forge_content)
 	assert_contains "$content" 'grep -ril' \
 		"Step 0 searches existing skills with grep -ril"
 	assert_contains "$content" 'plugins/*/skills/*/SKILL.md' \
@@ -51,7 +56,7 @@ t_forge_reuse_check_greps_skill_dirs() {
 
 t_forge_close_match_offers_three_choices() {
 	local content
-	content=$(cat "$FORGE_SKILL")
+	content=$(_forge_content)
 	assert_contains "$content" 'STOPS before Step 1' \
 		"a close match stops the pipeline before Step 1"
 	assert_contains "$content" 'use the existing skill' \
@@ -63,7 +68,7 @@ t_forge_close_match_offers_three_choices() {
 }
 
 t_forge_no_close_match_prints_receipt_line() {
-	assert_contains "$(cat "$FORGE_SKILL")" \
+	assert_contains "$(_forge_content)" \
 		'reuse check: searched <terms> in <dirs>; nothing close' \
 		"no close match prints the one-line reuse-check receipt"
 }
