@@ -137,3 +137,9 @@ None.
 | lens | one adversary review pass with a fixed focus (correctness, gaming, slop …) |
 | claimed paths | the paths a command's help and dry-run say it writes |
 | idle | days since the newest of HEAD commit time and directory mtime |
+
+## Amendment 2026-09-19
+
+- **What changed**: T012 appended (tmp_dir strips a trailing TMPDIR slash in the scripts suite's lib.sh); T010 now runs after T012; G003 narrowed from the whole scripts suite to every scripts test file this feature touches, static checks included.
+- **Why**: measured at base, the full scripts suite carries 107 pre-existing failures (tests for commands deleted in spec 004, eval CLI dry-runs, plugin-mode install) and test_install.sh alone carries 11 — all 11 vanish under a slash-free TMPDIR, so the shared helper is the root cause for that file. Fixing the other ~96 is outside §2.1; they are parked in `.specs/ISSUES.md` rather than fixed or hidden.
+- **Unchanged**: §2.2 non-goals, every FR, every other task.
