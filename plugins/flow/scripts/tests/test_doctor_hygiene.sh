@@ -183,3 +183,77 @@ t_hyg_doctor_json_carries_row() {
 	assert_contains "$OUT" '"id": "worktree-hygiene"' "t_hyg_doctor_json_carries_row row-present"
 	rm -rf "$home" "$proj"
 }
+
+# ---------------------------------------------------------------------------
+# personal-paths (T007, B8)
+# ---------------------------------------------------------------------------
+
+# pp_check <repoRoot> — calls personalPathsCheck(push, repoRoot) directly,
+# collecting rows as a JSON array into OUT.
+pp_check() {
+	PP_REPO_ROOT="$1" hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.personalPathsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, process.env.PP_REPO_ROOT);
+process.stdout.write(JSON.stringify(rows));
+'
+}
+
+t_doctor_personal_paths_leak_warns_with_location() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/demo/skills"
+	printf 'intro\nsee /Users/alice/work for details\n' >"$repo/plugins/demo/skills/LEAK.md"
+
+	pp_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" '"status":"WARN"' "t_doctor_personal_paths_leak_warns_with_location warn-status"
+	assert_contains "$rows" "plugins/demo/skills/LEAK.md:2: personal path /Users/alice/ — use \$HOME, ~ or \${CLAUDE_PLUGIN_ROOT}" "t_doctor_personal_paths_leak_warns_with_location file-and-line"
+
+	rm -rf "$repo"
+}
+
+t_doctor_personal_paths_excluded_names_pass() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/demo/skills"
+	printf 'see /Users/you/example\nand /home/runner/example\n' >"$repo/plugins/demo/skills/OK.md"
+
+	pp_check "$repo"
+	rows="$OUT"
+	assert_not_contains "$rows" "WARN" "t_doctor_personal_paths_excluded_names_pass no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_doctor_personal_paths_excluded_names_pass pass-row"
+
+	rm -rf "$repo"
+}
+
+t_doctor_personal_paths_binary_file_ignored() {
+	local repo rows
+	repo=$(tmp_dir)
+	mkdir -p "$repo/plugins/demo/skills"
+	printf '/Users/alice/work\0binary\n' >"$repo/plugins/demo/skills/BIN.md"
+
+	pp_check "$repo"
+	rows="$OUT"
+	assert_not_contains "$rows" "WARN" "t_doctor_personal_paths_binary_file_ignored no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_doctor_personal_paths_binary_file_ignored pass-row"
+
+	rm -rf "$repo"
+}
+
+t_doctor_personal_paths_real_repo_root_pass() {
+	local rows
+	hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.personalPathsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, hygiene.REPO_ROOT);
+process.stdout.write(JSON.stringify(rows));
+'
+	rows="$OUT"
+	assert_not_contains "$rows" '"status":"WARN"' "t_doctor_personal_paths_real_repo_root_pass no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_doctor_personal_paths_real_repo_root_pass pass-row"
+}
