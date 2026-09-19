@@ -63,10 +63,28 @@ function idleDays(wtPath) {
   return Math.floor((Date.now() - Math.max(commitMs, dirMs)) / 86400000);
 }
 
-function worktreeHygieneCheck(push, cwd) {
-  const isRepo = git(cwd, ['rev-parse', '--is-inside-work-tree']);
-  if (!isRepo.ok || isRepo.out !== 'true') return;
+// A candidate is a linked worktree under .claude/worktrees/ — not locked,
+// and not the worktree this check itself is running from.
+function isCandidateWorktree(e, cwdReal) {
+  if (e.path.indexOf('/.claude/worktrees/') === -1) return false;
+  if (e.locked) return false;
+  return realpath(e.path) !== cwdReal;
+}
 
+function warningFor(e, base, clean, merged, idle) {
+  if (merged && clean && idle >= 1) {
+    return `${e.path} (branch ${e.branch}) is merged and clean, idle ${idle}d — safe to remove: git worktree remove ${e.path}`;
+  }
+  if (idle >= 14) {
+    const ahead = git(e.path, ['rev-list', '--count', `${base.head}..${e.head}`]).out || '0';
+    return `${e.path} idle ${idle}d (${ahead} commits not in base, ${clean ? 'clean' : 'dirty'}) — review, then: git worktree remove ${e.path}`;
+  }
+  return null;
+}
+
+function worktreeHygieneCheck(push, cwd) {
+  // `git worktree list` itself fails outside a repo (exit 128), which is
+  // exactly "not a git repo: no row" — no separate is-inside-work-tree check.
   const list = git(cwd, ['worktree', 'list', '--porcelain']);
   if (!list.ok) return;
   const entries = parseWorktreeList(list.out);
@@ -77,24 +95,11 @@ function worktreeHygieneCheck(push, cwd) {
 
   const warnings = [];
   for (const e of entries) {
-    if (e.path.indexOf('/.claude/worktrees/') === -1) continue;
-    if (e.locked) continue;
-    if (realpath(e.path) === cwdReal) continue;
-
+    if (!isCandidateWorktree(e, cwdReal)) continue;
     const clean = git(e.path, ['status', '--porcelain']).out === '';
     const merged = git(e.path, ['merge-base', '--is-ancestor', e.head, base.head]).ok;
-    const idle = idleDays(e.path);
-
-    if (merged && clean && idle >= 1) {
-      warnings.push(
-        `${e.path} (branch ${e.branch}) is merged and clean, idle ${idle}d — safe to remove: git worktree remove ${e.path}`
-      );
-    } else if (idle >= 14) {
-      const ahead = git(e.path, ['rev-list', '--count', `${base.head}..${e.head}`]).out || '0';
-      warnings.push(
-        `${e.path} idle ${idle}d (${ahead} commits not in base, ${clean ? 'clean' : 'dirty'}) — review, then: git worktree remove ${e.path}`
-      );
-    }
+    const warning = warningFor(e, base, clean, merged, idleDays(e.path));
+    if (warning) warnings.push(warning);
   }
 
   if (warnings.length === 0) {
