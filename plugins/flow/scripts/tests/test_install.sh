@@ -582,10 +582,16 @@ t_install_self_referential_home_does_not_eat_the_source() {
 # claimed set. A directory only ever appears here through its OWN mtime (a
 # child was added under it), so it is allowed exactly when an allowed path
 # lives directly inside it.
+#
+# doctor's plugin-list check shells out to the real `claude` binary; that
+# binary's own first-run migration (not a flow write) would otherwise leave
+# $HOME/.claude.json and ~/.claude/backups/... behind. A stub `claude` ahead
+# on PATH (the fake-binary pattern _lp_write_fake_claude/lp_cli_env_in in
+# test_loop.sh use) keeps this test hermetic without touching the allowlist.
 # ---------------------------------------------------------------------------
 
 t_install_writes_only_claimed_paths() {
-	local home dotfiles scratch marker before_file after_file newpaths_file newpaths vanished violations p
+	local home dotfiles scratch marker before_file after_file newpaths_file newpaths vanished violations p fakebin
 	home=$(tmp_dir)
 	dotfiles=$(tmp_dir)
 	rm -rf "$dotfiles"
@@ -593,6 +599,11 @@ t_install_writes_only_claimed_paths() {
 	# so a genuine confinement violation is never masked by an unrelated FAIL.
 	_install_write_fully_wired_dotfiles "$dotfiles"
 	scratch=$(tmp_dir)
+
+	fakebin="$scratch/fakebin"
+	mkdir -p "$fakebin"
+	printf '#!/bin/sh\nif [ "$1" = "plugin" ] && [ "$2" = "list" ]; then printf "[]"; fi\nexit 0\n' >"$fakebin/claude"
+	chmod +x "$fakebin/claude"
 
 	before_file="$scratch/before"
 	after_file="$scratch/after"
@@ -603,7 +614,8 @@ t_install_writes_only_claimed_paths() {
 	touch "$marker"
 	sleep 1
 
-	_install_cli "$home" install --dotfiles "$dotfiles"
+	run_cmd bash -c 'export HOME="$1"; export PATH="$2:$PATH"; unset FLOW_REPO; shift 2; exec "$@"' \
+		_ "$home" "$fakebin" node "$CLI_PATH" install --dotfiles "$dotfiles" --marketplace "$home/no-marketplace-here"
 	assert_rc 0 "t_install_writes_only_claimed_paths install exits 0"
 
 	find "$home" "$dotfiles" | LC_ALL=C sort >"$after_file"
