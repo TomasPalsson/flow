@@ -66,7 +66,17 @@ case "$file_path" in
 	;;
 esac
 
-if [ "$_is_test_file" -eq 0 ] && [ "$_is_gate_config" -eq 0 ]; then
+# B6: a hook script, a skill/agent doc, or a hooks/mcp config — a zero-width or
+# bidi control character added here can hide text from a human reviewer.
+_is_hidden_unicode_file=0
+case "$file_path" in
+*/hooks/*.sh | */skills/*/SKILL.md | */agents/*.md | \
+	*hooks.json | *.mcp.json)
+	_is_hidden_unicode_file=1
+	;;
+esac
+
+if [ "$_is_test_file" -eq 0 ] && [ "$_is_gate_config" -eq 0 ] && [ "$_is_hidden_unicode_file" -eq 0 ]; then
 	hook_ok
 fi
 
@@ -268,6 +278,32 @@ if [ -n "$_matched" ]; then
 	hook_feedback "$file_path
 $_matched
 You just disabled or weakened a check. If that is intentional and correct, state which check and why in your reply; otherwise revert it. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
+fi
+
+# B6: zero-width space/joiner, bidi-control and BOM code points — each a raw
+# UTF-8 byte pattern so the match is exact regardless of the caller's locale.
+if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
+	_tn_uni_cps="U+200B U+200C U+200D U+200E U+200F U+202A U+202B U+202C U+202D U+202E U+2060 U+2061 U+2062 U+2063 U+2064 U+2066 U+2067 U+2068 U+2069 U+FEFF"
+	_tn_uni_bytes=(
+		$'\xE2\x80\x8B' $'\xE2\x80\x8C' $'\xE2\x80\x8D' $'\xE2\x80\x8E' $'\xE2\x80\x8F'
+		$'\xE2\x80\xAA' $'\xE2\x80\xAB' $'\xE2\x80\xAC' $'\xE2\x80\xAD' $'\xE2\x80\xAE'
+		$'\xE2\x81\xA0' $'\xE2\x81\xA1' $'\xE2\x81\xA2' $'\xE2\x81\xA3' $'\xE2\x81\xA4'
+		$'\xE2\x81\xA6' $'\xE2\x81\xA7' $'\xE2\x81\xA8' $'\xE2\x81\xA9'
+		$'\xEF\xBB\xBF'
+	)
+	_tn_uni_hit=""
+	_tn_uni_cp=""
+	_tn_uni_i=0
+	for _tn_uni_cp in $_tn_uni_cps; do
+		_tn_uni_hit=$(printf '%s\n' "$_added" | LC_ALL=C grep -F "${_tn_uni_bytes[$_tn_uni_i]}" | head -1)
+		[ -n "$_tn_uni_hit" ] && break
+		_tn_uni_i=$((_tn_uni_i + 1))
+	done
+	if [ -n "$_tn_uni_hit" ]; then
+		hook_feedback "$file_path
+$_tn_uni_hit
+That line carries an invisible control character ($_tn_uni_cp) — it can hide text from a human reader. Remove it, or state in your reply why it must stay. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
+	fi
 fi
 
 hook_ok
