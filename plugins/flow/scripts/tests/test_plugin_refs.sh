@@ -153,10 +153,10 @@ t_pref_agent_prompts_no_stale_agent_browser_path() {
 	agent_prompts="$SKILLS_DIR_PREF/qa/references/agent-prompts.md"
 	assert_file_exists "$agent_prompts" "qa/references/agent-prompts.md exists"
 
-	stale=$(grep -n '~/.claude/skills/agent-browser/SKILL.md' "$agent_prompts" 2>/dev/null || true)
+	stale=$(grep -n '[~]/.claude/skills/agent-browser/SKILL.md' "$agent_prompts" 2>/dev/null || true)
 	assert_eq "$stale" "" "qa/references/agent-prompts.md contains no stale pre-migration agent-browser/SKILL.md path (missing web/skills/ segment)"
 
-	correct_count=$(grep -c '~/.claude/skills/web/skills/agent-browser/SKILL.md' "$agent_prompts" 2>/dev/null || echo 0)
+	correct_count=$(grep -c '[~]/.claude/skills/web/skills/agent-browser/SKILL.md' "$agent_prompts" 2>/dev/null || echo 0)
 	assert_eq "$correct_count" "2" "both the Browser Tester and Accessibility Auditor prompt templates point agent-browser at the corrected web/skills/ path"
 }
 

@@ -581,7 +581,7 @@ t_loop_run_log_dur_and_cost_format_ke() {
 	lp_cli_env_in "$proj" "$home" "$fakebin" loop run >/dev/null
 	line=$(grep ' checkpoint ' "$proj/.claude/loop/loop.log" | tail -1)
 	case "$line" in
-	*" dur=-"* | *" dur=- "*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
+	*" dur=-"*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
 	*" dur="[0-9]*) _pass "t_loop_run_log_dur_and_cost_format_ke dur-numeric" ;;
 	*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
 	esac

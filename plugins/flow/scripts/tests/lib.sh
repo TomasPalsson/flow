@@ -64,6 +64,7 @@ run_hook() {
 
 run_cmd() {
   local errf
+  export OUT
   errf=$(mktemp "${TMPDIR:-/tmp}/flow-err.XXXXXX")
   OUT=$("$@" 2>"$errf")
   RC=$?

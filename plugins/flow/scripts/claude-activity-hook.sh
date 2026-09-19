@@ -201,7 +201,7 @@ echo "$CURRENT_STATE" | jq \
     --arg session "$SESSION_ID" \
     --arg ctx_pct "$EXISTING_CTX_PCT" \
     --arg ctx_color "$EXISTING_CTX_COLOR" \
-    --argjson done "$DONE" \
+    --argjson "done" "$DONE" \
     '.[$pane] = {
         project: $project,
         activity: $activity,
