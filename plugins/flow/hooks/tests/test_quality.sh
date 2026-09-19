@@ -1259,6 +1259,25 @@ t_quality_tamper_hidden_unicode_non_scope_file_rc0() {
 	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u4"
 }
 
+# A path can land in both classes at once: hooks/tests/foo_test.sh is a test
+# file (*/tests/*) AND a hidden-unicode scope file (*/hooks/*.sh). One edit
+# that adds both an it.skip( and a U+200B line must report both, not just
+# whichever detector's hook_feedback call happens to run first.
+t_quality_tamper_hidden_unicode_and_skip_same_edit_reports_both() {
+	local repo zwsp
+	repo=$(tmp_repo)
+	zwsp=$'\xE2\x80\x8B'
+	mkdir -p "$repo/hooks/tests"
+	printf "it('a', () => {});\n" >"$repo/hooks/tests/foo_test.sh"
+	_q_commit "$repo" hooktest
+	printf "it('a', () => {});\nit.skip('b', () => {});\n// note%shere\n" "$zwsp" >"$repo/hooks/tests/foo_test.sh"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-u5\",\"tool_input\":{\"file_path\":\"$repo/hooks/tests/foo_test.sh\"}}"
+	assert_rc 2 "t_quality_tamper_hidden_unicode_and_skip_same_edit_reports_both rc"
+	assert_contains "$ERR" "it.skip" "t_quality_tamper_hidden_unicode_and_skip_same_edit_reports_both skip-line"
+	assert_contains "$ERR" "U+200B" "t_quality_tamper_hidden_unicode_and_skip_same_edit_reports_both codepoint"
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-u5"
+}
+
 # ---------------------------------------------------------------------------
 # stop-gate.sh — SPEC C10. The change set is find-newer over the turn stamp
 # and nothing else (B6/FU-04), so every fixture that must be gated starts its
