@@ -109,7 +109,109 @@ function worktreeHygieneCheck(push, cwd) {
   for (const w of warnings) push('worktree-hygiene', 'WARN', w);
 }
 
-function personalPathsCheck(push, repoRoot) {}
+const PERSONAL_PATH_SUBDIRS = ['skills', 'agents', 'hooks', 'workflows'];
+const PERSONAL_PATH_RE = /\/(Users|home)\/([A-Za-z0-9._-]+)\//g;
+const PERSONAL_PATH_ALLOW = new Set(['you', 'me', 'user', 'USER', 'username', 'name', 'runner', 'example']);
+const PERSONAL_PATH_MAX_BYTES = 1024 * 1024;
+const PERSONAL_PATH_MAX_WARNS = 20;
+
+// Every plugins/<name>/{skills,agents,hooks,workflows} dir plus the one
+// flow-templates dir — the shipped surfaces a leaked path breaks an install.
+function personalPathsRoots(pluginsDir) {
+  let names = [];
+  try {
+    names = fs.readdirSync(pluginsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch {
+    names = [];
+  }
+  const roots = [];
+  for (const name of names) {
+    for (const sub of PERSONAL_PATH_SUBDIRS) roots.push(path.join(pluginsDir, name, sub));
+  }
+  roots.push(path.join(pluginsDir, 'flow', 'flow-templates'));
+  return roots;
+}
+
+// Collects { abs, rel } for every regular file under `dir`, skipping
+// node_modules, .git and a tests/fixtures dir (fixture text is never shipped).
+function personalPathsWalk(dir, rel, out) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if (e.name === 'node_modules' || e.name === '.git') continue;
+    const entryRel = rel ? `${rel}/${e.name}` : e.name;
+    if (e.isDirectory()) {
+      if (entryRel.endsWith('tests/fixtures')) continue;
+      personalPathsWalk(path.join(dir, e.name), entryRel, out);
+    } else if (e.isFile()) {
+      out.push({ abs: path.join(dir, e.name), rel: entryRel });
+    }
+  }
+}
+
+// null for anything over 1 MB, unreadable or containing a NUL byte — a
+// binary file can't carry a real leaked path a human is meant to fix.
+function personalPathReadText(abs) {
+  let stat;
+  try {
+    stat = fs.statSync(abs);
+  } catch {
+    return null;
+  }
+  if (!stat.isFile() || stat.size > PERSONAL_PATH_MAX_BYTES) return null;
+  const buf = fs.readFileSync(abs);
+  if (buf.includes(0)) return null;
+  return buf.toString('utf8');
+}
+
+// First line carrying a /Users/<name>/ or /home/<name>/ whose <name> isn't
+// an allow-listed placeholder — {line, kind, name}, or null.
+function personalPathFirstHit(text) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    for (const m of lines[i].matchAll(PERSONAL_PATH_RE)) {
+      if (!PERSONAL_PATH_ALLOW.has(m[2])) return { line: i + 1, kind: m[1], name: m[2] };
+    }
+  }
+  return null;
+}
+
+function personalPathsCheck(push, repoRoot) {
+  const pluginsDir = path.join(repoRoot, 'plugins');
+  let pluginsStat;
+  try {
+    pluginsStat = fs.statSync(pluginsDir);
+  } catch {
+    return;
+  }
+  if (!pluginsStat.isDirectory()) return;
+
+  const files = [];
+  for (const root of personalPathsRoots(pluginsDir)) personalPathsWalk(root, path.relative(repoRoot, root), files);
+
+  const hits = [];
+  for (const f of files) {
+    const text = personalPathReadText(f.abs);
+    if (text === null) continue;
+    const hit = personalPathFirstHit(text);
+    if (hit) hits.push({ rel: f.rel, line: hit.line, kind: hit.kind, name: hit.name });
+  }
+
+  if (hits.length === 0) {
+    push('personal-paths', 'PASS', 'no personal paths found');
+    return;
+  }
+  for (const h of hits.slice(0, PERSONAL_PATH_MAX_WARNS)) {
+    push('personal-paths', 'WARN', `${h.rel}:${h.line}: personal path /${h.kind}/${h.name}/ — use $HOME, ~ or \${CLAUDE_PLUGIN_ROOT}`);
+  }
+  if (hits.length > PERSONAL_PATH_MAX_WARNS) {
+    push('personal-paths', 'WARN', `… and ${hits.length - PERSONAL_PATH_MAX_WARNS} more files`);
+  }
+}
 
 function referenceDocsCheck(push, repoRoot) {}
 
