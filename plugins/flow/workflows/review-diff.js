@@ -67,7 +67,7 @@ const diffPath = packaged ? packaged.diffPath : null
 
 if (!diffPath) {
   log('review-package produced no diff path; stopping')
-  return { verified: [], dropped: 0, diffPath: null }
+  return { verified: [], dropped: 0, diffPath: null, failedLenses: [], incomplete: true }
 }
 
 const lensResults = await parallel(lenses.map(function (lens) {
@@ -79,13 +79,18 @@ const lensResults = await parallel(lenses.map(function (lens) {
   }
 }))
 
+const failedLenses = []
 const rawFindings = []
 lensResults.forEach(function (r, i) {
-  if (!r) { return }
+  if (!r) { failedLenses.push(lenses[i]); return }
   ;(r.findings || []).forEach(function (f) {
     rawFindings.push(Object.assign({}, f, { lens: lenses[i] }))
   })
 })
+
+if (failedLenses.length > 0) {
+  log('lens(es) failed and were dropped from this review: ' + failedLenses.join(', '))
+}
 
 const seen = {}
 const unique = []
@@ -115,4 +120,4 @@ const dropped = unique.length - verified.length
 
 log(dropped + ' of ' + unique.length + ' unique findings dropped below threshold ' + threshold)
 
-return { verified: verified, dropped: dropped, diffPath: diffPath }
+return { verified: verified, dropped: dropped, diffPath: diffPath, failedLenses: failedLenses, incomplete: failedLenses.length > 0 }

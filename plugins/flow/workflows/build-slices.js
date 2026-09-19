@@ -93,6 +93,29 @@ function adversaryPrompt(lens, briefPath, diffPath) {
     '(fatal|significant|minor|none), scenario, and receipt (file:line or command output).'
 }
 
+// ADVERSARY_LENSES mirrors, in order, the three parallel() thunks built below
+// for the initial review and every re-look round — the index->name lookup a
+// null result is traced back to for failedLenses.
+const ADVERSARY_LENSES = ['correctness', 'gaming', 'slop']
+
+// collectLensResults reduces one parallel() lens-array result into its
+// blocking findings, appending any null result's lens name (ADVERSARY_LENSES
+// order, tagged with roundSuffix — '' for the first review, ':r<N>' for a
+// re-look round) to the caller's failedLenses accumulator and logging one
+// line naming them. When a lens failed and mergeWith is given (a re-look
+// round), mergeWith's findings are kept unioned in — never cleared (B3).
+function collectLensResults(results, roundSuffix, context, failedLenses, mergeWith) {
+  const findings = []
+  const before = failedLenses.length
+  results.forEach(function (r, i) {
+    if (!r) { failedLenses.push(ADVERSARY_LENSES[i] + roundSuffix); return }
+    findings.push.apply(findings, (r.findings || []).filter(isBlocking))
+  })
+  if (failedLenses.length === before) { return findings }
+  log('lens(es) failed ' + context + ': ' + failedLenses.slice(before).join(', '))
+  return mergeWith ? mergeWith.concat(findings) : findings
+}
+
 // selectWaves narrows flow-lint's wave list to the ids this run was asked to
 // build, preserving the linter's wave order and dropping waves that end up
 // empty. An empty/absent `ids` means "every task the linter scheduled".
@@ -183,18 +206,17 @@ async function runTask(id) {
   )
   ctx = Object.assign({}, ctx, { diffPath: diffRes ? diffRes.diffPath : null })
 
-  let findings = []
+  let current = [], taskFailedLenses = []
   if (ctx.diffPath) {
     const lenses = await parallel([
       function () { return agent(adversaryPrompt('correctness', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('slop', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
     ])
-    findings = lenses.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, [])
+    current = collectLensResults(lenses, '', 'on the first review for task ' + id, taskFailedLenses)
   }
 
   const localParked = []
-  let current = findings.filter(isBlocking)
 
   for (let round = 1; round <= 5 && current.length > 0; round++) {
     const stronger = round >= 4
@@ -224,7 +246,7 @@ async function runTask(id) {
       function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
       function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
     ])
-    current = relook.filter(Boolean).reduce(function (acc, f) { return acc.concat(f.findings || []) }, []).filter(isBlocking)
+    current = collectLensResults(relook, ':r' + round, 'in round ' + round + ' for task ' + ctx.id, taskFailedLenses, current)
   }
 
   for (const finding of current) {
@@ -242,6 +264,7 @@ async function runTask(id) {
       commits: ctx.commits || [],
       files: ctx.files || [],
       notes: ctx.notes || '',
+      failedLenses: taskFailedLenses,
     },
     parked: localParked,
   }
@@ -280,4 +303,6 @@ finalTasks.forEach(function (t) {
   }
 })
 
-return { tasks: finalTasks, parked: parked, clean: parked.length === 0, waves: waves, discovered: discovered, lintOk: true }
+const incomplete = finalTasks.filter(function (t) { return t && t.failedLenses && t.failedLenses.length > 0 }).map(function (t) { return t.id })
+
+return { tasks: finalTasks, parked: parked, clean: parked.length === 0 && incomplete.length === 0, waves: waves, discovered: discovered, lintOk: true, incomplete: incomplete }
