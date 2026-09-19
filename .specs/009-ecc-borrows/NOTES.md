@@ -7,3 +7,4 @@ Ruling: Amendment 2026-09-19 (T012, T010 after T012, G003 narrowed to touched te
 Discovered: the full scripts suite has 107 FAIL lines at base 5a95afa (11 from the TMPDIR trailing slash, fixed by T012) — defer → I-001
 Ruling: T003's hook cost NFR moved from ≤ 50 ms to ≤ 80 ms (Amendment b) after one fix round took it from ~67 ms to a 50 ms median — the rest is shared hook plumbing, and a second round is churn — if wrong, one more jq-free field read in hookout.sh would help every hook, not just this one
 Discovered: T006 review — t_hyg_cwd_worktree_excluded_yields_pass may not fail if the cwd-exclusion logic regressed, and worktreeHygieneCheck trusts stdout of a failed git call (both blind-scored 75, below the keep bar of 80) — defer; re-check at gating
+Discovered: T007 review — personalPathsWalk excludes any dir whose path merely ends in 'tests/fixtures' (suffix, not path-segment, match; blind-scored below 80) — defer; re-check at gating
