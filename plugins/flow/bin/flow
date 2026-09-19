@@ -1505,6 +1505,10 @@ function buildDoctorChecks(dotfilesRoot, deep) {
   run('permissions-deny', () => doctorPermissionsDenyCheck(push));
   run('statusline', () => doctorStatuslineCheck(push));
   run('plugin-list', () => doctorPluginListCheck(push));
+  const hygiene = require('./lib/doctor-hygiene.js');
+  run('worktree-hygiene', () => hygiene.worktreeHygieneCheck(push, process.cwd()));
+  run('personal-paths', () => hygiene.personalPathsCheck(push, hygiene.REPO_ROOT));
+  run('reference-docs', () => hygiene.referenceDocsCheck(push, hygiene.REPO_ROOT));
   return checks;
 }
 
