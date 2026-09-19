@@ -860,6 +860,7 @@ t_stop_r6_manifest_deleted_before_the_turn_is_not_this_turns_doing() {
 t_stop_reproduce_line_quotes_a_project_dir_with_a_space() {
 	local parent repo sid
 	parent=$(tmp_dir)
+	parent=$(cd "$parent" && pwd -P)
 	repo="$parent/pr obe dir"
 	sid="stop-space-$$"
 	mkdir -p "$repo"

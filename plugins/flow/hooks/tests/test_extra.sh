@@ -247,7 +247,7 @@ cat >/dev/null
 exit 0
 EOF
 	chmod +x "$fakebin/worklog"
-	RC=0 OUT="" ERR=""
+	export RC
 	OUT=$(env PATH="$fakebin:$PATH" bash "$SCAN_DIR/worklog-hook.sh" 0<&- 2>"$dir/err.txt")
 	RC=$?
 	ERR=$(cat "$dir/err.txt")

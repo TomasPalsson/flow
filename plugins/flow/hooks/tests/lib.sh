@@ -30,7 +30,10 @@ _fail() {
   if [ -n "${2:-}" ]; then printf '       %s\n' "$2"; fi
 }
 
-tmp_dir() { mktemp -d "${TMPDIR:-/tmp}/flow-test.XXXXXX"; }
+tmp_dir() {
+  local base="${TMPDIR:-/tmp}"
+  mktemp -d "${base%/}/flow-test.XXXXXX"
+}
 
 tmp_repo() {
   local d
@@ -64,6 +67,7 @@ run_hook() {
 
 run_cmd() {
   local errf
+  export OUT
   errf=$(mktemp "${TMPDIR:-/tmp}/flow-err.XXXXXX")
   OUT=$("$@" 2>"$errf")
   RC=$?
