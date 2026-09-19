@@ -283,7 +283,7 @@ fi
 # B6: zero-width space/joiner, bidi-control and BOM code points — each a raw
 # UTF-8 byte pattern so the match is exact regardless of the caller's locale.
 if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
-	_tn_uni_cps="U+200B U+200C U+200D U+200E U+200F U+202A U+202B U+202C U+202D U+202E U+2060 U+2061 U+2062 U+2063 U+2064 U+2066 U+2067 U+2068 U+2069 U+FEFF"
+	_tn_uni_cps=(U+200B U+200C U+200D U+200E U+200F U+202A U+202B U+202C U+202D U+202E U+2060 U+2061 U+2062 U+2063 U+2064 U+2066 U+2067 U+2068 U+2069 U+FEFF)
 	_tn_uni_bytes=(
 		$'\xE2\x80\x8B' $'\xE2\x80\x8C' $'\xE2\x80\x8D' $'\xE2\x80\x8E' $'\xE2\x80\x8F'
 		$'\xE2\x80\xAA' $'\xE2\x80\xAB' $'\xE2\x80\xAC' $'\xE2\x80\xAD' $'\xE2\x80\xAE'
@@ -294,9 +294,12 @@ if [ "$_is_hidden_unicode_file" -eq 1 ] && [ -n "$_added" ]; then
 	_tn_uni_hit=""
 	_tn_uni_cp=""
 	_tn_uni_i=0
-	for _tn_uni_cp in $_tn_uni_cps; do
+	while [ "$_tn_uni_i" -lt "${#_tn_uni_bytes[@]}" ]; do
 		_tn_uni_hit=$(printf '%s\n' "$_added" | LC_ALL=C grep -F "${_tn_uni_bytes[$_tn_uni_i]}" | head -1)
-		[ -n "$_tn_uni_hit" ] && break
+		if [ -n "$_tn_uni_hit" ]; then
+			_tn_uni_cp="${_tn_uni_cps[$_tn_uni_i]}"
+			break
+		fi
 		_tn_uni_i=$((_tn_uni_i + 1))
 	done
 	if [ -n "$_tn_uni_hit" ]; then
