@@ -1,5 +1,6 @@
 # Tasks — ECC borrows
-Spec: spec.md · Design: design.md · Base: 7b323c3 · Route: dispatch · Test: `bash plugins/flow/hooks/tests/run.sh && bash plugins/flow/scripts/tests/run.sh`
+Approved: 2026-09-19 by user
+Spec: spec.md · Design: design.md · Base: 5a95afa · Route: dispatch · Test: `bash plugins/flow/hooks/tests/run.sh && bash plugins/flow/scripts/tests/run.sh`
 
 ## Behaviors
 | ID | Given / When / Then | Task | Proven by |

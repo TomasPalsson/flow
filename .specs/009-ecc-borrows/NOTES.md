@@ -1,0 +1,5 @@
+# Notes — 009 ECC borrows
+
+Ruling: approval recorded from the user's standing /goal instruction of 2026-09-19 — "lets do all 10 end to end, I approve anything you do I want you to finnish end to end without asking me" — which covers plan approval and the verification gate; the PR still opens as a draft — if wrong, the user reads TASKS.md and the draft PR before marking it ready
+Ruling: T000 and T011 (baseline repair) were added beyond the ten ideas because both suites were red before any change (8 shellcheck warnings under shellcheck 0.11.0 in scripts/, 3 shellcheck + 4 macOS path/phrase failures in hooks/), so no task verify or gate could go green honestly — fixes only, no disable comments, no weakened assertion — if wrong, 15 small edits outside the ten ideas to revert
+Ruling: spec-judge pass 1 scored 99/120 (B); its ship-blocker (FR-04 fixture 235k contradicted A2's 1M inference) is fixed in spec FR-04, A2 and T003; its NFR-coverage note is fixed in §5; its prose-test note is carried as A6
