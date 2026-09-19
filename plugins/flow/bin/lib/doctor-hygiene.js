@@ -169,7 +169,7 @@ function personalPathReadText(abs) {
 }
 
 // First line carrying a /Users/<name>/ or /home/<name>/ whose <name> isn't
-// an allow-listed placeholder — {line, kind, name}, or null.
+// one of the allow-listed example names — {line, kind, name}, or null.
 function personalPathFirstHit(text) {
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
