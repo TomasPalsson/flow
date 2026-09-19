@@ -12,7 +12,7 @@ t_search_first_matching_prompt_gets_receipt_context() {
 	assert_rc 0 "match: rc 0"
 	assert_contains "$OUT" "additionalContext" "match: additionalContext present"
 	assert_contains "$OUT" "UserPromptSubmit" "match: hookEventName is UserPromptSubmit"
-	assert_contains "$OUT" "searched: <terms>; found: <path:line | nothing>" "match: receipt phrase present"
+	assert_contains "$OUT" "searched: <terms and dirs>; found: <path:line | nothing>" "match: receipt phrase present"
 	rm -rf "$repo"
 }
 

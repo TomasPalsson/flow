@@ -238,6 +238,38 @@ t_flowlint_lying_tick_touching_nothing() {
 	rm -rf "$d"
 }
 
+t_lint_done_touches_dot_and_directory() {
+	local d base sha_dirtask sha_other
+	d=$(tmp_repo)
+	(
+		cd "$d" || exit 1
+		mkdir -p src/dirtask .specs/001-x
+		base=$(git rev-parse --short HEAD)
+		printf 'a\n' >src/dirtask/a.py
+		git add -A && git commit -qm dirtask
+		sha_dirtask=$(git rev-parse --short HEAD)
+		printf 'b\n' >src/other.py
+		git add -A && git commit -qm other
+		sha_other=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — x\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [x] T002 fill dirtask — files: src/dirtask — verify: `true` — done: %s\n' "$sha_dirtask"
+			printf -- '- [x] T003 nothing in emptydir — files: src/emptydir — verify: `true` — done: %s\n' "$sha_other"
+			printf '\n## Gates\n- [x] G001 clean — files: . — verify: `true` — done: %s\n' "$sha_other"
+		} >.specs/001-x/TASKS.md
+	) >/dev/null 2>&1
+	OUT=$(cd "$d" && bash "$FLOW_LINT" .specs/001-x/TASKS.md 2>&1)
+	RC=$?
+	assert_rc 1 "T003's directory miss still fails the lint"
+	assert_contains "$OUT" "done-touches-nothing" "T003's directory miss is still caught"
+	assert_contains "$OUT" "T003 claims" "the directory-miss task is named"
+	assert_not_contains "$OUT" "T002 claims" "T002's directory hit is not reported as done-touches-nothing"
+	assert_not_contains "$OUT" "G001 claims" "G001's files: . pathspec is not reported as done-touches-nothing"
+	rm -rf "$d"
+}
+
 t_flowlint_tick_at_or_before_base() {
 	local d
 	d=$(_lying_repo)

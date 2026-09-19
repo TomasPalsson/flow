@@ -301,10 +301,10 @@ while IFS= read -r file; do
       # not name a specific path; the C7/C8 "<...>" notation implies at
       # least one more path segment follows.
       case "$tok" in
-      '~/.claude/')
+      [~]'/.claude/')
         continue
         ;;
-      '~/.claude/'*)
+      [~]'/.claude/'*)
         rest=${tok#'~/.claude/'}
         [ -z "$rest" ] && continue
         rest=${tok#'~/'}

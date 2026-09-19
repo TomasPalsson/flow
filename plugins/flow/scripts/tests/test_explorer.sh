@@ -81,7 +81,7 @@ t_explorer_tools_has_no_edit_or_write() {
     token=$(printf '%s' "$token" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
     case "$token" in
     Read | Grep | Glob | Bash) ;;
-    *) bad="$bad[$token]" ;;
+    *) bad="${bad}[$token]" ;;
     esac
   done
   unset IFS

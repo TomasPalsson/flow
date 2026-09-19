@@ -708,13 +708,16 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
         elif git merge-base --is-ancestor "$sha" "$H_BASE" >/dev/null 2>&1; then
           add_err "$ln" "$id" "done-sha-before-base" "TASKS.md claims $id done at $sha, which is at or before Base: $H_BASE" "uncheck $id — nothing was committed for it since Base"
         else
-          touched=$(git show --name-only --format= "$sha" 2>/dev/null)
           hit=0
           for p in ${T_FILES[$i]//,/ }; do
             trim_var "$p"
             p=$R_TRIM
             [ -z "$p" ] && continue
-            if printf '%s\n' "$touched" | grep -Fxq "$p"; then
+            # pathspec, not exact-line match: matches like `flow tick`'s
+            # `git log -- <files>` join, so `.` and a directory entry catch
+            # any path underneath, evaluated from the repo top so a lint run
+            # from a subdirectory doesn't narrow `.` to that subdirectory.
+            if [ -n "$(git -C "$TOPLEVEL" show --name-only --format= "$sha" -- "$p" 2>/dev/null)" ]; then
               hit=1
               break
             fi

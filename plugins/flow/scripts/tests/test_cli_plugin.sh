@@ -12,7 +12,6 @@ set -u
 # independently of test_cli.sh so this file also works standalone.
 CLI_PATH=""
 CLI_PATH=$(cd "$HERE/../../../.." && pwd -P)
-REPO_ROOT_FOR_TEST="$CLI_PATH"
 CLI_PATH="$CLI_PATH/bin/.local/bin/flow"
 [ -x "$SCAN_DIR/../bin/flow" ] && CLI_PATH="$SCAN_DIR/../bin/flow"
 

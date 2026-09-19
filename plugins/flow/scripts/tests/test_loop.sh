@@ -446,6 +446,76 @@ EOF
 	rm -rf "$home" "$proj" "$fakebin"
 }
 
+# B1: a child that never exits is killed at the wall-clock cap and counted as
+# an error; three such timeouts stop the loop the same way three plain
+# errors do (FLOW_LOOP_CHILD_TIMEOUT_SEC is the test knob for the cap).
+t_loop_run_child_timeout_b1() {
+	local proj home fakebin timeout_lines start end
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+	fakebin=$(tmp_dir)
+	cat >"$fakebin/claude" <<'EOF'
+#!/bin/sh
+sleep 30
+printf '{"total_cost_usd":0,"session_id":"x","is_error":false}\n'
+EOF
+	chmod +x "$fakebin/claude"
+
+	start=$(date +%s)
+	FLOW_LOOP_CHILD_TIMEOUT_SEC=1 lp_cli_env_in "$proj" "$home" "$fakebin" loop run --max-iterations 5
+	end=$(date +%s)
+	assert_rc 1 "t_loop_run_child_timeout_b1 rc"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "status: stopped" "t_loop_run_child_timeout_b1 stopped"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "stop_reason: error" "t_loop_run_child_timeout_b1 reason"
+	timeout_lines=$(grep -c "claude -p timeout" "$proj/.claude/loop/loop.log")
+	assert_eq "$timeout_lines" "3" "t_loop_run_child_timeout_b1 timeout-count"
+	if [ $((end - start)) -lt 20 ]; then
+		_pass "t_loop_run_child_timeout_b1 wall-time"
+	else
+		_fail "t_loop_run_child_timeout_b1 wall-time" "took $((end - start))s"
+	fi
+
+	rm -rf "$home" "$proj" "$fakebin"
+}
+
+# B1 regression: a blank/unparseable started_at makes Date.parse return NaN,
+# which must not crash childTimeoutMs's minutes-left arithmetic — the driver
+# must fall back to the 60-minute cap and still spawn the child instead of
+# throwing an uncaught RangeError (ERR_OUT_OF_RANGE) out of spawnSync.
+t_loop_run_child_timeout_bad_started_at_b1() {
+	local proj home fakebin countfile
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+
+	sed 's#^started_at: .*#started_at: #' "$proj/.claude/loop/loop.md" >"$proj/.claude/loop/loop.md.new"
+	mv "$proj/.claude/loop/loop.md.new" "$proj/.claude/loop/loop.md"
+
+	fakebin=$(tmp_dir)
+	countfile="$fakebin/count"
+	printf '0' >"$countfile"
+	cat >"$fakebin/claude" <<EOF
+#!/bin/sh
+n=\$(cat "$countfile")
+n=\$((n + 1))
+printf '%s' "\$n" >"$countfile"
+touch done.txt
+printf '{"total_cost_usd":0,"session_id":"x","is_error":false,"duration_ms":1}\n'
+EOF
+	chmod +x "$fakebin/claude"
+
+	lp_cli_env_in "$proj" "$home" "$fakebin" loop run
+	assert_not_contains "$OUT
+$ERR" "RangeError" "t_loop_run_child_timeout_bad_started_at_b1 no-rangeerror"
+	assert_not_contains "$OUT
+$ERR" "ERR_OUT_OF_RANGE" "t_loop_run_child_timeout_bad_started_at_b1 no-out-of-range"
+	assert_rc 0 "t_loop_run_child_timeout_bad_started_at_b1 rc"
+	assert_eq "$(cat "$countfile")" "1" "t_loop_run_child_timeout_bad_started_at_b1 spawned"
+
+	rm -rf "$home" "$proj" "$fakebin"
+}
+
 # ---------------------------------------------------------------------------
 # status / stop CLI
 # ---------------------------------------------------------------------------
@@ -581,7 +651,7 @@ t_loop_run_log_dur_and_cost_format_ke() {
 	lp_cli_env_in "$proj" "$home" "$fakebin" loop run >/dev/null
 	line=$(grep ' checkpoint ' "$proj/.claude/loop/loop.log" | tail -1)
 	case "$line" in
-	*" dur=-"* | *" dur=- "*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
+	*" dur=-"*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
 	*" dur="[0-9]*) _pass "t_loop_run_log_dur_and_cost_format_ke dur-numeric" ;;
 	*) _fail "t_loop_run_log_dur_and_cost_format_ke dur-numeric" "$line" ;;
 	esac

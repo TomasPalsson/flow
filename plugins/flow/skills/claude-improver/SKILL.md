@@ -120,7 +120,7 @@ Show the user a compact ranked list — one line per recommendation:
    Evidence: CLAUDE.md documents manual `for dir in */; do stow "$dir"; done`; no health check exists
    Cost: ~40 lines, zero deps
 
-3. [CLAUDE.md UPDATE] Remove stale "Active Technologies" section at /Users/tomas/dotfiles/CLAUDE.md:96-103
+3. [CLAUDE.md UPDATE] Remove stale "Active Technologies" section at /Users/you/dotfiles/CLAUDE.md:96-103
    Evidence: Go migration completed 2026-01-16, Node.js spec references are stale
    Cost: deletion
 ...

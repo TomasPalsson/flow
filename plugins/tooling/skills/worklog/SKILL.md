@@ -243,7 +243,7 @@ The body covers ~80% of operations. Load a reference proactively when:
 | Diagnose a specific known failure (Tempo 400 "User is invalid" / 400 "Issue id cannot be null" / 401 / orphan Tempo / gcal OAuth / WORKLOG_TZ silent fallback / 8 more) | `references/troubleshooting.md` |
 | Reason about a block-state transition (especially: re-inference + dirty edits, merge + dirty, the carry mechanism that preserves `tempo_worklog_id` across re-infer) | `references/state-machine.md` |
 
-References use frontmatter; load with: `Read /Users/tomas/.claude/skills/worklog/references/<file>.md`. The install path is `${CLAUDE_PLUGIN_ROOT}/skills/worklog/` (created by `worklog setup` or `worklog skill install`).
+References use frontmatter; load with: `Read ${CLAUDE_PLUGIN_ROOT}/skills/worklog/references/<file>.md`. The install path is `${CLAUDE_PLUGIN_ROOT}/skills/worklog/` (created by `worklog setup` or `worklog skill install`).
 
 ## Quick sanity checks before any write
 

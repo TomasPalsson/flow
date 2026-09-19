@@ -71,17 +71,35 @@ function saveIterationJson(toplevel, n, payload) {
   fs.writeFileSync(path.join(dir, name), JSON.stringify(payload, null, 2));
 }
 
+// B1: the child's wall-clock cap — time left under front.max_minutes (0
+// means unset, so only the 60 min ceiling applies), capped at 60 min either
+// way, floored at 1 s (spawnSync treats a timeout <= 0 as "no timeout", so a
+// near-elapsed cap must still round up to one). FLOW_LOOP_CHILD_TIMEOUT_SEC
+// overrides it for tests that cannot wait minutes. F1: a blank/unparseable
+// started_at makes Date.parse NaN; minutesLeft must fall back to the 60 min
+// ceiling instead of propagating NaN into spawnSync's timeout (which throws
+// ERR_OUT_OF_RANGE and crashes the driver).
+function childTimeoutMs(front, env) {
+  const envSec = toInt(env && env.FLOW_LOOP_CHILD_TIMEOUT_SEC);
+  if (envSec > 0) return Math.max(1, envSec) * 1000;
+  const maxMinutes = toInt(front.max_minutes);
+  const minutesLeft = maxMinutes > 0 ? maxMinutes - (Date.now() - Date.parse(front.started_at)) / 60000 : 60;
+  const cappedMinutes = Number.isFinite(minutesLeft) ? Math.min(minutesLeft, 60) : 60;
+  return Math.max(1000, Math.round(cappedMinutes * 60000));
+}
+
 function spawnChild(claudePath, front, prompt, toplevel, env) {
   const args = buildClaudeArgs(front, prompt);
-  const r = spawnSync(claudePath, args, { cwd: toplevel, input: '', encoding: 'utf8', env });
+  const r = spawnSync(claudePath, args, { cwd: toplevel, input: '', encoding: 'utf8', env, timeout: childTimeoutMs(front, env) });
+  const timedOut = Boolean((r.error && r.error.code === 'ETIMEDOUT') || r.signal);
   let payload = null;
   try {
     payload = JSON.parse(r.stdout || '{}');
   } catch {
     payload = null;
   }
-  const isError = r.status !== 0 || Boolean(payload && payload.is_error);
-  return { payload: payload || { raw_stdout: r.stdout, raw_stderr: r.stderr, status: r.status }, isError };
+  const isError = timedOut || r.status !== 0 || Boolean(payload && payload.is_error);
+  return { payload: payload || { raw_stdout: r.stdout, raw_stderr: r.stderr, status: r.status }, isError, timedOut };
 }
 
 // Loop state never rides a checkpoint commit (K-A); only LEARNINGS.md may.
@@ -118,7 +136,7 @@ function runIteration(toplevel, claudePath, env, flags, iterNum, prompt, errorSt
     streak += 1;
     appendLog(toplevel, {
       event: 'error', iter: iterNum, headBefore: front.base, headAfter: headSha(toplevel),
-      verify: '-', sig: '-', changed: 0, cost: fmtCost(front.cost_usd), dur: durSec, note: 'claude -p error',
+      verify: '-', sig: '-', changed: 0, cost: fmtCost(front.cost_usd), dur: durSec, note: spawned.timedOut ? 'claude -p timeout' : 'claude -p error',
     });
     if (streak >= 3) {
       front.status = 'stopped';

@@ -90,6 +90,40 @@ With no <TASKS.md>, resolves the active feature the way the router does:
 $FLOW_SPEC → .specs/.current → branch flow/<slug>.
 ```
 
+## prep-lint
+
+```
+Usage: prep-lint <prep-file>
+
+Validates a PREP.md file against the prep grammar:
+  # Prep — <title>
+  Gathered: <date> · Questions: <n> of <m> · Route: <route> · Status: <status>
+
+  ## Decisions
+  - D-NN <text> — user, Q<n>
+  ## Not this
+  - <text>
+  ## Discretion
+  - <text>
+  ## Assumptions
+  - A-NN <text> — evidence: <path:line|none> — confidence: high|medium|low — <confirmed Qn|corrected Qn|unconfirmed>
+  ## Verify
+  - <text>
+  ## Open
+  - Q: <question> → <resolution or "deferred to spec">
+
+Route must be one of: spike, bounded, oneshot, dispatch.
+Status must be one of: interviewing, ready for spec, done in chat.
+The header separator may be " · " or " - "; matching is on field names,
+not the separator.
+
+Lines inside ``` or ~~~ fences are never treated as headings or bullets.
+
+Prints "OK" when the prep file is clean, or one "ERROR: ... — fix: ..." or
+"WARN: ... — fix: ..." line per problem found. Exit 1 if any ERROR is
+found, 0 otherwise (including when only WARNs are found).
+```
+
 ## skills-lint
 
 ```
@@ -141,6 +175,41 @@ scans its top-level *.js files; a file argument is checked directly.
 
 Prints "OK <file>" or "<file>: <rule>: <problem>" lines; exit 1 on any
 problem found in any file.
+```
+
+## ui-score
+
+```
+usage: ui-score [-h] {capture,score} ...
+
+positional arguments:
+  {capture,score}
+
+options:
+  -h, --help       show this help message and exit
+```
+
+```
+usage: ui-score capture [-h] --target TARGET [--url URL]
+                        [--from-image FROM_IMAGE] [--viewports VIEWPORTS]
+                        [--height HEIGHT]
+
+options:
+  -h, --help            show this help message and exit
+  --target TARGET
+  --url URL
+  --from-image FROM_IMAGE
+  --viewports VIEWPORTS
+  --height HEIGHT
+```
+
+```
+usage: ui-score score [-h] --target TARGET --url URL
+
+options:
+  -h, --help       show this help message and exit
+  --target TARGET
+  --url URL
 ```
 
 ## codebase-map

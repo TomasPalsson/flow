@@ -135,9 +135,7 @@ t_gitignore_covers_nested_eval_results() {
 	cp "$EV_REPO_ROOT/.gitignore" "$d/.gitignore"
 	mkdir -p "$d/plugins/flow/evals/results"
 	printf '{}\n' >"$d/plugins/flow/evals/results/aggregate-result.json"
-	(cd "$d" && git check-ignore -q plugins/flow/evals/results/aggregate-result.json)
-	RC=$?
-	ERR=""
+	run_cmd git -C "$d" check-ignore -q plugins/flow/evals/results/aggregate-result.json
 	assert_rc 0 ".gitignore ignores plugins/flow/evals/results/ (README claim holds)"
 	rm -rf "$d"
 }

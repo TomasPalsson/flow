@@ -26,7 +26,7 @@ GG_DENY=$(hook_config deny | jq -r 'if type == "array" then .[] | select(type ==
 gg_denylist() {
 	local p
 	while IFS= read -r p; do
-		[ -n "$p" ] && case "$1" in $2"$p" | $2"$p"[!A-Za-z0-9]*) gg_deny "\"$p\" is on this project's deny list (\"deny\" in .claude/flow.config.json)" ;; esac
+		[ -n "$p" ] && { if [ "$2" = '*' ]; then case "$1" in *"$p" | *"$p"[!A-Za-z0-9]*) gg_deny "\"$p\" is on this project's deny list (\"deny\" in .claude/flow.config.json)" ;; esac; else case "$1" in "$p" | "$p"[!A-Za-z0-9]*) gg_deny "\"$p\" is on this project's deny list (\"deny\" in .claude/flow.config.json)" ;; esac; fi; }
 	done <<<"$GG_DENY"
 }
 # gg_coarse <cmd> <why>: >20000-char / >200-part cap (C22 1/3), and the fallback when the awk pass below emits no well-formed "N" record. <why> states the condition observed.
@@ -52,8 +52,8 @@ gg_scan() {
 		short) case "$t" in --*) : ;; -*) case "$t" in *"$arg"*) return 0 ;; esac ;; esac ;;
 		git) case "$t" in git | */git) return 0 ;; esac ;;
 		sub) case "$t" in push | reset | clean | checkout | restore | branch | commit) return 0 ;; esac ;;
-		tgt) case "$t" in '/' | '~' | '$HOME' | '.' | '..' | '*' | '/*' | '~/' | '$HOME/') return 0 ;; esac ;;
-		nw) case "$t" in if | then | else | elif | fi | do | done | while | until | for | case | esac | time | nohup | exec | '!' | '{' | '(' | sudo | env | command | builtin | *=*) : ;; *) return 0 ;; esac ;;
+		tgt) case "$t" in '/' | '~' | '$HOME' | '.' | '..' | '*' | '/*' | '~'/ | '$HOME'/) return 0 ;; esac ;;
+		nw) case "$t" in if | then | else | elif | fi | do | done | while | until | for | case | 'esac' | time | nohup | exec | '!' | '{' | '(' | sudo | env | command | builtin | *=*) : ;; *) return 0 ;; esac ;;
 		esac
 		j=$((j + 1))
 	done
