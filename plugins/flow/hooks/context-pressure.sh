@@ -49,30 +49,27 @@ _cp_transcript=$(hook_field '.transcript_path')
 _cp_size=$(wc -c <"$_cp_transcript" 2>/dev/null | tr -d '[:space:]')
 case "$_cp_size" in '' | *[!0-9]*) hook_ok ;; esac
 
-if [ "$_cp_size" -gt 262144 ]; then
-	_cp_tail=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | tail -n +2)
-else
-	_cp_tail=$(cat "$_cp_transcript" 2>/dev/null)
-fi
-[ -z "$_cp_tail" ] && hook_ok
-
-# One compact JSON object per line carrying usage; the last line is the most
-# recent one. jq recovers after a malformed line and keeps emitting valid
-# ones, so a broken trailing record naturally falls back to an earlier line.
-_cp_record=$(printf '%s\n' "$_cp_tail" | jq -c '
+# tokens and model, tab-joined, one output line per matching record. The
+# byte-tail (and, when truncated, its dropped partial first line) stay in
+# the pipe between tail and jq instead of a bash variable — capturing
+# 256KiB into a variable and printf-ing it back out for jq costs far more
+# than jq spends parsing it. jq recovers after a malformed line and keeps
+# emitting valid ones, so a broken trailing record naturally falls back to
+# an earlier line; the LAST output line is the most recent match.
+_cp_jq_usage='
 	select(.message.usage != null) |
-	{tokens: ((.message.usage.input_tokens // 0) + (.message.usage.cache_read_input_tokens // 0) + (.message.usage.cache_creation_input_tokens // 0)), model: (.message.model // "")}
-' 2>/dev/null | tail -n 1)
-[ -z "$_cp_record" ] && hook_ok
+	[((.message.usage.input_tokens // 0) + (.message.usage.cache_read_input_tokens // 0) + (.message.usage.cache_creation_input_tokens // 0)), (.message.model // "")] | @tsv
+'
+if [ "$_cp_size" -gt 262144 ]; then
+	_cp_lines=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | tail -n +2 | jq -r "$_cp_jq_usage" 2>/dev/null)
+else
+	_cp_lines=$(tail -c 262144 "$_cp_transcript" 2>/dev/null | jq -r "$_cp_jq_usage" 2>/dev/null)
+fi
+[ -z "$_cp_lines" ] && hook_ok
+_cp_line=${_cp_lines##*$'\n'}
 
-_cp_tokens=""
-_cp_model=""
-{
-	IFS= read -r _cp_tokens
-	IFS= read -r _cp_model
-} <<EOF
-$(printf '%s' "$_cp_record" | jq -r '.tokens, .model' 2>/dev/null)
-EOF
+_cp_tokens=${_cp_line%%$'\t'*}
+_cp_model=${_cp_line#*$'\t'}
 case "$_cp_tokens" in '' | *[!0-9]*) hook_ok ;; esac
 
 _cp_window=200000
@@ -93,7 +90,7 @@ _cp_bucket=-1
 
 _cp_state_file="$(_hook_tmp)/claude-context-$(_hook_sid)"
 _cp_previous=""
-[ -f "$_cp_state_file" ] && _cp_previous=$(cat "$_cp_state_file" 2>/dev/null)
+[ -f "$_cp_state_file" ] && IFS= read -r _cp_previous <"$_cp_state_file" 2>/dev/null
 _cp_previous_window=${_cp_previous%%:*}
 _cp_previous_bucket=${_cp_previous#*:}
 case "$_cp_previous_bucket" in '' | *[!0-9]*) _cp_previous_bucket=-1 ;; esac
