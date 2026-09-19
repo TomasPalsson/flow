@@ -446,6 +446,39 @@ EOF
 	rm -rf "$home" "$proj" "$fakebin"
 }
 
+# B1: a child that never exits is killed at the wall-clock cap and counted as
+# an error; three such timeouts stop the loop the same way three plain
+# errors do (FLOW_LOOP_CHILD_TIMEOUT_SEC is the test knob for the cap).
+t_loop_run_child_timeout_b1() {
+	local proj home fakebin timeout_lines start end
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" --shape fresh >/dev/null
+	fakebin=$(tmp_dir)
+	cat >"$fakebin/claude" <<'EOF'
+#!/bin/sh
+sleep 30
+printf '{"total_cost_usd":0,"session_id":"x","is_error":false}\n'
+EOF
+	chmod +x "$fakebin/claude"
+
+	start=$(date +%s)
+	FLOW_LOOP_CHILD_TIMEOUT_SEC=1 lp_cli_env_in "$proj" "$home" "$fakebin" loop run --max-iterations 5
+	end=$(date +%s)
+	assert_rc 1 "t_loop_run_child_timeout_b1 rc"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "status: stopped" "t_loop_run_child_timeout_b1 stopped"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "stop_reason: error" "t_loop_run_child_timeout_b1 reason"
+	timeout_lines=$(grep -c "claude -p timeout" "$proj/.claude/loop/loop.log")
+	assert_eq "$timeout_lines" "3" "t_loop_run_child_timeout_b1 timeout-count"
+	if [ $((end - start)) -lt 20 ]; then
+		_pass "t_loop_run_child_timeout_b1 wall-time"
+	else
+		_fail "t_loop_run_child_timeout_b1 wall-time" "took $((end - start))s"
+	fi
+
+	rm -rf "$home" "$proj" "$fakebin"
+}
+
 # ---------------------------------------------------------------------------
 # status / stop CLI
 # ---------------------------------------------------------------------------
