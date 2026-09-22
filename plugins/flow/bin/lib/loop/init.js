@@ -41,9 +41,9 @@ function defaultBody(verify, goal, base) {
 function parseInitArgs(argv) {
   const out = {
     goal: null, verify: null, shape: 'session', promptFile: null, prompt: null, session: '',
-    maxIterations: null, maxMinutes: null, maxUsd: 0, stallAfter: 3, verifyTimeout: 600,
+    maxIterations: null, maxMinutes: null, maxUsd: null, stallAfter: null, verifyTimeout: 600,
     permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
-    target: null, negControlFile: null,
+    target: null, negControlFile: null, yolo: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -65,10 +65,21 @@ function parseInitArgs(argv) {
     else if (a === '--test-files') out.testFiles.push(argv[++i]);
     else if (a === '--target') out.target = argv[++i];
     else if (a === '--neg-control-file') out.negControlFile = argv[++i];
+    else if (a === '--yolo') out.yolo = true;
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
+  }
+  // Spec §5: --yolo arms these defaults, but only on a cap the operator did
+  // not pass explicitly (an explicit --max-usd 10 --yolo keeps 10).
+  if (out.yolo) {
+    if (out.maxMinutes === null) out.maxMinutes = 240;
+    if (out.maxUsd === null) out.maxUsd = 50;
+    if (out.maxIterations === null) out.maxIterations = 40;
+    if (out.stallAfter === null) out.stallAfter = 3;
   }
   if (out.maxIterations === null) out.maxIterations = out.shape === 'fresh' ? 30 : 8;
   if (out.maxMinutes === null) out.maxMinutes = out.shape === 'fresh' ? 480 : 0;
+  if (out.maxUsd === null) out.maxUsd = 0;
+  if (out.stallAfter === null) out.stallAfter = 3;
   return out;
 }
 
@@ -199,6 +210,10 @@ function buildInitFront(toplevel, args, base, env) {
     permission_mode: args.permissionMode,
     model: args.model,
     max_turns: String(args.maxTurns),
+    // --yolo implies fail_closed (design §1): a tamper finding stops the
+    // run instead of merely marking it (T005 reads this in tick.js).
+    yolo: args.yolo ? '1' : '0',
+    fail_closed: args.yolo ? '1' : '0',
     base,
     // test_files stays the auto-detected count (tamper.js's "test files
     // removed" check reads it as a number) regardless of --test-files, so
