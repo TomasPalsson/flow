@@ -7,6 +7,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readContract, writeContract } = require('./contract.js');
 const { runVerify } = require('./verify.js');
+const { runNegControl } = require('./negcontrol.js');
 const { countTestFiles, targetSha, envSha } = require('./tamper.js');
 const { appendLog } = require('./log.js');
 const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
@@ -42,7 +43,7 @@ function parseInitArgs(argv) {
     goal: null, verify: null, shape: 'session', promptFile: null, prompt: null, session: '',
     maxIterations: null, maxMinutes: null, maxUsd: 0, stallAfter: 3, verifyTimeout: 600,
     permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
-    target: null,
+    target: null, negControlFile: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -63,6 +64,7 @@ function parseInitArgs(argv) {
     else if (a === '--force') out.force = true;
     else if (a === '--test-files') out.testFiles.push(argv[++i]);
     else if (a === '--target') out.target = argv[++i];
+    else if (a === '--neg-control-file') out.negControlFile = argv[++i];
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
   }
   if (out.maxIterations === null) out.maxIterations = out.shape === 'fresh' ? 30 : 8;
@@ -89,6 +91,28 @@ function protectedFilesFront(toplevel, testFiles) {
   const paths = testFiles.filter(Boolean);
   if (fs.existsSync(path.join(toplevel, EVALS_ROOT))) paths.push(EVALS_ROOT);
   return [...new Set(paths)].join(',');
+}
+
+// negControlExitCodes — §3 of design.md: survived -> 4, not-restored -> 5,
+// timeout -> 6. 'red-then-restored' is not a refusal and has no entry here.
+const NEG_CONTROL_EXIT_CODES = { survived: 4, 'not-restored': 5, timeout: 6 };
+
+// runNegControlGate(toplevel, args, env, stderrW) -> exit code, or 0 to
+// proceed arming. FR-04/FR-05/FR-11: the control runs before writeContract
+// (design §7 decision 2), so a refusal here leaves no contract file behind.
+function runNegControlGate(toplevel, args, env, stderrW) {
+  if (!args.negControlFile) return 0;
+  const result = runNegControl(toplevel, {
+    verify: args.verify, verifyTimeout: args.verifyTimeout, file: args.negControlFile, env,
+  });
+  if (result.verdict === 'red-then-restored') return 0;
+  const messages = {
+    survived: `flow loop init: the negative control broke ${result.file} but the verifier's verdict did not change; refusing to arm\n`,
+    'not-restored': `flow loop init: the negative control could not restore ${result.file}; a human must look\n`,
+    timeout: `flow loop init: the negative control did not return within its time bound; refusing to arm\n`,
+  };
+  stderrW(messages[result.verdict]);
+  return NEG_CONTROL_EXIT_CODES[result.verdict];
 }
 
 // findVerifyScript — every whitespace-separated token in `verify` that
@@ -216,6 +240,9 @@ function cmdInit(argv, toplevel, env) {
     process.stderr.write('flow loop init: verifier already passes; nothing to loop (use --allow-green to loop anyway)\n');
     return 1;
   }
+
+  const negControlExit = runNegControlGate(toplevel, args, env, (s) => process.stderr.write(s));
+  if (negControlExit) return negControlExit;
 
   const base = (spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout || '').trim();
   const front = buildInitFront(toplevel, args, base, env);
