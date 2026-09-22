@@ -210,8 +210,8 @@ function buildInitFront(toplevel, args, base, env) {
     permission_mode: args.permissionMode,
     model: args.model,
     max_turns: String(args.maxTurns),
-    // --yolo implies fail_closed (design §1): a tamper finding stops the
-    // run instead of merely marking it (T005 reads this in tick.js).
+    // --yolo implies fail_closed: a tamper finding stops the run instead of
+    // merely marking it suspect.
     yolo: args.yolo ? '1' : '0',
     fail_closed: args.yolo ? '1' : '0',
     base,

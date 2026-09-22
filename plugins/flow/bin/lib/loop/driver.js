@@ -47,7 +47,7 @@ function buildClaudeArgs(front, prompt) {
   if (toInt(front.max_turns) > 0) args.push('--max-turns', String(toInt(front.max_turns)));
   const remaining = toFloat(front.max_usd) > 0 ? Math.max(0, toFloat(front.max_usd) - toFloat(front.cost_usd)) : null;
   if (remaining !== null) args.push('--max-budget-usd', String(remaining));
-  // B6/FR-09: an unattended child can't sit waiting on an approval prompt.
+  // An unattended child must be denied, never left waiting, on an approval prompt.
   if (front.yolo === '1') args.push('--permission-prompts', 'none');
   return args;
 }
