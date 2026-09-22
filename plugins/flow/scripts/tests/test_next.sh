@@ -514,7 +514,30 @@ t_next_loop_active_wins_over_everything() {
 	assert_contains "$OUT" '"state": "loop-active"' "an active loop contract is checked before the router"
 	assert_contains "$OUT" 'flow loop run' "a fresh loop resumes with flow loop run"
 	nx_cli_in "$proj" "$home" next
-	assert_eq "$OUT" "Next: flow loop run" "K-L's exact one-line contract survives the router rewrite"
+	assert_contains "$OUT" "Next: flow loop run" "K-L's exact command line survives the router rewrite"
+	rm -rf "$home" "$proj"
+}
+
+# B2/FR-02 — an armed loop names itself instead of leaving the reason field
+# empty: the goal, the iteration, and the command that shows more.
+t_next_loop_active_why() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.claude/loop"
+	{
+		printf -- '---\n'
+		printf 'status: active\n'
+		printf 'shape: session\n'
+		printf 'goal: "ship the thing"\n'
+		printf 'iteration: 3\n'
+		printf 'max_iterations: 10\n'
+		printf -- '---\n'
+	} >"$proj/.claude/loop/loop.md"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"why": "loop \"ship the thing\" at iteration 3/10 — inspect with flow loop status"' "the reason field names the goal, the iteration and the status command"
+	nx_cli_in "$proj" "$home" next
+	assert_contains "$OUT" 'Why: loop "ship the thing" at iteration 3/10 — inspect with flow loop status' "the plain-text Why line names the goal, the iteration and the status command"
 	rm -rf "$home" "$proj"
 }
 

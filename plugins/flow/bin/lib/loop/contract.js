@@ -75,14 +75,18 @@ function writeContract(toplevel, front, body) {
   fs.renameSync(tmp, p);
 }
 
-// A contract is corrupt when iteration/max_iterations are non-numeric or
-// verify is empty (K-B). Returns the reason string, or null when clean.
+// A contract is corrupt when iteration/max_iterations are non-numeric,
+// verify is empty (K-B), or started_at is unreadable (B1, FR-01). Returns
+// the reason string, or null when clean.
 function corruptReason(front) {
   if (!/^\d+$/.test(String(front.iteration || '').trim())) return `iteration is not numeric: '${front.iteration}'`;
   if (!/^\d+$/.test(String(front.max_iterations || '').trim())) {
     return `max_iterations is not numeric: '${front.max_iterations}'`;
   }
   if (!front.verify || String(front.verify).trim() === '') return 'verify is empty';
+  if (Number.isNaN(Date.parse(String(front.started_at || '').trim()))) {
+    return `started_at is not a parseable timestamp: '${front.started_at}'`;
+  }
   return null;
 }
 

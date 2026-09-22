@@ -346,6 +346,25 @@ t_loop_tick_corrupt_contract_self_disarms_kb() {
 	rm -rf "$home" "$proj"
 }
 
+# B1: a blank/unreadable started_at is corrupt rather than left to run uncapped.
+t_loop_started_at_corrupt() {
+	local proj home
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" >/dev/null
+
+	sed 's#^started_at: .*#started_at: #' "$proj/.claude/loop/loop.md" >"$proj/.claude/loop/loop.md.new"
+	mv "$proj/.claude/loop/loop.md.new" "$proj/.claude/loop/loop.md"
+
+	lp_cli_in "$proj" "$home" loop tick --json
+	assert_contains "$OUT" "corrupt contract: started_at is not a parseable timestamp" "t_loop_started_at_corrupt reason"
+	assert_contains "$OUT" '"action": "allow"' "t_loop_started_at_corrupt allow"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_loop_started_at_corrupt renamed-away"
+	assert_file_exists "$proj/.claude/loop/loop.md.corrupt" "t_loop_started_at_corrupt corrupt-file"
+
+	rm -rf "$home" "$proj"
+}
+
 # ---------------------------------------------------------------------------
 # log (K-E)
 # ---------------------------------------------------------------------------
@@ -479,10 +498,10 @@ EOF
 	rm -rf "$home" "$proj" "$fakebin"
 }
 
-# B1 regression: a blank/unparseable started_at makes Date.parse return NaN,
-# which must not crash childTimeoutMs's minutes-left arithmetic — the driver
-# must fall back to the 60-minute cap and still spawn the child instead of
-# throwing an uncaught RangeError (ERR_OUT_OF_RANGE) out of spawnSync.
+# B1, FR-01: a blank/unparseable started_at is corrupt, so `loop run` refuses
+# it up front (readContract's corrupt check) rather than ever spawning a
+# child that would otherwise hit childTimeoutMs's minutes-left arithmetic
+# with an uncaught RangeError (ERR_OUT_OF_RANGE) out of spawnSync.
 t_loop_run_child_timeout_bad_started_at_b1() {
 	local proj home fakebin countfile
 	proj=$(lp_repo)
@@ -510,8 +529,8 @@ EOF
 $ERR" "RangeError" "t_loop_run_child_timeout_bad_started_at_b1 no-rangeerror"
 	assert_not_contains "$OUT
 $ERR" "ERR_OUT_OF_RANGE" "t_loop_run_child_timeout_bad_started_at_b1 no-out-of-range"
-	assert_rc 0 "t_loop_run_child_timeout_bad_started_at_b1 rc"
-	assert_eq "$(cat "$countfile")" "1" "t_loop_run_child_timeout_bad_started_at_b1 spawned"
+	assert_rc 1 "t_loop_run_child_timeout_bad_started_at_b1 rc"
+	assert_eq "$(cat "$countfile")" "0" "t_loop_run_child_timeout_bad_started_at_b1 not-spawned"
 
 	rm -rf "$home" "$proj" "$fakebin"
 }
@@ -570,7 +589,11 @@ t_loop_next_active_session_kl() {
 
 	lp_cli_in "$proj" "$home" next
 	assert_rc 0 "t_loop_next_active_session_kl rc"
-	assert_eq "$OUT" "Next: flow loop status" "t_loop_next_active_session_kl exact"
+	# FR-02: the reason field is no longer empty, so the exact output is two
+	# lines. Kept byte-exact on purpose — a loosened match here would stop
+	# catching a why: that goes blank again.
+	assert_eq "$OUT" "Next: flow loop status
+Why: loop \"make done\" at iteration 0/8 — inspect with flow loop status" "t_loop_next_active_session_kl exact"
 
 	rm -rf "$home" "$proj"
 }
@@ -583,7 +606,9 @@ t_loop_next_active_fresh_kl() {
 
 	lp_cli_in "$proj" "$home" next
 	assert_rc 0 "t_loop_next_active_fresh_kl rc"
-	assert_eq "$OUT" "Next: flow loop run" "t_loop_next_active_fresh_kl exact"
+	# FR-02: see t_loop_next_active_session_kl — still byte-exact, two lines now.
+	assert_eq "$OUT" "Next: flow loop run
+Why: loop \"make done\" at iteration 0/30 — inspect with flow loop status" "t_loop_next_active_fresh_kl exact"
 
 	rm -rf "$home" "$proj"
 }

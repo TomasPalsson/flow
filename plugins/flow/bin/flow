@@ -2734,21 +2734,17 @@ function physicalPath(p) {
 // K-L: null unless `.claude/loop/loop.md` at the git toplevel is active, in
 // which case the loop's shape picks the resume command.
 function computeNextLoopActive(toplevel, branch, dirty) {
-  const loopRaw = safeRead(path.join(toplevel, '.claude', 'loop', 'loop.md'));
-  if (loopRaw === null) return null;
-  let loopFront = null;
-  try {
-    ({ front: loopFront } = require('./lib/loop.js').parseContract(loopRaw));
-  } catch {
-    loopFront = null;
-  }
+  const { readContract } = require('./lib/loop/contract.js');
+  const contract = readContract(toplevel);
+  if (!contract) return null;
+  const loopFront = contract.front;
   if (!loopFront || loopFront.status !== 'active') return null;
   const command = loopFront.shape === 'fresh' ? 'flow loop run' : 'flow loop status';
-  // why stays null: K-L pins `flow next` under an active loop to the single
-  // line `Next: flow loop run` (test_loop.sh asserts it exactly), and the
-  // loop's own status output is where the detail belongs.
+  // FR-02: an armed loop names itself instead of leaving the reason field
+  // empty — the goal, where it is, and the command that shows more.
+  const why = `loop "${loopFront.goal}" at iteration ${loopFront.iteration}/${loopFront.max_iterations} — inspect with flow loop status`;
   return {
-    state: 'loop-active', state_no: 1, command, why: null,
+    state: 'loop-active', state_no: 1, command, why,
     after: null, human_gate: false, feature: null, wave: null,
     gates: { blocked: false, lint_error: false, unreachable_done: false, scan_failed: false, consecutive_calls: 0 },
   };
