@@ -57,6 +57,23 @@ t_negcontrol_survives_refuses() {
 	rm -rf "$home" "$proj"
 }
 
+t_negcontrol_survives_refuses_stock_bash() {
+	local proj home bindir
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	bindir=$(tmp_dir)
+	# Stock /bin/bash 3.2 (and Linux bash 5.2) print job-control notices
+	# such as "[1]+ Done" on the control's own stderr; that noise must not
+	# read as the verifier reacting to the break.
+	ln -s "$(command -v node)" "$bindir/node"
+	PATH="$bindir:/usr/bin:/bin" nc_cli_in "$proj" "$home" loop init "grow the app" --verify "true" --allow-green \
+		--neg-control-file app.txt
+	assert_rc 4 "t_negcontrol_survives_refuses_stock_bash rc"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_survives_refuses_stock_bash writes-nothing"
+
+	rm -rf "$home" "$proj" "$bindir"
+}
+
 t_negcontrol_restores_tree() {
 	local proj home before_hash started elapsed
 	proj=$(nc_repo)

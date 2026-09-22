@@ -65,7 +65,10 @@ function runAfterUnderTrap(toplevel, file, verify, verifyTimeoutSec, env, backup
     "trap 'kill -KILL -$! 2>/dev/null; wait $! 2>/dev/null; echo SIGINT >&3; exit 130' INT",
     "trap 'kill -KILL -$! 2>/dev/null; wait $! 2>/dev/null; echo SIGTERM >&3; exit 143' TERM",
     inducedBreak,
-    'sh -c "$NC_VERIFY" 3>&- &',
+    // Job-control notices ("[1]+ Done ...") go to bash's own stderr; keep
+    // them off the pipes that carry the verifier's output.
+    'exec 4>&1 5>&2 2>/dev/null',
+    'sh -c "$NC_VERIFY" >&4 2>&5 3>&- 4>&- 5>&- &',
     'wait $!',
   ].join('\n');
   const ignore = () => {};
