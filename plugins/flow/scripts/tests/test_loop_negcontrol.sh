@@ -511,3 +511,61 @@ t_negcontrol_directory_refuses() {
 
 	rm -rf "$home" "$proj"
 }
+
+# yolo_recipe_repo — a tmp_repo with the --yolo bootstrap's own task-list
+# gate: .claude/loop/tasks.json with one unproven item over app.js, plus a
+# real scoped test (test_app.js) that passes while app.js has content and
+# fails, with distinct output, once it is emptied — exactly what
+# negcontrol.js's induced break does to --neg-control-file.
+yolo_recipe_repo() {
+	local d
+	d=$(tmp_repo)
+	printf 'module.exports = 1;\n' >"$d/app.js"
+	printf "const fs=require('fs');if(fs.readFileSync('app.js','utf8').trim()){process.exit(0);}console.log('app.js is empty');process.exit(1);\n" >"$d/test_app.js"
+	mkdir -p "$d/.claude/loop"
+	printf '{"items":[{"files":["app.js"],"passes":false}]}' >"$d/.claude/loop/tasks.json"
+	(cd "$d" && git add app.js test_app.js && git commit -q -m "add app.js and its scoped test") >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+YR_GATE='node -e "const T=require(\"./.claude/loop/tasks.json\");process.exit(T.items.every(i=>i.passes)?0:1)"'
+YR_NEW_RECIPE="node test_app.js; t=\$?; $YR_GATE && exit \$t"
+YR_OLD_RECIPE="$YR_GATE && node test_app.js"
+
+# F1: the OLD `<gate> && <scoped test command>` form (yolo-bootstrap.md §3
+# before this fix) never runs the scoped test at init — every task item is
+# unproven, so the gate alone exits 1 and short-circuits the `&&` — so the
+# negative control's before/after runs are identical (rc 1, empty output)
+# and it reads the break as survived. Documents the bug this fix removes;
+# not itself required by the brief.
+t_negcontrol_yolo_recipe_old_form_survives() {
+	local proj home
+	proj=$(yolo_recipe_repo)
+	home=$(tmp_dir)
+
+	nc_cli_in "$proj" "$home" loop init "g" --verify "$YR_OLD_RECIPE" \
+		--neg-control-file app.js --yolo
+	assert_rc 4 "t_negcontrol_yolo_recipe_old_form_survives rc"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_yolo_recipe_old_form_survives writes-nothing"
+
+	rm -rf "$home" "$proj"
+}
+
+# F1: the NEW recipe (scoped tests first, unconditionally; the tasks.json
+# gate only overrides the scoped tests' own exit code) always runs
+# test_app.js, so its output changes the moment app.js is broken even though
+# the gate's own exit code (1, every item still unproven) does not — the
+# control reads that as red-then-restored and init proceeds past the gate.
+t_negcontrol_yolo_recipe_arms() {
+	local proj home
+	proj=$(yolo_recipe_repo)
+	home=$(tmp_dir)
+
+	nc_cli_in "$proj" "$home" loop init "g" --verify "$YR_NEW_RECIPE" \
+		--neg-control-file app.js --yolo
+	assert_rc 0 "t_negcontrol_yolo_recipe_arms arms (not the survived exit 4)"
+	assert_file_exists "$proj/.claude/loop/loop.md" "t_negcontrol_yolo_recipe_arms writes-contract"
+	assert_eq "$(cat "$proj/app.js")" "module.exports = 1;" "t_negcontrol_yolo_recipe_arms tree-restored"
+
+	rm -rf "$home" "$proj"
+}

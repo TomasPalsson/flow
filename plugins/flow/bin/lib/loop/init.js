@@ -134,7 +134,15 @@ function runNegControlGate(toplevel, args, env, stderrW, baseline) {
     stderrW(`flow loop init: the verifier removed or changed ${args.negControlFile} during the negative control; refusing to arm\n`);
     return 1;
   }
-  if (result.verdict === 'red-then-restored') return 0;
+  // F3 (design.md:31-32): neg_control_at is only ever the moment the control
+  // last passed (red-then-restored), so buildInitFront can tell "the gate
+  // ran and passed" apart from "no control was configured" — both read as
+  // args.negControlFile being falsy-adjacent otherwise. Recorded on args
+  // because buildInitFront runs after this gate, never before it.
+  if (result.verdict === 'red-then-restored') {
+    args.negControlAt = new Date().toISOString();
+    return 0;
+  }
   // A verifier that itself exceeded --verify-timeout and the control
   // exceeding its own 2x bound are different problems for the operator to
   // tune, so they get different messages even though both map to exit 6.
@@ -183,6 +191,16 @@ function uiScorePath() {
   return fs.existsSync(p) ? p : '';
 }
 
+// negControlFront(args) — design.md:31-32: written only when the gate ran
+// and passed (red-then-restored, recorded by runNegControlGate on `args`);
+// '' for both when no control was configured at all, same as one that never ran.
+function negControlFront(args) {
+  return {
+    neg_control_file: args.negControlAt ? args.negControlFile : '',
+    neg_control_at: args.negControlAt || '',
+  };
+}
+
 function buildInitFront(toplevel, args, base, env) {
   const now = new Date().toISOString();
   const target = repoRelative(toplevel, args.target);
@@ -213,6 +231,7 @@ function buildInitFront(toplevel, args, base, env) {
     // merely marking it suspect.
     yolo: args.yolo ? '1' : '0',
     fail_closed: args.yolo ? '1' : '0',
+    ...negControlFront(args),
     base,
     // test_files stays the auto-detected count (tamper.js's "test files
     // removed" check reads it as a number) regardless of --test-files, so
@@ -278,6 +297,13 @@ function cmdInit(argv, toplevel, env) {
   if (!args.verify) {
     process.stderr.write('flow loop init: --verify is required\n');
     return 1;
+  }
+  // F2 (spec.md:17, FR-04): --yolo has nobody watching, so the negative
+  // control is the mandatory gate, not an optional one init.js quietly
+  // skips when the flag is absent. Refuse before any file is written.
+  if (args.yolo && !args.negControlFile) {
+    process.stderr.write('flow loop init: --yolo requires --neg-control-file; refusing to arm\n');
+    return 3;
   }
 
   const verifyRun = runVerify(toplevel, args.verify, args.verifyTimeout, env);
