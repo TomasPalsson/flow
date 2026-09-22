@@ -138,4 +138,8 @@ t_loop_docs_yolo() {
 	assert_contains "$doc" "own working copy" "Step 0 states the run uses its own branch and working copy (FR-08)"
 	assert_contains "$doc" "draft pull request" "Step 0 names the draft pull request outcome (FR-10)"
 	assert_contains "$doc" "scoped to the files" "Step 0 states the verifier is scoped to touched files (FR-13)"
+	assert_contains "$doc" "240 minutes" "Step 0 states the --yolo minutes cap"
+	assert_contains "$doc" "40 iterations" "Step 0 states the --yolo iterations cap"
+	assert_contains "$doc" "no money cap" "Step 0 states --yolo sets no money cap"
+	assert_contains "$doc" "stops the run" "Step 0 states a tamper finding stops the run"
 }

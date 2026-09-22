@@ -22,7 +22,7 @@ Facts that shape every decision below (verified against the vendor docs on 2026-
 
 1. **Bootstrap.** From the idea alone, produce a spec, a task list and a composed verifier — no interruption for approval. Every task item starts unproven and carries its own runnable check; the composed verifier requires every item proven AND its scoped test command green, scoped to the files the spec touches rather than the whole suite.
 2. **Refuse.** Before anything is armed, `flow loop init` runs the negative control: it deliberately breaks the code the first task names and proves the verifier goes red. A verifier that survives the break, or a tree that cannot be restored, refuses to arm and leaves nothing half-armed.
-3. **Arm.** Once the control passes, the run starts on its own branch, in its own working copy, and never commits to the branch you were on. Its children deny anything requiring approval rather than waiting for you, bounded by the caps in Step 4.
+3. **Arm.** Once the control passes, the run starts on its own branch, in its own working copy, and never commits to the branch you were on. Its children deny anything requiring approval rather than waiting for you, capped at 240 minutes and 40 iterations with no money cap unless you pass `--max-usd`; a tamper finding (fewer test files, a new skip, a loosened threshold, a rewritten verifier) stops the run rather than merely marking it suspect.
 
 Whether the run finishes or hits a cap, it ends at a draft pull request naming what remains; it never records that a human verified the result — that stays yours to do when you come back.
 
