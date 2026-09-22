@@ -56,11 +56,12 @@ Each item is `{ id, desc, files, verify, passes: false }`:
 ## 3. Verifier composition
 
 One command, fastest and most-discriminating first, exactly `verifier-design.md` §2's rules.
-`--yolo` adds one clause at the front — every item proven — reusing the same pattern
-`verifier-design.md` §5 already names for a backlog:
+`--yolo` adds one clause — every item proven — reusing the same pattern `verifier-design.md`
+§5 already names for a backlog, but the scoped tests run first and unconditionally, their exit
+code captured before the `tasks.json` gate ever runs:
 
 ```bash
---verify 'node -e "const t=require(\"./.claude/loop/tasks.json\");process.exit(t.items.every(i=>i.passes)?0:1)" && <scoped test command>'
+--verify '<scoped test command>; t=$?; node -e "const T=require(\"./.claude/loop/tasks.json\");process.exit(T.items.every(i=>i.passes)?0:1)" && exit $t'
 ```
 
 `<scoped test command>` is the union of every item's `files`, narrowed to the test files that
@@ -69,6 +70,17 @@ the independent check CI runs on the reviewer's behalf, out of the agent's reach
 (spec §2.2 non-goal). Composing this way means an item flipped to `passes: true` with no code
 behind it still fails the verifier the moment its own `files` regress — the two clauses check
 different things and neither substitutes for the other.
+
+Order matters, and it is not cosmetic. At init every item is `passes: false`, so a verifier
+that put the gate first and joined the two clauses with `&&` (`<gate> && <scoped test command>`)
+would exit 1 on the gate alone and the shell would never reach the scoped tests at all — the
+negative control's break-then-rerun would then see the same rc (1) and the same empty output
+both before and after the break, read that as the verifier never reacting, and refuse to arm
+(`survived`, exit 4) on every repo, forever. Running the scoped tests first and unconditionally
+means the induced break always reaches a command capable of seeing it: the composed command
+exits with the scoped tests' own rc whenever the gate later passes, and with the gate's own
+nonzero rc when it does not, so the control's before/after comparison has a real signal to read
+either way.
 
 The composed command is what `--neg-control-file` proves can fail (FR-04): the file broken is
 the first path of the first task item (§2), and the negative control runs this exact string, so
