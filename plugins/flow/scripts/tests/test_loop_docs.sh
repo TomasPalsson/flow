@@ -93,8 +93,8 @@ t_loopdocs_fix_skill_uses_flow_loop() {
 }
 
 t_loopdocs_fix_skill_keeps_fallback_path() {
-	assert_contains "$(cat "$LD_FIX_SKILL")" "### Execution — Fallback Path" \
-		"fix/SKILL.md keeps a fallback execution path"
+	assert_contains "$(cat "$LD_FIX_SKILL")" "Direct execution above is the default" \
+		"fix/SKILL.md keeps a direct (no-loop) execution path"
 }
 
 t_loopdocs_fix_execution_prompt_drops_promise() {
