@@ -102,14 +102,26 @@ const NEG_CONTROL_EXIT_CODES = { survived: 4, 'not-restored': 5, timeout: 6 };
 // (design §7 decision 2), so a refusal here leaves no contract file behind.
 function runNegControlGate(toplevel, args, env, stderrW) {
   if (!args.negControlFile) return 0;
-  const result = runNegControl(toplevel, {
-    verify: args.verify, verifyTimeout: args.verifyTimeout, file: args.negControlFile, env,
-  });
+  let result;
+  try {
+    result = runNegControl(toplevel, {
+      verify: args.verify, verifyTimeout: args.verifyTimeout, file: args.negControlFile, env,
+    });
+  } catch (err) {
+    stderrW(`flow loop init: ${err.message}\n`);
+    return 3;
+  }
   if (result.verdict === 'red-then-restored') return 0;
+  // A verifier that itself exceeded --verify-timeout and the control
+  // exceeding its own 2x bound are different problems for the operator to
+  // tune, so they get different messages even though both map to exit 6.
+  const timeoutMessage = result.verifierTimedOut
+    ? 'flow loop init: the verifier did not return within --verify-timeout during the negative control; refusing to arm\n'
+    : 'flow loop init: the negative control did not return within its time bound; refusing to arm\n';
   const messages = {
     survived: `flow loop init: the negative control broke ${result.file} but the verifier's verdict did not change; refusing to arm\n`,
     'not-restored': `flow loop init: the negative control could not restore ${result.file}; a human must look\n`,
-    timeout: `flow loop init: the negative control did not return within its time bound; refusing to arm\n`,
+    timeout: timeoutMessage,
   };
   stderrW(messages[result.verdict]);
   return NEG_CONTROL_EXIT_CODES[result.verdict];
