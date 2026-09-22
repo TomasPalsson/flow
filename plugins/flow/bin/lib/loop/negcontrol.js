@@ -6,16 +6,15 @@
 // Never writes the contract; init.js only arms after a passing verdict.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { runVerify, signatureOf } = require('./verify.js');
 
-// inducedBreak(filePath) — the single-file edit: truncate to empty. Reverted
-// from the bytes read before the break, never a multi-file mutation, so
-// recovery is one write and cannot partially apply.
-function inducedBreak(filePath) {
-  fs.writeFileSync(filePath, Buffer.alloc(0));
-}
+// inducedBreak — the single-file edit: truncate to empty, run by the
+// control's shell only after its traps are set, so there is no instant at
+// which the target is broken and nothing is armed to put it back.
+const inducedBreak = ': >"$NC_FILE"';
 
 // preflight(toplevel, filePath, file) — design §2: the working tree and the
 // target are untrusted input, checked before anything is written. Throws
@@ -44,64 +43,94 @@ function preflight(toplevel, filePath, file) {
   }
 }
 
-// runAfterUnderTrap(toplevel, file, verify, verifyTimeoutSec, env) -> { rc, output }
-// One synchronous shell owns the break, the verifier and the restore: its
-// `trap` restores on INT, TERM or plain exit, completing before this
-// spawnSync returns, so nothing outlives it and a real Ctrl-C (which hits
-// this whole process group) is covered. The restore reads the blob
-// straight from the object database, never `git checkout`, so a verifier
-// briefly holding `.git/index.lock` cannot turn a restorable file into a
-// false "could not restore". `file` and `verify` cross into the shell only
-// through `env`, never string interpolation.
-function runAfterUnderTrap(toplevel, file, verify, verifyTimeoutSec, env) {
+// runAfterUnderTrap(toplevel, file, verify, verifyTimeoutSec, env, backupPath, mode)
+// -> { rc, output, signal }. One synchronous bash owns the break, the
+// verifier and the restore. The verifier runs as `& wait` in its own
+// process group (`set -m`): a trap only fires between foreground commands,
+// but `wait` is interruptible, so spawnSync's timeout SIGTERM and a real
+// Ctrl-C (which hits this whole foreground group) both reach the trap at
+// once; it kills the verifier's whole group, then the EXIT trap restores.
+// The restore copies the pre-control bytes back IN PLACE, keeping inode
+// and mode, and runs no git command, so `.git/index.lock` cannot block it.
+// `file`, `verify` and the backup path cross into the shell only through
+// `env`, never string interpolation. Node ignores SIGINT/SIGTERM only while
+// spawnSync blocks, so it cannot die before the shell has restored; the
+// trap reports which signal stopped the run on fd 3, where the verifier's
+// own output cannot forge it.
+function runAfterUnderTrap(toplevel, file, verify, verifyTimeoutSec, env, backupPath, mode) {
   const t = parseInt(verifyTimeoutSec, 10) || 600;
-  const restoreCmd = 'git cat-file blob "HEAD:$NC_FILE" >"$NC_FILE.nc_tmp" 2>/dev/null '
-    + '&& mv "$NC_FILE.nc_tmp" "$NC_FILE" || rm -f "$NC_FILE.nc_tmp"';
   const script = [
-    `trap '${restoreCmd}' EXIT`,
-    "trap 'exit 130' INT",
-    "trap 'exit 143' TERM",
-    ': > "$NC_FILE"',
-    'sh -c "$NC_VERIFY"',
-    'exit $?',
+    'set -m',
+    `trap 'cat "$NC_BACKUP" >"$NC_FILE"; chmod "$NC_MODE" "$NC_FILE"' EXIT`,
+    "trap 'kill -KILL -$! 2>/dev/null; wait $! 2>/dev/null; echo SIGINT >&3; exit 130' INT",
+    "trap 'kill -KILL -$! 2>/dev/null; wait $! 2>/dev/null; echo SIGTERM >&3; exit 143' TERM",
+    inducedBreak,
+    'sh -c "$NC_VERIFY" 3>&- &',
+    'wait $!',
   ].join('\n');
-  const r = spawnSync('sh', ['-c', script], {
-    cwd: toplevel,
-    env: Object.assign({}, env, { CI: 'true', FLOW_LOOP: '1', NC_FILE: file, NC_VERIFY: verify }),
-    timeout: t * 1000,
-    encoding: 'utf8',
-  });
+  const ignore = () => {};
+  process.on('SIGINT', ignore);
+  process.on('SIGTERM', ignore);
+  let r;
+  try {
+    r = spawnSync('bash', ['-c', script], {
+      cwd: toplevel,
+      env: Object.assign({}, env, {
+        CI: 'true', FLOW_LOOP: '1', NC_FILE: file, NC_VERIFY: verify, NC_BACKUP: backupPath,
+        NC_MODE: (mode & 0o7777).toString(8),
+      }),
+      stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
+      timeout: t * 1000,
+      encoding: 'utf8',
+    });
+  } finally {
+    process.removeListener('SIGINT', ignore);
+    process.removeListener('SIGTERM', ignore);
+  }
   let output = (r.stdout || '') + (r.stderr || '');
   let rc = r.status;
+  let signal = null;
   if (r.error && r.error.code === 'ETIMEDOUT') {
     rc = 124;
     output += `\nverify timed out after ${t} s`;
-  } else if (rc === null) {
-    rc = 1;
+  } else {
+    // A signal that landed before bash set its traps kills bash outright.
+    signal = (r.output[3] || '').trim() || (['SIGINT', 'SIGTERM'].includes(r.signal) ? r.signal : null);
+    if (rc === null) rc = 1;
   }
-  return { rc, output };
+  return { rc, output, signal };
 }
 
 // breakAndRerun(toplevel, filePath, file, verify, verifyTimeout, env, original)
 // -> { after, restored }. FR-05: restoration happens whether the run
-// "passed, failed, or was interrupted". The trap in runAfterUnderTrap is
-// the first restore; this direct byte-write, from what was read before the
-// break, is the second — needs no git command and so no index lock either.
+// "passed, failed, or was interrupted". `original` = { bytes, mode },
+// captured before any verifier run. The shell's EXIT trap is the first
+// restore, from a backup kept outside the repo; this direct write is the
+// second — needs no git command and so no index lock either.
 function breakAndRerun(toplevel, filePath, file, verify, verifyTimeout, env, original) {
+  const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flow-negcontrol-'));
+  const backupPath = path.join(backupDir, 'target');
   let after;
   try {
-    inducedBreak(filePath);
-    after = runAfterUnderTrap(toplevel, file, verify, verifyTimeout, env);
+    fs.writeFileSync(backupPath, original.bytes);
+    after = runAfterUnderTrap(toplevel, file, verify, verifyTimeout, env, backupPath, original.mode);
   } finally {
-    try { fs.writeFileSync(filePath, original); } catch { /* the read-back below reports the state */ }
+    try {
+      fs.writeFileSync(filePath, original.bytes);
+      fs.chmodSync(filePath, original.mode & 0o7777);
+    } catch { /* the read-back below reports the state */ }
+    fs.rmSync(backupDir, { recursive: true, force: true });
   }
-  let restored;
+  return { after, restored: matches(filePath, original) };
+}
+
+// matches(filePath, original) — same mode (file type included) and bytes.
+function matches(filePath, original) {
   try {
-    restored = fs.readFileSync(filePath).equals(original);
+    return fs.lstatSync(filePath).mode === original.mode && fs.readFileSync(filePath).equals(original.bytes);
   } catch {
-    restored = false;
+    return false;
   }
-  return { after, restored };
 }
 
 // runNegControl(toplevel, opts) -> { verdict, file, restored, ms }
@@ -119,19 +148,30 @@ function runNegControl(toplevel, opts) {
   const start = Date.now();
 
   preflight(toplevel, filePath, file);
+  // The state FR-05 promises to return to: taken before any verifier run,
+  // so a "before" run that edits the target cannot become the baseline.
+  const original = { bytes: fs.readFileSync(filePath), mode: fs.lstatSync(filePath).mode };
 
   const before = runVerify(toplevel, verify, verifyTimeout, env);
   if (before.rc === 124) {
     return { verdict: 'timeout', file, restored: true, ms: Date.now() - start, verifierTimedOut: true };
   }
+  // The verifier itself changed the target on an unbroken tree: not ours to
+  // put back, and no longer the file the control would be testing.
+  if (!matches(filePath, original)) throw new Error(`${file} changed during the verifier's unbroken run`);
 
-  const original = fs.readFileSync(filePath);
   const { after, restored } = breakAndRerun(toplevel, filePath, file, verify, verifyTimeout, env, original);
   const ms = Date.now() - start;
 
   // Not-restored is the loudest case (design §2): a broken tree outranks any
   // other reading of the two verifier runs.
   if (!restored) return { verdict: 'not-restored', file, restored, ms };
+  // Interrupted: the tree is back, so die of the same signal without
+  // arming, as the operator asked; the exit is the fallback if it is late.
+  if (after.signal) {
+    process.kill(process.pid, after.signal);
+    process.exit(128 + os.constants.signals[after.signal]);
+  }
   if (after.rc === 124) return { verdict: 'timeout', file, restored, ms, verifierTimedOut: true };
   if (ms > boundMs) return { verdict: 'timeout', file, restored, ms, verifierTimedOut: false };
 

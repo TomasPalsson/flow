@@ -58,7 +58,7 @@ t_negcontrol_survives_refuses() {
 }
 
 t_negcontrol_restores_tree() {
-	local proj home before_hash
+	local proj home before_hash started elapsed
 	proj=$(nc_repo)
 	home=$(tmp_dir)
 	before_hash=$(cd "$proj" && git hash-object app.txt)
@@ -69,9 +69,12 @@ t_negcontrol_restores_tree() {
 	# verifier hung, not the control, so the message names that.
 	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5; exit 1; fi'
 
+	started=$(date +%s)
 	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "sh verify.sh" \
 		--verify-timeout 1 --neg-control-file app.txt
+	elapsed=$(($(date +%s) - started))
 	assert_rc 6 "t_negcontrol_restores_tree rc"
+	assert_eq "$([ "$elapsed" -lt 3 ] && echo bounded || echo "took ${elapsed}s")" "bounded" "t_negcontrol_restores_tree timeout-enforced"
 	assert_contains "$ERR" "verify-timeout" "t_negcontrol_restores_tree names-timeout"
 	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_restores_tree writes-nothing"
 	# A command-substitution string comparison strips trailing newlines and
@@ -81,6 +84,102 @@ t_negcontrol_restores_tree() {
 	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_restores_tree tree-byte-identical"
 
 	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_broken_run_timeout_bounded() {
+	local proj home started elapsed
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	# Hangs for 15s only once app.txt is broken; --verify-timeout 1 must cut
+	# that run off at about 1s, and the hung verifier's own child must not
+	# outlive the CLI.
+	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 15 & echo $! >"$HOME/sleep.pid"; wait; exit 1; fi'
+
+	started=$(date +%s)
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "sh verify.sh" \
+		--verify-timeout 1 --neg-control-file app.txt
+	elapsed=$(($(date +%s) - started))
+	assert_rc 6 "t_negcontrol_broken_run_timeout_bounded rc"
+	assert_eq "$([ "$elapsed" -lt 3 ] && echo bounded || echo "took ${elapsed}s")" "bounded" "t_negcontrol_broken_run_timeout_bounded under-3s"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_broken_run_timeout_bounded writes-nothing"
+	assert_eq "$(cat "$proj/app.txt")" "the app" "t_negcontrol_broken_run_timeout_bounded tree-restored"
+	assert_eq "$(kill -0 "$(cat "$home/sleep.pid")" 2>/dev/null && echo alive || echo gone)" "gone" "t_negcontrol_broken_run_timeout_bounded nothing-outlives"
+
+	kill "$(cat "$home/sleep.pid")" 2>/dev/null
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_keeps_executable_bit() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	printf '#!/bin/sh\necho run\n' >"$proj/run.sh"
+	chmod 755 "$proj/run.sh"
+	nc_verify_script "$proj" 'if [ -s run.sh ]; then exit 1; else sleep 5; exit 1; fi'
+	(cd "$proj" && git add run.sh && git commit -q -m "add run.sh") >/dev/null 2>&1
+
+	# Arms, refuses as survived, and refuses on timeout: every exit path
+	# must hand back run.sh as the same executable file git has.
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "test -s run.sh" --allow-green \
+		--neg-control-file run.sh
+	assert_rc 0 "t_negcontrol_keeps_executable_bit armed rc"
+	# Arming itself writes .gitignore (the loop's own scratch rules).
+	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude' ':!.gitignore')" "" "t_negcontrol_keeps_executable_bit armed tree-clean"
+	assert_eq "$([ -x "$proj/run.sh" ] && echo executable || echo lost)" "executable" "t_negcontrol_keeps_executable_bit armed mode"
+	rm -rf "$proj/.claude" "$proj/.gitignore"
+
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "true" --allow-green \
+		--neg-control-file run.sh
+	assert_rc 4 "t_negcontrol_keeps_executable_bit survived rc"
+	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_keeps_executable_bit survived tree-clean"
+
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "sh verify.sh" --verify-timeout 1 \
+		--neg-control-file run.sh
+	assert_rc 6 "t_negcontrol_keeps_executable_bit timed-out rc"
+	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_keeps_executable_bit timed-out tree-clean"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_interrupted_restores() {
+	local proj home before_hash pid outf errf i
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	chmod 755 "$proj/app.txt"
+	(cd "$proj" && git commit -q -am "app.txt is executable") >/dev/null 2>&1
+	before_hash=$(cd "$proj" && git hash-object app.txt)
+	outf=$(tmp_dir)/out
+	errf=$(tmp_dir)/err
+	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5 & echo $! >"$HOME/sleep.pid"; wait; exit 1; fi'
+
+	# A SIGTERM delivered to the CLI's pid alone (an agent harness, a
+	# subprocess timeout) while it is blocked in the "after" verifier run
+	# must not return with the target still broken. Sent once the verifier
+	# is running on the truncated app.txt (polled on its pid file, not
+	# slept: a slow node start must not land the kill before the break and
+	# pass vacuously). `exec` so $! is the node pid itself.
+	(cd "$proj" && HOME="$home" exec node "$NC_CLI_PATH" loop init "grow the app" --verify "sh verify.sh" \
+		--neg-control-file app.txt >"$outf" 2>"$errf") &
+	pid=$!
+	i=0
+	while [ ! -s "$home/sleep.pid" ] && [ "$i" -lt 50 ]; do
+		sleep 0.1
+		i=$((i + 1))
+	done
+	kill -TERM "$pid" 2>/dev/null
+	wait "$pid"
+
+	# Checked the instant the CLI returns, then the operator's next write
+	# must survive: nothing may restore behind their back later.
+	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_interrupted_restores tree-clean"
+	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_interrupted_restores tree-byte-identical"
+	printf 'MY NEW WORK' >"$proj/app.txt"
+	sleep 2
+	assert_eq "$(cat "$proj/app.txt")" "MY NEW WORK" "t_negcontrol_interrupted_restores edit-survives"
+	assert_eq "$(kill -0 "$(cat "$home/sleep.pid")" 2>/dev/null && echo alive || echo gone)" "gone" "t_negcontrol_interrupted_restores nothing-outlives"
+
+	kill "$(cat "$home/sleep.pid")" 2>/dev/null
+	rm -rf "$home" "$proj" "$(dirname "$outf")" "$(dirname "$errf")"
 }
 
 t_negcontrol_real_change_arms() {
@@ -107,7 +206,7 @@ t_negcontrol_not_restored_exit5() {
 	home=$(tmp_dir)
 	# The verifier itself makes the target unrestorable — replaces it with
 	# a directory partway through the break — so neither restore method
-	# (the shell trap's blob read, or Node's own byte-write from what it
+	# (the shell trap's copy from its backup, or Node's own byte-write from what it
 	# read before the break) can put a regular file back.
 	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else rm -f app.txt; mkdir app.txt; exit 1; fi'
 
@@ -144,6 +243,8 @@ t_negcontrol_sigint_kills_without_arming() {
 	local proj home before_hash pid outf errf i
 	proj=$(nc_repo)
 	home=$(tmp_dir)
+	chmod 755 "$proj/app.txt"
+	(cd "$proj" && git commit -q -am "app.txt is executable") >/dev/null 2>&1
 	before_hash=$(cd "$proj" && git hash-object app.txt)
 	outf=$(tmp_dir)/out
 	errf=$(tmp_dir)/err
@@ -151,7 +252,7 @@ t_negcontrol_sigint_kills_without_arming() {
 	# arm if left to run to completion (green while app.txt has content,
 	# green again once it is gone, after a slow settle) — proving Ctrl-C
 	# actually stops the arm, not that this particular verifier survives.
-	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5; exit 0; fi'
+	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5 & echo $! >"$HOME/sleep.pid"; wait; exit 0; fi'
 
 	# A real Ctrl-C reaches the whole foreground process group, not just
 	# the CLI's own pid, which is what lets the shell's own trap cover it;
@@ -163,7 +264,7 @@ t_negcontrol_sigint_kills_without_arming() {
 	pid=$!
 	set +m
 	i=0
-	while [ -s "$proj/app.txt" ] && [ "$i" -lt 50 ]; do
+	while [ ! -s "$home/sleep.pid" ] && [ "$i" -lt 50 ]; do
 		sleep 0.1
 		i=$((i + 1))
 	done
@@ -171,18 +272,20 @@ t_negcontrol_sigint_kills_without_arming() {
 	wait "$pid"
 	# shellcheck disable=SC2034  # RC is the global assert_rc reads
 	RC=$?
-	sleep 1
 
-	# Node cannot run a JS signal callback while spawnSync blocks the one
-	# thread, so the CLI dies from SIGINT's own default disposition rather
-	# than completing the run and arming on the verdict it would otherwise
-	# have reached.
-	assert_rc 130 "t_negcontrol_sigint_kills_without_arming rc"
-	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_sigint_kills_without_arming writes-nothing"
+	# Checked the instant the CLI returns: the tree must already be back,
+	# and the operator's next write must survive.
 	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_sigint_kills_without_arming tree-clean"
 	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_sigint_kills_without_arming tree-byte-identical"
+	printf 'MY NEW WORK' >"$proj/app.txt"
+	sleep 2
+	assert_eq "$(cat "$proj/app.txt")" "MY NEW WORK" "t_negcontrol_sigint_kills_without_arming edit-survives"
+	assert_eq "$(kill -0 "$(cat "$home/sleep.pid")" 2>/dev/null && echo alive || echo gone)" "gone" "t_negcontrol_sigint_kills_without_arming nothing-outlives"
+	assert_rc 130 "t_negcontrol_sigint_kills_without_arming rc"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_sigint_kills_without_arming writes-nothing"
 
-	rm -rf "$home" "$proj"
+	kill "$(cat "$home/sleep.pid")" 2>/dev/null
+	rm -rf "$home" "$proj" "$(dirname "$outf")" "$(dirname "$errf")"
 }
 
 t_negcontrol_mktemp_refuses() {
