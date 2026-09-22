@@ -86,14 +86,17 @@ finishes, caps out, or is never armed at all.
    outright ("Does not check working-tree dirtiness") — so it is this bootstrap's job: dirty
    means the operator has work `git worktree add`'s `HEAD` would silently leave behind, and
    Journey 3's error path is "the run refuses to start rather than committing or discarding that
-   work". Refuse and stop before `new-spec` runs.
+   work". Refuse and stop before `new-spec` runs. This whole-tree check never reaches `cmdInit`
+   — it is this skill's own gate, run before `flow loop init` is even called, so it has no exit
+   code of its own; the negative control's own preflight (`init.js:124-132`) is scoped to the
+   `--neg-control-file` target only (§5, exit 3), never the whole tree.
 2. **Init on the current checkout, arm on a worktree.** Run `flow loop init "<goal>" --verify
    "<composed>" --yolo --neg-control-file "<first file>" [--max-usd N]` from the operator's
    current checkout — it is the only place the negative control can compare against the tree
    the operator actually has. `flow loop init` writes only `.claude/loop/*`
    (gitignored except `LEARNINGS.md`, `ensureLoopGitignore`) and `.gitignore`'s two lines; it
-   commits nothing. **Refusal at this step (any of exit 3/4/5/6) leaves no contract file and no
-   commit — nothing half-armed (FR-11).**
+   commits nothing. **Refusal at this step (any of exit 1/3/4/5/6) leaves no contract file and
+   no commit — nothing half-armed (FR-11).**
 3. **`flow loop run --worktree`, then end the turn.** This is what makes FR-08 true: a new
    branch `loop/<slug>` in a new working copy at `.claude/worktrees/loop-<slug>`, created from
    the current `HEAD` — never the branch the operator was standing on. It copies the whole
@@ -117,7 +120,8 @@ naming the field or file responsible — never a stack trace, never a partial co
 
 | Exit | Means | What changed |
 |---|---|---|
-| 3 | an input could not be composed: no goal, no verifier, no task list, a dirty operator tree, or an untracked/missing first file | nothing — no contract, no branch, no worktree |
+| 1 | the verifier itself removed or changed the first file during its own unbroken run, before the induced break ever ran (`init.js:133-135`) | nothing armed; unlike 4/5/6 there is no restore on this path — the tree is left however that verifier run left it, since the control never got as far as taking a backup to restore from |
+| 3 | an input could not be composed: no goal, no verifier, no task list, or the first file is untracked, missing, a symlink or a directory, or has uncommitted changes of its own (`init.js:124-132`, the negative control's own preflight, scoped to that one file) | nothing — no contract, no branch, no worktree |
 | 4 | the composed verifier survived the induced break | nothing armed; the file named by `--neg-control-file` is back to its original bytes |
 | 5 | the tree could not be restored after the break | **the loudest case** — say so to the operator directly; a human must look at the named file before anything else touches this repo |
 | 6 | the negative control exceeded `2 × verify_timeout` | nothing armed; likely the composed command itself is too slow — narrow the scoped test command (§3) before retrying |
