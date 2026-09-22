@@ -581,6 +581,27 @@ t_loop_doctor_warns_active_kl() {
 	rm -rf "$home" "$proj"
 }
 
+# Finding 4: doctor's corruption check must be the same one `flow loop`
+# itself uses (contract.js's corruptReason), not a hand-copied rule set
+# that can drift — a blanked started_at (B1, FR-01) is corrupt either way.
+t_loop_doctor_corrupt_started_at() {
+	local proj home block
+	proj=$(lp_repo)
+	home=$(tmp_dir)
+	lp_cli_in "$proj" "$home" loop init "make done" --verify "test -f done.txt" >/dev/null
+
+	sed 's#^started_at: .*#started_at: #' "$proj/.claude/loop/loop.md" >"$proj/.claude/loop/loop.md.new"
+	mv "$proj/.claude/loop/loop.md.new" "$proj/.claude/loop/loop.md"
+
+	lp_cli_in "$proj" "$home" doctor --json
+	assert_contains "$OUT" '"id": "loop-contract"' "t_loop_doctor_corrupt_started_at check-present"
+	block=$(printf '%s' "$OUT" | grep -A1 '"id": "loop-contract"')
+	assert_contains "$block" '"status": "FAIL"' "t_loop_doctor_corrupt_started_at fail"
+	assert_contains "$OUT" "is corrupt: started_at is not a parseable timestamp" "t_loop_doctor_corrupt_started_at message"
+
+	rm -rf "$home" "$proj"
+}
+
 t_loop_next_active_session_kl() {
 	local proj home
 	proj=$(lp_repo)

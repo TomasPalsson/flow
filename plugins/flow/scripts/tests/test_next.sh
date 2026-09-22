@@ -508,13 +508,53 @@ t_next_loop_active_wins_over_everything() {
 		printf 'status: active\n'
 		printf 'shape: fresh\n'
 		printf 'goal: x\n'
+		printf 'verify: "true"\n'
+		printf 'iteration: 0\n'
+		printf 'max_iterations: 5\n'
+		printf 'started_at: 2026-01-01T00:00:00Z\n'
 		printf -- '---\n'
 	} >"$proj/.claude/loop/loop.md"
 	nx_cli_in "$proj" "$home" next --json
 	assert_contains "$OUT" '"state": "loop-active"' "an active loop contract is checked before the router"
 	assert_contains "$OUT" 'flow loop run' "a fresh loop resumes with flow loop run"
 	nx_cli_in "$proj" "$home" next
-	assert_contains "$OUT" "Next: flow loop run" "K-L's exact command line survives the router rewrite"
+	# FR-02: the reason field is no longer empty, so the exact output is two
+	# lines. Kept byte-exact on purpose — a loosened match here would stop
+	# catching a why: that goes blank, or leaks JS `undefined`, again.
+	assert_eq "$OUT" 'Next: flow loop run
+Why: loop "x" at iteration 0/5 — inspect with flow loop status' "K-L's exact two-line contract survives the router rewrite"
+	rm -rf "$home" "$proj"
+}
+
+# Finding 3: a corrupt contract still owns the repo (state stays
+# loop-active — nothing else may run until it is dealt with), but `flow
+# loop run` refuses it outright (cmdRun gates on contract.corrupt) and
+# `flow loop tick` self-disarms it on the next call either way. The router
+# must name the recovery instead of repeating a command that cannot
+# actually make progress, with the corruption reason stated verbatim.
+t_next_loop_active_corrupt_names_stop() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.claude/loop"
+	{
+		printf -- '---\n'
+		printf 'status: active\n'
+		printf 'shape: fresh\n'
+		printf 'goal: x\n'
+		printf 'verify: "true"\n'
+		printf 'iteration: 0\n'
+		printf 'max_iterations: 5\n'
+		printf 'started_at: \n'
+		printf -- '---\n'
+	} >"$proj/.claude/loop/loop.md"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "loop-active"' "a corrupt contract still owns the repo"
+	assert_contains "$OUT" '"command": "flow loop stop"' "corrupt names the recovery command instead of a command that would refuse"
+	assert_contains "$OUT" '"why": "started_at is not a parseable timestamp' "the why states the corruption reason verbatim"
+	nx_cli_in "$proj" "$home" next
+	assert_eq "$OUT" "Next: flow loop stop
+Why: started_at is not a parseable timestamp: ''" "the plain-text output is also byte-exact"
 	rm -rf "$home" "$proj"
 }
 
@@ -530,8 +570,10 @@ t_next_loop_active_why() {
 		printf 'status: active\n'
 		printf 'shape: session\n'
 		printf 'goal: "ship the thing"\n'
+		printf 'verify: "true"\n'
 		printf 'iteration: 3\n'
 		printf 'max_iterations: 10\n'
+		printf 'started_at: 2026-01-01T00:00:00Z\n'
 		printf -- '---\n'
 	} >"$proj/.claude/loop/loop.md"
 	nx_cli_in "$proj" "$home" next --json

@@ -699,32 +699,28 @@ function doctorProgressCheck(push) {
   }
 }
 
-// A contract whose iteration/max_iterations are non-numeric or whose verify
-// is empty is corrupt (K-B); doctor only reports it here, `flow loop`
-// itself is what renames it to loop.md.corrupt.
-function doctorLoopContractCorrupt(front) {
-  if (!/^\d+$/.test(String(front.iteration || '').trim())) return true;
-  if (!/^\d+$/.test(String(front.max_iterations || '').trim())) return true;
-  return !front.verify || String(front.verify).trim() === '';
-}
-
 // C006 K-L: project-scoped, like progress-md — reads the CURRENT repo's
-// .claude/loop/loop.md (process.cwd()), not $HOME.
+// .claude/loop/loop.md (process.cwd()), not $HOME. Corruption rules live in
+// one place, lib/loop/contract.js's corruptReason (K-B, B1, FR-01) — doctor
+// only reports it here, `flow loop` itself is what renames it to
+// loop.md.corrupt.
 function doctorLoopCheck(push) {
   const cwd = process.cwd();
   if (!isGitRepo(cwd)) return;
   const p = path.join(cwd, '.claude', 'loop', 'loop.md');
   const raw = safeRead(p);
   if (raw === null) return;
+  const { parseContract, corruptReason } = require('./lib/loop/contract.js');
   let front;
   try {
-    ({ front } = require('./lib/loop.js').parseContract(raw));
+    ({ front } = parseContract(raw));
   } catch {
     push('loop-contract', 'FAIL', `${p} does not parse`);
     return;
   }
-  if (doctorLoopContractCorrupt(front)) {
-    push('loop-contract', 'FAIL', `${p} is corrupt`);
+  const corrupt = corruptReason(front);
+  if (corrupt) {
+    push('loop-contract', 'FAIL', `${p} is corrupt: ${corrupt}`);
     return;
   }
   if (front.status === 'active') {
@@ -2739,10 +2735,27 @@ function computeNextLoopActive(toplevel, branch, dirty) {
   if (!contract) return null;
   const loopFront = contract.front;
   if (!loopFront || loopFront.status !== 'active') return null;
+  if (contract.corrupt) {
+    // A corrupt contract still owns the repo (state stays loop-active), but
+    // `flow loop run`/`tick` refuse or self-disarm it — naming that command
+    // again would send the caller in a circle. Name the recovery instead,
+    // with the corruption reason stated verbatim.
+    return {
+      state: 'loop-active', state_no: 1, command: 'flow loop stop', why: contract.corrupt,
+      after: null, human_gate: false, feature: null, wave: null,
+      gates: { blocked: false, lint_error: false, unreachable_done: false, scan_failed: false, consecutive_calls: 0 },
+    };
+  }
   const command = loopFront.shape === 'fresh' ? 'flow loop run' : 'flow loop status';
   // FR-02: an armed loop names itself instead of leaving the reason field
-  // empty — the goal, where it is, and the command that shows more.
-  const why = `loop "${loopFront.goal}" at iteration ${loopFront.iteration}/${loopFront.max_iterations} — inspect with flow loop status`;
+  // empty — the goal, where it is, and the command that shows more. The
+  // `?? '?'` fallback keeps a stray missing field from printing JS
+  // `undefined` (corruptReason above already refuses a non-numeric
+  // iteration/max_iterations, so this is a defensive backstop, not the
+  // normal path).
+  const iteration = loopFront.iteration ?? '?';
+  const maxIterations = loopFront.max_iterations ?? '?';
+  const why = `loop "${loopFront.goal}" at iteration ${iteration}/${maxIterations} — inspect with flow loop status`;
   return {
     state: 'loop-active', state_no: 1, command, why,
     after: null, human_gate: false, feature: null, wave: null,
