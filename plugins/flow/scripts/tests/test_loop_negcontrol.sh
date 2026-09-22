@@ -123,7 +123,7 @@ t_negcontrol_not_restored_exit5() {
 }
 
 t_negcontrol_interrupted_restores() {
-	local proj home before_hash pid outf errf
+	local proj home before_hash pid outf errf i
 	proj=$(nc_repo)
 	home=$(tmp_dir)
 	before_hash=$(cd "$proj" && git hash-object app.txt)
@@ -133,18 +133,112 @@ t_negcontrol_interrupted_restores() {
 
 	# A SIGTERM delivered to the CLI process while it is blocked in the
 	# "after" verifier run must not skip the restore. Send it from outside,
-	# a second after launch, once the control is truncating app.txt and
-	# waiting on the slow "after" run. `exec` so $! is the node pid itself,
-	# not a subshell bash may or may not have optimized away.
+	# once the control has truncated app.txt (polled, not slept: a slow
+	# node start must not land the kill before the break and pass
+	# vacuously). `exec` so $! is the node pid itself, not a subshell bash
+	# may or may not have optimized away.
 	(cd "$proj" && HOME="$home" exec node "$NC_CLI_PATH" loop init "grow the app" --verify "sh verify.sh" \
 		--neg-control-file app.txt >"$outf" 2>"$errf") &
 	pid=$!
-	sleep 1
+	i=0
+	while [ -s "$proj/app.txt" ] && [ "$i" -lt 50 ]; do
+		sleep 0.1
+		i=$((i + 1))
+	done
 	kill -TERM "$pid" 2>/dev/null
 	wait "$pid"
+	# The restore guardian (see negcontrol.js) notices the parent died and
+	# restores a moment later; give it a beat before checking the tree.
+	sleep 0.5
 
 	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_interrupted_restores tree-clean"
 	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_interrupted_restores tree-byte-identical"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_sigint_kills_without_arming() {
+	local proj home before_hash pid outf errf i
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	before_hash=$(cd "$proj" && git hash-object app.txt)
+	outf=$(tmp_dir)/out
+	errf=$(tmp_dir)/err
+	# Unlike the other tests here, this verifier WOULD detect the break and
+	# arm if left to run to completion (green while app.txt has content,
+	# green again once it is gone, after a slow settle) — proving Ctrl-C
+	# actually stops the arm, not that this particular verifier survives.
+	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5; exit 0; fi'
+
+	(cd "$proj" && HOME="$home" exec node "$NC_CLI_PATH" loop init "grow the app" --verify "sh verify.sh" \
+		--neg-control-file app.txt >"$outf" 2>"$errf") &
+	pid=$!
+	i=0
+	while [ -s "$proj/app.txt" ] && [ "$i" -lt 50 ]; do
+		sleep 0.1
+		i=$((i + 1))
+	done
+	kill -INT "$pid" 2>/dev/null
+	wait "$pid"
+	# shellcheck disable=SC2034  # RC is the global assert_rc reads
+	RC=$?
+	sleep 0.5
+
+	# Node cannot run a JS signal callback while spawnSync blocks the one
+	# thread, so the CLI dies from SIGINT's own default disposition rather
+	# than completing the run and arming on the verdict it would otherwise
+	# have reached.
+	assert_rc 130 "t_negcontrol_sigint_kills_without_arming rc"
+	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_sigint_kills_without_arming writes-nothing"
+	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_sigint_kills_without_arming tree-clean"
+	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_sigint_kills_without_arming tree-byte-identical"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_mktemp_refuses() {
+	local proj home i
+	# A blind verifier whose only output is a fresh mktemp path every call —
+	# letters and digits, unmasked by a digit-only normalization — must
+	# still read as unchanged across the break, every time, not by luck.
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		proj=$(nc_repo)
+		home=$(tmp_dir)
+		nc_cli_in "$proj" "$home" loop init "grow the app" --verify "mktemp -u; true" --allow-green \
+			--neg-control-file app.txt
+		assert_rc 4 "t_negcontrol_mktemp_refuses rc (run $i)"
+		rm -rf "$home" "$proj"
+	done
+}
+
+t_negcontrol_digit_output_change_arms() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+
+	# The exit code never changes (always 1) but the byte count in the
+	# output does — a real, break-caused signal a normalization that
+	# collapses every digit run would erase.
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify 'echo "bytes: $(wc -c < app.txt)"; exit 1' \
+		--neg-control-file app.txt
+	assert_rc 0 "t_negcontrol_digit_output_change_arms rc"
+	assert_file_exists "$proj/.claude/loop/loop.md" "t_negcontrol_digit_output_change_arms arms"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_unrelated_untracked_runs() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	printf 'stray\n' >"$proj/stray.tmp"
+
+	# A stray untracked file elsewhere in the tree is not the target's
+	# business; the control must still run rather than refuse at exit 3.
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "true" --allow-green \
+		--neg-control-file app.txt
+	assert_rc 4 "t_negcontrol_unrelated_untracked_runs rc"
+	assert_contains "$ERR" "did not change" "t_negcontrol_unrelated_untracked_runs names-verdict"
 
 	rm -rf "$home" "$proj"
 }
@@ -177,7 +271,7 @@ t_negcontrol_dirty_tree_refuses() {
 		--neg-control-file app.txt
 	assert_rc 3 "t_negcontrol_dirty_tree_refuses rc"
 	assert_contains "$ERR" "app.txt" "t_negcontrol_dirty_tree_refuses names-file"
-	assert_contains "$ERR" "dirty" "t_negcontrol_dirty_tree_refuses names-reason"
+	assert_contains "$ERR" "uncommitted" "t_negcontrol_dirty_tree_refuses names-reason"
 	assert_file_missing "$proj/.claude/loop/loop.md" "t_negcontrol_dirty_tree_refuses writes-nothing"
 
 	rm -rf "$home" "$proj"

@@ -109,7 +109,12 @@ function runNegControlGate(toplevel, args, env, stderrW) {
     });
   } catch (err) {
     stderrW(`flow loop init: ${err.message}\n`);
-    return 3;
+    // Only an input the preflight rejected (symlink, dirty, untracked...)
+    // means "nothing was touched" (exit 3). Anything else is an unexpected
+    // internal failure, not one of the negative control's own numbered
+    // refusals, so it gets a plain non-zero exit rather than borrowing 3's
+    // meaning.
+    return err.preflight ? 3 : 1;
   }
   if (result.verdict === 'red-then-restored') return 0;
   // A verifier that itself exceeded --verify-timeout and the control
