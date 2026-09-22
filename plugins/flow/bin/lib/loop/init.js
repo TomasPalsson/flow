@@ -68,11 +68,10 @@ function parseInitArgs(argv) {
     else if (a === '--yolo') out.yolo = true;
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
   }
-  // Spec §5: --yolo arms these defaults, but only on a cap the operator did
-  // not pass explicitly (an explicit --max-usd 10 --yolo keeps 10).
+  // --yolo arms these defaults, but only on a cap the operator did
+  // not pass explicitly. It sets no money cap; --max-usd still adds one.
   if (out.yolo) {
     if (out.maxMinutes === null) out.maxMinutes = 240;
-    if (out.maxUsd === null) out.maxUsd = 50;
     if (out.maxIterations === null) out.maxIterations = 40;
     if (out.stallAfter === null) out.stallAfter = 3;
   }

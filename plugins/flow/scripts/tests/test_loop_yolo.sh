@@ -47,7 +47,7 @@ t_yolo_default_caps() {
 	assert_rc 0 "t_yolo_default_caps init"
 
 	assert_eq "$(yo_front "$proj" max_minutes)" "240" "t_yolo_default_caps max_minutes"
-	assert_eq "$(yo_front "$proj" max_usd)" "50" "t_yolo_default_caps max_usd"
+	assert_eq "$(yo_front "$proj" max_usd)" "0" "t_yolo_default_caps no money cap by default"
 	assert_eq "$(yo_front "$proj" max_iterations)" "40" "t_yolo_default_caps max_iterations"
 	assert_eq "$(yo_front "$proj" stall_after)" "3" "t_yolo_default_caps stall_after"
 	assert_eq "$(yo_front "$proj" yolo)" "1" "t_yolo_default_caps yolo"
@@ -79,7 +79,7 @@ t_yolo_child_argv() {
 
 	yo_cli_in "$proj" "$home" loop init "make done" --verify false --shape fresh --yolo >/dev/null
 	yo_cli_in "$proj" "$home" loop run --dry-run
-	assert_contains "$OUT" "--max-budget-usd 50" "t_yolo_child_argv money cap"
+	assert_not_contains "$OUT" "--max-budget-usd" "t_yolo_child_argv no money cap by default"
 	assert_contains "$OUT" "--permission-prompts none" "t_yolo_child_argv no-prompt"
 
 	rm -rf "$home" "$proj"
