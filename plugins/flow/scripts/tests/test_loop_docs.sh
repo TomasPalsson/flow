@@ -21,6 +21,7 @@ LD_HOOKS_DOC="$LD_REPO_ROOT/docs/reference/hooks.md"
 LD_FIX_SKILL="$LD_REPO_ROOT/plugins/flow/skills/fix/SKILL.md"
 LD_FIX_PROMPT="$LD_REPO_ROOT/plugins/flow/skills/fix/execution-prompt.md"
 LD_README="$LD_REPO_ROOT/plugins/flow/README.md"
+LD_LOOP_SKILL="$LD_REPO_ROOT/plugins/flow/skills/loop/SKILL.md"
 
 # _ld_help <args...> → the CLI's --help output for those args, ANSI stripped
 # (the CLI always colours output; the docs are plain text, so a doc-drift
@@ -120,4 +121,21 @@ t_loopdocs_readme_layout_lists_loop_skill() {
 t_loopdocs_readme_layout_lists_loop_bin() {
 	assert_contains "$(cat "$LD_README")" "bin/lib/loop/ (contract, tick, verify, tamper, CLI)" \
 		"README.md layout lists bin/lib/loop/"
+}
+
+# ---------------------------------------------------------------------------
+# Step 0 tells the operator what --yolo bootstraps, refuses, and arms
+# (B8, FR-03, FR-06, FR-08, FR-10, FR-13; .specs/010-autonomous-loop-on-ramp-yolo)
+# ---------------------------------------------------------------------------
+
+t_loop_docs_yolo() {
+	local doc
+	doc=$(cat "$LD_LOOP_SKILL")
+	assert_contains "$doc" "## Step 0" "SKILL.md has a Step 0 section"
+	assert_contains "$doc" "--yolo" "Step 0 names the --yolo flag"
+	assert_contains "$doc" "no question asked" "Step 0 states zero questions are asked (FR-03)"
+	assert_contains "$doc" "unproven" "Step 0 states every task item starts unproven (FR-06)"
+	assert_contains "$doc" "own working copy" "Step 0 states the run uses its own branch and working copy (FR-08)"
+	assert_contains "$doc" "draft pull request" "Step 0 names the draft pull request outcome (FR-10)"
+	assert_contains "$doc" "scoped to the files" "Step 0 states the verifier is scoped to touched files (FR-13)"
 }
