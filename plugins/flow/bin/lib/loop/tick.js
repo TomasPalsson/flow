@@ -108,6 +108,13 @@ function tickFailPath(toplevel, front, body, verify, now) {
 function tickCheckPath(toplevel, front, body, now, env) {
   const verify = runVerify(toplevel, front.verify, front.verify_timeout, env);
   const tamper = tamperCheck(toplevel, front, env);
+  const failClosed = front.fail_closed === '1';
+  if (failClosed && tamper.length) {
+    front.status = 'stopped';
+    front.stop_reason = tamper.join('; ');
+    logEvent(toplevel, front, 'stop', verify, true, front.stop_reason);
+    return terminalFinish(toplevel, front, body, now);
+  }
   const verdict = verify.rc === 0 ? (tamper.length ? 'suspect' : 'pass') : 'fail';
   if (verdict === 'fail') return tickFailPath(toplevel, front, body, verify, now);
   front.status = verdict === 'pass' ? 'done' : 'suspect';
