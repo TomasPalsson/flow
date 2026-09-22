@@ -102,17 +102,16 @@ t_negcontrol_real_change_arms() {
 }
 
 t_negcontrol_not_restored_exit5() {
-	local proj home blob objfile
+	local proj home
 	proj=$(nc_repo)
 	home=$(tmp_dir)
-	# Corrupt the committed blob so `git checkout -- app.txt` cannot recreate
-	# it after the induced break, without touching the working tree itself
-	# (a clean preflight) or inducedBreak's plain fs.writeFileSync.
-	blob=$(cd "$proj" && git rev-parse HEAD:app.txt)
-	objfile="$proj/.git/objects/${blob:0:2}/${blob:2}"
-	rm -f "$objfile"
+	# The verifier itself makes the target unrestorable — replaces it with
+	# a directory partway through the break — so neither restore method
+	# (the shell trap's blob read, or Node's own byte-write from what it
+	# read before the break) can put a regular file back.
+	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else rm -f app.txt; mkdir app.txt; exit 1; fi'
 
-	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "true" --allow-green \
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "sh verify.sh" \
 		--neg-control-file app.txt
 	assert_rc 5 "t_negcontrol_not_restored_exit5 rc"
 	assert_contains "$ERR" "app.txt" "t_negcontrol_not_restored_exit5 names-file"
@@ -122,37 +121,21 @@ t_negcontrol_not_restored_exit5() {
 	rm -rf "$home" "$proj"
 }
 
-t_negcontrol_interrupted_restores() {
-	local proj home before_hash pid outf errf i
+t_negcontrol_edit_after_exit_survives() {
+	local proj home
 	proj=$(nc_repo)
 	home=$(tmp_dir)
-	before_hash=$(cd "$proj" && git hash-object app.txt)
-	outf=$(tmp_dir)/out
-	errf=$(tmp_dir)/err
-	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5; exit 1; fi'
 
-	# A SIGTERM delivered to the CLI process while it is blocked in the
-	# "after" verifier run must not skip the restore. Send it from outside,
-	# once the control has truncated app.txt (polled, not slept: a slow
-	# node start must not land the kill before the break and pass
-	# vacuously). `exec` so $! is the node pid itself, not a subshell bash
-	# may or may not have optimized away.
-	(cd "$proj" && HOME="$home" exec node "$NC_CLI_PATH" loop init "grow the app" --verify "sh verify.sh" \
-		--neg-control-file app.txt >"$outf" 2>"$errf") &
-	pid=$!
-	i=0
-	while [ -s "$proj/app.txt" ] && [ "$i" -lt 50 ]; do
-		sleep 0.1
-		i=$((i + 1))
-	done
-	kill -TERM "$pid" 2>/dev/null
-	wait "$pid"
-	# The restore guardian (see negcontrol.js) notices the parent died and
-	# restores a moment later; give it a beat before checking the tree.
-	sleep 0.5
-
-	assert_eq "$(cd "$proj" && git status --porcelain -- . ':!.claude')" "" "t_negcontrol_interrupted_restores tree-clean"
-	assert_eq "$(cd "$proj" && git hash-object app.txt)" "$before_hash" "t_negcontrol_interrupted_restores tree-byte-identical"
+	# A process left running beside Node after the CLI exits could revert
+	# whatever the operator writes next. Break, verifier and restore run as
+	# one synchronous shell, so nothing outlives the command; a write made
+	# right after the CLI returns must still be there later.
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "true" --allow-green \
+		--neg-control-file app.txt
+	assert_rc 4 "t_negcontrol_edit_after_exit_survives rc"
+	printf 'MY NEW WORK' >"$proj/app.txt"
+	sleep 2
+	assert_eq "$(cat "$proj/app.txt")" "MY NEW WORK" "t_negcontrol_edit_after_exit_survives edit-survives"
 
 	rm -rf "$home" "$proj"
 }
@@ -170,19 +153,25 @@ t_negcontrol_sigint_kills_without_arming() {
 	# actually stops the arm, not that this particular verifier survives.
 	nc_verify_script "$proj" 'if [ -s app.txt ]; then exit 1; else sleep 5; exit 0; fi'
 
+	# A real Ctrl-C reaches the whole foreground process group, not just
+	# the CLI's own pid, which is what lets the shell's own trap cover it;
+	# `set -m` puts the background job in its own group so `kill -INT
+	# -$pid` reproduces that. `exec` so $! is the node pid itself.
+	set -m
 	(cd "$proj" && HOME="$home" exec node "$NC_CLI_PATH" loop init "grow the app" --verify "sh verify.sh" \
 		--neg-control-file app.txt >"$outf" 2>"$errf") &
 	pid=$!
+	set +m
 	i=0
 	while [ -s "$proj/app.txt" ] && [ "$i" -lt 50 ]; do
 		sleep 0.1
 		i=$((i + 1))
 	done
-	kill -INT "$pid" 2>/dev/null
+	kill -INT -"$pid" 2>/dev/null
 	wait "$pid"
 	# shellcheck disable=SC2034  # RC is the global assert_rc reads
 	RC=$?
-	sleep 0.5
+	sleep 1
 
 	# Node cannot run a JS signal callback while spawnSync blocks the one
 	# thread, so the CLI dies from SIGINT's own default disposition rather
@@ -223,6 +212,86 @@ t_negcontrol_digit_output_change_arms() {
 		--neg-control-file app.txt
 	assert_rc 0 "t_negcontrol_digit_output_change_arms rc"
 	assert_file_exists "$proj/.claude/loop/loop.md" "t_negcontrol_digit_output_change_arms arms"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_random_output_refuses() {
+	local proj home i
+	# The exit code never changes and the output differs on every single
+	# call, including the two calls on the UNBROKEN tree (cmdInit's own
+	# baseline and the control's "before"), for a reason that has nothing
+	# to do with the break. Unstable output must not be trusted, so only
+	# the (unchanged) exit code counts — every time, not by luck.
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		proj=$(nc_repo)
+		home=$(tmp_dir)
+		nc_cli_in "$proj" "$home" loop init "grow the app" --verify 'echo "run $((RANDOM % 999))"; exit 1' \
+			--neg-control-file app.txt
+		assert_rc 4 "t_negcontrol_random_output_refuses rc (run $i)"
+		rm -rf "$home" "$proj"
+	done
+}
+
+t_negcontrol_pid_output_refuses() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify 'echo $$; true' --allow-green \
+		--neg-control-file app.txt
+	assert_rc 4 "t_negcontrol_pid_output_refuses rc"
+	assert_contains "$ERR" "only its exit code can be trusted" "t_negcontrol_pid_output_refuses names-reason"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_stable_error_name_change_arms() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+
+	# Same exit code (1) either side of the break; only the printed error
+	# name changes, and it is identical on the two unbroken runs (cmdInit's
+	# baseline and the control's own "before"), so the control can trust it.
+	nc_cli_in "$proj" "$home" loop init "grow the app" \
+		--verify 'if [ -s app.txt ]; then echo TimeoutError; else echo ValueError; fi; exit 1' \
+		--neg-control-file app.txt
+	assert_rc 0 "t_negcontrol_stable_error_name_change_arms rc"
+	assert_file_exists "$proj/.claude/loop/loop.md" "t_negcontrol_stable_error_name_change_arms arms"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_stable_count_change_arms() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+
+	nc_cli_in "$proj" "$home" loop init "grow the app" \
+		--verify 'if [ -s app.txt ]; then echo "0 tests failed"; else echo "3 tests failed"; fi; exit 1' \
+		--neg-control-file app.txt
+	assert_rc 0 "t_negcontrol_stable_count_change_arms rc"
+	assert_file_exists "$proj/.claude/loop/loop.md" "t_negcontrol_stable_count_change_arms arms"
+
+	rm -rf "$home" "$proj"
+}
+
+t_negcontrol_verifier_removes_target_exits1() {
+	local proj home
+	proj=$(nc_repo)
+	home=$(tmp_dir)
+	# Deletes app.txt on its SECOND call (the control's own "before" run),
+	# not its first (cmdInit's own pre-gate check, which must still pass
+	# preflight untouched) — so the failure surfaces once the control is
+	# already running, not as an exit-3 input problem.
+	nc_verify_script "$proj" 'n=$(cat .n 2>/dev/null || echo 0); echo $((n + 1)) >.n; if [ "$n" = "1" ]; then rm -f app.txt; fi; exit 1'
+
+	nc_cli_in "$proj" "$home" loop init "grow the app" --verify "sh verify.sh" \
+		--neg-control-file app.txt
+	assert_rc 1 "t_negcontrol_verifier_removes_target_exits1 rc"
+	assert_contains "$ERR" "app.txt" "t_negcontrol_verifier_removes_target_exits1 names-file"
+	assert_not_contains "$ERR" "ENOENT" "t_negcontrol_verifier_removes_target_exits1 no-raw-node-error"
 
 	rm -rf "$home" "$proj"
 }

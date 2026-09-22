@@ -97,24 +97,32 @@ function protectedFilesFront(toplevel, testFiles) {
 // timeout -> 6. 'red-then-restored' is not a refusal and has no entry here.
 const NEG_CONTROL_EXIT_CODES = { survived: 4, 'not-restored': 5, timeout: 6 };
 
-// runNegControlGate(toplevel, args, env, stderrW) -> exit code, or 0 to
-// proceed arming. FR-04/FR-05/FR-11: the control runs before writeContract
-// (design §7 decision 2), so a refusal here leaves no contract file behind.
-function runNegControlGate(toplevel, args, env, stderrW) {
+// runNegControlGate(toplevel, args, env, stderrW, baseline) -> exit code, or
+// 0 to proceed arming. FR-04/FR-05/FR-11: the control runs before
+// writeContract (design §7 decision 2), so a refusal here leaves no
+// contract file behind. `baseline` is cmdInit's own pre-gate verify run, a
+// second, unbroken data point the control uses to tell a genuinely stable
+// verifier from a noisy one.
+function runNegControlGate(toplevel, args, env, stderrW, baseline) {
   if (!args.negControlFile) return 0;
   let result;
   try {
     result = runNegControl(toplevel, {
-      verify: args.verify, verifyTimeout: args.verifyTimeout, file: args.negControlFile, env,
+      verify: args.verify, verifyTimeout: args.verifyTimeout, file: args.negControlFile, env, baseline,
     });
   } catch (err) {
-    stderrW(`flow loop init: ${err.message}\n`);
-    // Only an input the preflight rejected (symlink, dirty, untracked...)
-    // means "nothing was touched" (exit 3). Anything else is an unexpected
-    // internal failure, not one of the negative control's own numbered
-    // refusals, so it gets a plain non-zero exit rather than borrowing 3's
-    // meaning.
-    return err.preflight ? 3 : 1;
+    // An input the preflight rejected (symlink, dirty, untracked...) means
+    // "nothing was touched" (exit 3) and already carries its own one-line
+    // reason. Anything else is unexpected once the control is running —
+    // most likely the verifier itself changed or removed the target — and
+    // gets a reason naming that instead of a raw Node error, on the plain
+    // non-zero exit init.js already uses for other usage failures.
+    if (err.preflight) {
+      stderrW(`flow loop init: ${err.message}\n`);
+      return 3;
+    }
+    stderrW(`flow loop init: the verifier removed or changed ${args.negControlFile} during the negative control; refusing to arm\n`);
+    return 1;
   }
   if (result.verdict === 'red-then-restored') return 0;
   // A verifier that itself exceeded --verify-timeout and the control
@@ -123,8 +131,14 @@ function runNegControlGate(toplevel, args, env, stderrW) {
   const timeoutMessage = result.verifierTimedOut
     ? 'flow loop init: the verifier did not return within --verify-timeout during the negative control; refusing to arm\n'
     : 'flow loop init: the negative control did not return within its time bound; refusing to arm\n';
+  // An unstable verifier (its output already differs run to run on an
+  // unbroken tree) gets a different reason than one that stayed put and
+  // simply did not react to the break — same exit code, different remedy.
+  const survivedMessage = result.outputUnstable
+    ? `flow loop init: the verifier's output differs between two runs on an unchanged tree, so only its exit code can be trusted, and ${result.file}'s break did not change it; refusing to arm\n`
+    : `flow loop init: the negative control broke ${result.file} but the verifier's verdict did not change; refusing to arm\n`;
   const messages = {
-    survived: `flow loop init: the negative control broke ${result.file} but the verifier's verdict did not change; refusing to arm\n`,
+    survived: survivedMessage,
     'not-restored': `flow loop init: the negative control could not restore ${result.file}; a human must look\n`,
     timeout: timeoutMessage,
   };
@@ -258,7 +272,7 @@ function cmdInit(argv, toplevel, env) {
     return 1;
   }
 
-  const negControlExit = runNegControlGate(toplevel, args, env, (s) => process.stderr.write(s));
+  const negControlExit = runNegControlGate(toplevel, args, env, (s) => process.stderr.write(s), verifyRun);
   if (negControlExit) return negControlExit;
 
   const base = (spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout || '').trim();
