@@ -6,8 +6,14 @@
     {
       "name": "flow",
       "source": "./plugins/flow",
-      "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the spec/next/qa/audit skill set, and /flow:loop (verifier-decided unattended loops).",
-      "version": "0.3.0"
+      "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the spec/next/fix/loop skill set, and /flow:loop (verifier-decided unattended loops).",
+      "version": "0.4.0"
+    },
+    {
+      "name": "flow-extras",
+      "source": "./plugins/flow-extras",
+      "description": "Optional companions to flow: audits, PR review, idea critique, grilling, skill authoring and judging, prompt and CLAUDE.md tooling, and ultracode fleets.",
+      "version": "0.1.0"
     },
     {
       "name": "design",

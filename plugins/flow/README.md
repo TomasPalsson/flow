@@ -82,13 +82,15 @@ plugins/flow/
 │                                 CLAUDE.project.md · gates.yml.tmpl
 ├── bin/flow                     the CLI · bin/lib/ (router, lint, tick, use, publish) ·
 │                                 bin/lib/loop/ (contract, tick, verify, tamper, CLI)
-└── skills/                      spec, next, prep, issue, spec-judge, qa, audit,
-                                  flow-deepen, fix, loop, ultracode, overkill, pr-reviewer, claude-md,
-                                  skill-forge, skill-improver, skill-judge, claude-improver,
-                                  find-skills, prompt-engineer, better-plan, grill-me,
-                                  grill-with-docs, brainstorm, develop-idea, scrutinize-idea,
-                                  shared
+└── skills/                      spec, next, prep, issue, spec-judge, qa,
+                                  flow-deepen, fix, loop, no-slop, lesson,
+                                  develop-idea, shared
 ```
+
+Moved to `flow-extras`: audit, ultracode, overkill, pr-reviewer, claude-md,
+skill-forge, skill-improver, skill-judge, claude-improver, find-skills,
+prompt-engineer, better-plan, grill-me, grill-with-docs, brainstorm,
+scrutinize-idea.
 
 The plugin namespaces a skill by its **directory** name: `skills/spec` is
 `/flow:spec`, `skills/next` is `/flow:next`. There is no `commands/` directory.

@@ -23,7 +23,8 @@ This repo is a Claude Code **plugin marketplace**. `flow` is the core plugin; th
 ```
 .claude-plugin/marketplace.json
 plugins/
-├── flow/              hooks/ (+ hooks.json) · scripts/ · workflows/ · flow-templates/ · bin/flow · skills/ (flow suite, loop, qa, audit, fix, ultracode, …)
+├── flow/              hooks/ (+ hooks.json) · scripts/ · workflows/ · flow-templates/ · bin/flow · skills/ (flow suite, loop, qa, fix, …)
+├── flow-extras/       optional flow companions: audit, ultracode, pr-reviewer, skill-forge, brainstorm, scrutinize-idea, …
 ├── design/            design, impeccable, ui-ux-pro-max, mobile-design, polish, showcase, ui-animation, explainer
 ├── finance/           alpha-hunt, portfolio, investment, etoro
 ├── aws/               aws-explore, aws-lambda-microvms, strands-agentcore, strands-steering-hooks, agui-strands, sst

@@ -101,7 +101,7 @@ Check if `.pr-review/state.local.md` exists:
    - `CHANGED_FILES` — `gh pr diff $PR_NUMBER --name-only`
    - `COMMIT_HISTORY` — `gh pr view $PR_NUMBER --json commits`
    - `LINKED_ISSUES` — any issue references in title/body/commits
-3. Detect the project environment via `${CLAUDE_PLUGIN_ROOT}/skills/shared/project-detection.md` if
+3. Detect the project environment via `${CLAUDE_PLUGIN_ROOT}/skills/pr-reviewer/references/project-detection.md` if
    available — captures `$LINT_CMD`, `$TYPECHECK_CMD`, `$TEST_CMD` so the skill
    can check "is this already caught by tools?" during consolidation.
 

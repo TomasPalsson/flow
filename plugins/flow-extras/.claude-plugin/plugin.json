@@ -1,0 +1,11 @@
+{
+  "name": "flow-extras",
+  "version": "0.1.0",
+  "description": "Optional companions to flow: audits, PR review, idea critique, grilling, skill authoring and judging, prompt and CLAUDE.md tooling, and ultracode fleets.",
+  "author": {
+    "name": "TomasPalsson"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}

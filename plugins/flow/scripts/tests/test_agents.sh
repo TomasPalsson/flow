@@ -18,7 +18,8 @@ set -u
 AGENTS_DIR=$(cd "${AGENTS_DIR:-$SCAN_DIR/../agents}" && pwd -P)
 REPO_ROOT=$(cd "$HERE/../../../.." && pwd -P)
 FIX_SKILL="$SCAN_DIR/../skills/fix/SKILL.md"
-PR_REVIEWER_SKILL="$SCAN_DIR/../skills/pr-reviewer/SKILL.md"
+# pr-reviewer lives in the sibling flow-extras plugin.
+PR_REVIEWER_SKILL="$SCAN_DIR/../../flow-extras/skills/pr-reviewer/SKILL.md"
 
 # _agents_frontmatter <file> — prints the lines strictly between the first
 # and second "---" delimiters (the YAML frontmatter body).

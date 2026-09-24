@@ -27,35 +27,40 @@
 - investment
 - portfolio
 
-## harness (27 skills)
+## flow-extras (16 skills)
 
 - audit
 - better-plan
 - brainstorm
 - claude-improver
 - claude-md
-- develop-idea
 - find-skills
-- fix
-- flow-deepen
 - grill-me
 - grill-with-docs
-- lesson
-- loop
-- next
 - overkill
 - prompt-engineer
 - pr-reviewer
-- prep
-- qa
 - scrutinize-idea
-- shared
 - skill-forge
 - skill-improver
 - skill-judge
+- ultracode
+
+## flow (12 skills + shared)
+
+- develop-idea
+- fix
+- flow-deepen
+- issue
+- lesson
+- loop
+- next
+- no-slop
+- prep
+- qa
+- shared
 - spec
 - spec-judge
-- ultracode
 
 ## tooling (15 skills)
 

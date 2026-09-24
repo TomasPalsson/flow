@@ -13,13 +13,13 @@ graders:
   - name: fires-scrutinize-idea
     type: tool_used
     tool: Skill
-    input_match: "flow:scrutinize-idea\\b"
+    input_match: "flow-extras:scrutinize-idea\\b"
     min: 1
     arm: with-only
   - name: no-other-hub-skill
     type: tool_used
     tool: Skill
-    input_match: "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:issue\\b|flow:develop-idea\\b"
+    input_match: "flow:fix\\b|flow:next\\b|flow:spec\\b|flow-extras:audit\\b|flow:qa\\b|flow:prep\\b|flow:loop\\b|flow:issue\\b|flow:develop-idea\\b"
     min: 0
     max: 0
     arm: with-only

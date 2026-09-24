@@ -114,7 +114,7 @@ t_loopdocs_fix_execution_prompt_names_blocked_md() {
 # ---------------------------------------------------------------------------
 
 t_loopdocs_readme_layout_lists_loop_skill() {
-	assert_contains "$(cat "$LD_README")" "fix, loop, ultracode," \
+	assert_contains "$(cat "$LD_README")" "fix, loop, no-slop," \
 		"README.md layout lists the loop skill"
 }
 
