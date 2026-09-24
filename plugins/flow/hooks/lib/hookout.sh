@@ -35,7 +35,9 @@
 #                         makes it always true
 #
 # Contract: when neither jq nor python3 exists, hook_field prints "" and a hook
-# must treat that as "cannot judge" and call hook_ok.
+# must treat that as "cannot judge" and call hook_ok. The first such call in a
+# process also writes one stderr notice naming the hook, so a degraded hook
+# (git-guard, spec-gate, ...) is never silently judging nothing.
 
 HOOK_INPUT=""
 if [ ! -t 0 ]; then
@@ -74,6 +76,11 @@ else:
     print(json.dumps(d))
 ' "$1" 2>/dev/null || printf ''
 	else
+		# Once per process: a file keyed on $$, stable across the $(...)
+		# subshells hook_field almost always runs in (a shell variable set
+		# there vanishes with the subshell). Stderr only, never an exit.
+		local f="${TMPDIR:-/tmp}/hookfield-notice-$$"
+		[ -e "$f" ] || { : >"$f" 2>/dev/null; printf '%s: jq and python3 are both missing — this hook is NOT checking anything. fix: install jq\n' "${0##*/}" >&2; }
 		printf ''
 	fi
 }

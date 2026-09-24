@@ -18,25 +18,25 @@ flow flow-deepen
 flow spec-judge
 flow shared
 flow qa
-flow audit
 flow fix
-flow ultracode
-flow overkill
-flow pr-reviewer
-flow claude-md
-flow skill-forge
-flow skill-improver
-flow skill-judge
-flow claude-improver
-flow find-skills
-flow prompt-engineer
-flow better-plan
 flow prep
-flow grill-me
-flow grill-with-docs
-flow brainstorm
 flow develop-idea
-flow scrutinize-idea
+flow-extras audit
+flow-extras ultracode
+flow-extras overkill
+flow-extras pr-reviewer
+flow-extras claude-md
+flow-extras skill-forge
+flow-extras skill-improver
+flow-extras skill-judge
+flow-extras claude-improver
+flow-extras find-skills
+flow-extras prompt-engineer
+flow-extras better-plan
+flow-extras grill-me
+flow-extras grill-with-docs
+flow-extras brainstorm
+flow-extras scrutinize-idea
 design design
 design impeccable
 design ui-ux-pro-max
@@ -82,10 +82,10 @@ t_mkt_repo_present() {
 	assert_file_exists "$MKT_JSON" "t_mkt_repo_present marketplace.json present"
 }
 
-t_mkt_marketplace_parses_six_plugins() {
+t_mkt_marketplace_parses_seven_plugins() {
 	local py_out count names
 	if [ ! -f "$MKT_JSON" ]; then
-		_fail "t_mkt_marketplace_parses_six_plugins" "no marketplace.json at $MKT_JSON"
+		_fail "t_mkt_marketplace_parses_seven_plugins" "no marketplace.json at $MKT_JSON"
 		return 0
 	fi
 	py_out=$(
@@ -101,18 +101,19 @@ PYEOF
 	)
 	count=$(printf '%s\n' "$py_out" | head -1)
 	names=$(printf '%s\n' "$py_out" | tail -n +2)
-	assert_eq "$count" "6" "t_mkt_marketplace_parses_six_plugins plugin-count"
-	assert_contains "$names" "flow" "t_mkt_marketplace_parses_six_plugins has-flow"
-	assert_contains "$names" "design" "t_mkt_marketplace_parses_six_plugins has-design"
-	assert_contains "$names" "finance" "t_mkt_marketplace_parses_six_plugins has-finance"
-	assert_contains "$names" "aws" "t_mkt_marketplace_parses_six_plugins has-aws"
-	assert_contains "$names" "web" "t_mkt_marketplace_parses_six_plugins has-web"
-	assert_contains "$names" "tooling" "t_mkt_marketplace_parses_six_plugins has-tooling"
+	assert_eq "$count" "7" "t_mkt_marketplace_parses_seven_plugins plugin-count"
+	assert_contains "$names" "flow" "t_mkt_marketplace_parses_seven_plugins has-flow"
+	assert_contains "$names" "flow-extras" "t_mkt_marketplace_parses_seven_plugins has-flow-extras"
+	assert_contains "$names" "design" "t_mkt_marketplace_parses_seven_plugins has-design"
+	assert_contains "$names" "finance" "t_mkt_marketplace_parses_seven_plugins has-finance"
+	assert_contains "$names" "aws" "t_mkt_marketplace_parses_seven_plugins has-aws"
+	assert_contains "$names" "web" "t_mkt_marketplace_parses_seven_plugins has-web"
+	assert_contains "$names" "tooling" "t_mkt_marketplace_parses_seven_plugins has-tooling"
 }
 
 t_mkt_plugin_json_name_matches_dir() {
 	local p pj name
-	for p in flow design finance aws web tooling; do
+	for p in flow flow-extras design finance aws web tooling; do
 		pj="$REPO/plugins/$p/.claude-plugin/plugin.json"
 		if [ ! -f "$pj" ]; then
 			_fail "t_mkt_plugin_json_name_matches_dir:$p" "missing $pj"
@@ -178,7 +179,7 @@ t_mkt_claude_plugin_validate_each_plugin() {
 		printf '  skip t_mkt_claude_plugin_validate_each_plugin (claude CLI not installed)\n'
 		return 0
 	fi
-	for p in flow design finance aws web tooling; do
+	for p in flow flow-extras design finance aws web tooling; do
 		run_cmd claude plugin validate "$REPO/plugins/$p"
 		assert_rc 0 "t_mkt_claude_plugin_validate_each_plugin:$p rc"
 	done

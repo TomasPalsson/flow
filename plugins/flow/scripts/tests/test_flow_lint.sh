@@ -658,3 +658,107 @@ t_flowlint_done_sha_with_by_who_is_accepted() {
 	assert_rc 0 "flow-lint accepts the tick form that flow tick --by user writes"
 	rm -rf "$d"
 }
+
+# ---------------------------------------------------------------------------
+# flow-lint — unknown segment keys (a typo'd field must not vanish)
+# ---------------------------------------------------------------------------
+
+t_flowlint_unknown_field_is_error() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/TASKS.md"
+	{
+		printf '# Tasks — unknown field\n'
+		printf 'Base: none · Route: dispatch\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 do it — files: a.py — afetr: T000 — verify: `true`\n'
+	} >"$f"
+	run_cmd bash "$FLOW_LINT" "$f"
+	assert_rc 1 "a typo'd field segment exits 1"
+	assert_contains "$OUT" "unknown-field" "the typo names the unknown-field rule"
+	assert_contains "$OUT" "T001" "the unknown-field error names the task id"
+	assert_contains "$OUT" "afetr" "the unknown-field error names the bad key"
+	assert_contains "$OUT" "fix:" "the unknown-field error carries a fix:"
+	assert_contains "$OUT" "files" "the unknown-field fix: lists files as a known key"
+	assert_contains "$OUT" "dropped" "the unknown-field fix: lists dropped as a known key"
+	rm -rf "$d"
+}
+
+t_flowlint_unknown_field_after_em_dash_is_error() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/TASKS.md"
+	{
+		printf '# Tasks — unknown field 2\n'
+		printf 'Base: none · Route: dispatch\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 do it — files: a.py — verify: `true` — note: foo\n'
+	} >"$f"
+	run_cmd bash "$FLOW_LINT" "$f"
+	assert_rc 1 "a 'note:' segment after an em dash exits 1"
+	assert_contains "$OUT" "unknown-field" "'note:' after an em dash names the unknown-field rule"
+	assert_contains "$OUT" "note" "the unknown-field error names the note key"
+}
+
+t_flowlint_colon_in_description_without_em_dash_is_ok() {
+	# A colon word inside the description itself (never split off by an em
+	# dash) is not a field — it stays part of the description as today.
+	run_cmd bash "$FLOW_LINT" "$FIX/tasks-good.md"
+	assert_not_contains "$OUT" "unknown-field" "tasks-good.md's descriptions do not trip unknown-field"
+}
+
+t_flowlint_colon_word_in_first_segment_stays_ok() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/TASKS.md"
+	{
+		printf '# Tasks — colon in description\n'
+		printf 'Base: none · Route: dispatch\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 fix bug: urgent one — files: a.py — verify: `true`\n'
+	} >"$f"
+	run_cmd bash "$FLOW_LINT" "$f"
+	assert_rc 0 "a colon word in the description (no preceding em dash) still lints clean"
+	assert_not_contains "$OUT" "unknown-field" "the description's colon word is not read as a field"
+	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# flow-lint — a hyphen instead of an em dash before verify:/files:/after:
+# ---------------------------------------------------------------------------
+
+t_flowlint_hyphen_before_verify_hints_em_dash() {
+	local d f
+	d=$(tmp_dir)
+	f="$d/TASKS.md"
+	{
+		printf '# Tasks — hyphen typo\n'
+		printf 'Base: none · Route: dispatch\n\n'
+		printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+		printf -- '- [ ] T001 do it - files: a.py - verify: `true`\n'
+	} >"$f"
+	run_cmd bash "$FLOW_LINT" "$f"
+	assert_rc 1 "a hyphen-separated task line still exits 1 (no verify: was actually parsed)"
+	assert_contains "$OUT" "missing-verify" "the swallowed verify: still names missing-verify"
+	assert_contains "$OUT" "em dash" "the fix: line calls out the missing em dash"
+	assert_contains "$OUT" " — " "the fix: line shows the required em dash separator"
+	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# flow-lint — git missing from PATH must not exit silently
+# ---------------------------------------------------------------------------
+
+t_flowlint_git_missing_exits_nonzero_with_message() {
+	local fakebin
+	fakebin=$(tmp_dir)
+	ln -s "$(command -v bash)" "$fakebin/bash"
+
+	run_cmd bash -c 'export PATH="$1"; command -v git' _ "$fakebin"
+	assert_rc 1 "sanity: git is not on the restricted PATH"
+
+	run_cmd bash -c 'export PATH="$1"; shift; exec "$@"' _ "$fakebin" bash "$FLOW_LINT" "$FIX/tasks-good.md"
+	assert_rc 1 "flow-lint with git missing from PATH exits non-zero"
+	assert_contains "$ERR" "git not found on PATH" "flow-lint names git as missing on stderr"
+	rm -rf "$fakebin"
+}

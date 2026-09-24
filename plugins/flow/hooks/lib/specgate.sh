@@ -278,7 +278,7 @@ _sg_lint_objection() {
 		return 0
 	fi
 	if ! grep -Eq '^Approved: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$1" 2>/dev/null; then
-		printf "%s has no 'Approved: <date> by user' line. fix: read it, then ask the user to approve it" "$_lo_disp"
+		printf "%s has no 'Approved: <date> by user' line. fix: read it, then ask the user to approve it (or set autoApprove: true in .claude/flow.config.json to let /flow:next approve)" "$_lo_disp"
 		return 0
 	fi
 	_flow_lint_check "$1"

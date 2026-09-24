@@ -1,6 +1,6 @@
 ---
 name: flow-deepen
-description: "Closing architecture loop of the build flow — runs AFTER a spec's tasks are built and PRs merged. Hunts deepening opportunities (Ousterhout deep modules, information leakage, poor locality, layer/abstraction mismatch, tests coupled to internals) and appends BEHAVIOR-PRESERVING, characterization-test-first deepening tasks to the spec's .specs/<NNN>/TASKS.md as a new phase, which /flow:next builds unchanged. Triggers: /flow-deepen, \"deep modules\", \"reduce coupling\", \"post-merge cleanup\", \"tech debt from the build\", \"the agent keeps editing the wrong place\", \"shallow modules\", behavior-preserving refactor, leakage, pass-through methods, characterization test, after all /flow:next tasks shipped. Do NOT use for: whole-codebase debt (→ /audit), current-diff cleanup (→ /simplify), adding new behavior (→ /flow:next). /audit sweeps the whole repo; /simplify cleans the current diff; /flow:next adds behavior; flow-deepen scopes to ONE shipped spec and appends deepening tasks back into its TASKS.md."
+description: "Closing architecture loop of the build flow — runs AFTER a spec's tasks are built and PRs merged. Hunts deepening opportunities (Ousterhout deep modules, information leakage, poor locality, layer/abstraction mismatch, tests coupled to internals) and appends BEHAVIOR-PRESERVING, characterization-test-first deepening tasks to the spec's .specs/<NNN>/TASKS.md as a new phase, which /flow:next builds unchanged. Triggers: /flow-deepen, \"deep modules\", \"reduce coupling\", \"post-merge cleanup\", \"tech debt from the build\", \"the agent keeps editing the wrong place\", \"shallow modules\", behavior-preserving refactor, leakage, pass-through methods, characterization test, after all /flow:next tasks shipped. Do NOT use for: whole-codebase debt (→ /flow-extras:audit), current-diff cleanup (→ /simplify), adding new behavior (→ /flow:next). /flow-extras:audit sweeps the whole repo; /simplify cleans the current diff; /flow:next adds behavior; flow-deepen scopes to ONE shipped spec and appends deepening tasks back into its TASKS.md."
 ---
 
 # Flow Deepen
@@ -21,11 +21,11 @@ The unit of work is a **deepening slice**, not a refactor and not a rewrite. Eve
 
 | Skill | Scope | Behavior change? | flow-deepen is different because |
 |---|---|---|---|
-| `/audit` | whole codebase/module, churn-driven | sometimes (fixes bugs) | flow-deepen is scoped to ONE shipped spec, behavior-preserving only |
+| `/flow-extras:audit` | whole codebase/module, churn-driven | sometimes (fixes bugs) | flow-deepen is scoped to ONE shipped spec, behavior-preserving only |
 | `/simplify` | current diff only | no | flow-deepen runs post-merge across the merged work, emits tasks not edits |
 | `/flow:next` | one task, adds behavior | yes (Red→Green) | flow-deepen never adds observable behavior |
 
-**Do NOT run flow-deepen** when: the spec's tasks aren't all built yet (it is downstream of execution, never mid-flight); the request is "audit the repo" with no `.specs/` context (→ `/audit`); the request is "clean up this function" (→ `/simplify`); the request is "add X" (→ `/flow:next`); or the proposed change introduces a new method, return value, or error type visible to callers (that is a feature — split it out).
+**Do NOT run flow-deepen** when: the spec's tasks aren't all built yet (it is downstream of execution, never mid-flight); the request is "audit the repo" with no `.specs/` context (→ `/flow-extras:audit`); the request is "clean up this function" (→ `/simplify`); the request is "add X" (→ `/flow:next`); or the proposed change introduces a new method, return value, or error type visible to callers (that is a feature — split it out).
 
 ## MANDATORY: load the detection checklist
 
@@ -37,7 +37,7 @@ Before Phase 2, **read `references/detection-heuristics.md` in full.** It carrie
 
 Ground the hunt in *intended* boundaries before judging *accidental* structure. Friction that is a documented trade-off is not a smell.
 
-1. **Resolve the spec.** Default to the **highest-numbered** `.specs/<NNN>-*/` dir (the freshest /flow:spec output), or the path the user passed. If none exists, stop: *"No `.specs/` context found. flow-deepen deepens a shipped spec's modules — for a whole-repo debt sweep run `/audit` instead."*
+1. **Resolve the spec.** Default to the **highest-numbered** `.specs/<NNN>-*/` dir (the freshest /flow:spec output), or the path the user passed. If none exists, stop: *"No `.specs/` context found. flow-deepen deepens a shipped spec's modules — for a whole-repo debt sweep run `/flow-extras:audit` instead."*
 2. **Read the intent layer first**: the spec's domain glossary, any ADRs, and `.out-of-scope/`. These tell you which boundaries are deliberate. A pass-through layer an ADR explicitly mandates is not a candidate.
 3. **Read the merged diffs.** `git log --oneline --merges` since the spec's first issue, and the diffs of the merged issue branches (`flow/<slug>/issue-*`). The deepening targets are the modules the feature work actually touched and grew.
 4. **Mine the repeated-agent-mistake signal.** `git log --follow` on the spec's hot files — if multiple issue branches edited the same file repeatedly, or the agent kept landing changes in the wrong place, that is a first-class structural signal (missing seam / locality failure), more reliable than human code review because agents expose navigability under load. One mistake is noise; *repeated* mistakes at the same location are signal.

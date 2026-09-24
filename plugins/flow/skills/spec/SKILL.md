@@ -39,6 +39,7 @@ Three facts, counted before anything is written:
 | `oneshot` | 0 gaps, 0 irreversibles, 2-5 tasks | `TASKS.md` only | inline per task |
 | `dispatch` | anything else | `spec.md` + `TASKS.md` (+ `design.md` on the seam trigger) | one fresh subagent per task |
 
+When `.claude/flow.config.json` has `"requireSpec": true`, `bounded` is unavailable — the spec gate needs an approved `TASKS.md` for every source edit, so route to `oneshot` instead.
 
 **State the route; do not ask it.** One line, facts first:
 
@@ -60,7 +61,7 @@ Two items are never dropped: the negative-scope position (what this will NOT do)
 
 - `dispatch` only: write `spec.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/spec.md`](../../flow-templates/spec.md) — ~110 lines, every placeholder filled from the discovery turn or recorded as an Assumption. When the PREP.md gate fired, **write `spec.md` beside** that `PREP.md`, in its directory. No technology names in §4; those belong in `design.md`.
 - `dispatch` only, and only when the seam trigger fires — two or more tasks share a name, an id type, an error shape, a module boundary or a resource — read [`references/design.md`](references/design.md) in full and write `design.md`. One task, or no shared seam: skip it and write `Design: none` in the header. Never paste any of `design.md` into a task agent but its own `## Contract` block.
-- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it.
+- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it (itself, when `autoApprove` is `true` in `.claude/flow.config.json`).
 
 ## 4a. Stealth — specs this repo must never see
 
@@ -102,7 +103,7 @@ Then `flow lint` and the `Next:` line as in §6.
 - **NEVER** accept a vague adjective. "Fast" with no number is a decision you have handed to whoever builds it, alone, at 2am.
 - **NEVER** skip the negative-scope item. Ten seconds to state; it is the only thing that ends a scope argument.
 - **NEVER** write a `spec.md` on `bounded` or `oneshot`. The escape from ceremony is a route, not a missing feature — and the artifact is the only thing that scales.
-- **NEVER** write `Approved:` yourself, on any route or under `--unattended`. That line means a human read the plan.
+- **NEVER** write `Approved:` yourself, on any route or under `--unattended` — even when `autoApprove` is on, that line is `/flow:next`'s to write, not `/flow:spec`'s. That line means a human read the plan, or the model did with the user's standing permission.
 - **NEVER** re-ask a decision recorded as a `D-NN` in PREP.md — the user already made it, a second answer silently forks the record, and re-asking teaches them the file is decorative.
 - **NEVER** hand off to GitHub issues. Work items live in `TASKS.md`; `flow publish` mirrors them only when someone asks.
 - **NEVER** end without the router's `Next:` line. A spec whose next step lives only in this transcript does not survive `/clear`.

@@ -137,6 +137,10 @@ const base = args.base
 const testCmd = args.testCmd
 const requestedIds = args.ids || args.slices
 const scriptsDir = args.scriptsDir || '$HOME/.claude/scripts'
+// skills/next/SKILL.md promises "at most 4 in parallel" — a wave never hands
+// parallel() more than this many thunks at once, no matter how many [P]
+// tasks flow-lint put in it.
+const MAX_PARALLEL = 4
 // Generated artifacts live in the feature's own review/ — the per-feature dir
 // `.gitignore` matches as `.specs/*/review/`, and the same one task-brief
 // writes into. A repo-level `.specs/review/` is neither.
@@ -283,9 +287,14 @@ const parked = []
 
 for (let w = 0; w < waves.length; w++) {
   const ready = waves[w]
-  const waveResults = await parallel(ready.map(function (id) {
-    return function () { return runTask(id) }
-  }))
+  const waveResults = []
+  for (let c = 0; c < ready.length; c += MAX_PARALLEL) {
+    const chunk = ready.slice(c, c + MAX_PARALLEL)
+    const chunkResults = await parallel(chunk.map(function (id) {
+      return function () { return runTask(id) }
+    }))
+    waveResults.push.apply(waveResults, chunkResults)
+  }
   waveResults.forEach(function (r) {
     if (!r) { return }
     finalTasks.push(r.result)

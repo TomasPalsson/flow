@@ -22,5 +22,5 @@ Independent test: `pytest tests/test_ui.py` — green with the API untouched.
 
 ## Gates
 - [ ] G001 project gates clean — files: . — verify: `flow check --fix`
-- [ ] G002 branch review clean — files: . — verify: `test -f PASS-$(git rev-parse --short HEAD).md`
+- [ ] G002 branch review clean — files: . — verify: `flow pass`
 - [ ] G003 verification evidence exists — files: . — verify: `test -s verify/`

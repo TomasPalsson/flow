@@ -169,6 +169,8 @@ ${C.accent}Commands:${C.reset}
                                                      commit since Base touching the task's files:
                                                      (or --sha), never a claim
   use <NNN-slug>                                    Point .specs/.current at one feature
+  pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
+                                                     for the active feature, 1 otherwise
   stealth [<store>] [--check [--offline] [--json]]  Move .specs/ into a private store repo
                                                      outside this one (--check only reports)
   publish [--dry-run]                               Optional leaf: mirror unchecked tasks to
@@ -612,6 +614,14 @@ function isGitRepo(dir) {
   const r = spawnSync('git', ['-C', dir, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8' });
   if (r.error) return false;
   return r.status === 0 && (r.stdout || '').trim() === 'true';
+}
+
+// gitOnPath() -> false only when `git` itself cannot be spawned (ENOENT).
+// isGitRepo() maps that same failure to "not a git repo", which sent someone
+// with git missing from PATH chasing a repo-init problem that did not exist.
+function gitOnPath() {
+  const r = spawnSync('git', ['--version'], { encoding: 'utf8' });
+  return !(r.error && r.error.code === 'ENOENT');
 }
 
 // specs-state (spec 004 K-C): print the router's own state, and FAIL on the
@@ -1203,6 +1213,7 @@ function doctorPluginListCheck(push) {
 const CONFIG_SCHEMA = {
   stopGate: (v) => (v === 'scoped' || v === true || v === false ? null : 'one of "scoped", true, false'),
   requireSpec: (v) => (v === 'flow-branches' || v === true || v === false ? null : 'one of "flow-branches", true, false'),
+  autoApprove: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
   sizeGuard: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
   formatOnEdit: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
   maxFileLines: (v) => (typeof v === 'number' && v > 0 ? null : 'a positive number'),
@@ -2767,6 +2778,13 @@ function computeNextLoopActive(toplevel, branch, dirty) {
 // no printing — cmdNext formats it for --json or plain-text output. `next` is
 // always a runnable command or a slash command (C-D), never prose.
 function computeNext(cwd, opts) {
+  if (!gitOnPath()) {
+    return {
+      state: 'scan-failed', state_no: 0, command: 'flow doctor', why: 'git not found on PATH',
+      after: null, human_gate: false, feature: null, wave: null,
+      gates: { blocked: false, lint_error: false, unreachable_done: false, scan_failed: true, consecutive_calls: 0 },
+    };
+  }
   if (!isGitRepo(cwd)) {
     return {
       state: 'scan-failed', state_no: 0, command: 'flow init', why: `${cwd} is not a git repo`,
@@ -3118,7 +3136,7 @@ function cmdStatusline(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline', 'pass'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3213,6 +3231,11 @@ function main() {
     process.exit(require('./lib/stealth.js').run(rest, stealthRoot, { stdout, stderr }, process.env));
   }
   else if (cmd === 'publish') process.exit(require('./lib/publish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
+  else if (cmd === 'pass') {
+    const r = require('./lib/router.js').passCommand(gitToplevel(process.cwd()) || process.cwd());
+    stdout.write(`${r.message}\n`);
+    process.exit(r.ok ? 0 : 1);
+  }
   else if (cmd === 'loop') process.exit(require('./lib/loop.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'eval') process.exit(require('./lib/eval.js').run(rest, process.cwd(), process.env));
   else if (cmd === 'tutorial') cmdTutorial(rest);

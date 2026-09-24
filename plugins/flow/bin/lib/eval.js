@@ -207,9 +207,10 @@ function appendLedger(toplevel, line) {
 // buildChildArgv(...) -> one `claude plugin eval` argv for a single case.
 // `grant` (a case's allowed_tools ∩ GATED, from selectCases) is omitted from
 // --allow-tools when empty. No `--tag` any more: each spawn picks exactly
-// one case via `--case`, so there is nothing left for a tag to narrow.
-function buildChildArgv(model, judgeModel, args, jsonPath, caseName, grant, keepTemp) {
+// one case via `--case`, so there is nothing left for a tag to narrow (also loads sibling plugins/flow-extras, if present, via --plugin-dir).
+function buildChildArgv(model, judgeModel, args, jsonPath, caseName, grant, keepTemp, toplevel) {
   const argv = ['plugin', 'eval', 'plugins/flow', '--trust-plugin', '--no-publish', '--scaffold'];
+  if (toplevel && fs.existsSync(path.join(toplevel, 'plugins', 'flow-extras'))) argv.push('--plugin-dir', 'plugins/flow-extras');
   if (grant.length) argv.push('--allow-tools', ...grant);
   argv.push(
     '--model', model,
@@ -339,7 +340,7 @@ function dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env) 
   const specs = cases.map((c) => {
     const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}-${c.name}.json`);
     const keepTemp = postcheck.hasExecutablePostcheck(toplevel, EVALS_ROOT, c.name);
-    return { name: c.name, jsonPath, argv: buildChildArgv(model, judgeModel, args, jsonPath, c.name, c.grant, keepTemp) };
+    return { name: c.name, jsonPath, argv: buildChildArgv(model, judgeModel, args, jsonPath, c.name, c.grant, keepTemp, toplevel) };
   });
 
   if (args.dryRun) {

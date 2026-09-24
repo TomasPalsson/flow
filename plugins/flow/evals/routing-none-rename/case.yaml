@@ -13,6 +13,6 @@ graders:
   - name: no-skill-fires
     type: tool_used
     tool: Skill
-    input_match: "flow:"
+    input_match: "flow:|flow-extras:"
     min: 0
     max: 0

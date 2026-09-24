@@ -1,6 +1,6 @@
 ---
 name: prep
-description: "Grill the user about an idea BEFORE the spec, one open question at a time, and write the answers to .specs/NNN-<slug>/PREP.md — decisions, not-this, discretion, assumptions with confidence, one verify line — so /flow:spec consolidates from it and never re-asks. Triggers: /prep, \"prep me\", \"grill me before the spec\", \"interview me about this idea\", \"let's decide before speccing\". Not for a plan that already exists (use /grill-me) and not for writing the spec (use /flow:spec)."
+description: "Grill the user about an idea BEFORE the spec, one open question at a time, and write the answers to .specs/NNN-<slug>/PREP.md — decisions, not-this, discretion, assumptions with confidence, one verify line — so /flow:spec consolidates from it and never re-asks. Triggers: /prep, \"prep me\", \"grill me before the spec\", \"interview me about this idea\", \"let's decide before speccing\". Not for a plan that already exists (use /flow-extras:grill-me) and not for writing the spec (use /flow:spec)."
 disable-model-invocation: true
 argument-hint: "<idea in one or two sentences>"
 ---

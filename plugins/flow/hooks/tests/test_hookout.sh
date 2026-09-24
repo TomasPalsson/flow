@@ -439,6 +439,30 @@ second line"
 	rm -rf "$d"
 }
 
+# Contract addition: with neither jq nor python3 on PATH, hook_field must
+# still return "" (its stdout is almost always captured via `$(hook_field
+# ...)`, so any notice printed there would corrupt the caller's field) and
+# must warn exactly once per process, on stderr, no matter how many fields
+# the hook asks for.
+t_hookout_field_no_parser_notice_once_and_still_empty() {
+	local d lib s
+	d=$(tmp_dir)
+	lib=$(_ho_lib)
+	mkdir -p "$d/bin"
+	for t in bash cat sed awk tr; do
+		ln -s "$(command -v "$t")" "$d/bin/$t" 2>/dev/null || true
+	done
+	s=$(_ho_script "$d" field.sh 'a=$(hook_field ".x"); b=$(hook_field ".y"); printf "a=[%s] b=[%s]" "$a" "$b"')
+	run_hook "$s" '{"x":1,"y":2}' HOOKOUT_LIB="$lib" PATH="$d/bin"
+	assert_rc 0 "t_hookout_field_no_parser_notice_once_and_still_empty rc 0 without jq or python3"
+	assert_eq "$OUT" "a=[] b=[]" "t_hookout_field_no_parser_notice_once_and_still_empty hook_field still returns '' for every call"
+	assert_contains "$ERR" "field.sh: jq and python3 are both missing" "t_hookout_field_no_parser_notice_once_and_still_empty the notice names the hook and the missing tools"
+	local notice_count
+	notice_count=$(printf '%s\n' "$ERR" | grep -c "jq and python3 are both missing")
+	assert_eq "$notice_count" "1" "t_hookout_field_no_parser_notice_once_and_still_empty the notice fires exactly once per process, not once per hook_field call"
+	rm -rf "$d"
+}
+
 t_hookout_changed_since_parses_the_config_once() {
 	local repo lib s sid stamp log i njq ngit njudged budget
 	repo=$(tmp_repo)

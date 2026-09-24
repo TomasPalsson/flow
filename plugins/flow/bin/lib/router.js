@@ -280,6 +280,62 @@ function passFiles(featureDir) {
   }
 }
 
+// passCovers(root, featureDir) -> { ok, pass, since }. Writing PASS-<sha>.md
+// and committing it moves HEAD; ticking a G### (which edits TASKS.md) and
+// committing that does the same. An exact-name check against HEAD would gate
+// forever on both, so a PASS covers HEAD when its own sha resolves to a real
+// commit that is HEAD or an ancestor of it, AND every file `git diff
+// --name-only <sha>..HEAD` touched sits inside featureDir — the .specs/NNN-
+// slug/ bookkeeping (PASS files, TASKS.md ticks, verify/) a gate run and a
+// tick only ever touch. A commit that reaches outside the feature dir still
+// invalidates it, which is what makes row 10 (stale-pass) still fire.
+function passCovers(root, featureDir) {
+  const passes = passFiles(featureDir);
+  const newest = passes.length ? passes[passes.length - 1] : null;
+  const head = git(root, ['rev-parse', 'HEAD']);
+  if (!head.ok) return { ok: false, pass: newest, since: null };
+  const headSha = head.out;
+  const relDir = path.relative(root, featureDir).split(path.sep).join('/');
+  const inDir = (f) => f === relDir || f.indexOf(`${relDir}/`) === 0;
+
+  for (let i = passes.length - 1; i >= 0; i--) {
+    const sha = passes[i].replace(/^PASS-|\.md$/g, '');
+    // A PASS sha that does not resolve to a commit at all (hand-edited, or a
+    // stray file) is ignored rather than crashing the router.
+    const resolved = git(root, ['rev-parse', '--verify', `${sha}^{commit}`]);
+    if (!resolved.ok) continue;
+    const full = resolved.out;
+    const ancestor = git(root, ['merge-base', '--is-ancestor', full, headSha]);
+    if (!ancestor.ok) continue; // not HEAD and not an ancestor of it
+    const diff = git(root, ['diff', '--name-only', `${full}..${headSha}`]);
+    const files = diff.ok ? diff.out.split('\n').filter(Boolean) : [];
+    if (files.every(inDir)) return { ok: true, pass: passes[i], since: 0 };
+  }
+
+  let since = null;
+  if (newest) {
+    const shaOnly = newest.replace(/^PASS-|\.md$/g, '');
+    const count = git(root, ['rev-list', '--count', `${shaOnly}..HEAD`]);
+    if (count.ok) since = count.out;
+  }
+  return { ok: false, pass: newest, since };
+}
+
+// passCommand(root) -> { ok, message } for the `flow pass` subcommand: 0 when
+// a PASS-<sha>.md covers HEAD for the resolved feature, 1 otherwise. Feature
+// resolution reuses resolveFeature — the same resolver route() uses — so
+// `flow pass` never guesses a different feature than `flow next` would.
+function passCommand(root) {
+  const branch = git(root, ['branch', '--show-current']).out;
+  const resolved = resolveFeature(root, branch, process.env);
+  if (resolved.slug) {
+    const featureDir = path.join(root, '.specs', resolved.slug);
+    const cover = passCovers(root, featureDir);
+    if (cover.ok) return { ok: true, message: `${cover.pass} covers HEAD` };
+  }
+  return { ok: false, message: 'no PASS file covers HEAD — run the gates' };
+}
+
 // prNumber(root, branch) -> "41" | null. gh is optional: no gh, no network,
 // or any failure all mean "no PR", which routes to 11 (open one) not 12.
 function prNumber(root, branch) {
@@ -330,6 +386,18 @@ function mk(state, command, why, extra) {
     feature: null,
     wave: null,
   }, extra || {});
+}
+
+// mainBranchWarning(st, branch, activeSlug) -> "" | text appended to `why` on
+// drafting/unapproved/building/checkpoint: nothing else says a feature is
+// being built straight on the trunk. Stealth suppresses it (the branch name
+// itself is part of what stealth keeps out of view). slug drops the NNN-
+// prefix the same way the router already does when it derives a branch name
+// from a feature dir (see matchSlug/findPrepWithoutSpec).
+function mainBranchWarning(st, branch, activeSlug) {
+  if (st.active) return '';
+  if (branch !== 'main' && branch !== 'master') return '';
+  return ` — warning: on ${branch}; run: git checkout -b flow/${activeSlug.slice(4)}`;
 }
 
 function route(root, ctx, opts) {
@@ -439,7 +507,7 @@ function route(root, ctx, opts) {
     const notes = safeRead(path.join(featureDir, 'NOTES.md'));
     const answered = notes ? (notes.match(/^- /gm) || []).length : 0;
     return done(mk('drafting', '/flow:next',
-      `resuming ${activeSlug}; spec.md written, TASKS.md not yet${answered ? ` (${answered} discovery notes in NOTES.md)` : ''}`,
+      `resuming ${activeSlug}; spec.md written, TASKS.md not yet${answered ? ` (${answered} discovery notes in NOTES.md)` : ''}${mainBranchWarning(st, branch, activeSlug)}`,
       { feature }));
   }
 
@@ -471,7 +539,7 @@ function route(root, ctx, opts) {
   if (!L.header.approved) {
     const n = (L.tasks || []).filter((t) => t.kind === 'task').length;
     return done(mk('unapproved', `reply "approved" — full plan: ${feature.dir}/TASKS.md`,
-      `${n} tasks planned on route ${feature.route || 'unset'}; nothing runs until you approve`,
+      `${n} tasks planned on route ${feature.route || 'unset'}; nothing runs until you approve${mainBranchWarning(st, branch, activeSlug)}`,
       { feature, human_gate: true }));
   }
 
@@ -486,7 +554,7 @@ function route(root, ctx, opts) {
   if (openWork.length && openWork[0].kind === 'checkpoint') {
     const c = openWork[0];
     return done(mk('checkpoint', c.description,
-      `${c.id} — ${c.verify} (${doneWork} of ${totalWork} done)`,
+      `${c.id} — ${c.verify} (${doneWork} of ${totalWork} done)${mainBranchWarning(st, branch, activeSlug)}`,
       { feature, human_gate: true }));
   }
 
@@ -500,23 +568,20 @@ function route(root, ctx, opts) {
     const parallelWave = inWave.length > 1 && inWave.every((t) => t.parallel);
     const verify = inWave[0] ? inWave[0].verify : '';
     return done(mk('building', '/flow:next',
-      `wave ${nextWave.join(', ')} — verify: ${verify} (${doneWork} of ${totalWork} done)`,
+      `wave ${nextWave.join(', ')} — verify: ${verify} (${doneWork} of ${totalWork} done)${mainBranchWarning(st, branch, activeSlug)}`,
       { feature, wave: { ids: nextWave, parallel: parallelWave } }));
   }
 
   // ── 8/9/10 · the gates and the two halves of done
   const head = git(root, ['rev-parse', '--short', 'HEAD']);
   const headSha = head.ok ? head.out : '';
-  const passes = passFiles(featureDir);
-  const passForHead = headSha ? passes.indexOf(`PASS-${headSha}.md`) !== -1 : false;
+  const cover = passCovers(root, featureDir);
   const verified = !!L.header.verified;
 
-  if (!passForHead) {
-    const newest = passes.length ? passes[passes.length - 1] : null;
-    if (verified && newest) {
-      const since = git(root, ['rev-list', '--count', `${newest.replace(/^PASS-|\.md$/g, '')}..HEAD`]);
+  if (!cover.ok) {
+    if (verified && cover.pass) {
       return done(mk('stale-pass', '/flow:next',
-        `${newest} is not HEAD (${since.ok ? since.out : 'some'} commits since) — the gates have to run again`,
+        `${cover.pass} is not HEAD (${cover.since !== null ? cover.since : 'some'} commits since) — the gates have to run again`,
         { feature }));
     }
     const gateList = openGates.length ? openGates.map((g) => g.id).join(', ') : 'none unchecked';
@@ -580,6 +645,8 @@ module.exports = {
   resetCount,
   featureDirs,
   runLint,
+  passCovers,
+  passCommand,
   pluginScript,
   STATE_NO,
   CLEAR_AFTER,

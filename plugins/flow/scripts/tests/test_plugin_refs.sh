@@ -9,41 +9,50 @@ SKILLS_DIR_PREF="$PLUGIN_ROOT_PREF/skills"
 HOOKS_DIR_PREF="$PLUGIN_ROOT_PREF/hooks"
 HOOKS_JSON_PREF="$HOOKS_DIR_PREF/hooks.json"
 
+# Sibling flow-extras plugin (audit, pr-reviewer, claude-improver, skill-forge
+# and 12 more moved out of flow) — the legacy-ref and CLAUDE_PLUGIN_ROOT scans
+# below cover it too, since some of the documented exceptions now live there.
+PLUGIN_ROOT_EXTRAS="$PLUGIN_ROOT_PREF/../flow-extras"
+SKILLS_DIR_EXTRAS="$PLUGIN_ROOT_EXTRAS/skills"
+
 t_pref_no_legacy_refs_outside_documented_exceptions() {
 	# Every ".claude/skills/<x>/", "~/.claude/<x>" and "$HOME/.claude/<x>"
-	# under plugins/flow/skills must have been rewritten to
-	# ${CLAUDE_PLUGIN_ROOT} (C21), except a short, documented list: a
-	# cross-plugin reference to agent-browser in qa/SKILL.md (a skill that
-	# lives in the "web" plugin, not this one, so ${CLAUDE_PLUGIN_ROOT}
-	# cannot resolve it — it names the live-loading path
-	# ~/.claude/skills/web/skills/agent-browser/SKILL.md explicitly, which
-	# skills-lint must still resolve; see t_pref_skills_lint_zero_missing_over_plugin),
-	# the same corrected post-migration path (with the web/skills/ segment,
-	# not the stale pre-migration flat path) in shared/agent-browser-reference.md
-	# and qa/references/agent-prompts.md (fenced prompt template, never checked
+	# under plugins/flow/skills and its sibling plugins/flow-extras/skills
+	# must have been rewritten to ${CLAUDE_PLUGIN_ROOT} (C21), except a
+	# short, documented list: a cross-plugin reference to agent-browser in
+	# qa/SKILL.md (a skill that lives in the "web" plugin, not this one, so
+	# ${CLAUDE_PLUGIN_ROOT} cannot resolve it — it names the live-loading
+	# path ~/.claude/skills/web/skills/agent-browser/SKILL.md explicitly,
+	# which skills-lint must still resolve; see
+	# t_pref_skills_lint_zero_missing_over_plugin), the same corrected
+	# post-migration path (with the web/skills/ segment, not the stale
+	# pre-migration flat path) in shared/agent-browser-reference.md and
+	# qa/references/agent-prompts.md (fenced prompt template, never checked
 	# by skills-lint per C16 — its content is instead pinned by
 	# t_pref_agent_prompts_no_stale_agent_browser_path below, since a fence-blind
 	# linter cannot tell a corrected reference from a stale one) worded as
 	# "the project's own local
 	# copy" since it is inherently project-relative, generic
-	# Claude-Code-convention prose in claude-improver (it describes an
-	# arbitrary TARGET project's ~/.claude layout while it audits that
-	# project, never this plugin's own files), a mention in pr-reviewer of
-	# the project's own (unlikely to exist) ".claude/skills/pr-reviewer"
-	# directory (contrasted with the plugin's static helper-script path,
-	# which now resolves via ${CLAUDE_PLUGIN_ROOT} — see
-	# t_pref_pr_reviewer_uses_plugin_root_for_post_review), and a bare
-	# "`.claude/skills/`" mention in project-detection.md with no path
+	# Claude-Code-convention prose in claude-improver (now in flow-extras; it
+	# describes an arbitrary TARGET project's ~/.claude layout while it
+	# audits that project, never this plugin's own files), a mention in
+	# pr-reviewer (now in flow-extras) of the project's own (unlikely to
+	# exist) ".claude/skills/pr-reviewer" directory (contrasted with the
+	# plugin's static helper-script path, which now resolves via
+	# ${CLAUDE_PLUGIN_ROOT} — see
+	# t_pref_pr_reviewer_uses_plugin_root_for_post_review), a bare
+	# "`.claude/skills/`" mention in project-detection.md (flow's shared/
+	# copy and flow-extras' pr-reviewer/references/ copy alike) with no path
 	# segment after it (nothing for ${CLAUDE_PLUGIN_ROOT} to substitute,
 	# matching skills-lint's own bare-prefix exemption), and skill-forge's
-	# Step 0 reuse-check sentence, which names `~/.claude/skills/*/SKILL.md`
-	# and `~/.claude/skills/*/skills/*/SKILL.md` as places to grep for an
-	# existing skill before building fresh (the same category as the
-	# claude-improver exception above — it names the USER's personal skill
-	# directories as a search target, never this plugin's own files;
-	# test_skill_forge.sh pins that literal path, so rewording the skill
-	# is not the fix).
-	hits=$(grep -rnE '\.claude/skills/|~/\.claude/|\$HOME/\.claude/' --include='*.md' "$SKILLS_DIR_PREF" 2>/dev/null |
+	# (now in flow-extras) Step 0 reuse-check sentence, which names
+	# `~/.claude/skills/*/SKILL.md` and `~/.claude/skills/*/skills/*/SKILL.md`
+	# as places to grep for an existing skill before building fresh (the same
+	# category as the claude-improver exception above — it names the USER's
+	# personal skill directories as a search target, never this plugin's own
+	# files; test_skill_forge.sh pins that literal path, so rewording the
+	# skill is not the fix).
+	hits=$(grep -rnE '\.claude/skills/|~/\.claude/|\$HOME/\.claude/' --include='*.md' "$SKILLS_DIR_PREF" "$SKILLS_DIR_EXTRAS" 2>/dev/null |
 		grep -vF "/shared/agent-browser-reference.md:" |
 		grep -vF "/qa/references/agent-prompts.md:" |
 		grep -vF "/qa/SKILL.md:133:" |
@@ -51,7 +60,7 @@ t_pref_no_legacy_refs_outside_documented_exceptions() {
 		grep -vF ".claude/skills/pr-reviewer" |
 		grep -vF 'Check for `.claude/skills/` in the project' |
 		grep -vE '/skill-forge/SKILL\.md:[0-9]+:.*`grep -ril`')
-	assert_eq "$hits" "" "no legacy .claude/skills, ~/.claude, or \$HOME/.claude references remain under skills/ outside the documented exceptions"
+	assert_eq "$hits" "" "no legacy .claude/skills, ~/.claude, or \$HOME/.claude references remain under skills/ (flow or flow-extras) outside the documented exceptions"
 }
 
 t_pref_hooks_json_parses() {
@@ -117,6 +126,18 @@ t_pref_plugin_root_references_exist_and_resolve() {
 	run_cmd "$SCAN_DIR/skills-lint" "$SKILLS_DIR_PREF"
 	bad=$(printf '%s\n' "$OUT" | grep 'MISSING' | grep 'CLAUDE_PLUGIN_ROOT' || true)
 	assert_eq "$bad" "" "skills-lint reports no MISSING \${CLAUDE_PLUGIN_ROOT} reference under plugins/flow/skills"
+
+	# pr-reviewer (moved to flow-extras) carries its own ${CLAUDE_PLUGIN_ROOT}
+	# references (post-review.sh, its project-detection.md copy) — same check,
+	# sibling plugin.
+	count_extras=$(grep -rlF '${CLAUDE_PLUGIN_ROOT}/' --include='*.md' "$SKILLS_DIR_EXTRAS" 2>/dev/null | wc -l | tr -d ' ')
+	found_extras=no
+	[ "$count_extras" -gt 0 ] && found_extras=yes
+	assert_eq "$found_extras" "yes" "at least one \${CLAUDE_PLUGIN_ROOT}/ reference exists under flow-extras/skills/"
+
+	run_cmd "$SCAN_DIR/skills-lint" "$SKILLS_DIR_EXTRAS"
+	bad_extras=$(printf '%s\n' "$OUT" | grep 'MISSING' | grep 'CLAUDE_PLUGIN_ROOT' || true)
+	assert_eq "$bad_extras" "" "skills-lint reports no MISSING \${CLAUDE_PLUGIN_ROOT} reference under plugins/flow-extras/skills"
 }
 
 t_pref_skills_lint_zero_missing_over_plugin() {
@@ -173,10 +194,11 @@ t_pref_pr_reviewer_uses_plugin_root_for_post_review() {
 	# via ${CLAUDE_PLUGIN_ROOT} at its static, plugin-relative location, not
 	# a runtime `find ~/.claude/skills -name post-review.sh -path */pr-reviewer/*`
 	# — plain `find` (no -L) does not traverse a symlinked directory, so
-	# under Live Loading (~/.claude/skills/flow -> the plugin repo) that
-	# lookup silently resolves to empty and the skill permanently falls back
-	# to the documented lower-quality path ("no preflight validation").
-	skill_md="$SKILLS_DIR_PREF/pr-reviewer/SKILL.md"
+	# under Live Loading (~/.claude/skills/flow-extras -> the plugin repo)
+	# that lookup silently resolves to empty and the skill permanently falls
+	# back to the documented lower-quality path ("no preflight validation").
+	# pr-reviewer moved to flow-extras; same invariant, new home.
+	skill_md="$SKILLS_DIR_EXTRAS/pr-reviewer/SKILL.md"
 	assert_file_exists "$skill_md" "pr-reviewer/SKILL.md exists"
 
 	hits=$(grep -c 'find ~/.claude/skills' "$skill_md" 2>/dev/null || true)
@@ -186,16 +208,16 @@ t_pref_pr_reviewer_uses_plugin_root_for_post_review() {
 	grep -qF 'SKILL_SCRIPT="${CLAUDE_PLUGIN_ROOT}/skills/pr-reviewer/scripts/post-review.sh"' "$skill_md" && contains_line=yes
 	assert_eq "$contains_line" "yes" "pr-reviewer/SKILL.md resolves post-review.sh via \${CLAUDE_PLUGIN_ROOT}"
 
-	assert_file_exists "$SKILLS_DIR_PREF/pr-reviewer/scripts/post-review.sh" "post-review.sh ships at the referenced plugin-relative path"
+	assert_file_exists "$SKILLS_DIR_EXTRAS/pr-reviewer/scripts/post-review.sh" "post-review.sh ships at the referenced plugin-relative path"
 
-	# Reproduce the finding's exact scenario: a symlinked ~/.claude/skills/flow
+	# Reproduce the finding's exact scenario: a symlinked ~/.claude/skills/flow-extras
 	# (Live Loading, C21) must let the ${CLAUDE_PLUGIN_ROOT}-substituted path
 	# resolve and stay executable.
 	fake_home=$(tmp_dir)
 	mkdir -p "$fake_home/.claude/skills"
-	plugin_root_abs=$(cd "$PLUGIN_ROOT_PREF" && pwd -P)
-	ln -s "$plugin_root_abs" "$fake_home/.claude/skills/flow"
-	resolved="$fake_home/.claude/skills/flow/skills/pr-reviewer/scripts/post-review.sh"
+	plugin_root_abs=$(cd "$PLUGIN_ROOT_EXTRAS" && pwd -P)
+	ln -s "$plugin_root_abs" "$fake_home/.claude/skills/flow-extras"
+	resolved="$fake_home/.claude/skills/flow-extras/skills/pr-reviewer/scripts/post-review.sh"
 	assert_file_exists "$resolved" "the \${CLAUDE_PLUGIN_ROOT}-substituted post-review.sh path resolves through the Live Loading symlink"
 	run_cmd test -x "$resolved"
 	assert_rc 0 "post-review.sh is executable through the symlinked plugin root"

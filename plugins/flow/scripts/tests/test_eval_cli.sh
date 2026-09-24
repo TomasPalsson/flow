@@ -154,6 +154,21 @@ t_eval_dry_run_prints_pinned_models() {
 	assert_contains "$OUT" "--allow-tools Write Edit" "t_eval_dry_run_prints_pinned_models allow-tools"
 	assert_not_contains "$OUT" "--case routing-fix-skill" "t_eval_dry_run_prints_pinned_models routing-case-absent"
 	assert_not_contains "$OUT" "--tag" "t_eval_dry_run_prints_pinned_models no-tag-forwarded"
+	assert_not_contains "$OUT" "--plugin-dir" "t_eval_dry_run_prints_pinned_models no-plugin-dir-without-flow-extras"
+}
+
+# t_eval_dry_run_loads_sibling_flow_extras — when plugins/flow-extras exists
+# beside plugins/flow in the repo, its routing skills must be loaded into the
+# same eval session via --plugin-dir (flow-extras/audit etc. need to be
+# routable, not just flow's own skills).
+t_eval_dry_run_loads_sibling_flow_extras() {
+	local proj home
+	proj=$(ev_repo)
+	mkdir -p "$proj/plugins/flow-extras/skills"
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality
+	assert_rc 0 "t_eval_dry_run_loads_sibling_flow_extras rc"
+	assert_contains "$OUT" "--plugin-dir plugins/flow-extras" "t_eval_dry_run_loads_sibling_flow_extras plugin-dir-forwarded"
 }
 
 # t_eval_dry_run_routing_case_gets_no_allow_tools — the flip side: a case

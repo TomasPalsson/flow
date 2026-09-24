@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# test_skill_forge.sh — prose assertions for skills/skill-forge/SKILL.md's
+# test_skill_forge.sh — prose assertions for skill-forge/SKILL.md's
 # Step 0 reuse check (B10). Sourced by run.sh; HERE (this dir) and SCAN_DIR
 # (its parent, "scripts/") are already set. Tests prefixed t_forge_.
+# skill-forge lives in the sibling flow-extras plugin.
 
-FORGE_SKILL="$SCAN_DIR/../skills/skill-forge/SKILL.md"
+FORGE_SKILL="$SCAN_DIR/../../flow-extras/skills/skill-forge/SKILL.md"
 
 # _forge_content → full content of skill-forge/SKILL.md
 _forge_content() {

@@ -71,6 +71,11 @@ while [ $# -gt 0 ]; do
 done
 [ -z "$FILE" ] && [ $# -gt 0 ] && FILE=$1
 
+if ! command -v git >/dev/null 2>&1; then
+  printf 'flow lint: git not found on PATH\n' >&2
+  exit 1
+fi
+
 TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null || true)
 
 # ---------- resolve the active TASKS.md the way the router does ----------
@@ -232,6 +237,46 @@ lstrip_var() {
 trim() {
   trim_var "$1"
   printf '%s' "$R_TRIM"
+}
+
+# seg_key <seg> — rc 0 and sets $R_KEY when <seg> looks like a field key
+# ("<key>:…" with key made only of letters, dash, underscore); rc 1 and
+# empty $R_KEY otherwise. Catches a typo'd field (e.g. "afetr: T001") instead
+# of silently folding it into the description.
+R_KEY=""
+seg_key() {
+  R_KEY=""
+  case "$1" in
+  *:*) ;;
+  *) return 1 ;;
+  esac
+  local k=${1%%:*}
+  case "$k" in
+  '') return 1 ;;
+  *[!a-zA-Z_-]*) return 1 ;;
+  esac
+  R_KEY=$k
+  return 0
+}
+
+# hyphen_hint <text> — rc 0 and sets $R_HINT to the first " - field:" or
+# " -- field:" substring found in <text> (field one of verify/files/after);
+# rc 1 otherwise. A plain hyphen where the grammar wants an em dash makes the
+# field fold into the previous segment and vanish, so the user otherwise only
+# sees a generic missing-verify with no clue why.
+R_HINT=""
+hyphen_hint() {
+  R_HINT=""
+  case "$1" in
+  *' -- verify:'*) R_HINT=' -- verify:' ;;
+  *' - verify:'*) R_HINT=' - verify:' ;;
+  *' -- files:'*) R_HINT=' -- files:' ;;
+  *' - files:'*) R_HINT=' - files:' ;;
+  *' -- after:'*) R_HINT=' -- after:' ;;
+  *' - after:'*) R_HINT=' - after:' ;;
+  *) return 1 ;;
+  esac
+  return 0
 }
 
 # ---------- finding accumulators ----------
@@ -491,7 +536,13 @@ while IFS= read -r raw || [ -n "$raw" ]; do
       # only be ticked that way — so the sha is the first word, never the tail.
       done:*) trim_var "${seg#done:}"; f_done=${R_TRIM%% by *} ;;
       dropped:*) trim_var "${seg#dropped:}"; f_dropped=$R_TRIM ;;
-      *) desc="$desc — $seg" ;;
+      *)
+        if seg_key "$seg"; then
+          add_err "$LN" "$id" "unknown-field" "$id has unknown field \"$R_KEY:\"" "known keys are files:, verify:, after:, done:, dropped: — fix \"$R_KEY:\" or move it into the description before the first em dash"
+        else
+          desc="$desc — $seg"
+        fi
+        ;;
       esac
     fi
     [ -z "$seg_rest" ] && break
@@ -520,7 +571,11 @@ while IFS= read -r raw || [ -n "$raw" ]; do
 
   # ---- per-line rules ----
   if [ "$has_verify" -eq 0 ] || [ -z "$f_verify" ]; then
-    add_err "$LN" "$id" "missing-verify" "$id has no verify:" "append ' — verify: \`<command>\`' (or ' — verify: human: <observable>') to the $id line"
+    mv_fix="append ' — verify: \`<command>\`' (or ' — verify: human: <observable>') to the $id line"
+    if hyphen_hint "$rest" || hyphen_hint "$f_files"; then
+      mv_fix="found '$R_HINT' — the separator must be an em dash ' — '"
+    fi
+    add_err "$LN" "$id" "missing-verify" "$id has no verify:" "$mv_fix"
   fi
   if [ "$st" = '~' ] && [ -z "$f_dropped" ]; then
     add_err "$LN" "$id" "dropped-no-reason" "$id is [~] with no dropped: reason" "append ' — dropped: <why>' to the $id line, or restore it to '- [ ]'"

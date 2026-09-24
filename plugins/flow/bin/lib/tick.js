@@ -97,7 +97,11 @@ function resolveSha(root, { id, line, base, head, shaArg, isHuman }) {
   const files = filesSeg ? filesSeg.slice('files:'.length).split(',').map((s) => s.trim()).filter(Boolean) : [];
   if (!files.length) return { sha: head };
   const own = git(root, ['log', '-n', '1', '--format=%h', hasBase ? `${base}..HEAD` : 'HEAD', '--'].concat(files));
-  return { sha: own.ok && own.out ? own.out : head };
+  if (own.ok && own.out) return { sha: own.out };
+  return {
+    error: `no commit since Base ${hasBase ? base : 'none'} touched ${files.join(', ')} — commit the work first`,
+    fix: `git add ${files.join(' ')} && git commit, or pass --sha <commit>`,
+  };
 }
 
 function run(argv, root, io, env) {

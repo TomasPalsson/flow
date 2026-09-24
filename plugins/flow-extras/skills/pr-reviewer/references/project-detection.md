@@ -1,0 +1,77 @@
+---
+name: project-detection
+description: Runtime project environment detection — package manager, test/lint/format commands, monorepo structure, dev server, and project-local skills. Detects and stores variables for use by all workflow skills.
+---
+
+# Project Detection
+
+Before starting any workflow, detect the project environment. This ensures all commands match the actual project — never hardcode tool names.
+
+This is a flow-extras-local copy of flow's `skills/shared/project-detection.md` (pr-reviewer lives in a different plugin, so `${CLAUDE_PLUGIN_ROOT}` cannot reach flow's copy). flow's `skills/shared/scripts/detect-project` helper does not ship here, so this copy goes straight to the manual steps below.
+
+## Step 1: Package Manager & Commands
+
+Identify the package manager from lock files in the project root (`bun.lockb`→bun, `bun.lock`→bun, `pnpm-lock.yaml`→pnpm, `yarn.lock`→yarn, `package-lock.json`→npm, `Cargo.lock`→cargo, `uv.lock`→uv, `go.sum`→go modules). In monorepos, also check workspace packages if no root lock file exists.
+
+Read the project's config to find actual commands:
+- **Node.js**: `package.json` → `scripts` for test, test:e2e, lint, format, typecheck, dev
+- **Python**: `pyproject.toml` for pytest/ruff/black config
+- **Rust**: `cargo test`, `cargo clippy`, `cargo fmt --check`
+- **Go**: `go test ./...`, check for golangci-lint config
+
+If a command can't be detected, leave it empty — don't guess.
+
+## NEVER Do
+
+- **NEVER hardcode a fallback package manager** — if no lock file is found, leave PKG_MGR empty; guessing causes wrong commands downstream
+- **NEVER run commands with side effects during detection** — no `npm install`, `cargo build`, `pip install`; read config files only
+- **NEVER infer a package manager from directory names** — only lock files are reliable indicators
+
+## Step 2: Project Structure
+
+- **Monorepo**: Check for `packages/`, `apps/`, `crates/`, `modules/` or workspace config in package.json/Cargo.toml
+- **If monorepo**: Identify which packages are relevant to the current task
+- **Single package**: Use project root for all commands
+
+## Step 3: Dev Server
+
+Check in order:
+1. `.claude/scripts/start-dev-server.sh` — project-specific script (parse JSON output for port/pid)
+2. `package.json` → `scripts.dev` — standard dev command
+3. `Makefile` → `dev` or `serve` target
+4. None found → `DEV_CMD` stays empty (browser verification may not be possible)
+
+## Step 4: Project-Local Skills
+
+Check for `.claude/skills/` in the project. If present, list available skills — these provide domain-specific guidance for implementation and verification.
+
+## Output
+
+Detection returns values to the caller in the format below — it does not write them anywhere; what the caller does with them (hold in context, write to its own file) is the caller's decision.
+
+**If the caller already holds cached values from an earlier detection this session** (resume scenario): reuse them and skip detection entirely. Only re-detect if the caller explicitly requests it.
+
+Variables returned:
+
+```
+PKG_MGR, TEST_CMD, E2E_CMD, LINT_CMD, FORMAT_CMD, TYPECHECK_CMD, DEV_CMD
+PROJECT_SKILLS[], IS_MONOREPO, PACKAGES[]
+```
+
+Return format:
+
+```markdown
+## Project Environment
+- PKG_MGR: [value]
+- TEST_CMD: [value or ""]
+- E2E_CMD: [value or ""]
+- LINT_CMD: [value or ""]
+- FORMAT_CMD: [value or ""]
+- TYPECHECK_CMD: [value or ""]
+- DEV_CMD: [value or ""]
+- IS_MONOREPO: [true/false]
+- PACKAGES: [comma-separated list or ""]
+- PROJECT_SKILLS: [comma-separated list or ""]
+```
+
+These are markdown fields, not shell variables — a caller that pastes `"$TEST_CMD"` into a shell command gets an empty string; substitute the literal command text instead.
