@@ -82,6 +82,7 @@ CLI slice lands:
 | `flow lint [--waves] [--json]` | Parse the active `TASKS.md`: ERROR/WARN/INFO, every ERROR carrying its own `fix:` string, `[P]` disjointness proved per wave |
 | `flow tick <ID> [--dir <spec-dir>] [--by user]` | The only writer of `[x]` — it measures `git rev-parse --short HEAD` itself |
 | `flow use <NNN-slug>` | Write `.specs/.current` |
+| `flow pass` | Exit 0 when a `PASS-<sha>.md` covers HEAD: its sha is HEAD, or every commit since touched only the feature's own directory |
 | `flow stealth [<store>] [--check [--offline] [--json]]` | Move an untracked `.specs/` into a private store repo, link it back, hide it in `.git/info/exclude`; `--check` only reports |
 | `flow publish` | Mirror unchecked tasks to GitHub issues. Off the pipeline; only when asked |
 
@@ -119,6 +120,8 @@ Commands:
                                                      commit since Base touching the task's files:
                                                      (or --sha), never a claim
   use <NNN-slug>                                    Point .specs/.current at one feature
+  pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
+                                                     for the active feature, 1 otherwise
   stealth [<store>] [--check [--offline] [--json]]  Move .specs/ into a private store repo
                                                      outside this one (--check only reports)
   publish [--dry-run]                               Optional leaf: mirror unchecked tasks to

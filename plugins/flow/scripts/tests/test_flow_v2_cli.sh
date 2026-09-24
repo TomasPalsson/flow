@@ -152,7 +152,11 @@ t_v2_tick_measures_the_sha() {
 	home=$(tmp_dir)
 	set=$(v2_repo)
 	proj=${set%% *}
-	sha=${set##* }
+	(
+		cd "$proj" || exit 1
+		printf 'b\n' >b.py && git add -A && git commit -qm "T002: b"
+	) >/dev/null 2>&1
+	sha=$(git -C "$proj" log -n 1 --format=%h -- b.py)
 	v2_cli_in "$proj" "$home" tick T002
 	assert_rc 0 "flow tick on an open task exits 0"
 	assert_contains "$OUT" "T002 ticked at $sha" "the receipt names the measured sha"
@@ -228,6 +232,10 @@ t_v2_tick_resets_the_call_counter() {
 	home=$(tmp_dir)
 	set=$(v2_repo)
 	proj=${set%% *}
+	(
+		cd "$proj" || exit 1
+		printf 'b\n' >b.py && git add -A && git commit -qm "T002: b"
+	) >/dev/null 2>&1
 	i=0
 	while [ "$i" -lt 3 ]; do
 		v2_cli_in "$proj" "$home" next >/dev/null 2>&1
@@ -243,14 +251,32 @@ t_v2_tick_resets_the_call_counter() {
 t_v2_tick_output_passes_the_lint_it_creates() {
 	# The tick → lint join is the point: what tick writes must satisfy the rule
 	# flow-lint enforces, or the router lands in state 1e immediately after.
+	local home proj set sha
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	sha=${set##* }
+	v2_cli_in "$proj" "$home" tick T002 --sha "$sha"
+	v2_cli_in "$proj" "$home" lint
+	assert_rc 1 "T002's commit did not touch b.py, so the lint catches it"
+	assert_contains "$OUT" "done-touches-nothing" "the join rule fires on a tick against the wrong commit"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_refuses_when_its_files_were_never_committed() {
+	# BUG: resolveSha() used to fall back to HEAD when no commit since Base
+	# touched the task's files:, writing a false "done: <HEAD>" that flow-lint
+	# only caught one call later (done-touches-nothing). It must refuse instead.
 	local home proj set
 	home=$(tmp_dir)
 	set=$(v2_repo)
 	proj=${set%% *}
 	v2_cli_in "$proj" "$home" tick T002
-	v2_cli_in "$proj" "$home" lint
-	assert_rc 1 "T002's commit did not touch b.py, so the lint catches it"
-	assert_contains "$OUT" "done-touches-nothing" "the join rule fires on a tick against the wrong commit"
+	assert_rc 1 "ticking a task whose files: were never committed exits 1"
+	assert_contains "$ERR" "b.py" "the message names the untouched files"
+	assert_contains "$ERR" "fix:" "and carries a fix:"
+	OUT=$(grep -c '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md" || true)
+	assert_eq "$OUT" "0" "and TASKS.md is unchanged"
 	rm -rf "$home" "$proj"
 }
 
@@ -312,6 +338,40 @@ t_v2_tick_accepts_a_sha_override() {
 	line=$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md")
 	assert_contains "$line" "— done: $head" "done: is the given sha, not the one files: would resolve"
 	assert_not_contains "$line" "$bsha" "files: resolution did not override --sha"
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# flow pass — BUG 1/2: G002's own verify: line, and the CLI door to
+# passCovers() so a gate script never has to reimplement the sha join.
+# ---------------------------------------------------------------------------
+
+t_v2_pass_exit_codes() {
+	local home proj set sha
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	sha=${set##* }
+	v2_cli_in "$proj" "$home" pass
+	assert_rc 1 "flow pass with no PASS file exits 1"
+	assert_contains "$OUT" "no PASS file covers HEAD — run the gates" "and says so"
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha.md"
+	v2_cli_in "$proj" "$home" pass
+	assert_rc 0 "flow pass exits 0 once a PASS file covers HEAD"
+	assert_contains "$OUT" "PASS-$sha.md covers HEAD" "and names the covering file"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_pass_resolves_the_feature_the_same_way_next_does() {
+	# flow pass must reuse resolveFeature, not guess a feature of its own — a
+	# repo with no .specs/.current and no matching branch has nothing to check.
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/001-a" "$proj/.specs/002-b"
+	v2_cli_in "$proj" "$home" pass
+	assert_rc 1 "flow pass with no resolvable feature exits 1"
+	assert_contains "$OUT" "no PASS file covers HEAD" "and reports no covering PASS rather than crashing"
 	rm -rf "$home" "$proj"
 }
 

@@ -640,3 +640,39 @@ EOF
 	assert_contains "$OUT" '"clean":false' "wf: clean stays false: the task is incomplete even though nothing parked"
 	assert_contains "$OUT" '"incomplete":["T1"]' "wf: incomplete names the task independent of parked"
 }
+
+# skills/next/SKILL.md promises "at most 4 in parallel". A wave of 6 ready
+# tasks must never hand parallel() more than 4 thunks in flight at once. The
+# stub's agent() (the brief step, which runTask calls first) counts how many
+# calls are concurrently in flight and logs each count to stderr, then
+# returns null so runTask bails out before any further agent()/parallel()
+# call (brief failed -> no nested lens parallel() to confuse the count).
+t_wf_build_slices_wave_chunking_max_4() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOF'
+function log() {}
+function phase() {}
+let inFlight = 0
+async function agent(prompt, opts) {
+  inFlight++
+  process.stderr.write('inflight=' + inFlight + '\n')
+  await new Promise(function (resolve) { setTimeout(resolve, 20) })
+  inFlight--
+  return null
+}
+const args = { tasks: '/tmp/TASKS.md', base: 'main', testCmd: 'true', waves: [['T1', 'T2', 'T3', 'T4', 'T5', 'T6']], scriptsDir: '/tmp/scripts', reviewDir: '/tmp/review' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOF
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs a 6-task wave under wf-run.js"
+	local maxflight verdict
+	maxflight=$(printf '%s' "$ERR" | grep -o 'inflight=[0-9]*' | sed 's/inflight=//' | sort -n | tail -1)
+	verdict="no"
+	if [ -n "$maxflight" ] && [ "$maxflight" -le 4 ]; then verdict="yes"; fi
+	assert_eq "$verdict" "yes" "wf: a 6-task wave never has more than 4 agents in flight (max seen: $maxflight)"
+	assert_eq "$maxflight" "4" "wf: the wave actually dispatches a full chunk of 4 concurrently (not serialized)"
+}

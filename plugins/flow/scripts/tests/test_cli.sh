@@ -1077,6 +1077,24 @@ t_cli_doctor_config_schema_wrong_type_fails() {
 	rm -rf "$home" "$proj"
 }
 
+t_cli_doctor_config_schema_auto_approve() {
+	local home proj block
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	mkdir -p "$proj/.claude"
+	printf '{ "autoApprove": true }\n' >"$proj/.claude/flow.config.json"
+	cli_in "$proj" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "config-schema"')
+	assert_contains "$block" '"status": "PASS"' "t_cli_doctor_config_schema_auto_approve boolean-passes"
+
+	printf '{ "autoApprove": "yes" }\n' >"$proj/.claude/flow.config.json"
+	cli_in "$proj" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "config-schema"')
+	assert_contains "$block" 'autoApprove must be a boolean' "t_cli_doctor_config_schema_auto_approve string-fails"
+
+	rm -rf "$home" "$proj"
+}
+
 # ---------------------------------------------------------------------------
 # doctor — project-hooks (FU-16): a project registering its own hooks on a
 # flow-owned event is a WARN naming the event

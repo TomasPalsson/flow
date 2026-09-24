@@ -39,14 +39,26 @@ t_v8_next_approved_only_on_user_word() {
 }
 
 # The unattended auto-approval variant is deliberately deleted by spec 004:
-# --unattended resolves decisions, never the two stored human facts.
+# --unattended resolves decisions, never the two stored human facts. The one
+# sanctioned exception is the "autoApprove" config setting, not --unattended.
 t_v8_next_no_unattended_auto_approval() {
 	local content
 	content=$(cat "$NEXT_SKILL")
 	assert_not_contains "$content" 'auto (--unattended)' \
 		"next/SKILL.md has no auto-approved Approved: variant"
-	assert_contains "$content" 'Approved:` or `Verified:` yourself, in any mode' \
-		"next/SKILL.md bans writing Approved:/Verified: in any mode"
+	assert_contains "$content" 'write `Verified:` yourself, in any mode' \
+		"next/SKILL.md bans writing Verified: yourself in any mode"
+}
+
+# autoApprove setting: the model may write Approved: for the user when it is
+# on, but Verified: still needs a human, in every mode.
+t_v8_next_autoapprove_setting() {
+	local content
+	content=$(cat "$NEXT_SKILL")
+	assert_contains "$content" 'autoApprove' \
+		"next/SKILL.md mentions the autoApprove setting"
+	assert_contains "$content" 'Verified:` still needs the human, in every mode' \
+		"next/SKILL.md still says Verified: is human-only under autoApprove"
 }
 
 # ---------------------------------------------------------------------------

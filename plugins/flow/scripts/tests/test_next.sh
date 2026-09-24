@@ -77,6 +77,23 @@ t_next_row0_not_a_git_repo() {
 	rm -rf "$home" "$proj"
 }
 
+t_next_row0_git_missing_says_so() {
+	# BUG 4: with git missing from PATH, `flow next` used to say the directory
+	# is not a git repo — wrong diagnosis, wrong fix. PATH is emptied (not just
+	# missing a dir) so no `git` anywhere is reachable; node is invoked by its
+	# own absolute path so this does not also take node off the path.
+	local home proj node_bin
+	home=$(tmp_dir)
+	proj=$(tmp_dir) # no git init — git is not even runnable here
+	node_bin=$(command -v node)
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH=""; shift 2; exec "$@"' \
+		_ "$proj" "$home" "$node_bin" "$NX_CLI_PATH" next --json
+	assert_contains "$OUT" '"state": "scan-failed"' "git missing from PATH is scan-failed, not idle"
+	assert_contains "$OUT" '"why": "git not found on PATH"' "the why names the actual problem"
+	assert_not_contains "$OUT" "is not a git repo" "and does not misdiagnose it as a missing repo"
+	rm -rf "$home" "$proj"
+}
+
 t_next_row0_lint_crash_is_not_clean() {
 	local home proj base
 	home=$(tmp_dir)
@@ -383,6 +400,54 @@ t_next_row7_checkpoint_prints_its_own_text() {
 }
 
 # ---------------------------------------------------------------------------
+# BUG 3: nothing warned when a feature was being built on the default branch.
+# ---------------------------------------------------------------------------
+
+t_next_row6_building_on_main_warns() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	git -C "$proj" checkout -q -B main
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		'- [ ] T001 a — files: a.py — verify: `true`'
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "building"' "sanity: still building"
+	assert_contains "$OUT" 'warning: on main; run: git checkout -b flow/x' "building on main carries the warning and its fix"
+	rm -rf "$home" "$proj"
+}
+
+t_next_row5_unapproved_on_master_warns() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	git -C "$proj" checkout -q -B master
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "" \
+		'- [ ] T001 a — files: a.py — verify: `true`'
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "unapproved"' "sanity: still unapproved"
+	assert_contains "$OUT" 'warning: on master; run: git checkout -b flow/x' "master is caught too, not just main"
+	rm -rf "$home" "$proj"
+}
+
+t_next_a_feature_branch_carries_no_main_branch_warning() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	git -C "$proj" checkout -q -b flow/entry-tagging
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-entry-tagging
+	nx_tasks "$proj/.specs/001-entry-tagging/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		'- [ ] T001 a — files: a.py — verify: `true`'
+	nx_cli_in "$proj" "$home" next --json
+	assert_not_contains "$OUT" 'warning: on' "a flow/<slug> branch gets no main-branch warning"
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
 # rows 8, 9, 10 — the two halves of done, deliberately kept apart
 # ---------------------------------------------------------------------------
 
@@ -437,6 +502,58 @@ Verified: 2026-09-08 by user" \
 	nx_cli_in "$proj" "$home" next --json
 	assert_contains "$OUT" '"state": "stale-pass"' "a commit after the PASS drops back to the gates"
 	assert_contains "$OUT" "PASS-$sha.md is not HEAD" "row 10 names the stale PASS"
+	rm -rf "$home" "$proj"
+}
+
+# BUG 1: PASS-<sha>.md used to cover HEAD only when <sha> matched HEAD
+# exactly — but writing PASS-<sha>.md and committing it moves HEAD, and so
+# does ticking G### (which edits TASKS.md). Both used to gate forever. Neither
+# commit ever leaves the feature dir, so passCovers must still say yes.
+t_next_row9_pass_committed_then_tick_committed_still_covers() {
+	local home proj base sha1 sha2
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	sha1=$(nx_commit "$proj" a.py)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha1" \
+		'' '## Gates' '- [ ] G001 clean — verify: `true`'
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha1.md"
+	# commit the PASS file itself — HEAD moves, but the change never left .specs/
+	sha2=$(nx_commit "$proj" ".specs/001-x/PASS-$sha1.md")
+	# now tick G001 by hand, referencing the PASS commit, and commit that too —
+	# another edit that never leaves .specs/001-x/
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha1" \
+		'' '## Gates' "- [x] G001 clean — verify: \`true\` — done: $sha2"
+	(cd "$proj" && git add -A && git commit -qm "tick G001") >/dev/null 2>&1
+	nx_cli_in "$proj" "$home" next --json
+	assert_not_contains "$OUT" '"state": "gating"' "a PASS committed, then a tick committed, still covers HEAD — no endless gating loop"
+	assert_contains "$OUT" '"state": "unverified"' "with no Verified: yet the router asks a human instead of re-running the gates"
+	rm -rf "$home" "$proj"
+}
+
+# The other half: a PASS that IS committed still has to go stale the moment a
+# later commit touches something outside the feature dir — passCovers must
+# not become a rubber stamp just because the PASS file itself was committed.
+t_next_row10_commit_outside_feature_dir_after_committed_pass_is_stale() {
+	local home proj base sha1
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	sha1=$(nx_commit "$proj" a.py)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user
+Verified: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha1" \
+		'' '## Gates' "- [x] G001 clean — verify: \`true\` — done: $sha1"
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha1.md"
+	nx_commit "$proj" ".specs/001-x/PASS-$sha1.md" >/dev/null # the PASS file, committed
+	nx_commit "$proj" "src/other.py" >/dev/null # touches a file outside .specs/001-x/
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "stale-pass"' "a later commit outside the feature dir invalidates the pass, even though the pass itself was committed"
+	assert_contains "$OUT" "PASS-$sha1.md is not HEAD" "row 10 still names the stale PASS"
 	rm -rf "$home" "$proj"
 }
 

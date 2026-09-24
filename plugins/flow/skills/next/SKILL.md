@@ -27,7 +27,7 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 | `prep-ready` | `Next: /flow:spec`. A `PREP.md` is ready and has no `spec.md` — `/flow:spec` reuses that directory. |
 | `ambiguous` | `Next: flow use <NNN-slug>`. **Never guess** which feature is live. |
 | `drafting` | Write `TASKS.md` (§Drafting below), then stop. |
-| `unapproved` | HARD GATE. Read `TASKS.md` and print **What will happen** — one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths — then the router's line verbatim, and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. |
+| `unapproved` | HARD GATE. Read `TASKS.md` and print **What will happen** — one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths — then the router's line verbatim, and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. When `.claude/flow.config.json` has `"autoApprove": true`, print **What will happen** the same way, then prepend `Approved: <YYYY-MM-DD> by model (autoApprove)` and `Base: <sha>` yourself and continue to the next state in the same turn — no stop. `Verified:` still needs the human, in every mode. |
 | `building` | Build exactly the wave the router names (§Building). |
 | `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. |
 | `gating` | Run the `## Gates` (§Gates). |
@@ -39,7 +39,7 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 
 ## Drafting
 
-Write `TASKS.md` per the grammar in [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md): a header (`Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`), `## Behaviors`, one `## Phase N — <title>` per phase with its `Goal:` and `Independent test:` lines, and `## Gates`. Every task line names `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` on a `CHK###`). `after:` is what computes the waves. Run `flow lint` and fix every ERROR before stopping. Never write `Approved:`.
+Write `TASKS.md` per the grammar in [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md): a header (`Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`), `## Behaviors`, one `## Phase N — <title>` per phase with its `Goal:` and `Independent test:` lines, and `## Gates`. Every task line names `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` on a `CHK###`). `after:` is what computes the waves. Run `flow lint` and fix every ERROR before stopping. Never write `Approved:` here, even when `autoApprove` is on — that line is written at the `unapproved` gate, not during drafting.
 
 ## Building
 
@@ -67,7 +67,7 @@ All `T###` done, `G###` open:
 1. `flow check --fix` — typecheck, lint, format, test. Fix the code, never the test.
 2. One whole-branch review over `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <Base>..HEAD` with a fresh reviewer, the anchored 0/25/50/75/100 blind re-score and the ≥80 keep rule from [`review.md`](review.md), and **one** fix dispatch for everything it finds — not one per finding.
 3. A converge pass: append any unmet work as **new** tasks, append-only, byte-for-byte no-op when clean.
-4. All green → write `.specs/<NNN-slug>/PASS-<HEAD-sha>.md` naming the gates, their commands and their exit codes. It is named after the tree it verified, so any later commit invalidates it for free and the router drops back to `gating`. Then `flow tick` each `G###`.
+4. All green → write `.specs/<NNN-slug>/PASS-<HEAD-sha>.md` naming the gates, their commands and their exit codes. It may be committed: later commits that only touch `.specs/<NNN-slug>/` (the PASS file itself, `TASKS.md` ticks, `verify/`) keep it valid; a commit that touches anything outside the feature directory still invalidates it and the router drops back to `gating`. Then `flow tick` each `G###`.
 
 `--qa` runs the `qa` skill as an extra gate before step 4. It is off the default path.
 
@@ -118,7 +118,7 @@ The one exception: when `flow next` reported a hard gate for the user — `unapp
 - **NEVER** accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
 - **NEVER** type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.
 - **NEVER** start wave N+1 before wave N has reported, or dispatch two `[P]` tasks that share a file — `flow lint` already proved they do not, and a hand-added task can break that.
-- **NEVER** write `Approved:` or `Verified:` yourself, in any mode. Those two lines are the only stored facts nothing on disk implies, which is exactly why a human writes them.
+- **NEVER** write `Approved:` yourself unless `autoApprove` is `true` in `.claude/flow.config.json` — then, and only at the `unapproved` gate, write `Approved: <YYYY-MM-DD> by model (autoApprove)`. **NEVER** write `Verified:` yourself, in any mode: that fact is always a human's word, autoApprove included.
 - **NEVER** skip a phase's `Independent test:` at the boundary, and never merely quote it. Execute it.
 - **NEVER** edit, skip, xfail or weaken a test to clear a finding or a gate. The Stop hook blocks the turn and the tamper notice records it anyway.
 - **NEVER** let a reviewer verify or fix its own finding. Scanner ≠ fixer ≠ verifier.
