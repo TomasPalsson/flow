@@ -34,11 +34,11 @@ Canonical techniques for each type of user-requested improvement. Load this when
 
 **Expert technique**:
 Diagnose which dimension is thin. "Longer" is a proxy for a specific gap:
-1. No NEVER list? → Add expert anti-patterns (D3)
+1. No named failure modes? → Add real ones with mechanism and what to do instead (D3)
 2. No decision trees? → Add them (D8)
 3. No edge cases? → Add them (D8)
 4. Description lacks scenarios? → Expand description (D4)
-5. No "Before doing X, ask yourself..." framework? → Add thinking framework (D2)
+5. No domain decision with its consequence? → Add one (D2)
 
 **The addition test**: "Would Claude do this correctly WITHOUT being told?" If yes, don't add. Only add content where the answer is no.
 
@@ -59,7 +59,7 @@ Trigger phrases: [term1], [term2], [term3].
 Do NOT use for: [adjacent intent 1], [adjacent intent 2].
 ```
 
-**The pushy principle**: Claude under-triggers skills by default. "Use WHENEVER user asks to X" > "Can be used when X". Use WHENEVER / Use WHEN / MUST activate.
+**The pushy principle**: Claude under-triggers skills by default, so name concrete scenarios in plain "Use when: X, Y, Z" wording rather than a vague "Can be used for X". Avoid "Use WHENEVER" / "MUST activate" and keyword dumps — they cause false triggers against neighbouring skills. Let a trigger eval (10 requests that should trigger, 5 near-misses that should not) decide how broad to go, not the wording. Write in the third person, and keep the description to 1024 characters or fewer.
 
 **Anti-trigger inclusion**: "Do NOT use for: [X]" prevents false activations on adjacent intents.
 
@@ -188,7 +188,7 @@ For task A: load references/a.md. Do NOT load references/b.md.
 - Ugly/ineffective → High freedom (principles, not steps)
 
 **Conversion techniques**:
-- Prescriptive → Principled: "Step 1: Open file. Step 2: Edit..." → "Before editing, ask yourself: what's the smallest change that achieves the goal?"
+- Prescriptive → Principled: "Step 1: Open file. Step 2: Edit..." → state the domain decision at that step and its consequence: "Edit only the smallest region the fragility test flags; editing more risks the exact corruption this step guards against."
 - Rules → Reasoning: "NEVER use X" → "X typically fails because [reason]; prefer Y unless [condition]"
 
 **Regression risk**: If the task is actually fragile (e.g., OOXML editing), increasing freedom breaks correctness.

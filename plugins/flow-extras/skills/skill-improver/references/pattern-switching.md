@@ -48,7 +48,7 @@ Diagnostic questions to surface the wrong pattern:
 
 **Moves**:
 1. Keep the strongest anti-patterns and thinking frameworks
-2. Replace phase steps with "Before [phase], ask yourself..." frameworks
+2. Replace generic phase steps with the domain's decision at each phase and why it matters
 3. Remove checkpoint/gate logic that was there for pure orchestration
 4. Lead with "what makes this domain hard" / "what the model gets wrong by default"
 5. Keep 1-2 reference files if deep sub-topics need them

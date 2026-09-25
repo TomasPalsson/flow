@@ -15,7 +15,7 @@ Improve an existing SKILL.md with surgical precision, not wholesale rewrites. Th
 
 **Addition bias is structural.** LLMs systematically propose additions (more examples, more NEVER, more edge cases) and systematically miss subtractions. For every proposed addition, force the question: "Would removing weak content serve the same goal?"
 
-**Voice is functional.** Terse imperative language ("NEVER do X. Period.") is harder to rationalize away than polished explanatory prose. Polishing cycles homogenize skills toward generic skill-speak and weaken behavioral impact. Preserve roughness that serves authority.
+**Voice is functional, but calibrated.** Reserve terse imperative wording ("NEVER X. It will break.") for the one or two rules a test actually showed get rationalized away under conversational pushback — that phrasing is harder to talk a model out of. Everywhere else, a calm rule that states its reason works better on current Claude models: stacking emphasis onto many lines dilutes all of it and can cause over-triggering. Don't polish away a blunt rule that already carries a reason, and don't add new shouting to rules nobody has tested under pushback.
 
 **Skill-judge's 8 dimensions interfere.** Fixing D3 often bloats past length and degrades D5. Adding examples dilutes D1. Pushy descriptions degrade D4 clarity. Think systemically — check regression across dimensions, not just the targeted one.
 
@@ -73,7 +73,7 @@ Surface requests encode dimension problems. Translate:
 |---|---|---|
 | "Make shorter" | Redundant content; ceremony before substance (D1/D5) | E/A/R audit; cut R, compress A |
 | "Make longer" / "feels thin" | Missing anti-patterns, decision trees, or edge cases (D3/D8) | Identify specific gap; add substance, not filler |
-| "Improve description" | D4 — WHAT/WHEN/KEYWORDS missing or passive | Rewrite with pushy triggers + anti-triggers |
+| "Improve description" | D4 — WHAT/WHEN/KEYWORDS missing or passive | Rewrite with concrete "Use when..." scenarios + near-miss exclusions |
 | "Add examples" | D8 — gap at point of maximum uncertainty | One concrete working example > 3 generic |
 | "Add anti-patterns" | D3 vague or missing | Action + consequence + non-obvious reason |
 | "Reorganize" / "confusing" | Wrong pattern (D7) OR wrong layer (D5) | Diagnose which; pattern fix before shuffling |
@@ -208,7 +208,7 @@ Before any improvement, check what it might break:
 | D8 via examples | D1 knowledge delta | Examples often explain context Claude knows |
 | D4 via expanding description | D4 clarity itself | Packing keywords reduces routing precision |
 | D6 via explicit scripts | D8 usability | Rigid scripts break adaptation to variants |
-| D2 via "ask yourself" framing | D7 pattern fit | Tool-pattern skills need steps, not questions |
+| D2 via "ask yourself" framing | D1 knowledge delta | Generic "ask yourself" questions are content Claude already acts on; the judge no longer credits them |
 | D1 via cutting | D3 / D8 | Expert content and WHYs can be removed accidentally |
 | D5 via new references/ dir | D5 itself | Orphan references without loading triggers |
 
@@ -224,9 +224,9 @@ Before any improvement, check what it might break:
 
 **NEVER improve the body without auditing the description.** Description-body coupling failures are silent. Production failure (Mode A): you add a new capability to the body that isn't reflected in the description — the skill never activates for that capability's use case, so your improvement is invisible. Production failure (Mode B): you expand the description's WHEN clauses without covering them in the body — the skill activates on new scenarios and produces generic output because the body can't deliver.
 
-**NEVER use judge score as the sole success criterion.** Goodhart's Law. Production failure: D3 gets gamed by manufacturing 5 new NEVER entries that read as specific but aren't real failure modes. Score rises; an expert reading the skill says "these aren't things I've actually seen" and dismisses the whole NEVER list. The real test: would a domain expert read each change and say "yes, I learned this the hard way"? If no, the score improvement is cosmetic.
+**NEVER use judge score as the sole success criterion.** Goodhart's Law. Production failure: D3 gets gamed by manufacturing 5 new NEVER entries that read as specific but aren't real failure modes. Score rises; an expert reading the skill says "these aren't things I've actually seen" and dismisses the whole NEVER list. The real test: would a domain expert read each change and say "yes, I learned this the hard way"? If no, the score improvement is cosmetic. A score gain only counts if a with/without run on 2-3 prompts (or the skill's own eval) shows no new regression — without that check, a higher score is unverified.
 
-**NEVER smooth away deliberate voice roughness.** Production failure: a polished skill saying "it is recommended to avoid X as it can sometimes cause issues" gets overridden by in-context persuasion — users pushing back in conversation will get compliance. The same constraint written as "NEVER X. It will break." is harder to rationalize away. Polishing homogenizes skills toward assistant-default behavior, removing the behavioral punch.
+**NEVER smooth away a blunt rule that a test showed resists pushback.** Production failure: a polished skill saying "it is recommended to avoid X as it can sometimes cause issues" gets overridden by in-context persuasion — users pushing back in conversation get compliance. Where testing showed "NEVER X. It will break." held up and a calm rewrite didn't, keep the blunt version. Elsewhere, polishing toward a calm rule that states its reason is fine — it works better on current models than blanket shouting.
 
 **NEVER exceed the change budget.** Production failure: what started as "fix the description" becomes a 6-section rewrite; you silently touch sections the user didn't ask about, and when something breaks the user has no map of what changed. Define the exact sections you'll touch BEFORE opening the file. Flag out-of-scope observations separately; don't silently "fix" them.
 
@@ -244,4 +244,4 @@ Before any improvement, check what it might break:
 
 ## Minimum Viable Output
 
-Before reporting complete, verify: mode was explicit, failure class was diagnosed, voice was preserved, all changes were in-budget, regression check ran on all 8 dimensions, body ≤ 500 lines. Creative mode also needs: Trade-off field on every idea, ≥1 compression/subtraction idea, all ideas grounded in quoted SKILL.md sources (not generic advice). Any scope creep → flagged as separate opportunity, not silently applied.
+Before reporting complete, verify: mode was explicit, failure class was diagnosed, voice was preserved, all changes were in-budget, regression check ran on all 8 dimensions, body ≤ 500 lines, behavioural evidence for content changes (with/without on 2-3 prompts), or "Behavioral evidence: NONE" stated. Creative mode also needs: Trade-off field on every idea, ≥1 compression/subtraction idea, all ideas grounded in quoted SKILL.md sources (not generic advice). Any scope creep → flagged as separate opportunity, not silently applied.
