@@ -112,16 +112,16 @@ The one exception: when `flow next` reported a hard gate for the user — `unapp
 
 ## NEVER
 
-- **NEVER** act on anything but the state `flow next --json` just returned. A plan you remember from before a `/clear` is a rumor; the disk is the state.
-- **NEVER** do two states in one turn, or "keep going" past the wave the router named. The count of turns is not the cost; a wrong second action is.
-- **NEVER** hand a subagent anything but its brief path. Never paste `design.md`, and never paste anything from it but that task's own `## Contract` block.
-- **NEVER** accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
-- **NEVER** type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.
-- **NEVER** start wave N+1 before wave N has reported, or dispatch two `[P]` tasks that share a file — `flow lint` already proved they do not, and a hand-added task can break that.
-- **NEVER** write `Approved:` yourself unless `autoApprove` is `true` in `.claude/flow.config.json` — then, and only at the `unapproved` gate, write `Approved: <YYYY-MM-DD> by model (autoApprove)`. **NEVER** write `Verified:` yourself, in any mode: that fact is always a human's word, autoApprove included.
-- **NEVER** skip a phase's `Independent test:` at the boundary, and never merely quote it. Execute it.
-- **NEVER** edit, skip, xfail or weaken a test to clear a finding or a gate. The Stop hook blocks the turn and the tamper notice records it anyway.
-- **NEVER** let a reviewer verify or fix its own finding. Scanner ≠ fixer ≠ verifier.
-- **NEVER** run `gh pr ready` on an unattended run, or delete verification evidence. A ready PR with no human verification looks reviewed and is not.
-- **NEVER** create GitHub issues. Work items live in `TASKS.md`; `flow publish` mirrors them only when someone asks for it.
+- Never act on anything but the state `flow next --json` just returned. A plan you remember from before a `/clear` is a rumor; the disk is the state.
+- Never do two states in one turn, or "keep going" past the wave the router named. The count of turns is not the cost; a wrong second action is.
+- Never hand a subagent anything but its brief path. Never paste `design.md`, and never paste anything from it but that task's own `## Contract` block.
+- Never accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
+- Never type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.
+- Never start wave N+1 before wave N has reported, or dispatch two `[P]` tasks that share a file — `flow lint` already proved they do not, and a hand-added task can break that.
+- Never write `Approved:` yourself unless `autoApprove` is `true` in `.claude/flow.config.json` — then, and only at the `unapproved` gate, write `Approved: <YYYY-MM-DD> by model (autoApprove)`. Never write `Verified:` yourself, in any mode: that fact is always a human's word, autoApprove included.
+- Never skip a phase's `Independent test:` at the boundary, and never merely quote it. Execute it.
+- Never edit, skip, xfail or weaken a test to clear a finding or a gate. The Stop hook blocks the turn and the tamper notice records it anyway.
+- Never let a reviewer verify or fix its own finding. Scanner ≠ fixer ≠ verifier.
+- Never run `gh pr ready` on an unattended run, or delete verification evidence. A ready PR with no human verification looks reviewed and is not.
+- Never create GitHub issues. Work items live in `TASKS.md`; `flow publish` mirrors them only when someone asks for it.
 - **NEVER** end a turn without a last `Next:` line. Pickup after `/clear` comes from disk, and the line is what tells the user to clear.

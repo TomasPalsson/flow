@@ -7,7 +7,7 @@ Claude operates a three-principal trust hierarchy baked in during training:
 2. **Operator** (system prompt) — treated like "messages from a relatively trusted employer"
 3. **User** (human turn) — lowest trust level
 
-Practical consequence: System prompts don't need to justify rules. Claude follows operator instructions without requiring reasoning unless they cross ethical lines. This saves tokens — skip the "because..." justification for operational rules.
+Practical consequence: Claude follows operator (system-prompt) instructions readily, without needing to be argued into it. Keep the reason behind a real constraint anyway — a stated reason lets the model generalize the rule correctly to cases the rule text didn't spell out; dropping it to save a few tokens is a false economy.
 
 ## XML Is the Gold Standard
 
@@ -22,21 +22,19 @@ Claude is explicitly trained to pay special attention to XML-delimited structure
 
 XML costs ~15% more tokens than equivalent Markdown, but if it improves response quality enough to reduce iteration, total tokens consumed may be lower.
 
-## Adaptive Thinking
+## Thinking: Adaptive, Controlled by Effort
 
-Claude 4.6 uses adaptive thinking (`thinking: {type: "adaptive"}`), controlled by the `effort` parameter (`low`, `medium`, `high`, `max`), not by prompt text.
+On current Claude models, use adaptive thinking (`thinking: {type: "adaptive"}`) and control depth with the `effort` parameter (`low`, `medium`, `high`, `xhigh`, `max`), not with prompt text. `budget_tokens` returns a 400 on Claude Opus 5, Sonnet 5, Fable 5/5.1 and Opus 4.7/4.8. On Claude Fable 5/5.1 and Claude Opus 5.5 thinking is always on — `{type: "disabled"}` also returns a 400 — so effort is the only thinking control. Effort defaults to `high`, except on Claude Opus 5.5 (`medium`); set it explicitly.
 
 **Non-obvious behaviors:**
-- Complex system prompts trigger adaptive thinking MORE FREQUENTLY, increasing latency and cost
-- If you want to suppress unnecessary thinking: "Extended thinking adds latency and should only be used for problems requiring multi-step reasoning. When in doubt, respond directly."
-- NEVER feed Claude's `<thinking>` block content back as input — Anthropic explicitly states this degrades performance
-- Extended thinking can HURT performance by up to 36% on intuitive/pattern-recognition tasks
-- `budget_tokens` is deprecated for 4.x models; use `effort` parameter instead
-- Minimum thinking budget is 1,024 tokens
+- Lower `effort` to cut latency and cost. A "think less" / "respond directly" instruction can't be followed on a model where thinking is always on.
+- Pass `thinking` blocks back unchanged when you continue on the same model. On Claude Fable 5.1 and Claude Opus 5.5, editing earlier turns invalidates them (preserved thinking), so keep the history append-only.
+- Don't ask Claude to reproduce or summarize its own reasoning in the visible reply. On Claude Fable 5.1 and Claude Opus 5.5 this can trigger a `refusal` (`reasoning_extraction`, not retried on a fallback). Read the `thinking` blocks via the API instead (`display: "summarized"`).
+- Thinking can hurt performance by up to 36% on intuitive/pattern-recognition tasks.
 
 ## Context Awareness
 
-Claude 4.6 tracks its remaining token budget and may prematurely wrap up work as context fills. If your harness handles compaction:
+Claude tracks its remaining token budget and may prematurely wrap up work as context fills. If your harness handles compaction:
 
 ```
 Your context window will be automatically compacted as it approaches its limit,
@@ -48,11 +46,13 @@ Without this instruction, the model silently winds down work — a common failur
 
 ## Prompt Caching
 
-**Silent failure thresholds:**
-- Opus 4.6/4.5, Haiku 4.5: minimum **4,096 tokens** to cache
-- Sonnet 4.6/4.5/4, Haiku 3.5/3: minimum **2,048 tokens**
+**Silent failure thresholds** (model-specific, not monotonic across generations):
+- Claude Opus 5, Claude Fable 5, Claude Mythos 5, Claude Fable 5.1, Claude Mythos 5.1: minimum **512 tokens**
+- Opus 4.8, Sonnet 5, Sonnet 4.6/4.5/4: minimum **1,024 tokens**
+- Opus 4.7, Haiku 3.5: minimum **2,048 tokens**
+- Opus 4.6/4.5, Haiku 4.5: minimum **4,096 tokens**
 
-Below these thresholds, caching silently fails — no error, `cache_creation_input_tokens` stays 0.
+Below the minimum for your target model, caching silently fails — no error, `cache_creation_input_tokens` stays 0. Check the current per-model minimum before assuming caching kicks in.
 
 **Cache hierarchy:** `tools → system → messages` (strict). Changes cascade downstream:
 - Changing tool definitions → invalidates tool + system + message cache
@@ -61,24 +61,20 @@ Below these thresholds, caching silently fails — no error, `cache_creation_inp
 
 **Architecture for caching:** Static content FIRST (identity, base instructions), dynamic content LAST (user context, request-specific data). Any dynamic content before static content destroys cache efficiency.
 
-## Claude Opus 4.5 Word Sensitivity
-
-When extended thinking is disabled, Claude Opus 4.5 is triggered by the word "think" and its variants. Use "consider," "evaluate," or "reason through" to avoid unintentional thinking activation.
-
 ## Prefilled Responses Deprecated
 
-Prefilling the last assistant turn is no longer supported in Claude 4.6. Migrate to:
+Prefilling the last assistant turn returns a 400 on every Opus-, Sonnet- and Fable-tier model from the 4.6 generation onward. Migrate to:
 - Structured Outputs for JSON enforcement
 - Direct instructions: "Respond directly without preamble."
 - XML output tags in instructions
 
 ## Anti-Laziness Prompting on Newer Models
 
-Prompts with "CRITICAL: You MUST use this tool when..." were written for older models. Claude Opus 4.5+ over-triggers on these. Replace with normal imperative language: "Use this tool when..."
+Prompts with "CRITICAL: You MUST use this tool when..." were written for older, less steerable models. Current Claude models over-trigger on this kind of stacked emphasis. Replace with normal imperative language: "Use this tool when..."
 
-## `tool_choice` Constraints with Thinking
+## `tool_choice` Constraints
 
-`tool_choice: any` raises a hard API error when thinking is enabled. Use `tool_choice: auto` with explicit instruction in the user message if you want to encourage a specific tool while thinking is enabled.
+`tool_choice: {type: "any"}` / `{type: "tool", name: ...}` return a 400 on Claude Opus 5.5 (there's no "thinking disabled" mode to work around it with, either). Use `tool_choice: auto` with `strict: true` to keep the schema guarantee, or structured outputs for extraction; to encourage a specific tool under `auto`, steer it with a prompt instruction instead.
 
 ## Query Placement in Long Contexts
 

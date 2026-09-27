@@ -58,12 +58,7 @@ Too many tools create ambiguous decision points:
 
 ## Hidden Token Cost
 
-Every `tools` API call to Claude injects a hidden system prompt of 313-530 tokens BEFORE your system prompt:
-- Opus/Sonnet 4.6 with `tool_choice: auto/none`: **346 tokens**
-- Opus/Sonnet 4.6 with `tool_choice: any/tool`: **313 tokens**
-- Haiku 3.5 with `any/tool`: **340 tokens**
-
-Budget your effective system prompt accordingly — these tokens are invisible but real.
+Every `tools` API call injects a hidden system prompt before your own — the exact size varies by model and has changed across model generations, so budget for it empirically (log actual `input_tokens` with and without `tools` set) rather than assuming a fixed constant. These tokens are invisible but real. Note `tool_choice: {type: "any"}` / `{type: "tool", ...}` errors outright on Claude Opus 5.5 — see `claude-specific.md`.
 
 ## Tool Result Design
 

@@ -106,7 +106,7 @@ LLMs trained on code understand and follow pseudocode instructions reliably.
 
 ### Phase 5: Automated Compression (optional, context sections only)
 
-Apply to per-request injected context (RAG docs, conversation history). NEVER to instruction core.
+Apply to per-request injected context (RAG docs, conversation history). Never to instruction core.
 
 | Tool | Best Ratio | Use Case |
 |---|---|---|
@@ -146,7 +146,7 @@ Apply to per-request injected context (RAG docs, conversation history). NEVER to
 **Silent failure modes:**
 - Dynamic content before static → every request misses cache (observed: 10% hit rate vs expected 80%+)
 - Timestamp or user ID in the middle of the static block → invalidates everything after it
-- Below minimum token threshold → caching silently does nothing (Claude: 2048-4096 tokens)
+- Below minimum token threshold → caching silently does nothing (Claude: 512-4,096 tokens, model-dependent — see `claude-specific.md`)
 
 **Cost math (Anthropic):**
 - Cache read: 10% of base input price (90% discount)
