@@ -21,7 +21,7 @@ INVENTORY: $WORKSPACE/inventory.md  (read this first — don't recommend existin
 OUTPUT: Write your complete findings to $WORKSPACE/wave-1/<your-lens>.md
 
 GROUNDING RULE (enforced):
-- Every finding MUST cite file:line. No file path = the finding doesn't count.
+- Every finding must cite file:line. No file path = the finding doesn't count.
 - If you find nothing, list what you checked and confirmed clean.
 - Do NOT generate findings from training data. If you can't point to a specific
   line in this repo, drop it.
@@ -199,7 +199,7 @@ Scope (cover):
 For each finding: specify what to remove (file:line), why it's safe to remove
 (evidence it's unused/stale), and the simplification benefit.
 
-You MUST produce at least 1 finding. If the codebase is genuinely pristine, your
+You must produce at least 1 finding. If the codebase is genuinely pristine, your
 finding is: "No obvious deletions — codebase is well-maintained, checked: [list]".
 
 Do NOT cover:

@@ -58,7 +58,7 @@ Two traps this catches. **Cold cache**: if queries arrive slower than the cache 
 
 **Read the actual retrieved chunks for ten failing queries before changing anything.** A CHI 2026 study of RAG debugging found practitioners overwhelmingly work retriever-first, and one put the reason plainly: you can iterate on a prompt all you want — it cannot recover evidence that was never retrieved.
 
-**MANDATORY when a system is already broken — open and fill in [`scripts/triage.md`](scripts/triage.md)** before changing chunking, embeddings, fusion, or adding a graph. It forces the tally that decides which fix is even applicable, and it has two gates that catch expensive mistakes: *the document isn't in the index* and *retrieval is scoring worse than no retrieval at all*.
+When a system is already broken, open and fill in [`scripts/triage.md`](scripts/triage.md) before changing chunking, embeddings, fusion, or adding a graph. It forces the tally that decides which fix is even applicable, and it has two gates that catch expensive mistakes: *the document isn't in the index* and *retrieval is scoring worse than no retrieval at all*.
 
 Then put a number on it with the **oracle-context test**: hand the generator the known-correct passage and measure the ceiling.
 
@@ -71,7 +71,7 @@ python scripts/rag_calc.py recall  --file run.jsonl            # recall@k curve 
 - **Oracle high, live far below** → retrieval-bound. Spend upstream, in the leverage order below.
 - Bracket it with a **closed-book floor** (no context) too. In a combustion-science RAG study ([arXiv:2603.04452](https://arxiv.org/pdf/2603.04452)) a *noisy* configuration scored **worse than zero-shot** (21.1% vs 23.35%, against an 87.3% oracle ceiling) — retrieval can be net-negative, and only the floor reveals it.
 
-**MANDATORY — READ ENTIRE FILE** before designing metrics, building an eval set, or interpreting retrieval scores: load [`references/diagnosis.md`](references/diagnosis.md). It has the seven isolation experiments, the metric traps, and the synthetic-golden-set circularity problem. **Do NOT** load the ingestion, security, or ops references for this step.
+Read [`references/diagnosis.md`](references/diagnosis.md) in full before designing metrics, building an eval set, or interpreting retrieval scores. It has the seven isolation experiments, the metric traps, and the synthetic-golden-set circularity problem. Do not load the ingestion, security, or ops references for this step.
 
 ### The leverage ladder — what actually moves the needle
 
@@ -116,7 +116,7 @@ Route per query rather than picking a side. The one design rule that transfers e
 
 Map the **lethal trifecta** onto RAG: the corpus is the private data, retrieved chunks are the untrusted content. A read-only Q&A assistant is missing the third leg. **The moment you add a tool that can email, post, ticket, or call an API, the trifecta closes and your corpus becomes the injection vector.** Treat "does this system have an outbound tool" as a higher-leverage decision than any prompt-level defense — no measured defense reaches zero attack success.
 
-**MANDATORY — READ ENTIRE FILE** before shipping anything multi-tenant, permissioned, PII-bearing, or ingesting untrusted content: load [`references/security.md`](references/security.md).
+Read [`references/security.md`](references/security.md) in full before shipping anything multi-tenant, permissioned, PII-bearing, or ingesting untrusted content.
 
 ## Symptom → cause → fix
 

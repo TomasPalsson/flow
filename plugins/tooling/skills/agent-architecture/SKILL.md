@@ -25,7 +25,7 @@ Two corollaries that should shape every decision below:
 
 ## Before you build: the escalation ladder (Anthropic's "start simple")
 
-Walk DOWN this ladder. Stop at the first rung that passes your evals. Do **not** skip ahead. **MANDATORY when designing or choosing an architecture — open and fill in [`scripts/decision-ladder.md`](scripts/decision-ladder.md)**: it forces the "measured, not assumed" gate at each rung and records *why* you chose one, so the decision isn't re-litigated later.
+Walk DOWN this ladder. Stop at the first rung that passes your evals. Do **not** skip ahead. When designing or choosing an architecture, open and fill in [`scripts/decision-ladder.md`](scripts/decision-ladder.md): it forces the "measured, not assumed" gate at each rung and records *why* you chose one, so the decision isn't re-litigated later.
 
 ```
 1. Single optimized LLM call  (+ retrieval + in-context examples)
@@ -108,7 +108,7 @@ Each architecture pattern has a native AgentCore primitive. **Load [`references/
 | [`references/multi-agent.md`](references/multi-agent.md) | Considering/building multi-agent; subagent scaling; A2A | Confirmed single-agent task |
 | [`references/agentcore-mapping.md`](references/agentcore-mapping.md) | Implementing on Bedrock AgentCore | Provider-agnostic design; non-AWS target |
 | [`references/anti-pattern-gallery.md`](references/anti-pattern-gallery.md) | Something is broken/expensive/slow and you want the cause | Greenfield design (use the ladder above instead) |
-| [`scripts/decision-ladder.md`](scripts/decision-ladder.md) | **MANDATORY** when choosing/justifying an architecture rung | After the rung is decided and recorded |
+| [`scripts/decision-ladder.md`](scripts/decision-ladder.md) | (required) when choosing/justifying an architecture rung | After the rung is decided and recorded |
 | [`scripts/token_cost_calculator.py`](scripts/token_cost_calculator.py) | Budgeting; caching break-even; single-vs-multi cost delta | No cost/budget question in play |
 
 When a reference is needed, **read the ENTIRE file** — these are dense and load-bearing; do not range-limit them.
@@ -123,7 +123,7 @@ Architecture choices above are judgment calls. The strings below are **not** —
 Prompt caching:    order tools→system→messages; static first, volatile LAST.
                    read 0.1× · 5m-write 1.25× · 1h-write 2.0× · max 4 breakpoints
                    20-block lookback (turn-1 breakpoint misses by ~turn 21 → add a 2nd)
-                   min-to-cache: 1,024 (Sonnet 4.x, Opus 4.8/4.1/4) · 4,096 (Opus 4.5/4.6/4.7, Haiku 4.5) · 2,048 (Haiku 3.5)
+                   min-to-cache: 512 (Opus 5/5.5, Fable 5/5.1) · 1,024 (Sonnet 5, Sonnet 4.x, Opus 4.8/4.1/4) · 2,048 (Opus 4.7, Haiku 3.5) · 4,096 (Opus 4.5/4.6, Haiku 4.5)
                    verify: cache_creation_input_tokens>0 then cache_read_input_tokens>0
                    Bedrock: NO auto-caching (explicit only); 1h TTL only on 4.5-tier; CRIS scatters cache
 Compaction:        type "compact_20260112"  header "anthropic-beta: compact-2026-01-12"
@@ -146,7 +146,7 @@ Estimate cost / caching break-even / multi-agent comparison before committing:
 
 ## Symptom → cause → fix (debug index)
 
-When something is already broken, start here, then **MANDATORY — READ ENTIRE FILE**: load [`references/anti-pattern-gallery.md`](references/anti-pattern-gallery.md) for the full entry (root cause + AgentCore mapping). The `why` column carries the non-obvious mental model — the part that stops the bug recurring.
+When something is already broken, start here, then read [`references/anti-pattern-gallery.md`](references/anti-pattern-gallery.md) in full for the full entry (root cause + AgentCore mapping). The `why` column carries the non-obvious mental model — the part that stops the bug recurring.
 
 | Symptom | Cause + the non-obvious *why* | First move |
 |---|---|---|
@@ -164,12 +164,12 @@ When something is already broken, start here, then **MANDATORY — READ ENTIRE F
 
 ## Non-negotiables (NEVER)
 
-- **NEVER reach for multi-agent before a single agent measurably fails** — it's ≈15× chat tokens (vs ≈4× single); teams routinely match elaborate multi-agent systems with better single-agent prompting after months wasted.
-- **NEVER split agents by work-phase** (planner/implementer/tester/reviewer) — "problem-centric decomposition" shares too much context and degrades via telephone-game handoffs. Split only at true context-isolation boundaries.
-- **NEVER put dynamic content (timestamps, IDs, the latest user turn) before a cache breakpoint** — it silently zeroes your hit rate while you keep paying the write premium.
-- **NEVER clear the memory tool's results** (`exclude_tools:["memory"]`) — you erase the agent's own paper trail.
-- **NEVER pass raw subagent output upward** — return 1,000–2,000 token summaries; write detail to files/Memory.
-- **NEVER run an agent without stopping conditions** (max iterations, token budget, terminal tool states) — these are correctness constraints, not performance tuning.
-- **NEVER route credentials through tool parameters or the system prompt** — they land in conversation history and traces; use Identity decorators / credential providers.
-- **NEVER trust a framework's abstractions you can't read** — start with the raw API (most patterns are <100 lines); keep frameworks at the orchestration layer only.
-- **NEVER pick `searchType: SEMANTIC` casually on AgentCore Gateway** — it's permanent; changing it means deleting and recreating the gateway and all targets.
+- **Never reach for multi-agent before a single agent measurably fails** — it's ≈15× chat tokens (vs ≈4× single); teams routinely match elaborate multi-agent systems with better single-agent prompting after months wasted.
+- **Never split agents by work-phase** (planner/implementer/tester/reviewer) — "problem-centric decomposition" shares too much context and degrades via telephone-game handoffs. Split only at true context-isolation boundaries.
+- **Never put dynamic content (timestamps, IDs, the latest user turn) before a cache breakpoint** — it silently zeroes your hit rate while you keep paying the write premium.
+- **Never clear the memory tool's results** (`exclude_tools:["memory"]`) — you erase the agent's own paper trail.
+- **Never pass raw subagent output upward** — return 1,000–2,000 token summaries; write detail to files/Memory.
+- **Never run an agent without stopping conditions** (max iterations, token budget, terminal tool states) — these are correctness constraints, not performance tuning.
+- **Never route credentials through tool parameters or the system prompt** — they land in conversation history and traces; use Identity decorators / credential providers.
+- **Never trust a framework's abstractions you can't read** — start with the raw API (most patterns are <100 lines); keep frameworks at the orchestration layer only.
+- **Never pick `searchType: SEMANTIC` casually on AgentCore Gateway** — it's permanent; changing it means deleting and recreating the gateway and all targets.

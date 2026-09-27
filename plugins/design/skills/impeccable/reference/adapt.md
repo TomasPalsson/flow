@@ -28,7 +28,7 @@ Understand what needs adaptation and why:
    - What won't work? (Hover states on touch, tiny touch targets)
    - What's inappropriate? (Desktop patterns on mobile, mobile patterns on desktop)
 
-**CRITICAL**: Adaptation is rethinking the experience for the new context, not scaling pixels.
+Adaptation is rethinking the experience for the new context, not scaling pixels.
 
 ## Plan Adaptation Strategy
 
@@ -165,7 +165,7 @@ Choose appropriate breakpoints:
 - Persistent side navigation on desktop
 - Breadcrumbs on smaller screens for context
 
-**IMPORTANT**: Test on real devices. Device emulation in DevTools is helpful but not perfect.
+Test on real devices. Device emulation in DevTools is helpful but not perfect.
 
 **NEVER**:
 - Hide core functionality on mobile (if it matters, make it work)

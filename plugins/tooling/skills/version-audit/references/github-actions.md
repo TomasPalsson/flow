@@ -29,7 +29,7 @@ gh api rate_limit --jq '.resources.core'   # authed 5000/hr, anon 60/hr
 
 **The floating-major trap:** `@v4` is a mutable tag maintainers force-push to the
 newest `v4.x`. It keeps resolving forever — `setup-node@v4` works fine while latest
-is v6. Currency MUST be judged against `releases/latest`, never tag existence.
+is v6. Currency must be judged against `releases/latest`, never tag existence.
 
 ## SHA pinning — the security control
 

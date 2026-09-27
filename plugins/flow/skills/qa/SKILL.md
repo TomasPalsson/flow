@@ -37,7 +37,7 @@ If NO branch is provided, skip Step 0 — assess the current working directory s
 
 ## QA Mindset — Think Before Testing
 
-Before deploying agents, the orchestrator MUST assess the change:
+Before deploying agents, the orchestrator assesses the change:
 
 **5 Pre-Assessment Questions:**
 1. **Blast radius** — If this breaks, what else breaks? Map the dependency chain.
@@ -57,17 +57,17 @@ Before deploying agents, the orchestrator MUST assess the change:
 
 ### Leverage Existing Test Suites
 
-If the project already has tests (Vitest, Jest, Playwright, pytest, etc.), the Test Runner agent MUST run them first and build a coverage map:
+If the project already has tests (Vitest, Jest, Playwright, pytest, etc.), the Test Runner agent runs them first and builds a coverage map:
 
 1. Run unit tests with JSON output → parse pass/fail per file
 2. Run E2E test list (`npx playwright test --list`) → extract tested workflows
 3. Build coverage map: changed files with tests vs without
-4. Focus manual QA ONLY on gaps — never duplicate what existing tests already cover
+4. Focus manual QA only on gaps — never duplicate what existing tests already cover
 
 ### Multi-Stack Detection
 
 If the project has multiple languages (e.g., TypeScript frontend + Python backend):
-- Deploy SEPARATE Code Analyzer sub-agents per language (one for TS with Biome/ESLint rules, one for Python with Ruff)
+- Deploy separate Code Analyzer sub-agents per language (one for TS with Biome/ESLint rules, one for Python with Ruff)
 - **Cross-boundary contract check**: The API boundary between frontend and backend is the #1 risk zone. Verify response shapes match — Python snake_case vs TypeScript camelCase, null handling, date formats
 - Check for shared contracts: Do API response types in TypeScript match what the Python backend actually sends?
 
@@ -98,11 +98,11 @@ Assess the change scope and deploy the appropriate swarm:
 
 ### Step 2: Execute in Waves
 
-**IMPORTANT:** Create workspace directory `.qa-report/` at project root. Every agent MUST write findings to its own file in this workspace. Set `mode: "bypassPermissions"` on all agent calls.
+Create workspace directory `.qa-report/` at project root. Every agent writes findings to its own file in this workspace. Set `mode: "bypassPermissions"` on all agent calls.
 
 #### Wave 1: RECONNAISSANCE (all parallel)
 
-**MANDATORY — READ ENTIRE FILE before deploying any agent:** [`references/agent-prompts.md`](references/agent-prompts.md) — contains exact prompt templates with scope boundaries. **PROHIBITED:** Do NOT load `browser-qa-workflows.md` or `qa-checklists.md` during Wave 1.
+Before deploying any agent, read [`references/agent-prompts.md`](references/agent-prompts.md) in full — contains exact prompt templates with scope boundaries. Do NOT load `browser-qa-workflows.md` or `qa-checklists.md` during Wave 1.
 
 Deploy these agents simultaneously:
 
@@ -130,11 +130,11 @@ Deploy based on scope. Pass Wave 1 FACTS (file lists, URLs, risk areas) to each 
 | **Performance Checker** | Network requests, payload sizes, load times, unnecessary re-renders | `.qa-report/wave-2/performance.md` | haiku | UI/API changes |
 | **Visual Verifier** | Screenshots at desktop/tablet/mobile viewports, layout checks | `.qa-report/wave-2/visual.md` | haiku | UI changes |
 
-**MANDATORY — READ BEFORE deploying Browser Tester or Visual Verifier:** [`references/browser-qa-workflows.md`](references/browser-qa-workflows.md) — QA-specific browser testing patterns. Also read the agent-browser skill — it ships in the separate `web` plugin, at `~/.claude/skills/web/skills/agent-browser/SKILL.md` — for the full CLI reference; if that plugin is not installed, `${CLAUDE_PLUGIN_ROOT}/skills/shared/agent-browser-reference.md` has a quick reference instead. **PROHIBITED:** Do NOT load `qa-checklists.md` during Wave 2.
+Before deploying Browser Tester or Visual Verifier, read [`references/browser-qa-workflows.md`](references/browser-qa-workflows.md) — QA-specific browser testing patterns. Also read the agent-browser skill — it ships in the separate `web` plugin, at `~/.claude/skills/web/skills/agent-browser/SKILL.md` — for the full CLI reference; if that plugin is not installed, `${CLAUDE_PLUGIN_ROOT}/skills/shared/agent-browser-reference.md` has a quick reference instead. Do NOT load `qa-checklists.md` during Wave 2.
 
 #### Wave 3: SYNTHESIS (orchestrator only)
 
-**MANDATORY — USE AS VALIDATION CHECKLIST:** [`references/qa-checklists.md`](references/qa-checklists.md) — verify no QA dimension was missed before writing the final report.
+Use [`references/qa-checklists.md`](references/qa-checklists.md) as the validation checklist — verify no QA dimension was missed before writing the final report.
 
 Do NOT deploy agents for synthesis. The orchestrator reads ALL wave-1/ and wave-2/ files from disk, then:
 
@@ -150,7 +150,7 @@ Write `.qa-report/QA-REPORT.md` with these required sections:
 - **Verdict**: PASS / PASS WITH NOTES / FAIL (FAIL = any ship-blocker; PASS WITH NOTES = should-fix items; PASS = clean)
 - **Ship-Blockers**: Each with file:line, reproduction steps, and suggested fix
 - **Should Fix** / **Nice to Fix**: Each with evidence
-- **Passed Checks**: MANDATORY even when empty — list what was tested and found working
+- **Passed Checks** (include even when empty): list what was tested and found working
 - **Not Tested**: Every gap with reason (agent timeout, no URL, etc.)
 - **Conflicting Evidence**: When agents disagree (see Conflict Resolution)
 - **Test Evidence**: Links to screenshots and agent reports in `.qa-report/`
@@ -191,7 +191,7 @@ If the project is a chat/conversational AI app (detected by: Vercel AI SDK, stre
 
 ### Non-Deterministic Output Testing
 
-You CANNOT assert exact AI text. Instead assert:
+You cannot assert exact AI text. Instead assert:
 - **Structure**: Response contains expected component blocks (e.g., `:::: EducationPathCard {json} ::::`)
 - **Schema**: JSON in component blocks validates against required fields and types
 - **Behavioral contracts**: AI always asks follow-up after intake, always produces results after sufficient context, never answers off-topic mid-intake
@@ -221,7 +221,7 @@ For sessionStorage-backed chat:
 - Two tabs have independent sessions (verify isolation)
 - Clear conversation actually clears storage (check with devtools)
 
-**MANDATORY — READ for AI chat projects:** [`references/ai-chat-qa.md`](references/ai-chat-qa.md) — full streaming, i18n, and session testing patterns.
+For AI chat projects, read [`references/ai-chat-qa.md`](references/ai-chat-qa.md) — full streaming, i18n, and session testing patterns.
 
 ---
 
@@ -335,9 +335,9 @@ When the user is done testing:
 
 Loading triggers are embedded inline at each wave. Summary:
 
-| Reference | Trigger Point | PROHIBITED Before |
+| Reference | Trigger Point | Not Before |
 |-----------|--------------|-------------------|
-| [`references/agent-prompts.md`](references/agent-prompts.md) | Wave 1 start (MANDATORY) | — |
+| [`references/agent-prompts.md`](references/agent-prompts.md) | Wave 1 start (required) | — |
 | [`references/browser-qa-workflows.md`](references/browser-qa-workflows.md) | Wave 2, browser agents only | Wave 1 |
 | [`references/ai-chat-qa.md`](references/ai-chat-qa.md) | Wave 2, AI chat/streaming apps only | Wave 1 |
 | [`references/qa-checklists.md`](references/qa-checklists.md) | Wave 3, synthesis validation | Wave 1, Wave 2 |

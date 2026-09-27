@@ -90,7 +90,7 @@ Example: [concrete scenario where this goes wrong, or version/library specifics]
 
 **The specificity test**: Can you name a concrete failure scenario? If not, the anti-pattern is too vague.
 
-**Placement**: NEVER sections belong near the top or bottom (primacy/recency), NOT buried mid-body.
+**Placement**: NEVER sections belong near the top or bottom (primacy/recency), not buried mid-body.
 
 **Regression risk**: Over-constraining a high-freedom creative skill (D6 drop), bloating past length (D5 drop).
 
@@ -163,10 +163,10 @@ Example: [concrete scenario where this goes wrong, or version/library specifics]
 
 **Loading trigger requirement** (D5): Every reference file needs an explicit trigger embedded in workflow:
 ```
-MANDATORY — Read `references/X.md` before proceeding with task Y.
+Read `references/X.md` before proceeding with task Y.
 ```
 
-**Do NOT Load anti-trigger**: For skills with multiple references, specify which NOT to load per task:
+**Do not load anti-trigger**: For skills with multiple references, specify which not to load per task:
 ```
 For task A: load references/a.md. Do NOT load references/b.md.
 ```

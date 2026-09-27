@@ -25,27 +25,27 @@ You are building production AI agents using the Strands Agents SDK deployed to A
 |----------|---------------|
 | Stateless event-driven agent | Lambda |
 | Interactive agent with streaming | AgentCore Runtime |
-| MCP tool server | ECS/Fargate or AgentCore Runtime (NEVER Lambda) |
+| MCP tool server | ECS/Fargate or AgentCore Runtime (never Lambda) |
 | Multi-agent system | AgentCore Runtime |
 | Agent needing user OAuth (Google, GitHub, etc.) | AgentCore Runtime + Bedrock Identity |
 
-**MCP servers MUST use `streamable-http` transport** — Lambda's ephemeral nature breaks persistent connections.
+**MCP servers must use `streamable-http` transport** — Lambda's ephemeral nature breaks persistent connections.
 
 ---
 
 ## Common Pitfalls — Things That Will Break Your Agent
 
-- **NEVER stack `@tool` and `@requires_access_token` on the same function** — causes parameter parsing interference where the model tries to fill `access_token` as input. Use separate wrapper + implementation functions.
-- **NEVER use port 8000 for AgentCore containers** — must be `0.0.0.0:8080`. MCP servers use 8000 when self-hosted, but AgentCore Runtime expects 8080.
-- **NEVER build x86 containers** — AgentCore requires ARM64 (`--platform linux/arm64`). Use `docker buildx` for cross-compilation.
-- **NEVER use session IDs under 33 characters** — API validation rejects them. Use UUIDs.
-- **NEVER deploy MCP servers to Lambda** — ephemeral runtime breaks persistent connections and connection pools. Use ECS/Fargate or AgentCore Runtime.
-- **NEVER expect code updates in active sessions** — each microVM uses the version from session creation. Users must start new sessions to get updated code.
-- **NEVER use VPC mode without a NAT Gateway** — your agent won't reach Bedrock models or external APIs. Place ENIs in private subnets routed through NAT in public subnets.
-- **NEVER omit `aws-opentelemetry-distro` from requirements** — observability silently fails without it, and you get no traces in CloudWatch.
-- **NEVER assume cached OAuth tokens are valid** — providers can revoke at any time. Implement `force_authentication=True` as a fallback when API calls fail with 401.
-- **NEVER use `@requires_access_token` when you need to surface the auth URL to users** — the decorator blocks until auth completes. Use the programmatic Workload pattern to capture and return the URL.
-- **NEVER let tools raise exceptions** — return `{"status": "error", "content": [{"text": "..."}]}` dicts so the model can reason about failures and retry.
+- **Never stack `@tool` and `@requires_access_token` on the same function** — causes parameter parsing interference where the model tries to fill `access_token` as input. Use separate wrapper + implementation functions.
+- **Never use port 8000 for AgentCore containers** — must be `0.0.0.0:8080`. MCP servers use 8000 when self-hosted, but AgentCore Runtime expects 8080.
+- **Never build x86 containers** — AgentCore requires ARM64 (`--platform linux/arm64`). Use `docker buildx` for cross-compilation.
+- **Never use session IDs under 33 characters** — API validation rejects them. Use UUIDs.
+- **Never deploy MCP servers to Lambda** — ephemeral runtime breaks persistent connections and connection pools. Use ECS/Fargate or AgentCore Runtime.
+- **Never expect code updates in active sessions** — each microVM uses the version from session creation. Users must start new sessions to get updated code.
+- **Never use VPC mode without a NAT Gateway** — your agent won't reach Bedrock models or external APIs. Place ENIs in private subnets routed through NAT in public subnets.
+- **Never omit `aws-opentelemetry-distro` from requirements** — observability silently fails without it, and you get no traces in CloudWatch.
+- **Never assume cached OAuth tokens are valid** — providers can revoke at any time. Implement `force_authentication=True` as a fallback when API calls fail with 401.
+- **Never use `@requires_access_token` when you need to surface the auth URL to users** — the decorator blocks until auth completes. Use the programmatic Workload pattern to capture and return the URL.
+- **Never let tools raise exceptions** — return `{"status": "error", "content": [{"text": "..."}]}` dicts so the model can reason about failures and retry.
 
 ---
 
@@ -57,7 +57,7 @@ This is the most critical architectural decision for agents that need to act on 
 
 The decorator handles the OAuth dance automatically. Good for simple cases where you don't need control over the flow.
 
-**Critical**: `@requires_access_token` and `@tool` MUST be on SEPARATE functions. Stacking them on the same function causes parameter parsing interference — the model tries to fill `access_token` as an input parameter. Use an inner implementation function:
+**Critical**: `@requires_access_token` and `@tool` must be on separate functions. Stacking them on the same function causes parameter parsing interference — the model tries to fill `access_token` as an input parameter. Use an inner implementation function:
 
 ```python
 from bedrock_agentcore.identity.auth import requires_access_token

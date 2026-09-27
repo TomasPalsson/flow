@@ -21,7 +21,7 @@ Five non-negotiable rules that separate this skill from noise-generators:
 
 3. **Duplication check first**: Before any recommendation is surfaced, verify no equivalent exists. Check: existing skills, commands, agents, hooks, Makefile targets, shell aliases, fish abbreviations, MCP servers. Recommending `/deploy` when `make deploy` exists destroys trust.
 
-4. **Force a deletion finding**: LLMs have a systematic addition bias — training data celebrates what was built, hides what was removed. The swarm MUST produce at least one "remove/simplify X" candidate per run. This is a required category, not optional.
+4. **Force a deletion finding**: LLMs have a systematic addition bias — training data celebrates what was built, hides what was removed. The swarm must produce at least one "remove/simplify X" candidate per run. This is a required category, not optional.
 
 5. **Trust-tax-first**: If in doubt, drop the recommendation. One wrong suggestion poisons trust in all future suggestions. Precision > recall, always.
 
@@ -35,7 +35,7 @@ Each phase lists the references it requires. **Do NOT load references outside th
 
 *No references needed.*
 
-Before launching any agents, the orchestrator (main conversation) MUST inventory what already exists. This prevents the #1 analyzer failure mode: recommending something the user already has.
+Before launching any agents, the orchestrator (main conversation) must inventory what already exists. This prevents the #1 analyzer failure mode: recommending something the user already has.
 
 ```bash
 # Discover target repo
@@ -57,7 +57,7 @@ Write the inventory to `$WORKSPACE/inventory.md`. Every later agent will be give
 
 ### Phase 1: Swarm Scan (Wave 1)
 
-**MANDATORY: Load `references/swarm-prompts.md` before launching. Do NOT load other references yet.**
+Load `references/swarm-prompts.md` before launching. Do not load other references yet.
 
 Launch exactly **5 parallel agents**, each with `model: "sonnet"` and `mode: "bypassPermissions"`. Each has a non-overlapping concern-lens and explicit "do NOT cover X" boundaries.
 
@@ -77,9 +77,9 @@ After launching all 5, wait for completion. Then **verify every artifact file ex
 
 ### Phase 2: Synthesis (Orchestrator Only)
 
-**MANDATORY: Load `references/signal-patterns.md` AND `references/artifact-decision-matrix.md`. Do NOT load swarm-prompts.md or generation-quality-bar.md yet.**
+Load `references/signal-patterns.md` AND `references/artifact-decision-matrix.md`. Do not load swarm-prompts.md or generation-quality-bar.md yet.
 
-The orchestrator reads **every artifact file from disk** — never synthesize from agent return messages (those truncate). This step MUST NOT be delegated to a subagent.
+The orchestrator reads **every artifact file from disk** — never synthesize from agent return messages (those truncate). This step must not be delegated to a subagent.
 
 For each finding across all 5 artifacts, apply these filters in order:
 
@@ -132,7 +132,7 @@ Ask: "Which of these should I generate? (numbers, 'all', 'none', or 'expand N' f
 
 ### Phase 4: Generate Approved Artifacts
 
-**MANDATORY: Load `references/generation-quality-bar.md`. Do NOT load swarm-prompts.md, signal-patterns.md, or artifact-decision-matrix.md during generation.**
+Load `references/generation-quality-bar.md`. Do not load swarm-prompts.md, signal-patterns.md, or artifact-decision-matrix.md during generation.
 
 Generate artifacts **one at a time** — not batch. For each approved recommendation:
 1. Generate the artifact meeting the quality bar below
@@ -175,7 +175,7 @@ After all approved artifacts are written, show a summary:
 
 These come from production skills (overkill, brainstorm, qa, skill-forge). Violations silently degrade output quality.
 
-- **Agent count cap**: 5 agents in Wave 1. More than 6 per wave degrades synthesis quality — the deprecated `feature` skill cites this as "3 is safer than 5". Resist the urge to add more.
+- **Agent count cap**: 5 agents in Wave 1. More than 6 per wave degrades synthesis quality. Resist the urge to add more.
 - **`bypassPermissions` is mandatory** on every Agent call. This is the #1 silent failure: agents without write permissions produce nothing and the pipeline silently breaks.
 - **`model: "sonnet"` on all research agents**. `haiku` is too shallow for reasoning; `opus` is overkill. Never inherit — always set explicitly.
 - **Write artifacts to disk, read from disk**. Agent return messages get truncated. The orchestrator reads files, not messages.
@@ -189,14 +189,14 @@ See `references/swarm-prompts.md` for the exact agent prompt templates to use (t
 
 ## Anti-Patterns (Things the Skill Itself Must Avoid)
 
-1. **NEVER produce more than 5 recommendations** per run. Decision fatigue destroys adoption. If the swarm surfaces 30 candidates, filter to 5.
-2. **NEVER recommend something that duplicates existing tooling**. Check `inventory.md` before every recommendation. Duplication destroys trust faster than anything else.
-3. **NEVER recommend generic "best practices"** like "add a linter hook" without checking the user doesn't already lint. Generic suggestions score zero knowledge delta.
-4. **NEVER skip the deletion category**. LLMs have addition bias — if you don't force "what to remove", you won't see it.
-5. **NEVER generate an artifact without file:line grounding in its justification**. Without grounding, the skill is confabulating — surfacing "plausible improvements" from training data rather than this repo. "Your shell history shows `docker compose down && docker compose up --build` ran 15 times in the last month — a `/rebuild` command would save ~30s × 15 = 7.5 min/month" is grounded. "You should add a deploy skill because deployment exists" is not.
-6. **NEVER skip the approval gate**. Without per-recommendation approval, the user cannot inspect the evidence before committing — they'll accept a confabulated finding, discover it's wrong, and blame the tool. One bad generated artifact destroys trust for all subsequent runs. Approval is the trust-protection mechanism.
-7. **NEVER inflate agent count**. Exactly 5 Wave 1 agents. Synthesis requires holding all 5 artifacts in context simultaneously to cross-reference claims and rank findings — beyond 5, orchestrator attention degrades before coherent rankings form (the deprecated `feature` skill cites 4 as ceiling, "3 is safer than 5"). More agents ≠ more signal.
-8. **NEVER let an agent skip the grounding rule**. If an agent prompt lacks "no file path = finding doesn't count", the agent will fill its output with training-data plausibilities instead of repo-grounded findings. The rule must appear in every single agent prompt, not just one.
+1. Never produce more than 5 recommendations per run. Decision fatigue destroys adoption. If the swarm surfaces 30 candidates, filter to 5.
+2. Never recommend something that duplicates existing tooling. Check `inventory.md` before every recommendation. Duplication destroys trust faster than anything else.
+3. Never recommend generic "best practices" like "add a linter hook" without checking the user doesn't already lint. Generic suggestions score zero knowledge delta.
+4. Never skip the deletion category. LLMs have addition bias — if you don't force "what to remove", you won't see it.
+5. Never generate an artifact without file:line grounding in its justification. Without grounding, the skill is confabulating — surfacing "plausible improvements" from training data rather than this repo. "Your shell history shows `docker compose down && docker compose up --build` ran 15 times in the last month — a `/rebuild` command would save ~30s × 15 = 7.5 min/month" is grounded. "You should add a deploy skill because deployment exists" is not.
+6. Never skip the approval gate. Without per-recommendation approval, the user cannot inspect the evidence before committing — they'll accept a confabulated finding, discover it's wrong, and blame the tool. One bad generated artifact destroys trust for all subsequent runs. Approval is the trust-protection mechanism.
+7. Never inflate agent count. Exactly 5 Wave 1 agents. Synthesis requires holding all 5 artifacts in context simultaneously to cross-reference claims and rank findings — beyond 5, orchestrator attention degrades before coherent rankings form. More agents ≠ more signal.
+8. Never let an agent skip the grounding rule. If an agent prompt lacks "no file path = finding doesn't count", the agent will fill its output with training-data plausibilities instead of repo-grounded findings. The rule must appear in every single agent prompt, not just one.
 
 ---
 

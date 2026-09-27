@@ -65,7 +65,7 @@ Each writes findings to `.pr-review/findings/<agent>.json`.
 ## User Approval Gate
 
 Before posting, present the final plan to the user for approval/edit/drop/cancel.
-Do NOT post without explicit user approval.
+Do not post without explicit user approval.
 
 ## Posting Strategy
 

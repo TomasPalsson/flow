@@ -109,12 +109,12 @@ Scale by coverage gaps, not by hitting a count target.
 
 ## Anti-Patterns (NEVER Do These)
 
-- **NEVER let agents see each other's partial results** before reporting independently. Agents anchor on each other's findings and stop searching for alternatives. Each agent must operate in isolation until synthesis.
-- **NEVER treat "I found nothing" as task completion.** Verify: did the agent actually search thoroughly, or did it fail silently? Require explicit confirmation of what was searched, not just what was found.
-- **NEVER synthesize prematurely.** Wait for all agents in a wave to complete before launching the next wave. Partial synthesis creates false consensus that poisons subsequent research directions.
-- **NEVER assign overlapping scope without a merge strategy.** Two agents covering the same ground produce contradictory findings with no principled way to resolve them. Make scope boundaries explicit in each agent's prompt.
-- **NEVER manufacture agents to hit a number.** 3 excellent agents with clear, bounded scope beat 8 agents with vague, overlapping mandates. The goal is coverage, not agent count.
-- **NEVER skip coverage because a specialist agent isn't available.** Fall back to `general-purpose` with a focused system prompt. The user asked for exhaustive — deliver it with whatever agents you have.
-- **NEVER summarize away the depth.** The user paid for thoroughness. Give them the full picture with structured formatting (headers, tables, code blocks). They can skim — but they can't recover details you discarded.
-- **NEVER synthesize from memory instead of reading the artifact files.** The whole point of writing to disk is that the full, uncompressed material is there. Read every `.md` in the workspace before writing `synthesis.md` — synthesizing from what you remember the agents "said" defeats the artifact-driven approach.
-- **NEVER start synthesis while artifact files are still being written.** Wait for all agents in a wave to fully complete and confirm their files exist on disk before reading them. File write races produce partial reads that look like complete findings.
+- Never let agents see each other's partial results before reporting independently. Agents anchor on each other's findings and stop searching for alternatives. Each agent must operate in isolation until synthesis.
+- Never treat "I found nothing" as task completion. Verify: did the agent actually search thoroughly, or did it fail silently? Require explicit confirmation of what was searched, not just what was found.
+- Never synthesize prematurely. Wait for all agents in a wave to complete before launching the next wave. Partial synthesis creates false consensus that poisons subsequent research directions.
+- Never assign overlapping scope without a merge strategy. Two agents covering the same ground produce contradictory findings with no principled way to resolve them. Make scope boundaries explicit in each agent's prompt.
+- Never manufacture agents to hit a number. 3 excellent agents with clear, bounded scope beat 8 agents with vague, overlapping mandates. The goal is coverage, not agent count.
+- Never skip coverage because a specialist agent isn't available. Fall back to `general-purpose` with a focused system prompt. The user asked for exhaustive — deliver it with whatever agents you have.
+- Never summarize away the depth. The user paid for thoroughness. Give them the full picture with structured formatting (headers, tables, code blocks). They can skim — but they can't recover details you discarded.
+- Never synthesize from memory instead of reading the artifact files. The whole point of writing to disk is that the full, uncompressed material is there. Read every `.md` in the workspace before writing `synthesis.md` — synthesizing from what you remember the agents "said" defeats the artifact-driven approach.
+- Never start synthesis while artifact files are still being written. Wait for all agents in a wave to fully complete and confirm their files exist on disk before reading them. File write races produce partial reads that look like complete findings.

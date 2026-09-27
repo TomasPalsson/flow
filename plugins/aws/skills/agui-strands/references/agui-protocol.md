@@ -21,7 +21,7 @@ transport-agnostic. Verified against the `ag-ui-protocol/ag-ui` source (Python `
 - Encoder: `EventEncoder(accept=...)`, `.get_content_type()`, `.encode(event)`.
 
 ## Run lifecycle (mandatory brackets)
-A run MUST begin with `RUN_STARTED` and end with exactly one of `RUN_FINISHED` / `RUN_ERROR`.
+A run must begin with `RUN_STARTED` and end with exactly one of `RUN_FINISHED` / `RUN_ERROR`.
 Everything else is optional. `STEP_STARTED`/`STEP_FINISHED` must balance if used.
 
 ## Event catalogue (wire/camelCase field names)

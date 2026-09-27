@@ -17,7 +17,7 @@ When invoked, this skill picks ONE US large/mid-cap stock (S&P 1500 universe) fo
 
 This skill DOES NOT predict the future. It applies systematized expert frameworks to current public data to produce a conviction-scored thesis. Multi-framework signals have historical academic backing (Asness "Value and Momentum Everywhere" Sharpe 1.45 combined, post-publication decay applies). **This is not financial advice.** The user owns every decision.
 
-Before any pick, the skill MUST elicit:
+Before any pick, the skill must elicit:
 1. **Portfolio context**: total invested capital? existing concentration? this would be what % of total?
 2. **Capital scale**: <$50K (Kelly math breaks, use simpler heuristics), $50K-$5M (standard), >$5M (liquidity and tax-lot considerations active)
 3. **Temperament**: can the user tolerate a 35-50% drawdown without panic-selling? If no → recommend index funds instead, stop here.
@@ -38,7 +38,7 @@ Before you fetch a single number, anchor yourself in three frames that separate 
 
 ## Execution Pipeline
 
-The full state machine lives in [`execution-prompt.md`](execution-prompt.md). **MANDATORY — READ ENTIRE FILE** before running the pipeline. **Do NOT load** for simple questions like "explain CS100" or "what does the Beneish M-Score do?" — those don't require running the pipeline. Summary of the 7 stages:
+The full state machine lives in [`execution-prompt.md`](execution-prompt.md). Read it in full before running the pipeline. Do not load it for simple questions like "explain CS100" or "what does the Beneish M-Score do?" — those don't require running the pipeline. Summary of the 7 stages:
 
 1. **Universe Assembly** — `scripts/fetch-universe.js` + `scripts/fetch-macro.js` in parallel. Produces ~1,509 S&P 1500 tickers tagged by GICS sector, plus current macro regime signal from FRED.
 2. **First-Cut Screen** — `scripts/fetch-quote.js` in batches of 20. Reduces to ~50 candidates via: market cap, liquidity (>$5M ADV), recent IPO exclusion (>2y public), sector exclusion (user-specified), distress filter (price/200DMA > 0.60 — keeps turnarounds), cheap quality proxy.
@@ -67,7 +67,7 @@ Each framework produces a percentile score within the deep-fundamentals universe
 
 ## Conviction Scoring (CS100)
 
-**MANDATORY — READ ENTIRE FILE** before computing CS100 (Stage 3-4): load [`references/01-conviction-scoring.md`](references/01-conviction-scoring.md). **Do NOT load** before reaching Stage 3 — earlier stages don't compute CS100. The formula has 5 stock-type buckets (compounder / cyclical / financial / special-situation / turnaround) each with different framework weights — equal 1/3 across the board fails on financials, cyclicals at peak, and quality-floor cases (proven in CS100 stress test against MSFT, INTC, NVDA, JPM, GEV).
+Read [`references/01-conviction-scoring.md`](references/01-conviction-scoring.md) in full before computing CS100 (Stage 3-4). Do not load before reaching Stage 3 — earlier stages don't compute CS100. The formula has 5 stock-type buckets (compounder / cyclical / financial / special-situation / turnaround) each with different framework weights — equal 1/3 across the board fails on financials, cyclicals at peak, and quality-floor cases (proven in CS100 stress test against MSFT, INTC, NVDA, JPM, GEV).
 
 Output is a confidence RANGE not a point: e.g., CS100 = 72 ±5 (high conviction), CS100 = 58 ±15 (uncertain, edge case).
 
@@ -90,7 +90,7 @@ Special-situation conviction multipliers (apply AFTER CS100):
 
 ## Sell Rules — Built Into the Thesis Memo
 
-Every pick comes with EXPLICIT sell rules written down at entry (pre-mortem at purchase). **MANDATORY — READ ENTIRE FILE**: Load [`references/04-sell-rules.md`](references/04-sell-rules.md) when generating the thesis memo's sell-rules section. **Do NOT load** when only computing CS100 or doing first-cut screening — the sell rules apply at thesis-memo time, not screen time. Summary of the 9 rules:
+Every pick comes with EXPLICIT sell rules written down at entry (pre-mortem at purchase). Read [`references/04-sell-rules.md`](references/04-sell-rules.md) in full when generating the thesis memo's sell-rules section. Do not load when only computing CS100 or doing first-cut screening — the sell rules apply at thesis-memo time, not screen time. Summary of the 9 rules:
 
 1. **Thesis broken** (5 sub-triggers, mandatory exit within 30 days)
 2. **Opportunity cost** — only if new opportunity is ≥15-20% better risk-adjusted, all conditions simultaneously met
@@ -106,7 +106,7 @@ Every pick comes with EXPLICIT sell rules written down at entry (pre-mortem at p
 
 ## Catalysts
 
-Without a catalyst, value can stay cheap forever (Sears 15 years). Every pick must have ≥1 identified catalyst. **MANDATORY — READ ENTIRE FILE** when running Stage 5 catalyst inventory: load [`references/05-catalysts.md`](references/05-catalysts.md). **Do NOT load** during CS100 computation or first-cut screening — catalyst scoring is a Stage 5 step. Catalyst quality scored 0-125 on (probability × magnitude × time), maps to position-size multiplier 0.5x to 2.0x.
+Without a catalyst, value can stay cheap forever (Sears 15 years). Every pick must have ≥1 identified catalyst. Read [`references/05-catalysts.md`](references/05-catalysts.md) in full when running Stage 5 catalyst inventory. Do not load during CS100 computation or first-cut screening — catalyst scoring is a Stage 5 step. Catalyst quality scored 0-125 on (probability × magnitude × time), maps to position-size multiplier 0.5x to 2.0x.
 
 ## Position Sizing
 
@@ -116,11 +116,11 @@ Half-Kelly default; quarter-Kelly for uncertain or edge-case cases. Hard caps: 2
 - >$5M: half-Kelly but liquidity-clamped to <5% of stock's 30-day ADV
 - Temperament factor: if user said "high drawdown tolerance" use half-Kelly; if "moderate" use third-Kelly; if "low" stop and recommend ETF.
 
-**MANDATORY — READ ENTIRE FILE** when computing final position size in the thesis memo: load [`references/07-position-sizing.md`](references/07-position-sizing.md). **Do NOT load** during screening — position sizing is the last Stage 6 step.
+Read [`references/07-position-sizing.md`](references/07-position-sizing.md) in full when computing final position size in the thesis memo. Do not load during screening — position sizing is the last Stage 6 step.
 
 ## Sector-Specific Playbooks
 
-Standard frameworks BREAK for several sectors. **MANDATORY — READ ENTIRE FILE** when ANY candidate in the deep-fundamentals universe (Stage 3) is in any of these sectors: load [`references/03-sector-playbooks.md`](references/03-sector-playbooks.md). **Do NOT load** if the universe contains zero candidates in the sectors listed below — that's wasted tokens.
+Standard frameworks BREAK for several sectors. Read [`references/03-sector-playbooks.md`](references/03-sector-playbooks.md) in full when ANY candidate in the deep-fundamentals universe (Stage 3) is in any of these sectors. Do not load if the universe contains zero candidates in the sectors listed below — that's wasted tokens.
 
 - **Banks** → P/TBV, ROTCE, efficiency ratio, NIM, CET1 (not P/E + ROIC)
 - **Insurance** → combined ratio, float economics, reserve adequacy
@@ -133,21 +133,21 @@ Standard frameworks BREAK for several sectors. **MANDATORY — READ ENTIRE FILE*
 
 ## Red Flags & Fraud Veto
 
-**MANDATORY — READ ENTIRE FILE** before Stage 3 scoring: load [`references/06-red-flags-fraud.md`](references/06-red-flags-fraud.md) — value-trap catalog (7 patterns), growth-trap catalog (6 patterns), and fraud detection layer (Beneish M-Score, Sloan accruals, Dechow F-score). **The Beneish M-Score check is a HARD VETO, not a score component** — any candidate above -1.78 is dropped from consideration even if every other signal is strong. Use `scripts/compute-fraud-check.js TICKER` at runtime. An `overall_verdict` of `UNKNOWN` means the veto could NOT compute (missing SEC facts) — treat it as UN-VETTED (manual review), never as a clean PASS.
+Read [`references/06-red-flags-fraud.md`](references/06-red-flags-fraud.md) in full before Stage 3 scoring — value-trap catalog (7 patterns), growth-trap catalog (6 patterns), and fraud detection layer (Beneish M-Score, Sloan accruals, Dechow F-score). **The Beneish M-Score check is a HARD VETO, not a score component** — any candidate above -1.78 is dropped from consideration even if every other signal is strong. Use `scripts/compute-fraud-check.js TICKER` at runtime. An `overall_verdict` of `UNKNOWN` means the veto could NOT compute (missing SEC facts) — treat it as UN-VETTED (manual review), never as a clean PASS.
 
 ## Macro Regime Adjustment
 
-**MANDATORY — READ ENTIRE FILE** at pipeline start (Stage 1 macro fetch + interpretation): load [`references/09-macro-regime-2026.md`](references/09-macro-regime-2026.md) — current (May 2026) regime read. **Do NOT re-load** after Stage 1 since the regime tilt is computed once per pipeline run. **Critical 2026 context**: CAPE at 42 (only second time in history above 40 — the prior was Dec 1999), Mag 7 -4.9% YTD, yield curve re-normalized after 26-month inversion (historically a recession precursor), Energy/Materials leading. The skill MUST inject this regime read as a ±5 tilt to CS100 and warn the user explicitly that we are in extreme overvaluation territory. The "patient cash" outcome is more likely than usual in this regime.
+Read [`references/09-macro-regime-2026.md`](references/09-macro-regime-2026.md) in full at pipeline start (Stage 1 macro fetch + interpretation) — current (May 2026) regime read. Do not re-load after Stage 1 since the regime tilt is computed once per pipeline run. **Critical 2026 context**: CAPE at 42 (only second time in history above 40 — the prior was Dec 1999), Mag 7 -4.9% YTD, yield curve re-normalized after 26-month inversion (historically a recession precursor), Energy/Materials leading. The skill must inject this regime read as a ±5 tilt to CS100 and warn the user explicitly that we are in extreme overvaluation territory. The "patient cash" outcome is more likely than usual in this regime.
 
 ## Second-Level Questions (Marks)
 
-Before finalizing the pick, run the 20 second-level questions. **MANDATORY — READ ENTIRE FILE** when entering Stage 5 deep-dive: load [`references/10-second-level-questions.md`](references/10-second-level-questions.md). **Do NOT load** during earlier screening stages. At minimum, the thesis memo must answer: "What does the market believe about this stock that I think is wrong, and why is my view variant?"
+Before finalizing the pick, run the 20 second-level questions. Read [`references/10-second-level-questions.md`](references/10-second-level-questions.md) in full when entering Stage 5 deep-dive. Do not load during earlier screening stages. At minimum, the thesis memo must answer: "What does the market believe about this stock that I think is wrong, and why is my view variant?"
 
 ## Thesis Memo Output
 
-The final output uses the canonical template. **MANDATORY — READ ENTIRE FILE** when entering Stage 6 thesis-memo generation: load [`references/08-thesis-memo-template.md`](references/08-thesis-memo-template.md). **Do NOT load** earlier in the pipeline. Required sections: one-line summary, conviction score with bundle breakdown, business description (2-minute monologue), variant perception (Steinhardt test), 3-scenario valuation, catalyst table, pre-mortem with "why we invest anyway" per risk, position size with Kelly rationale, entry zone with tranches, exit rules, tracking plan.
+The final output uses the canonical template. Read [`references/08-thesis-memo-template.md`](references/08-thesis-memo-template.md) in full when entering Stage 6 thesis-memo generation. Do not load earlier in the pipeline. Required sections: one-line summary, conviction score with bundle breakdown, business description (2-minute monologue), variant perception (Steinhardt test), 3-scenario valuation, catalyst table, pre-mortem with "why we invest anyway" per risk, position size with Kelly rationale, entry zone with tranches, exit rules, tracking plan.
 
-## Critical Anti-Patterns (Things This Skill MUST NOT Do)
+## Critical Anti-Patterns (Things This Skill Must Not Do)
 
 - **Never proceed without portfolio/temperament/horizon elicitation.** A pick without context can ruin a user.
 - **Never override the CS100 < 55 refusal.** "Patient cash" is a valid output, especially in May 2026.

@@ -30,8 +30,8 @@ Site actively blocks bots (Cloudflare)?  yes → stop signal — do NOT evade
 ```
 Then, always: **replace every original image**, **substitute commercial fonts with OFL**, **clone
 the prospect's brand only**, **inject the demo disclaimer**, **serve on localhost only — never a
-public URL**. **MANDATORY — READ ENTIRE FILE before capturing or shipping**: load
-[`references/legal-and-fonts.md`](references/legal-and-fonts.md).
+public URL**. Before capturing or shipping, load
+[`references/legal-and-fonts.md`](references/legal-and-fonts.md) in full.
 
 **Reference loading (strict):** load each `references/` file ONLY at the step that names it — never
 front-load all five, and do NOT load a step's reference before you reach that step. Early loads:
@@ -49,8 +49,8 @@ Infer from the page: `__NEXT_DATA__`/`/_next/` → Next.js, `--tw-`/`@theme` →
 (these are pre-capture, not fixable later): target viewport (default 1440×900), `colorScheme`
 (match what the prospect sees, usually `light`), and whether the page runs an A/B test or geo
 variant you must pin. Several fidelity failures are decisions made here, not bugs found later, so
-read the catalog **before** capturing. **MANDATORY — READ ENTIRE FILE now**: load
-[`references/pitfalls.md`](references/pitfalls.md) (covers the pre-capture decisions: DPR,
+read the catalog **before** capturing. Load
+[`references/pitfalls.md`](references/pitfalls.md) in full now (covers the pre-capture decisions: DPR,
 dark-mode, A/B variant, wrong viewport, transparent-nav). Re-consult it later if a clone still
 looks wrong.
 
@@ -68,8 +68,8 @@ node scripts/clone-extract.mjs https://prospect.com ./clone
 It already handles: scroll-to-trigger lazy load, the three animation-freeze classes, consent
 banners, font-CORS re-serve, `serviceWorkers:'block'`, CDP font detection, auth-wall abort, OKLCH
 token conversion, spacing-GCD, and OFL substitute suggestions. **Read `report.md` first** — it flags
-licensed fonts to substitute. To understand or adapt the capture mechanics, **MANDATORY — READ
-ENTIRE FILE**: load [`references/capture-pipeline.md`](references/capture-pipeline.md). Do NOT reload
+licensed fonts to substitute. To understand or adapt the capture mechanics, load
+[`references/capture-pipeline.md`](references/capture-pipeline.md) in full. Do NOT reload
 it once the capture succeeded — only revisit if a screenshot is blank or in the wrong state.
 
 ### Step 2 — Refine the tokens
@@ -82,7 +82,7 @@ wait discipline) before trusting any token.
 `tokens.json` is a first pass. Refine against `desktop-hero.png`: confirm the **CDP-verified** fonts
 (never `fontFamily`), tighten the palette to **12–20 OKLCH tokens** clustered by role, name the
 spacing scale off the detected base unit, and capture fluid `clamp()` type. For token work,
-**MANDATORY — READ ENTIRE FILE**: load [`references/token-extraction.md`](references/token-extraction.md).
+load [`references/token-extraction.md`](references/token-extraction.md) in full.
 **Done when:** ≤20 color tokens, every hero font CDP-confirmed (licensed ones mapped to a
 substitute in `report.md`), spacing named off the base unit. **Not done if:** >40 raw colors
 remain (you haven't clustered — re-cluster in Oklab) or any hero font is still the declared stack
@@ -93,8 +93,8 @@ colors or fonts still look off after a rebuild pass.
 Build **nav + hero + one section** as a **fixed-width 1440px** clone (responsive is ~10x the work
 for zero demo benefit; wrap in `transform:scale()` for smaller screens). Apply `tokens.json` as
 `:root` vars; rewrite asset URLs from `asset-manifest.json` (sort by length desc); inline SVG logos;
-preserve exact `z-index`. **MANDATORY — READ ENTIRE FILE**: load
-[`references/rebuild-and-reskin.md`](references/rebuild-and-reskin.md). It also covers Steps 4–5 —
+preserve exact `z-index`. Load
+[`references/rebuild-and-reskin.md`](references/rebuild-and-reskin.md) in full. It also covers Steps 4–5 —
 keep it loaded through serving; do NOT reload it per step.
 
 ### Step 4 — Brand-swap for the prospect
@@ -120,8 +120,8 @@ URL rewrite.
 ## When a clone looks wrong
 
 Blank images, invisible hero, wrong font, consent overlay, off layout, blurry, dark-when-it-should-
-be-light — these are catalogued failure modes, each with a WHY and a fix. **MANDATORY — READ ENTIRE
-FILE when debugging fidelity**: load [`references/pitfalls.md`](references/pitfalls.md).
+be-light — these are catalogued failure modes, each with a WHY and a fix. When debugging fidelity,
+load [`references/pitfalls.md`](references/pitfalls.md) in full.
 
 ## Expert decision frameworks
 

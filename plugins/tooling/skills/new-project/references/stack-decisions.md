@@ -32,7 +32,7 @@ Scan the description for these signals. Multiple matches raise confidence. Confl
 
 ## Decision trees for ambiguous cases
 
-### "Backend API" (no language given) — MUST ASK
+### "Backend API" (no language given) — must ask
 
 Options to present:
 - Python (FastAPI + uv) — best if ML/AI is involved

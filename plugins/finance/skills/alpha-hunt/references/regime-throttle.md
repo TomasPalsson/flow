@@ -5,7 +5,7 @@ description: The gross-exposure dial — a few robust regime inputs (distributio
 
 # Regime Throttle — The Gross-Exposure Dial
 
-Set ONCE per run, before picking anything. An aggressive book MUST throttle gross exposure DOWN
+Set ONCE per run, before picking anything. An aggressive book must throttle gross exposure DOWN
 mechanically before a human "feels" the shift — the 2025-26 unwinds resolved in DAYS via forced
 deleveraging, not slow rotation. Keep it a **few robust, independently-sourced inputs**, not one
 over-fit composite. Score each input −1 / 0 / +1, sum to a −3..+3 score, map to a gross-exposure %.

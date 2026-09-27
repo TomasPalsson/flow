@@ -52,7 +52,7 @@ AgentDefinition(
 ```
 - **Nesting limit = 1.** Subagents cannot spawn subagents — do NOT put `Agent` in a subagent's `tools`.
 - **The only channel parent→subagent is the prompt string.** Subagent does NOT inherit parent conversation, tool results, system prompt, or skills (unless listed in `skills`). It gets its own prompt + project CLAUDE.md + tools.
-- Tool was renamed `Task`→`Agent` (Claude Code v2.1.63); check both names when parsing tool_use blocks. Transcripts persist 30 days (`cleanupPeriodDays`). Windows: 8,191-char command-line limit can break long prompts — use file-based agent defs.
+- The agent-spawning tool is named `Agent` (renamed from `Task` in Claude Code v2.1.63); older transcripts use `Task`, so check both names when parsing tool_use blocks. Transcripts persist 30 days (`cleanupPeriodDays`). Windows: 8,191-char command-line limit can break long prompts — use file-based agent defs.
 - Set `maxTurns` and an orchestrator-level total budget — unbounded auto-spawning (≈100 agents, ≈1,500 tool calls) has no cost ceiling and cascades failures.
 
 ## On AgentCore: A2A

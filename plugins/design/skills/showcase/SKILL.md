@@ -19,7 +19,7 @@ Create a realistic HTML mockup of a proposed component or feature, embedded in a
 
 ## Phase 1: Extract — Reverse-Engineer the Project's Design DNA
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/extraction.md`](references/extraction.md) (145 lines) completely before proceeding. **Do NOT load** `references/toolkit.md` here — load it at Phase 2 only.
+Read [`references/extraction.md`](references/extraction.md) (145 lines) completely before proceeding. Don't load `references/toolkit.md` here — load it at Phase 2 only.
 
 **Skip extraction.md if**: project has <5 files with no identifiable design system. Use the most polished existing component as canonical reference instead.
 
@@ -58,14 +58,14 @@ If you can't write this sentence, you haven't extracted enough. Go back.
 
 ## Phase 2: Build — Create the In-Context Mockup
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/toolkit.md`](references/toolkit.md) completely before writing any HTML. **Do NOT re-load** `references/extraction.md` — use tokens already extracted.
+Read [`references/toolkit.md`](references/toolkit.md) completely before writing any HTML. Don't re-load `references/extraction.md` — use tokens already extracted.
 
 **Focus your reading**: Start with the Page Shell Skeleton and Core CSS Pattern (always needed). Then read only the sections relevant to your task:
 - Before/After Toggle: ONLY if replacing an existing component
 - Responsive Preview Controls: ONLY if responsive behavior is a design question
 - Shell Variants: Read the variant matching your shell depth decision from Phase 1
 - Edge Cases: Skim headings; read only those matching your component type
-- **Do NOT** spend attention on sections irrelevant to your task — they waste context for no benefit
+- **Don't** spend attention on sections irrelevant to your task — they waste context for no benefit
 
 ### Step 1: Build the Page Shell
 
@@ -113,7 +113,7 @@ Generate **3 distinct variations by default** (2 minimum, 4 maximum). Each varia
 
 **The variation switcher** is a segmented control at the top of the main content area, labeled with each variation's name. Clicking switches which variation renders in the component slot. See toolkit.md "Variation Switcher" for the HTML/CSS/JS pattern.
 
-**Spotlight technique**: With multiple variations, the switcher itself IS the spotlight — users know exactly what they're evaluating. Use opacity halo on surrounding content (40-50% opacity) as the only additional technique. Do NOT use pulse-once outline or "New" badges when variations are present — they compete with the switcher.
+**Spotlight technique**: With multiple variations, the switcher itself IS the spotlight — users know exactly what they're evaluating. Use opacity halo on surrounding content (40-50% opacity) as the only additional technique. Don't use pulse-once outline or "New" badges when variations are present — they compete with the switcher.
 
 ### Step 3: Use Realistic Content
 
@@ -159,14 +159,14 @@ If any check fails, fix it now. Polishing a structurally wrong mockup wastes tim
 
 - Use the project's ACTUAL font (load via Google Fonts CDN if web font, system font stack if system font)
 - Use CSS custom properties for all design tokens — define once in `:root`, override in `[data-theme="dark"]` if the project has dark mode
-- Write only the CSS the mockup needs — a tight component may need 80 lines, a dashboard shell may need 300. Complexity should match the component's design questions, not a target line count. Do NOT use Tailwind CDN (compiles in-browser, FOUC risk, large payload)
+- Write only the CSS the mockup needs — a tight component may need 80 lines, a dashboard shell may need 300. Complexity should match the component's design questions, not a target line count. Don't use Tailwind CDN (compiles in-browser, FOUC risk, large payload)
 - Add `transition: all 0.15s ease` on hover states — instant transitions look broken
 - Add `prefers-reduced-motion` media query that disables animations
 - Never base64-encode fonts (10-32x slower CSS parsing on mobile)
 
 ### Theme Toggle
 
-Include a dark/light toggle ONLY if the project has dark mode. Match the project's exact dark mode colors. Do NOT invent a dark mode that doesn't exist.
+Include a dark/light toggle ONLY if the project has dark mode. Match the project's exact dark mode colors. Don't invent a dark mode that doesn't exist.
 
 ### Annotation Layer
 
@@ -192,26 +192,26 @@ When the user asks for "more", "try again", "different ideas", or "what else" �
 3. **Replace the variations in the existing file** — swap the variation HTML and switcher buttons. Keep the page shell, design tokens, surrounding content, and sample data untouched.
 4. **Preserve any variation the user explicitly liked.** "I like the second one, show me more" means keep that variation, replace the others.
 
-**Do NOT re-extract design tokens** — Phase 1 was already done. Reuse what's in the file.
-**Do NOT rebuild the page shell** — it's already correct. Only touch the component slot and variation switcher.
-**Do NOT accumulate variations across rounds** — each round still has 3-4 variations max. Iteration replaces, it doesn't pile up.
+**Don't re-extract design tokens** — Phase 1 was already done. Reuse what's in the file.
+**Don't rebuild the page shell** — it's already correct. Only touch the component slot and variation switcher.
+**Don't accumulate variations across rounds** — each round still has 3-4 variations max. Iteration replaces, it doesn't pile up.
 
 ---
 
 ## NEVER Do These
 
-- **NEVER generate a mockup before extracting the project's design tokens.** A mockup without design extraction defaults to the AI aesthetic (Inter + purple + shadcn) regardless of what the project actually looks like.
-- **NEVER use the "AI demo" aesthetic.** No purple gradients, no Inter-as-only-font, no uniform 8px border-radius on everything, no oversized hero sections, no decorative icons on every card, no same-shadow-on-everything. These are immediate tells that the mockup was generated, not designed.
-- **NEVER present a component floating in a void.** Always include a page shell. A component on a blank white page communicates nothing about whether it fits the application.
-- **NEVER use lorem ipsum.** Use plausible content that tests the layout honestly. "John Doe" and perfectly-fitting text give false confidence.
-- **NEVER add before/after for net-new features.** There is no meaningful "before." Before/after anchors stakeholders on loss rather than evaluating the new thing.
-- **NEVER use full viewport width when the project has a max-width container.** A component at 1440px in a project with a 1140px container looks wrong in ways that are hard to articulate but immediately felt.
-- **NEVER add a dark mode toggle if the project doesn't have dark mode.** Inventing features that don't exist undermines trust in the mockup's accuracy.
-- **NEVER make all sample data perfect.** Include at least one edge case (long name, missing data, large number) or the mockup lies about how the component will actually look.
-- **NEVER put annotation text inside the UI chrome.** Reviewers will wonder "is that part of the design or a note?" All annotations go outside the page shell boundary.
-- **NEVER add skeleton/shimmer loading states to every component.** Shimmer on a component with no real load latency is an AI aesthetic tell — it signals "covering bases" rather than understanding the actual data flow. Add loading states only when the component fetches data.
-- **NEVER generate cosmetic-only variations.** "Blue vs green" or "slightly rounder corners" is one design in multiple costumes. Each variation must differ on a meaningful axis (layout, density, hierarchy, interaction pattern) — otherwise the user has no real choice to make.
-- **NEVER label variations "Option A/B/C" or "v1/v2/v3".** Generic labels tell the user nothing about what each approach IS. Use descriptive names that communicate the design intent ("Minimal", "Structured", "Dense", "Horizontal", "Stacked").
-- **NEVER change the page shell or data between variations.** The point of variations is to compare DESIGNS. If the shell, surrounding content, or data differs between variations, you're comparing scenes, not designs.
-- **NEVER ship a straw-man variation.** Every variation must be genuinely usable. If you're including a "bad" option to make another look better, you're manipulating the decision, not supporting it.
-- **NEVER generate more than 4 variations.** Choice overload degrades decisions. 3 is the default, 4 is the cap. If you have 5 ideas, cut the weakest.
+- **Never generate a mockup before extracting the project's design tokens.** A mockup without design extraction defaults to the AI aesthetic (Inter + purple + shadcn) regardless of what the project actually looks like.
+- **Never use the "AI demo" aesthetic.** No purple gradients, no Inter-as-only-font, no uniform 8px border-radius on everything, no oversized hero sections, no decorative icons on every card, no same-shadow-on-everything. These are immediate tells that the mockup was generated, not designed.
+- **Never present a component floating in a void.** Always include a page shell. A component on a blank white page communicates nothing about whether it fits the application.
+- **Never use lorem ipsum.** Use plausible content that tests the layout honestly. "John Doe" and perfectly-fitting text give false confidence.
+- **Never add before/after for net-new features.** There is no meaningful "before." Before/after anchors stakeholders on loss rather than evaluating the new thing.
+- **Never use full viewport width when the project has a max-width container.** A component at 1440px in a project with a 1140px container looks wrong in ways that are hard to articulate but immediately felt.
+- **Never add a dark mode toggle if the project doesn't have dark mode.** Inventing features that don't exist undermines trust in the mockup's accuracy.
+- **Never make all sample data perfect.** Include at least one edge case (long name, missing data, large number) or the mockup lies about how the component will actually look.
+- **Never put annotation text inside the UI chrome.** Reviewers will wonder "is that part of the design or a note?" All annotations go outside the page shell boundary.
+- **Never add skeleton/shimmer loading states to every component.** Shimmer on a component with no real load latency is an AI aesthetic tell — it signals "covering bases" rather than understanding the actual data flow. Add loading states only when the component fetches data.
+- **Never generate cosmetic-only variations.** "Blue vs green" or "slightly rounder corners" is one design in multiple costumes. Each variation must differ on a meaningful axis (layout, density, hierarchy, interaction pattern) — otherwise the user has no real choice to make.
+- **Never label variations "Option A/B/C" or "v1/v2/v3".** Generic labels tell the user nothing about what each approach IS. Use descriptive names that communicate the design intent ("Minimal", "Structured", "Dense", "Horizontal", "Stacked").
+- **Never change the page shell or data between variations.** The point of variations is to compare DESIGNS. If the shell, surrounding content, or data differs between variations, you're comparing scenes, not designs.
+- **Never ship a straw-man variation.** Every variation must be genuinely usable. If you're including a "bad" option to make another look better, you're manipulating the decision, not supporting it.
+- **Never generate more than 4 variations.** Choice overload degrades decisions. 3 is the default, 4 is the cap. If you have 5 ideas, cut the weakest.

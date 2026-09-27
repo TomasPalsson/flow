@@ -39,7 +39,7 @@ M-Score = -4.84 + 0.92 × DSRI
 
 **YELLOW band protocol** (M-Score between -2.22 and -1.78, OR Sloan accruals 10-20%):
 1. Apply **-5 point penalty to the Quality bundle** (not just sector adjustment)
-2. The thesis memo MUST include a specific pre-mortem item documenting WHY the elevated earnings-quality signal is non-material (industry seasonality? working capital build for known reason? recent acquisition?). If you cannot articulate a non-material reason → reject the candidate.
+2. The thesis memo must include a specific pre-mortem item documenting WHY the elevated earnings-quality signal is non-material (industry seasonality? working capital build for known reason? recent acquisition?). If you cannot articulate a non-material reason → reject the candidate.
 3. Cap position size at quarter-Kelly regardless of overall conviction score
 4. Quarterly reassessment must re-check M-Score; if it moves above -1.78 → mandatory exit within 30 days
 

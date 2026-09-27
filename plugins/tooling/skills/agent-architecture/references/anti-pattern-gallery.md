@@ -50,7 +50,7 @@ Find your symptom, read the cause, apply the fix. Most agent failures are **engi
 **Fix:** aim for the Goldilocks zone — minimal-yet-sufficient, structured sections, concrete examples for edge cases (not an exhaustive ruleset). Start vaguer, add specificity from *observed* failures. Progressive disclosure via skills for branch-specific detail. Heuristic: if it can't be read in ~90s, it's a mega-prompt.
 
 ### Stuck on a framework when debugging
-**Cause:** premature framework lock-in — abstractions hide prompts/responses; the bug is inside the framework; migration is a 6-month project. Post-2024 models need far less scaffolding.
+**Cause:** premature framework lock-in — abstractions hide prompts/responses; the bug is inside the framework; migration is a 6-month project. Current models need far less scaffolding.
 **Fix:** start with the raw API (most patterns <100 lines); keep frameworks at the orchestration layer only, business logic framework-independent; ensure you can read the framework's source and could swap it out in a weekend.
 
 ### Cost surprise at month-end, can't attribute it
@@ -64,10 +64,10 @@ Find your symptom, read the cause, apply the fix. Most agent failures are **engi
 ---
 
 ## Cross-cutting NEVER list
-- NEVER add architecture complexity (workflow→agent→multi-agent) without a measured failure of the simpler rung.
-- NEVER split agents by work-phase (planner/implementer/tester) — split at context-isolation boundaries.
-- NEVER put dynamic content before a cache breakpoint, or clear the memory tool's results.
-- NEVER run an agent without stopping conditions and terminal tool states.
-- NEVER route secrets through tool params or the system prompt.
-- NEVER set Gateway `searchType:SEMANTIC` without intent — it's permanent.
-- NEVER deploy a Cedar policy straight to `ENFORCE` — `LOG_ONLY` first.
+- Never add architecture complexity (workflow→agent→multi-agent) without a measured failure of the simpler rung.
+- Never split agents by work-phase (planner/implementer/tester) — split at context-isolation boundaries.
+- Never put dynamic content before a cache breakpoint, or clear the memory tool's results.
+- Never run an agent without stopping conditions and terminal tool states.
+- Never route secrets through tool params or the system prompt.
+- Never set Gateway `searchType:SEMANTIC` without intent — it's permanent.
+- Never deploy a Cedar policy straight to `ENFORCE` — `LOG_ONLY` first.

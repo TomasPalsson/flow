@@ -151,12 +151,12 @@ while result.stop_reason == "interrupt":                 # caller drives the res
     result = agent(responses)
 ```
 
-**MANDATORY — READ THE ENTIRE FILE** before writing any other steering hook (block a tool,
-rewrite args, override/retry a result, tool budget, debounce/loop-break, dynamic tool
-filtering, PII redaction, dry-run tool swap, autonomous resume, observability):
-[`references/recipes.md`](references/recipes.md). **Do NOT reconstruct these from memory** —
-the bookkeeping (counter keys, `HookOrder`, streaming caveats) lives only there. Skip the file
-only for a one-liner the table already covers.
+Read [`references/recipes.md`](references/recipes.md) in full before writing any other
+steering hook (block a tool, rewrite args, override/retry a result, tool budget,
+debounce/loop-break, dynamic tool filtering, PII redaction, dry-run tool swap, autonomous
+resume, observability). Do not reconstruct these from memory — the bookkeeping (counter keys,
+`HookOrder`, streaming caveats) lives only there. Skip the file only for a one-liner the table
+already covers.
 
 ## Layer 2: Interventions (stable, the default for guardrails)
 
@@ -184,11 +184,11 @@ Lifecycle methods: `before_invocation`, `before_tool_call`, `after_tool_call`,
 actions **accumulate** across handlers. Vended: `from strands.vended_interventions import
 HumanInTheLoop, CedarAuthorization`.
 
-**MANDATORY — READ THE ENTIRE FILE before implementing any `InterventionHandler` OR
-`SteeringHandler`:** [`references/interventions-and-steering.md`](references/interventions-and-steering.md)
-— the action-compatibility matrix (which action is valid on which event), `on_error`
-semantics, the two non-interchangeable `Guide` types, `LedgerProvider`, and cost notes are
-there and easy to get wrong from memory.
+Read [`references/interventions-and-steering.md`](references/interventions-and-steering.md) in
+full before implementing any `InterventionHandler` OR `SteeringHandler` — the
+action-compatibility matrix (which action is valid on which event), `on_error` semantics, the
+two non-interchangeable `Guide` types, `LedgerProvider`, and cost notes are there and easy to
+get wrong from memory.
 
 ## Layer 3: Steering (stable; Python only) — "steer, don't block"
 
@@ -240,19 +240,19 @@ Full catalog with symptoms/causes/fixes: **read**
 
 ## Bundled resources
 
-- [`references/event-catalog.md`](references/event-catalog.md) — **MANDATORY — READ ENTIRE
-  FILE before relying on any event's exact attributes or writable fields**: every event
-  (single-agent, multi-agent, bidi), the steering levers, lifecycle order, and the
-  `*InvocationEvent → *CallEvent` migration map.
+- [`references/event-catalog.md`](references/event-catalog.md) — read in full before relying
+  on any event's exact attributes or writable fields: every event (single-agent, multi-agent,
+  bidi), the steering levers, lifecycle order, and the `*InvocationEvent → *CallEvent`
+  migration map.
 - [`references/interventions-and-steering.md`](references/interventions-and-steering.md) —
-  **MANDATORY before building an `InterventionHandler` or `SteeringHandler`** (see trigger
-  above): full APIs, action-compatibility matrix, `on_error`, `LedgerProvider`, cost notes.
-- [`references/recipes.md`](references/recipes.md) — **MANDATORY before writing a non-trivial
-  steering hook**: copy-paste production hooks (HITL, PII redaction, tool budget, debounce,
+  read before building an `InterventionHandler` or `SteeringHandler` (see trigger above): full
+  APIs, action-compatibility matrix, `on_error`, `LedgerProvider`, cost notes.
+- [`references/recipes.md`](references/recipes.md) — read before writing a non-trivial
+  steering hook: copy-paste production hooks (HITL, PII redaction, tool budget, debounce,
   dynamic tool filtering, dry-run swap, autonomous resume, multi-agent node guard, observability).
-- [`references/anti-patterns.md`](references/anti-patterns.md) — **MANDATORY — READ ENTIRE
-  FILE before shipping any hook**: the failure-mode catalog (symptom → cause → fix); #2 (a
-  raised hook aborts the whole run) is catastrophic if missed.
+- [`references/anti-patterns.md`](references/anti-patterns.md) — read in full before shipping
+  any hook: the failure-mode catalog (symptom → cause → fix); #2 (a raised hook aborts the
+  whole run) is catastrophic if missed.
 
 **Do NOT load any reference** for a single writable-field tweak the steering-levers table
 already covers — load on demand only at the decision points flagged above.

@@ -35,7 +35,7 @@ gif_creator                   → record multi-step flows for later review
 
 ## Critical Rules
 
-1. **ALWAYS call `tabs_context_mcp` first.** Never reuse a tab id from a previous session or another conversation — ids are per-session. If a later call errors with "tab does not exist," re-run `tabs_context_mcp` and pick a fresh id.
+1. **Call `tabs_context_mcp` first.** Never reuse a tab id from a previous session or another conversation — ids are per-session. If a later call errors with "tab does not exist," re-run `tabs_context_mcp` and pick a fresh id.
 2. **Prefer a new tab over reusing an existing one.** Only operate on an existing tab if the user explicitly says so — the user may be mid-task in their other tabs.
 3. **Never trigger `alert` / `confirm` / `prompt` or native file dialogs.** These freeze the extension and no further commands land until the user dismisses manually. If a button might trigger one, warn first or use `javascript_tool` to intercept.
 4. **For long-form inputs, set `.value` via `javascript_tool`.** `form_input` and `computer` type character by character and may time out.

@@ -12,7 +12,7 @@ prompt. This is zero-infra: a JSONL log + tail/grep + a small monthly table. No 
 
 **Governance — locked vs mutable (do this or the loop is dangerous).** The loop may self-tune only
 TACTICAL parameters within a bounded range: catalyst weights, signal sub-weights, sizing multipliers
-(±30% drift cap). It may NEVER modify RISK/PERSONALITY parameters — Kelly ceiling (25%), position
+(±30% drift cap). It may never modify RISK/PERSONALITY parameters — Kelly ceiling (25%), position
 caps, the fraud veto, the regime dial thresholds, long-only/unleveraged. Those are hard-locked
 against agent self-modification. An agent that can rewrite its own risk limits will, eventually,
 rewrite them to zero.
@@ -68,7 +68,7 @@ exit on `thesis_completion_exit` (the catalyst resolving), which is a REASON, no
 future editor who "helpfully" restores a fixed `profit_target` on the momentum sleeve is reintroducing
 the exact truncation this schema exists to prevent — don't.
 
-**APPEND-ONLY — MANDATORY.** Resolution is a NEW JSONL line referencing the entry's `trade_id`, NEVER
+This is append-only. Resolution is a NEW JSONL line referencing the entry's `trade_id`, never
 an in-place edit of the entry line. An editable entry lets a losing thesis be retroactively reworded
 after the fact — exactly the sycophancy-toward-your-own-picks failure llm-guardrails.md §4 warns about.
 Append-only makes the original claim (signal, confidence, catalyst, invalidation condition) immutable

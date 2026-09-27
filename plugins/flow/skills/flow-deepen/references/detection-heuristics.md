@@ -76,7 +76,7 @@ A deepening is behavior-preserving and test-gated, so the **default is AFK**. Es
 3. **Public-symbol deletion** — removing a symbol other teams consume.
 4. **Bug-or-feature surprise** — the characterization test reveals current behavior that may be a bug; a human decides preserve-vs-fix (fix is a separate intentional commit). Tag these `AFK (pending characterization test — may escalate to HITL)`.
 
-A HITL rationale MUST name the decision: *"Needs a human for: interface shape — Option A (one method + options object) vs Option B (two methods)."* Lead the user with a recommended option and the why.
+A HITL rationale names the decision: *"Needs a human for: interface shape — Option A (one method + options object) vs Option B (two methods)."* Lead the user with a recommended option and the why.
 
 ---
 

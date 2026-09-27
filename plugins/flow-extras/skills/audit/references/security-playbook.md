@@ -10,7 +10,7 @@ description: Ordered security audit playbook for the /audit skill's security dim
 ## Hard Rules for the Security Agent
 
 1. **Secrets and exploited CVEs bypass the findings budget** — always shown, never dropped.
-2. **Auth / access-control findings are ALWAYS `propose-only`** (capped at `review-required` fix eligibility). SAST on access control is unreliable regardless of tool.
+2. **Auth / access-control findings are always `propose-only`** (capped at `review-required` fix eligibility). SAST on access control is unreliable regardless of tool.
 3. **Dev-dependency CVEs are dropped** unless the compromise scenario is real.
 4. **Findings on test files, fixtures, and `.env.example` with placeholder values are dropped**.
 5. **Every finding needs a `failure_scenario`** — specific input → specific outcome → specific impact.

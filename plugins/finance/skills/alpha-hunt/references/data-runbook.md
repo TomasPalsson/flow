@@ -173,8 +173,8 @@ durable memory across runs). **`news-seen.json` and `sentiment-history.json` are
 persisted set** — both are history-ACCUMULATING caches that compare against prior WEEKS (cross-week
 rehash detection; the sentiment z-score baseline), so a weekly wipe would make every story look fresh
 forever and leave the z-score permanently "history accumulating". Both would then silently no-op
-rather than fail loudly — the worst failure mode. Anything that compares across runs MUST go in
-state.sh; anything derivable from a single run must NOT (it just bloats the state branch).
+rather than fail loudly — the worst failure mode. Anything that compares across runs must go in
+state.sh; anything derivable from a single run must not (it just bloats the state branch).
 
 ## New data sources (2026 research upgrades — all free/keyless)
 - **Options-implied signals from the CBOE chain ALREADY fetched** (`cdn.cboe.com/.../options/{T}.json`):

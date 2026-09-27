@@ -14,7 +14,7 @@ Most retail (and many professional) investors have zero codified sell discipline
 2. **Opportunity cost** — better risk-adjusted return available elsewhere
 3. **Overvaluation extreme** — top 0.5% historical outcomes priced in
 
-## Rule 1 — Thesis Break (5 sub-triggers, MANDATORY exit within 30 days)
+## Rule 1 — Thesis Break (5 sub-triggers, exit within 30 days)
 
 Mark any of the following:
 1. **ROIC drops below WACC for 2 consecutive years**, indicating value destruction.

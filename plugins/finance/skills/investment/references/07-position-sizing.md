@@ -16,7 +16,7 @@ Where:
 - σ = ANNUALIZED expected volatility (3-year realized annualized as proxy)
 - f* = Kelly-optimal capital fraction
 
-**CRITICAL — Annualization step**: The 3-scenario model in the thesis memo produces a 3-year cumulative expected value (e.g., EV = +60% over 3 years). This is NOT μ — it's a 3-year return. Convert before plugging into Kelly:
+**Annualization step**: The 3-scenario model in the thesis memo produces a 3-year cumulative expected value (e.g., EV = +60% over 3 years). This is NOT μ — it's a 3-year return. Convert before plugging into Kelly:
 
 ```
 EV_3year = 0.2 × Bear_return + 0.6 × Base_return + 0.2 × Bull_return
@@ -39,7 +39,7 @@ Skipping this step inflates Kelly sizes 3-5×, producing dangerously concentrate
 | CS100 ≥ 75 BUT financial / cyclical / spinoff | 1/3 Kelly | Sector or structure uncertainty |
 | First time investing in this name | Apply -1 step (move down one tier) | Path-dependent caution |
 
-## Capital Scale Adjustments (CRITICAL)
+## Capital Scale Adjustments
 
 Kelly math assumes infinite divisibility and zero friction. Real portfolios deviate.
 
@@ -95,7 +95,7 @@ Hard ceiling still applies: 25% single position regardless of multiplier stack.
 
 ## Three-Tranche Entry Plan
 
-NEVER buy 100% at once. Use 3-tranche tranching:
+Never buy 100% at once. Use 3-tranche tranching:
 
 ### Tier 1: Wide-Moat Compounder (high conviction, low patience required)
 - Tranche A (now): 50% of target position

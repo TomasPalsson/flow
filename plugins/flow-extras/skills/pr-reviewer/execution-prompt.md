@@ -16,7 +16,7 @@ when executing the pipeline unattended via ralph-loop:
 - ralph-loop completion signal
 
 **For the full pipeline** — stages, rules, filters, anti-patterns, framing rules —
-read SKILL.md. Do NOT duplicate its content in your own plans.
+read SKILL.md. Do not duplicate its content in your own plans.
 
 ---
 
@@ -57,7 +57,7 @@ Jump to `current_stage` on every iteration; re-read state first.
 ## Context-Capacity Recovery (THE rule that's not in SKILL.md)
 
 At ~70% context capacity: **complete the current stage, write state, then
-compress**. NEVER mid-stage compression — it corrupts specialist findings and
+compress**. Never mid-stage compression — it corrupts specialist findings and
 filter state. The stage boundary is the only safe compression point.
 
 ## Stage 0: Preflight Bash (what SKILL.md skips)
@@ -131,12 +131,12 @@ would burn iterations without fixing the root cause:
 
 | Signal | Recovery |
 |--------|----------|
-| Specialist subagent returns empty JSON | retry ONCE as foreground, then skip that specialist (don't loop) |
-| Stage 5 produces 0 findings after filters | verdict APPROVE, STILL run Stage 6 (empty review is a valid outcome) |
-| Stage 7 returns 422 on commit_id | refetch head SHA, retry ONCE. If 422 again → STOP, report to user |
-| Stage 7 returns 429 / "spammed" | sleep 60s, retry ONCE. If 429 again → STOP, respect GitHub's cooldown |
+| Specialist subagent returns empty JSON | retry once as foreground, then skip that specialist (don't loop) |
+| Stage 5 produces 0 findings after filters | verdict APPROVE, still run Stage 6 (empty review is a valid outcome) |
+| Stage 7 returns 422 on commit_id | refetch head SHA, retry once. If 422 again → stop, report to user |
+| Stage 7 returns 429 / "spammed" | sleep 60s, retry once. If 429 again → stop, respect GitHub's cooldown |
 | User rejects all comments at Stage 6 | cleanup `.pr-review/` and exit 0 (0 comments is a valid review) |
-| Context at ~70% capacity | complete current stage, write state, compress. NEVER mid-stage |
+| Context at ~70% capacity | complete current stage, write state, compress. Never mid-stage |
 
 ## Completion Signal (ralph-loop only)
 
@@ -147,13 +147,13 @@ After Stage 8 cleanup, emit:
 ```
 
 ralph-loop uses this as the `--completion-promise` match. Emit it verbatim,
-including the tags. Emit ONLY if a review was actually posted OR the user
+including the tags. Emit only if a review was actually posted or the user
 explicitly cancelled at Stage 6 (in which case emit
 `<promise>REVIEW CANCELLED</promise>` instead).
 
 ## Manual Execution
 
-If ralph-loop is not the execution path, do NOT load this file — just follow
+If ralph-loop is not the execution path, do not load this file — just follow
 SKILL.md stage by stage. This file adds nothing for manual execution other
 than the preflight bash and the portable `awk` command, which you can always
 copy from here if needed.

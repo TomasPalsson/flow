@@ -16,8 +16,8 @@ Collapsing those two turns a deposit into an impulse buy. New capital is a fundi
 research shortcut. A name that has not passed the full BUILD underwriting bar does not enter the
 book because money showed up.
 
-**MANDATORY — READ ENTIRE FILE** before any deployment decision:
-[`references/10-cash-deployment.md`](references/10-cash-deployment.md).
+Read [`references/10-cash-deployment.md`](references/10-cash-deployment.md) in full before any
+deployment decision.
 
 ---
 
@@ -161,8 +161,7 @@ currency**, not once per order.
 
 ## Stage 7 — IBKR handoff
 
-**MANDATORY — READ ENTIRE FILE**:
-[`references/05-ibkr-handoff.md`](references/05-ibkr-handoff.md).
+Read [`references/05-ibkr-handoff.md`](references/05-ibkr-handoff.md) in full.
 
 1. Call `get_order_instructions` **before drafting anything** — skip or supersede any existing
    draft for the same contract. Blind-creating stacks duplicates the owner could submit twice.
@@ -214,7 +213,7 @@ Then:
 
 ---
 
-## What this mode must NEVER do
+## What this mode must never do
 
 - **Never initiate an unresearched name** because cash arrived.
 - **Never treat dividends, sale proceeds, or FX revaluation as new capital.**

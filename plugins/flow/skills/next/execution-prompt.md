@@ -57,7 +57,7 @@ Run `flow check --fix` (typecheck → lint → format → test; missing gates sk
 | The task needs a file not in `files:` | STOP and report it. Widening the task in flight is what the wave barrier exists to prevent. |
 | Blocked by an unexpected dependency | STOP and report it; the orchestrator records it as a `Discovered:` line. |
 | Browser verification failed | Return to RED, fix, re-run the inline gates. |
-| Context near ~70% | Finish the current sub-phase (NEVER mid-phase), commit, and report. |
+| Context near ~70% | Finish the current sub-phase (never mid-phase), commit, and report. |
 
 For browser work: `${CLAUDE_PLUGIN_ROOT}/skills/shared/claude-in-chrome-reference.md`, start the server with `${CLAUDE_PLUGIN_ROOT}/skills/shared/scripts/start-dev-server`, treat same-origin console errors as FAIL, write evidence to `<Feature>/verify/`, then strip every `[VERIFY]` string.
 

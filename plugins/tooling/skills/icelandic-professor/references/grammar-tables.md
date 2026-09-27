@@ -167,7 +167,7 @@ gefa (gaf, gáfum, gefið), lesa (las, lásum, lesið), sjá (sá, sáum, séð)
 
 ### Class 6: a ~ ó ~ ó ~ a(ið)
 fara (fór, fórum, farið), standa (stóð, stóðum, staðið), taka (tók, tókum, tekið)
-Present 2sg/3sg: a→e (hann fer, hann tekur, hann heldur) — CRITICAL: fara 3sg = fer, NOT *far
+Present 2sg/3sg: a→e (hann fer, hann tekur, hann heldur) — fara 3sg = fer, NOT *far
 
 ### Class 7: mixed ablaut
 - 7a: heita (hét, hétum, heitið), leika (lék, lékum, leikið)
@@ -175,7 +175,7 @@ Present 2sg/3sg: a→e (hann fer, hann tekur, hann heldur) — CRITICAL: fara 3s
 - 7c: falla (féll, féllu, fallið), halda (hélt, héldum, haldið), ganga (gekk, gengum, gengið)
 - 7d (ri-verbs): gróa (greri, grerum, gróið), snúa (sneri, snerum, snúið)
 
-CRITICAL: halda is class 7 (hélt), NOT class 6.
+halda is class 7 (hélt), NOT class 6.
 
 ## Adjective Declension
 
@@ -200,7 +200,7 @@ CRITICAL: halda is class 7 (hélt), NOT class 6.
 | All other | stór-a | stór-u | stór-a |
 | All pl | stór-u | stór-u | stór-u |
 
-Trigger rule: WEAK when noun phrase contains definite article, demonstrative, or possessive. STRONG otherwise. Predicative adjectives are ALWAYS strong.
+Trigger rule: WEAK when noun phrase contains definite article, demonstrative, or possessive. STRONG otherwise. Predicative adjectives are always strong.
 
 ## Verb-Governed Object Cases (Non-Accusative Objects)
 

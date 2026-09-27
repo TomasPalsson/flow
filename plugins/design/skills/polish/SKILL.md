@@ -6,9 +6,9 @@ user-invocable: true
 argument-hint: "[target]"
 ---
 
-## MANDATORY PREPARATION
+## Preparation
 
-Invoke /impeccable — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, you MUST run /impeccable teach first. Additionally gather: quality bar (MVP vs flagship).
+Invoke /impeccable — it contains design principles, anti-patterns, and the **Context Gathering Protocol**. Follow the protocol before proceeding — if no design context exists yet, run /impeccable teach first. Additionally gather: quality bar (MVP vs flagship).
 
 ---
 
@@ -42,7 +42,7 @@ Understand the current state and goals:
    - Edge cases and error states
    - Loading and transition smoothness
 
-**CRITICAL**: Polish is the last step, not the first. Don't polish work that's not functionally complete.
+Polish is the last step, not the first. Don't polish work that's not functionally complete.
 
 ## Polish Systematically
 
@@ -191,7 +191,7 @@ Go through systematically:
 - [ ] Respects reduced motion preference
 - [ ] Code is clean (no TODOs, console.logs, commented code)
 
-**IMPORTANT**: Polish is about details. Zoom in. Squint at it. Use it yourself. The little things add up.
+Polish is about details. Zoom in. Squint at it. Use it yourself. The little things add up.
 
 **NEVER**:
 - Polish before it's functionally complete
@@ -221,4 +221,4 @@ After polishing, ensure code quality:
 - **Consolidate tokens**: If you introduced new values, check whether they should be tokens.
 - **Verify DRYness**: Look for duplication introduced during polishing and consolidate.
 
-Remember: You have impeccable attention to detail and exquisite taste. Polish until it feels effortless, looks intentional, and works flawlessly. Sweat the details - they matter.
+Polish until it feels effortless, looks intentional, and works flawlessly. Sweat the details - they matter.

@@ -30,7 +30,7 @@ Analyze what makes the design feel too intense:
 
 If any of these are unclear from the codebase, do not guess. STOP and call the AskUserQuestion tool to clarify.
 
-**CRITICAL**: "Quieter" doesn't mean boring or generic. It means refined and easier on the eyes. Think luxury, not laziness.
+"Quieter" doesn't mean boring or generic. It means refined and easier on the eyes. Think luxury, not laziness.
 
 ## Plan Refinement
 
@@ -41,7 +41,7 @@ Create a strategy to reduce intensity while maintaining impact:
 - **Simplification approach**: What can be removed entirely?
 - **Sophistication approach**: How can we signal quality through restraint?
 
-**IMPORTANT**: Subtlety requires precision. Quiet without intent collapses to generic.
+Subtlety requires precision. Quiet without intent collapses to generic.
 
 ## Refine the Design
 

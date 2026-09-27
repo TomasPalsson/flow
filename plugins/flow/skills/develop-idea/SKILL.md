@@ -31,7 +31,7 @@ These hold in EVERY response. They are the difference between development and th
 
 7. **Calibrate to stage and expertise.** Read the first message. *Napkin idea* ("crazy idea but what if…") → expand, don't scrutinize. *Months in* → sharpen and pressure-test. *Near launch* → find the real blocker. *Domain expert* → spar, skip the basics. When unsure, ask one calibrating question before diving in.
 
-**Before sending any response, run the self-audit.** **MANDATORY — READ ENTIRE FILE on first use of this skill in a session:** load [`references/development-failure-modes.md`](references/development-failure-modes.md). It is your pre-send checklist against sycophancy, hijacking, generic advice, overwhelm, and fake questions.
+**Before sending any response, run the self-audit.** On first use of this skill in a session, read [`references/development-failure-modes.md`](references/development-failure-modes.md) in full — it is your pre-send checklist against sycophancy, hijacking, generic advice, overwhelm, and fake questions.
 
 ---
 
@@ -78,7 +78,7 @@ The skill's signature is surfacing the angle the user *hasn't* considered. Do th
 
 Go **one dimension deep, not all dimensions shallow.** Skip what they've clearly already thought about — you add value at the *edges* of their thinking, not its center.
 
-**MANDATORY — READ ENTIRE FILE when selecting which angle to develop:** load [`references/expansion-lenses.md`](references/expansion-lenses.md) — the 13-dimension map (problem, user, demand, feasibility, viability, differentiation, risk, second-order, ethics, scale, scope, evidence, argument), each with sharp probe questions, the highest-value blind spots, and how to prioritize for this idea type.
+When selecting which angle to develop, read [`references/expansion-lenses.md`](references/expansion-lenses.md) in full — the 13-dimension map (problem, user, demand, feasibility, viability, differentiation, risk, second-order, ethics, scale, scope, evidence, argument), each with sharp probe questions, the highest-value blind spots, and how to prioritize for this idea type.
 
 ---
 
@@ -86,9 +86,9 @@ Go **one dimension deep, not all dimensions shallow.** Skip what they've clearly
 
 The generative move is the right move when the idea needs more *room*, not more scrutiny — and it always arrives as a natural probe, never as a named ritual ("let's run SCAMPER"). The judgment: is the idea too narrow (needs expansion), problem-unclear (needs Jobs-to-be-Done), stuck on a trade-off (needs constraint-relaxation), or merely incremental (needs the 10x reframe)? Match the move to the need; the user should feel a sharp question, not a framework.
 
-**MANDATORY — READ ENTIRE FILE when reaching for a generative move:** load [`references/development-frameworks.md`](references/development-frameworks.md) — each technique's mechanic, when to reach for it, and example probe phrasing.
+When reaching for a generative move, read [`references/development-frameworks.md`](references/development-frameworks.md) in full — each technique's mechanic, when to reach for it, and example probe phrasing.
 
-For the craft of the questions themselves — single-thread follow, the assert-vs-ask decision, "what/how" over "why", productive silence, the expand/probe/challenge banks — **MANDATORY — READ ENTIRE FILE when a question you're about to ask feels off, or when you've asked two questions in a row that didn't yield a useful answer:** load [`references/questioning-craft.md`](references/questioning-craft.md).
+For the craft of the questions themselves — single-thread follow, the assert-vs-ask decision, "what/how" over "why", productive silence, the expand/probe/challenge banks — when a question you're about to ask feels off, or when you've asked two questions in a row that didn't yield a useful answer, read [`references/questioning-craft.md`](references/questioning-craft.md) in full.
 
 **Do NOT load** `references/questioning-craft.md` or `references/development-frameworks.md` when the user's first message signals a short, casual exchange ("poke at this", "quick thought", "just thinking out loud") — for those, `references/development-failure-modes.md` and `references/expansion-lenses.md` are enough.
 
@@ -115,7 +115,7 @@ A list of 15 undifferentiated problems demoralizes. *One fatal flaw, eight fixab
 You develop ideas. When the work has shifted, say so and point to the right tool:
 
 - The idea is developed and the user now wants a **verdict** / honest teardown / "should I actually do this" → **`scrutinize-idea`**.
-- It's **software to build in this repo** and its decisions are still open → **a seed `PREP.md`, then `/flow:prep`**. This goes ahead of `grill-me` and `brainstorm` below for in-repo software: prep is grill-me plus the file `/flow:spec` reads, and brainstorm is for when there is no idea yet, only a codebase to improve. Already decided → `/flow:spec` directly. **MANDATORY — READ ENTIRE FILE before writing a seed:** [`references/flow-seed.md`](references/flow-seed.md).
+- It's **software to build in this repo** and its decisions are still open → **a seed `PREP.md`, then `/flow:prep`**. This goes ahead of `grill-me` and `brainstorm` below for in-repo software: prep is grill-me plus the file `/flow:spec` reads, and brainstorm is for when there is no idea yet, only a codebase to improve. Already decided → `/flow:spec` directly. Before writing a seed, read [`references/flow-seed.md`](references/flow-seed.md) in full.
 - The idea has hardened into a **concrete plan** with real sub-decisions to resolve → **`grill-me`**.
 - It's about improving an **existing codebase** → **`brainstorm`**.
 - They're ready to write a **formal spec** → **`/flow:spec`**.

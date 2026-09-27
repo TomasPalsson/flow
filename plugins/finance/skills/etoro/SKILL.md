@@ -11,7 +11,7 @@ An **agent-portfolio** is a dedicated eToro account that starts with **$10,000 i
 
 The agent's job is to trade on behalf of the agent-portfolio using the agent-portfolio's own user token and API key. All trading endpoints use `/api/v1/trading/execution/market-open-orders/...` and `/api/v1/trading/execution/market-close-orders/...` (real endpoints, no `/demo/` segment) authenticated with the agent-portfolio's credentials.
 
-**IMPORTANT — User-facing numbers rule:** NEVER show the user absolute dollar amounts from the agent-portfolio's internal balance. Always translate to **percentages of equity** when communicating with the user. Examples:
+**User-facing numbers rule:** Never show the user absolute dollar amounts from the agent-portfolio's internal balance. Always translate to **percentages of equity** when communicating with the user. Examples:
 - PnL: say "+2.1%" not "+$34.70"
 - Cash: say "75% cash" not "$7,500 cash"
 - Allocations: say "invest 2.5% in AAPL" not "invest $250 in AAPL"
@@ -99,7 +99,7 @@ POST https://public-api.etoro.com/api/v1/agent-portfolios
 - `userTokens[0].userTokenId` — token UUID
 - `userTokens[0].clientId` — OAuth client ID
 
-**CRITICAL:** After creation, immediately present the `userToken` value to the user, labeling it with the `userTokenName` that was auto-generated (e.g. "Here is your key **portfoliox-key-482917**"). Instruct them to store it securely. Explain:
+After creation, immediately present the `userToken` value to the user, labeling it with the `userTokenName` that was auto-generated (e.g. "Here is your key **portfoliox-key-482917**"). Instruct them to store it securely. Explain:
 > "This is the only time this key will be shown. Store it in a secure location (e.g. a password manager or environment variable). If lost, you will need to create a new key for this agent-portfolio. This key is used to authenticate all trading operations on behalf of this portfolio."
 
 ### Step 4 — Gather Trading Strategy

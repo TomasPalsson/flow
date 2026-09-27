@@ -44,7 +44,7 @@ You do not have to prove the idea is *wrong*. The proposer has to prove it's *ri
 
 Ask the questions that expose the **load-bearing assumptions** and the **likely biases**. Pull from [`references/interrogation-bank.md`](references/interrogation-bank.md) — load it now if you're interrogating.
 
-**MANDATORY — READ ENTIRE FILE before interrogating:** [`references/interrogation-bank.md`](references/interrogation-bank.md). It has the bias-tell→exposing-question map and the verbatim killer questions from YC, Sequoia, Amazon, and CIA red teams. (Do NOT load `attack-frameworks.md` yet — that's Phase 2.)
+Load the entire file [`references/interrogation-bank.md`](references/interrogation-bank.md) before interrogating. It has the bias-tell→exposing-question map and the verbatim killer questions from YC, Sequoia, Amazon, and CIA red teams. (Do not load `attack-frameworks.md` yet — that's Phase 2.)
 
 Rules for this phase:
 - Ask the **3–5 sharpest** questions, not a wall of 20. Lead with the ones aimed at the load-bearing assumption.
@@ -57,7 +57,7 @@ If the user wants the verdict immediately and won't answer questions, proceed to
 
 Now try to kill it. Don't confirm — **refute**. The discipline is to seek *diagnostic* evidence (evidence that would look different if the idea were wrong), not *confirming* evidence (which exists whether or not the idea is sound).
 
-**MANDATORY — READ ENTIRE FILE before the deep attack:** [`references/attack-frameworks.md`](references/attack-frameworks.md). It has the operational step-by-step for the load-bearing-assumption Negation Test, the diagnostic-evidence filter, reference-class base rates, the graveyard technique, inversion, the pre-mortem, falsifiability, and second-order effects.
+Load the entire file [`references/attack-frameworks.md`](references/attack-frameworks.md) before the deep attack. It has the operational step-by-step for the load-bearing-assumption Negation Test, the diagnostic-evidence filter, reference-class base rates, the graveyard technique, inversion, the pre-mortem, falsifiability, and second-order effects.
 
 The minimum attack on any idea:
 1. **Find the load-bearing assumption** (Negation Test: which single assumption, if false, collapses the whole thing?) and attack *that* — not the easy peripheral targets.
@@ -91,7 +91,7 @@ WHAT WOULD CHANGE MY MIND: [specific evidence that would upgrade / downgrade the
 
 Never collapse the judgment into a single number like "7/10" — it implies a precision the evidence doesn't support. State confidence as a level attached to a *specific* claim, and always include "what would change my mind" — if nothing could, you're holding a belief, not an evaluation.
 
-**Optional — use only when the idea has a defined market, distribution mechanism, and economic model** (a venture, product, or business — NOT an argument, essay, policy proposal, or personal decision, for which the seven dimensions don't apply). When it fits, run the deterministic scorecard. Its value is that it *cannot be talked out of a fatal verdict* — if a blocking dimension scores below threshold, the verdict is DO-NOT-PROCEED regardless of how everything else scores, which removes your discretion to soften:
+**Optional — use only when the idea has a defined market, distribution mechanism, and economic model** (a venture, product, or business — not an argument, essay, policy proposal, or personal decision, for which the seven dimensions don't apply). When it fits, run the deterministic scorecard. Its value is that it *cannot be talked out of a fatal verdict* — if a blocking dimension scores below threshold, the verdict is DO-NOT-PROCEED regardless of how everything else scores, which removes your discretion to soften:
 
 ```bash
 node scripts/scorecard.js '{"problem_reality":4,"market_evidence":2,"team_fit":3,"graveyard_clearance":1,"distribution":2,"unit_economics":3,"timing":2}'
@@ -116,7 +116,7 @@ Remember the tell: **emotional intensity is inversely correlated with argument q
 
 You are sycophantic and can't feel it, so check mechanically.
 
-**MANDATORY — READ ENTIRE FILE before every verdict you send:** [`references/failure-modes.md`](references/failure-modes.md) — the two-sided self-audit (49 lines; the cost is trivial). Do NOT skip it on the assumption you remember it from earlier — you have no memory across sessions, and this is the skill's primary anti-sycophancy guard. Quick version of what's in it:
+Load the entire file [`references/failure-modes.md`](references/failure-modes.md) before every verdict you send — the two-sided self-audit (49 lines; the cost is trivial). Do not skip it on the assumption you remember it from earlier — you have no memory across sessions, and this is the skill's primary anti-sycophancy guard. Quick version of what's in it:
 
 - Did I lead with the verdict, or did I cushion it with praise first?
 - Did I **omit** any objection because it felt unkind? (The deadliest one.)

@@ -21,7 +21,7 @@ not size/value-neutral — some size and value tilt leaks back into the signal. 
 independently verified) gross monthly Sharpe is roughly ~0.48 vs ~0.25 for raw 12-1, at ~half the vol.
 Take that pair as a directional prior, not a fact.
 
-**MANDATORY fix that just landed: the signal is standardized by the residual standard deviation**
+The signal is standardized by the residual standard deviation
 (sum(residuals) / std(residuals) — an information-ratio form, Σε/σ_ε), not a raw sum. The
 un-standardized raw-sum version tilts the ranking toward high-idiosyncratic-vol names — which carry
 documented POOR forward returns (Ang, Hodrick, Xing & Zhang) — meaning it inverts the signal's intent
@@ -61,7 +61,7 @@ fields). The orchestrator forms the **master composite** by blending in the **va
 from `fetch-quote.js` fundamentals (EBIT/EV sector-neutral percentile, ROE, margins) and the
 **catalyst flags** from `fetch-catalysts.js`. No single script emits the full composite — that
 assembly happens in the pipeline (execution-prompt Stage 4). Combine the sub-scores as a
-**weighted z-score (rank-and-sum)**, NEVER an AND-intersection. Value and momentum are
+**weighted z-score (rank-and-sum)**, never an AND-intersection. Value and momentum are
 negatively correlated BY DESIGN — that offset is the diversification benefit. An intersection filter
 discards it and selects a narrow weird population. Add a light value tilt (EBIT/EV sector-neutral
 percentile) to the momentum z-score; do not require both to agree.
@@ -76,7 +76,7 @@ disqualified. "A thesis without a catalyst is hope, not a trade."
 ### Catalyst tiering — a date is not an edge
 Catalyst records now carry a tier: **A** = earnings-surprise / activist-13d / insider-form4. **B** =
 estimate-revision. **C** = a bare scheduled-earnings calendar entry or a news item. A tier-C entry is a
-DATE, not an edge, and MUST NEVER on its own satisfy the "every pick needs a dated catalyst" gate —
+DATE, not an edge, and must never on its own satisfy the "every pick needs a dated catalyst" gate —
 otherwise the gate is trivially passed by any company reporting within two weeks, which is what was
 happening before tiering existed.
 
@@ -162,7 +162,7 @@ often mark short-term bottoms.
   transfer-agreement non-compliance, **5.02** exec departures/appointments, **2.04** credit-agreement
   acceleration, **1.02** termination of a material agreement. **Noise** (tier C — down-weighted,
   a date not an edge): **8.01** catch-all, **7.01** Reg FD, **9.01** exhibits-only. **4.02 is a
-  restatement RED FLAG — always a negative/avoid flag, NEVER a buy**, even when it lands alongside
+  restatement RED FLAG — always a negative/avoid flag, never a buy**, even when it lands alongside
   otherwise-bullish items; management or the auditor disowning prior financials is a reason to leave,
   not enter.
 - **Rehash detection — IMPLEMENTED** (`fetch-catalysts.js`): cross-week Jaccard similarity over

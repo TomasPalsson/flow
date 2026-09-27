@@ -519,9 +519,9 @@ document.querySelector('.variation-switcher')?.addEventListener('keydown', (e) =
 });
 ```
 
-**Do NOT scroll-animate between variations.** The mental A/B comparison happens in the instant of switching — any fade or slide breaks that perception and makes differences harder to see.
+**Don't scroll-animate between variations.** The mental A/B comparison happens in the instant of switching — any fade or slide breaks that perception and makes differences harder to see.
 
-**Do NOT use stars or "recommended" badges on any variation.** Every variation should be presented as equally considered. The user chooses.
+**Don't use stars or "recommended" badges on any variation.** Every variation should be presented as equally considered. The user chooses.
 
 ---
 

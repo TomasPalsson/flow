@@ -65,8 +65,8 @@ Diagnostic questions to surface the wrong pattern:
 1. Create a routing table at the top (scenario detection → sub-file)
 2. Extract each phase/scenario to its own references/ file
 3. Shrink SKILL.md to ~30 lines (routing table + critical shared anti-patterns)
-4. Add MANDATORY loading triggers: "For scenario A, read references/a.md"
-5. Add "Do NOT Load" anti-triggers per path
+4. Add required loading triggers: "For scenario A, read references/a.md"
+5. Add "Do not load" anti-triggers per path
 
 **Example**: A 500-line skill covering "creating X, editing X, converting X, validating X" is better as Navigation + four reference files. The routing SKILL.md becomes 30 lines.
 
@@ -81,7 +81,7 @@ Diagnostic questions to surface the wrong pattern:
 2. Extract each sub-domain to its own references/ file
 3. Create scenario-detection routing in SKILL.md
 4. SKILL.md becomes: routing table + the MOST critical shared decision trees
-5. MANDATORY load triggers for each sub-domain
+5. Required load triggers for each sub-domain
 
 **Example**: `gh-cli` (2187 lines) covering repos, issues, PRs, actions, releases, projects. Each could be its own references/ file; SKILL.md becomes routing. Token cost drops ~85% per activation.
 
@@ -113,7 +113,7 @@ Diagnostic questions to surface the wrong pattern:
 4. Dramatically increase freedom calibration
 5. Expected length decrease: 300 → 150 lines
 
-**Warning**: If the domain IS fragile (docx/pdf/xlsx operations), do NOT do this conversion.
+**Warning**: If the domain is fragile (docx/pdf/xlsx operations), do not do this conversion.
 
 ---
 

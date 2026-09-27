@@ -164,7 +164,7 @@ Does the Skill follow official format requirements? **Special focus on descripti
 
 **Frontmatter requirements**:
 - `name`: lowercase, alphanumeric + hyphens only, ≤64 characters
-- `description`: **THE MOST CRITICAL FIELD** — determines if skill gets used at all
+- `description`: **the most critical field** — determines if skill gets used at all
 
 ---
 
@@ -366,15 +366,15 @@ Dead references or broken code that Step 0 found cost D8 points on top of the pr
 
 ## NEVER Do When Evaluating
 
-- **NEVER** give high scores just because it "looks professional" or is well-formatted — formatting isn't knowledge
-- **NEVER** ignore token waste — every redundant paragraph costs context budget the skill could spend on real knowledge
-- **NEVER** let length impress you — a 43-line Skill can outperform a 500-line Skill
-- **NEVER** skip mentally testing the decision trees — trace them and see if they actually lead to correct choices
-- **NEVER** forgive explaining basics with "but it provides helpful context" — if Claude already knows it, the context doesn't help
-- **NEVER** overlook missing failure modes — if nothing tells Claude what not to do, that's a significant gap, whatever form the warning takes
-- **NEVER** assume all procedures are valuable — distinguish domain-specific from generic
-- **NEVER** undervalue the description field — a skill with a poor description never gets used, however good its body is
-- **NEVER** put "when to use" info only in the body — the Agent only sees the description before loading
+- Never give high scores just because it "looks professional" or is well-formatted — formatting isn't knowledge
+- Never ignore token waste — every redundant paragraph costs context budget the skill could spend on real knowledge
+- Never let length impress you — a 43-line Skill can outperform a 500-line Skill
+- Never skip mentally testing the decision trees — trace them and see if they actually lead to correct choices
+- Never forgive explaining basics with "but it provides helpful context" — if Claude already knows it, the context doesn't help
+- Never overlook missing failure modes — if nothing tells Claude what not to do, that's a significant gap, whatever form the warning takes
+- Never assume all procedures are valuable — distinguish domain-specific from generic
+- Never undervalue the description field — a skill with a poor description never gets used, however good its body is
+- Never put "when to use" info only in the body — the Agent only sees the description before loading
 - Don't count NEVER entries or ask-yourself blocks; count the knowledge in them
 
 ---

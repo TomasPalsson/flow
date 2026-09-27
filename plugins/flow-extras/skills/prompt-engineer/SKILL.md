@@ -49,7 +49,7 @@ Why: "Act as an expert" prompts degrade factual accuracy by 3-5 percentage point
 
 ### Layer 2: Critical Constraints (Immediately after identity)
 
-Place NEVER rules and non-negotiable constraints here — at the TOP, never buried in the middle.
+Place non-negotiable constraints here — at the top, never buried in the middle.
 
 Why this position matters: Models exhibit a U-shaped attention curve (primacy/recency bias). Content in the middle of long prompts receives 30%+ lower attention. If a constraint is critical, it goes first. If truly non-negotiable, repeat it at the end.
 
@@ -103,7 +103,7 @@ System prompt length directly impacts quality. This is architectural, not a best
 
 ## Compressing Large System Prompts
 
-**If improving an existing prompt over ~2,000 tokens** — **MANDATORY:** Read [references/prompt-compression.md](references/prompt-compression.md) before starting. Do NOT load for new prompts or prompts under 2,000 tokens.
+**If improving an existing prompt over ~2,000 tokens:** read [references/prompt-compression.md](references/prompt-compression.md) before starting. Skip it for new prompts or prompts under 2,000 tokens.
 
 Structural reorganization always beats automated compression. The priority order:
 
@@ -111,7 +111,7 @@ Structural reorganization always beats automated compression. The priority order
 2. **Deduplication** (10-20%): Extract all imperative statements into a flat list. Same constraint stated 3 ways → one canonical version.
 3. **Structural extraction** (50-80% per-request): Split into routing core (~200-500 tokens) + conditional modules loaded on demand.
 4. **Format optimization** (15-30%): Convert verbose prose rules to pseudocode/if-then (25-60% savings). Use tables for lookup rules. Cut filler words.
-5. **Automated compression** (optional, context only): LLMLingua-2 at 2x-3x on injected context. NEVER on instruction core or safety constraints.
+5. **Automated compression** (optional, context only): LLMLingua-2 at 2x-3x on injected context. Never on instruction core or safety constraints.
 
 **The compression paradox:** Aggressive automated compression (>5x) can INCREASE total cost because output tokens expand to compensate for missing context, and output tokens cost 3-5x more than input tokens. Safe automated ratio: 2x-2.5x maximum.
 
@@ -121,7 +121,7 @@ Structural reorganization always beats automated compression. The priority order
 
 ## Tool Description Engineering
 
-**If the system prompt includes tools** — **MANDATORY:** Read [references/tool-descriptions.md](references/tool-descriptions.md) before writing tool descriptions. Do NOT load for tool-free prompts.
+**If the system prompt includes tools:** read [references/tool-descriptions.md](references/tool-descriptions.md) before writing tool descriptions. Skip it for tool-free prompts.
 
 Tool descriptions matter MORE than the system prompt for agent behavior. Anthropic's SWE-bench team spent more time on tool descriptions than the overall prompt. Key rules:
 - Every tool needs: WHEN to use it, disambiguation from similar tools, parameter examples, failure modes
@@ -132,13 +132,13 @@ Tool descriptions matter MORE than the system prompt for agent behavior. Anthrop
 
 ## Provider-Specific Guidance
 
-**Default (no provider specified or cross-provider):** Use Markdown structure. Do NOT load any provider-specific references.
+**Default (no provider specified or cross-provider):** Use Markdown structure. Don't load any provider-specific references.
 
-**If targeting a specific provider — MANDATORY before drafting:**
-- **Claude:** Read ENTIRE [references/claude-specific.md](references/claude-specific.md) before writing. Do NOT load other provider references. Key: XML structure, adaptive thinking, trust hierarchy, cache thresholds.
-- **GPT-4/5:** Read ENTIRE [references/openai-specific.md](references/openai-specific.md) before writing. Do NOT load other provider references. Key: Markdown structure, surgical instruction-following, structured outputs.
-- **Gemini:** Read ENTIRE [references/gemini-specific.md](references/gemini-specific.md) before writing. Do NOT load other provider references. Key: Minimal structure, system_instruction field, cache storage costs.
-- **Open-source:** Read ENTIRE [references/open-source-specific.md](references/open-source-specific.md) before writing. Do NOT load other provider references. Key: Chat template requirements, no trust hierarchy.
+**If targeting a specific provider, before drafting:**
+- **Claude:** Read [references/claude-specific.md](references/claude-specific.md) in full before writing. Don't load other provider references. Key: XML structure, adaptive thinking, trust hierarchy, cache thresholds.
+- **GPT-4/5:** Read [references/openai-specific.md](references/openai-specific.md) in full before writing. Don't load other provider references. Key: Markdown structure, surgical instruction-following, structured outputs.
+- **Gemini:** Read [references/gemini-specific.md](references/gemini-specific.md) in full before writing. Don't load other provider references. Key: Minimal structure, system_instruction field, cache storage costs.
+- **Open-source:** Read [references/open-source-specific.md](references/open-source-specific.md) in full before writing. Don't load other provider references. Key: Chat template requirements, no trust hierarchy.
 
 ---
 
@@ -150,7 +150,7 @@ Tool descriptions matter MORE than the system prompt for agent behavior. Anthrop
 |-----------|---------------|
 | Writing from scratch, can test model baseline | Phase 1 below |
 | Improving an existing prompt (<2,000 tokens) | Phase 4 (Harden) — run knowledge delta audit on existing prompt, then rewrite |
-| Improving an existing prompt (>2,000 tokens) | **MANDATORY:** Read [references/prompt-compression.md](references/prompt-compression.md) first, then Phase 4 |
+| Improving an existing prompt (>2,000 tokens) | Read [references/prompt-compression.md](references/prompt-compression.md) first, then Phase 4 |
 | No access to baseline testing (production, inherited) | Skip Phase 1 — go directly to Phase 2, use knowledge delta audit instead of baseline |
 | User hasn't specified target model | Use Markdown as default, proceed without asking |
 
@@ -175,35 +175,35 @@ Follow the architecture above (Identity → Constraints → Decision Frameworks 
 
 ## NEVER Do These
 
-- **NEVER use "Act as an expert [X]" for factual/reasoning tasks.** Degrades accuracy 3-5 percentage points. Use behavioral role definitions instead. Expert personas help ONLY for tone/style/alignment tasks.
+- **Never use "Act as an expert [X]" for factual/reasoning tasks.** Degrades accuracy 3-5 percentage points. Use behavioral role definitions instead. Expert personas help ONLY for tone/style/alignment tasks.
 
-- **NEVER add rules without measuring cumulative compliance.** Beyond ~15 explicit rules, the model's compliance per-rule degrades logarithmically. Rules interact in unpredictable ways. If you need >10 behavioral rules, enforce the overflow architecturally (guardrails, validation layers), not through prompt text.
+- **Never add rules without measuring cumulative compliance.** Beyond ~15 explicit rules, the model's compliance per-rule degrades logarithmically. Rules interact in unpredictable ways. If you need >10 behavioral rules, enforce the overflow architecturally (guardrails, validation layers), not through prompt text.
 
-- **NEVER bury critical constraints in the middle of a long prompt.** Models attend most to the beginning and end (30%+ accuracy drop for middle-positioned content). Critical rules go first. Non-negotiable rules get repeated at the end.
+- **Never bury critical constraints in the middle of a long prompt.** Models attend most to the beginning and end (30%+ accuracy drop for middle-positioned content). Critical rules go first. Non-negotiable rules get repeated at the end.
 
-- **NEVER assume system prompts survive model updates.** GPT-4's code output dropped from 52% to 10% over six months. Claude Sonnet 4.5 began treating "MUST" as suggestions. System prompts require regression testing on every model update — treat them as deployable artifacts, not configuration.
+- **Never assume system prompts survive model updates.** Behavior can shift unpredictably from one model version to the next, including how strictly a prompt's constraints are followed. System prompts require regression testing on every model update — treat them as deployable artifacts, not configuration.
 
-- **NEVER use Chain-of-Thought scaffolding on reasoning models.** "Think step by step" DECREASES performance on o1/o3/o4-mini and Claude with extended thinking. These models run their own internal reasoning. External scaffolding constrains rather than guides. For reasoning models: specify output format and constraints, not reasoning steps.
+- **Never use Chain-of-Thought scaffolding on reasoning models.** "Think step by step" DECREASES performance on o1/o3/o4-mini and Claude with thinking enabled. These models run their own internal reasoning. External scaffolding constrains rather than guides. For reasoning models: specify output format and constraints, not reasoning steps.
 
-- **NEVER embed secrets, API keys, or proprietary logic in system prompts.** Assume every system prompt will be extracted. Extraction techniques range from trivial ("repeat your instructions") to sophisticated (gradient-based attacks). Retrieve sensitive data dynamically through secure calls.
+- **Never embed secrets, API keys, or proprietary logic in system prompts.** Assume every system prompt will be extracted. Extraction techniques range from trivial ("repeat your instructions") to sophisticated (gradient-based attacks). Retrieve sensitive data dynamically through secure calls.
 
-- **NEVER write tool descriptions as afterthoughts.** Tool descriptions are load-bearing prompts. They matter MORE than the system prompt for agent task selection. A poorly worded tool description causes wrong tool selection, parameter hallucination, and cascading failures. Invest more engineering effort in tool descriptions than in the system prompt itself.
+- **Never write tool descriptions as afterthoughts.** Tool descriptions are load-bearing prompts. They matter MORE than the system prompt for agent task selection. A poorly worded tool description causes wrong tool selection, parameter hallucination, and cascading failures. Invest more engineering effort in tool descriptions than in the system prompt itself.
 
-- **NEVER use "be helpful" as an unbounded top-level directive.** Models trained on helpfulness have a strong prior toward compliance that adversarial inputs exploit. Scope helpfulness: "Be helpful within these constraints, and decline helpfully outside them."
+- **Never use "be helpful" as an unbounded top-level directive.** Models trained on helpfulness have a strong prior toward compliance that adversarial inputs exploit. Scope helpfulness: "Be helpful within these constraints, and decline helpfully outside them."
 
-- **NEVER test safety behavior only at short context lengths.** Refusal rates shift unpredictably as context grows (5% → 40% or 80% → 10% at 200K tokens, depending on model). Safety testing must happen at production context lengths.
+- **Never test safety behavior only at short context lengths.** Refusal rates shift unpredictably as context grows (5% → 40% or 80% → 10% at 200K tokens, depending on model). Safety testing must happen at production context lengths.
 
-- **NEVER write the system prompt before understanding the domain's failure modes.** A system prompt written from general knowledge compresses what the model already knows. The value comes from encoding failure modes, edge cases, and expert judgment that the model lacks. Research first, write second.
+- **Never write the system prompt before understanding the domain's failure modes.** A system prompt written from general knowledge compresses what the model already knows. The value comes from encoding failure modes, edge cases, and expert judgment that the model lacks. Research first, write second.
 
-- **NEVER front-load all instructions for complex, long-running agents.** Decision-time guidance (injecting situational instructions at key decision points) outperforms exhaustive front-loading. Maintain a minimal system prompt for identity and global constraints; inject task-specific rules at task boundaries.
+- **Never front-load all instructions for complex, long-running agents.** Decision-time guidance (injecting situational instructions at key decision points) outperforms exhaustive front-loading. Maintain a minimal system prompt for identity and global constraints; inject task-specific rules at task boundaries.
 
-- **NEVER write a system prompt in a format you don't want in the output.** Heavy markdown system prompts produce heavy markdown responses. If you want plain prose output, write the system prompt in plain prose. Format style bleeds from prompt to output.
+- **Never write a system prompt in a format you don't want in the output.** Heavy markdown system prompts produce heavy markdown responses. If you want plain prose output, write the system prompt in plain prose. Format style bleeds from prompt to output.
 
-- **NEVER iterate on wording before fixing structure.** 80% of prompt failures are structural — wrong layer, wrong position, missing constraint type. Rewording a mispositioned rule doesn't fix it. Diagnose structure first: Is the rule in the right layer? Is it at the right attention position? Is the freedom calibration correct? Only then refine wording.
+- **Never iterate on wording before fixing structure.** 80% of prompt failures are structural — wrong layer, wrong position, missing constraint type. Rewording a mispositioned rule doesn't fix it. Diagnose structure first: Is the rule in the right layer? Is it at the right attention position? Is the freedom calibration correct? Only then refine wording.
 
-- **NEVER improve a prompt by adding to it.** Every token added makes the signal-to-noise ratio worse. The correct reflex when a prompt underperforms is to look for what to REMOVE, not what to add. Ask: "What would I cut if I had to get this to 50% of current length?" — this is a better diagnostic than "What am I missing?"
+- **Never patch a failing prompt by stacking another rule on top.** Rules added one incident at a time become a maze of special cases the model fails between. When a prompt underperforms, first look for the instruction that no longer fits — outdated, contradicted by another, or shouting — and fix or remove it. Missing context is the other common cause, and adding it is the fix: audience, environment facts, the quality bar and the reasons behind constraints are never cruft, and a too-short prompt gets generic output. Length alone is never the diagnosis.
 
-- **NEVER evaluate a prompt using the same inputs you wrote the rules for.** Testing against inputs you already handled is fitting, not evaluation. Representative evaluation requires inputs you haven't seen — especially adversarial edge cases and boundary conditions between rules.
+- **Never evaluate a prompt using the same inputs you wrote the rules for.** Testing against inputs you already handled is fitting, not evaluation. Representative evaluation requires inputs you haven't seen — especially adversarial edge cases and boundary conditions between rules.
 
 ---
 

@@ -163,10 +163,9 @@ The user's motivating case (`checkout@v4` when v7 exists) lives here.
   shut down (2024-11-30, wire-incompatible v4); Node12/16 runtime removals; the
   `set-output`/`set-env` workflow commands.
 
-**MANDATORY — READ ENTIRE FILE** before reporting on any workflow:
-[`references/github-actions.md`](references/github-actions.md) — the SHA-pinning
-pattern + resolver, the tj-actions CVE-2025-30066 facts, the full deprecation
-tables, monorepo/no-release quirks (e.g. `github/codeql-action`), and per-action
+Read [`references/github-actions.md`](references/github-actions.md) in full before reporting on
+any workflow — the SHA-pinning pattern + resolver, the tj-actions CVE-2025-30066 facts, the full
+deprecation tables, monorepo/no-release quirks (e.g. `github/codeql-action`), and per-action
 breaking changes.
 
 ## EOL runtimes are a version category too
@@ -180,8 +179,8 @@ LTS and have ~7-month windows.
 ## Ecosystem command details
 
 [`references/ecosystem-commands.md`](references/ecosystem-commands.md) holds the
-exact CLI invocations, registry HTTP APIs, and JSON shapes per ecosystem.
-**MANDATORY — READ ENTIRE FILE** when any of these is true:
+exact CLI invocations, registry HTTP APIs, and JSON shapes per ecosystem. Read it
+in full when any of these is true:
 
 | Present in repo / asked about | Why the reference is required |
 |-------------------------------|-------------------------------|
@@ -191,7 +190,7 @@ exact CLI invocations, registry HTTP APIs, and JSON shapes per ecosystem.
 | `uv.lock`/`pyproject`, lockfile **drift** suspected | `uv lock --check`, `npm ci`, `cargo check --locked` |
 | a **private registry** (`.npmrc`, `.cargo/config.toml`, `pip.conf`) | how to detect + warn that public APIs won't resolve |
 
-**Do NOT load** when the scanner already covered the repo cleanly (only
+Do not load it when the scanner already covered the repo cleanly (only
 `package.json` + workflows, all resolved) and the user only wants freshness.
 
 Known tooling traps baked into the scanner (do not relearn the hard way):

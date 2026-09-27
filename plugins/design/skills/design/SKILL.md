@@ -36,7 +36,7 @@ Before writing any code, answer these in your head (or out loud if the scope is 
 
 **Gate:** You can state the aesthetic direction in one sentence and name one memorable element. If you cannot, you will default to AI slop.
 
-**Critical move — motivate the constraint, don't just state it.** Tell yourself: "the user will feel this is AI-generated slop if it has purple gradients and Inter — they want this to feel crafted." Motivated constraints outperform prohibitions in Claude 4.6.
+**Critical move — motivate the constraint, don't just state it.** Tell yourself: "the user will feel this is AI-generated slop if it has purple gradients and Inter — they want this to feel crafted." Motivated constraints outperform bare prohibitions.
 
 ---
 
@@ -79,7 +79,7 @@ This is where craft numbers matter more than principles. The difference between 
 | Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR an atmospheric treatment (gradient mesh, noise texture, layered translucency) |
 | Layout | Centered everything, 3-column feature grid, Hero→Features→CTA invariant | Asymmetric composition with intentional tension. Start from content, not template. |
 | Radius | `rounded-2xl` on everything uniformly | Tiered scale: inputs 4px, buttons 6-8px, cards 10-12px, `rounded-full` reserved for avatars/pills |
-| Shadow | `shadow-lg` on every card | Tiered elevation. Multi-layer shadows with doubling formula. Match shadow hue to background hue (NEVER pure black). |
+| Shadow | `shadow-lg` on every card | Tiered elevation. Multi-layer shadows with doubling formula. Match shadow hue to background hue (never pure black). |
 | Motion | Nothing, or AOS fade-in-up on everything, bounce/elastic easing | `ease-out-quart cubic-bezier(0.25, 1, 0.5, 1)` for enters. 150-300ms for interactive, 250-350ms for modal. Animate only transform/opacity. |
 | Copy | "Build the future of X," "Scale without limits," "Empower your team" | Concrete claims with specific verbs, numbers, outcomes. "Cut review time from 3 hours to 20 minutes." |
 
@@ -181,23 +181,23 @@ For the complete anti-pattern catalog with additional classical/accessibility/pe
 
 Explicit, non-negotiable. These are not guidelines — these are the landmines that signal AI-generated work the moment a trained eye sees them.
 
-- **NEVER use `bg-indigo-500`, `text-indigo-600`, or `from-indigo-500 to-purple-600`** unless the brand legitimately requires indigo. This is the signature of AI output.
-- **NEVER default to Inter, Roboto, Arial, system-ui, or Space Grotesk.** Even when the user says "clean sans-serif," pick something with character.
-- **NEVER apply `rounded-2xl` uniformly** to buttons, cards, inputs, and containers. Tier the radius scale.
-- **NEVER apply `shadow-lg` uniformly** as the universal elevation signal. When every element has the same shadow, the metaphor of elevation breaks — nothing is actually elevated relative to anything else, and the spatial information the shadow was supposed to carry disappears. Tier the shadow system with multi-layer shadows.
-- **NEVER use glassmorphism (`backdrop-filter: blur()`) on more than one or two layers per page.** It destroys contrast and tanks performance.
-- **NEVER write "Build the future of X," "Scale without limits," "Empower your team," "Revolutionize your workflow," "Unlock the power of Y," "Seamless integration," "Cutting-edge," "Game-changing," "Next-level."** Replace every one with a concrete claim with specific numbers or verbs.
-- **NEVER use emoji as functional icons.** They render inconsistently across OS/browsers, screen readers announce them awkwardly, and they signal "this is a casual personal project."
-- **NEVER remove focus outlines with `outline: none` without replacement.** Use `:focus-visible` with a 3:1 contrast ring.
-- **NEVER use color as the only signifier** for state (error, required, success, warning). Pair with icon, text, or position.
-- **NEVER ship icon-only buttons without `aria-label`.** Screen reader users get nothing.
-- **NEVER auto-play video with audio** or ignore `prefers-reduced-motion`. Auto-play violates WCAG 1.4.2 / 2.2.2. Users with vestibular disorders (affecting ~35% of adults over 40) can experience nausea and vertigo from motion they did not initiate.
-- **NEVER animate `width`, `height`, `top`, `left`, `margin`, `padding`, or `font-size`.** Use `transform` and `opacity` only.
-- **NEVER use placeholder text as the only label.** It disappears on focus and fails WCAG.
-- **NEVER ship a form with submit-only validation.** Validate on blur, show success checkmarks on correct fields.
-- **NEVER present only the happy path.** Empty state, loading state, error state, disabled state, long-content state — all must exist.
-- **NEVER use pure black (`#000000`) or pure white (`#ffffff`).** Use tinted neutrals — pure black is harsh, pure white is cold, and both signal absence of color decisions.
-- **NEVER let your evaluator be yourself.** Spawn a separate subagent. Self-praise is the default.
+- **Never use `bg-indigo-500`, `text-indigo-600`, or `from-indigo-500 to-purple-600`** unless the brand legitimately requires indigo. This is the signature of AI output.
+- **Never default to Inter, Roboto, Arial, system-ui, or Space Grotesk.** Even when the user says "clean sans-serif," pick something with character.
+- **Never apply `rounded-2xl` uniformly** to buttons, cards, inputs, and containers. Tier the radius scale.
+- **Never apply `shadow-lg` uniformly** as the universal elevation signal. When every element has the same shadow, the metaphor of elevation breaks — nothing is actually elevated relative to anything else, and the spatial information the shadow was supposed to carry disappears. Tier the shadow system with multi-layer shadows.
+- **Never use glassmorphism (`backdrop-filter: blur()`) on more than one or two layers per page.** It destroys contrast and tanks performance.
+- **Never write "Build the future of X," "Scale without limits," "Empower your team," "Revolutionize your workflow," "Unlock the power of Y," "Seamless integration," "Cutting-edge," "Game-changing," "Next-level."** Replace every one with a concrete claim with specific numbers or verbs.
+- **Never use emoji as functional icons.** They render inconsistently across OS/browsers, screen readers announce them awkwardly, and they signal "this is a casual personal project."
+- **Never remove focus outlines with `outline: none` without replacement.** Use `:focus-visible` with a 3:1 contrast ring.
+- **Never use color as the only signifier** for state (error, required, success, warning). Pair with icon, text, or position.
+- **Never ship icon-only buttons without `aria-label`.** Screen reader users get nothing.
+- **Never auto-play video with audio** or ignore `prefers-reduced-motion`. Auto-play violates WCAG 1.4.2 / 2.2.2. Users with vestibular disorders (affecting ~35% of adults over 40) can experience nausea and vertigo from motion they did not initiate.
+- **Never animate `width`, `height`, `top`, `left`, `margin`, `padding`, or `font-size`.** Use `transform` and `opacity` only.
+- **Never use placeholder text as the only label.** It disappears on focus and fails WCAG.
+- **Never ship a form with submit-only validation.** Validate on blur, show success checkmarks on correct fields.
+- **Never present only the happy path.** Empty state, loading state, error state, disabled state, long-content state — all must exist.
+- **Never use pure black (`#000000`) or pure white (`#ffffff`).** Use tinted neutrals — pure black is harsh, pure white is cold, and both signal absence of color decisions.
+- **Never let your evaluator be yourself.** Spawn a separate subagent. Self-praise is the default.
 
 ---
 

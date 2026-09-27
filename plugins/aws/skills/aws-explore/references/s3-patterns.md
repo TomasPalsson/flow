@@ -75,7 +75,7 @@ aws s3api list-objects-v2 --bucket BUCKET --prefix "data/" --no-cli-pager \
 ## Gotchas
 
 - **`get-bucket-location` returns `null` for us-east-1** — use `--query 'LocationConstraint || \`us-east-1\`'`
-- **`list-buckets` now includes `BucketRegion`** — skip the separate `get-bucket-location` call
+- **`list-buckets` includes `BucketRegion`** — skip the separate `get-bucket-location` call
 - **Bucket policies are double-encoded JSON** — pipe through `jq .Policy | jq .` to read them, or use `jq '[.Statement[] | {Sid, Effect, Action}]'` for a summary
 - **`list-objects-v2` auto-paginates** — always use `--max-items` on unknown buckets
 - **Empty versioning response `{}` means never enabled** (not "disabled" — that's `Suspended`)

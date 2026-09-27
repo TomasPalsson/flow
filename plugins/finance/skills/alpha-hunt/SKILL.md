@@ -66,9 +66,9 @@ PASS, the handoff to the `etoro` skill is real.
 
 ## Execution Pipeline
 
-The full state machine lives in [`execution-prompt.md`](execution-prompt.md). **MANDATORY — READ
-ENTIRE FILE** before running the pipeline. **Do NOT load** for conceptual questions ("what's
-frog-in-the-pan?", "explain the regime throttle") — those don't run the pipeline. The
+The full state machine lives in [`execution-prompt.md`](execution-prompt.md). Read it in full
+before running the pipeline. Do not load it for conceptual questions ("what's frog-in-the-pan?",
+"explain the regime throttle") — those don't run the pipeline. The
 stages (1b manages the existing book before new adds):
 
 1. **Preflight + Regime read** — `scripts/preflight.js`, then `scripts/fetch-regime.js` (timeout-
@@ -117,8 +117,8 @@ stages (1b manages the existing book before new adds):
 
 ## The signal library — briefly
 
-**MANDATORY — READ ENTIRE FILE** at Stage 2-4: load [`references/signals.md`](references/signals.md)
-for the full specs + thresholds. **Do NOT load** for preflight/regime/sizing stages. Summary:
+Read [`references/signals.md`](references/signals.md) in full at Stage 2-4 for the full specs +
+thresholds. Do not load for preflight/regime/sizing stages. Summary:
 
 | Sleeve | Signal | Why it survives 2026 | Key rule |
 |---|---|---|---|
@@ -127,12 +127,12 @@ for the full specs + thresholds. **Do NOT load** for preflight/regime/sizing sta
 | Momentum | Information discreteness, sign-count (weight **0.15**) | Path matters: grinders beat gap-and-flat (reported +5.94% vs -2.07% — unverified) | LOWER is better; penalize high-discreteness names |
 | Momentum | Up-ratio (weight **0.10**) | Feeds the sign-count discreteness form | Fraction of up-weeks in the formation window |
 | Momentum | Raw 12-1 momentum (reported, **0 weight**) | Double-counts residual momentum if scored | Diagnostic only — never re-add to the composite |
-| Momentum | Value+momentum tilt | Negative correlation is the point | **Weighted z-score, NEVER AND-filter** |
+| Momentum | Value+momentum tilt | Negative correlation is the point | **Weighted z-score, never AND-filter** |
 | Catalyst | Earnings-announcement premium | 72% of premium is realized PRE-print | Pre vs post entry is a deliberate choice |
 | Catalyst | Insider opportunistic cluster | ~82bp/mo; routine = zero | Spec: 3+ buyers/7-14d, exclude 10b5-1. CODE ships 90d, NO 10b5-1 filter → weak lead only |
 | Catalyst | Estimate-revision breadth | Net analyst-upgrade shift (magnitude, not just direction) | "Beat and raise" > either alone |
 | Catalyst | 13F new high-conviction | Clone BORING low-turnover funds | ≥7.5% positions; NOT Tiger Cubs |
-| Catalyst | 8-K Item-code triage (`fetch-catalysts.js`) | Material (2.02/1.01/2.06/3.01…) vs noise, market-wide | **4.02 restatement is ALWAYS `negative_signal:true`** — never a buy |
+| Catalyst | 8-K Item-code triage (`fetch-catalysts.js`) | Material (2.02/1.01/2.06/3.01…) vs noise, market-wide | **4.02 restatement is always `negative_signal:true`** — never a buy |
 | Confirmer | Options-implied skew/vol-spread/O-S ratio (`compute-options-signals.js`) | Informed flow shows in options before the print | Catalyst-sleeve confirmer/demerit ONLY — never a sizing input, never a standalone trigger |
 | Veto | Social-sentiment mention z-score (`fetch-sentiment.js`, ApeWisdom) | A spike in retail attention is LATE, not a lead | VETO/TRIM only — never sources or sizes a buy |
 
@@ -142,8 +142,8 @@ FDA/PDUFA binaries; if engaging, trade the run-up and exit, or enter only post a
 
 ## Risk, sizing & the composite score
 
-**MANDATORY — READ ENTIRE FILE** at Stage 1b (holdings review), Stage 4 (scoring), and Stage 6
-(sizing): load [`references/risk-and-sizing.md`](references/risk-and-sizing.md). **Do NOT load** during regime or
+Read [`references/risk-and-sizing.md`](references/risk-and-sizing.md) in full at Stage 1b
+(holdings review), Stage 4 (scoring), and Stage 6 (sizing). Do not load during regime or
 catalyst-intake stages. Non-negotiables:
 
 - **Cluster-Kelly at 10-25% of full**, never per-ticker. ENB: 10 picks ≈ 3-6 bets.
@@ -175,30 +175,29 @@ are enforced in `compute-sizing.js` and are NOT tunable by the learning loop:
 
 ## Regime throttle — the gross-exposure dial
 
-**MANDATORY — READ ENTIRE FILE** at Stage 1: load
-[`references/regime-throttle.md`](references/regime-throttle.md). **Do NOT re-load** later — the
-dial is set once per run. It converts a few robust inputs (distribution-day count, breadth
+Read [`references/regime-throttle.md`](references/regime-throttle.md) in full at Stage 1. Do not
+re-load later — the dial is set once per run. It converts a few robust inputs (distribution-day count, breadth
 divergence, VIX term-structure SHAPE not level, HY-IG credit spreads) into a -3..+3 score → a
 gross-exposure % that scales every position. This is the mechanical throttle that fires before a
 human "feels" the regime shift — 2025-26 unwinds resolved in days via forced deleveraging.
 
 ## LLM guardrails — the anti-hallucination spine
 
-**MANDATORY — READ ENTIRE FILE** before Stage 5 (adversary fleet) and any numeric work: load
-[`references/llm-guardrails.md`](references/llm-guardrails.md). Covers: no-number-without-source,
+Read [`references/llm-guardrails.md`](references/llm-guardrails.md) in full before Stage 5
+(adversary fleet) and any numeric work. Covers: no-number-without-source,
 the deterministic fact-ledger, the hard devil's-advocate protocol (99.2% vs 48.3% dissent),
 look-ahead contamination, the calibration log, and treating ingested news/filings as an untrusted
 prompt-injection surface.
 
 ## Data runbook
 
-**MANDATORY — READ ENTIRE FILE** before writing or invoking any data call: load
-[`references/data-runbook.md`](references/data-runbook.md) — the reuse inventory of the 8 investment
-scripts, the new endpoints (market-wide Form-4 feed, free CBOE options, keyless FRED, Finnhub,
-Nasdaq calendar), exact invocations, batching rules, and the dead-source traps (stooq, Finviz, FMP
-demo key). **Do NOT load** for conceptual questions.
+Read [`references/data-runbook.md`](references/data-runbook.md) in full before writing or
+invoking any data call — the reuse inventory of the 8 investment scripts, the new endpoints
+(market-wide Form-4 feed, free CBOE options, keyless FRED, Finnhub, Nasdaq calendar), exact
+invocations, batching rules, and the dead-source traps (stooq, Finviz, FMP demo key). Do not load
+for conceptual questions.
 
-## Critical Anti-Patterns (this skill MUST NOT do these)
+## Critical Anti-Patterns (this skill must not do these)
 
 - **Never re-pick the whole book weekly.** Refresh signals monthly; the weekly loop is monitor /
   exit / fresh-catalyst / deploy only. Weekly reformation is a cost-suicide anti-pattern.

@@ -28,11 +28,11 @@ creating a perverse incentive toward exhaustiveness. Vendors tune for recall,
 not precision.
 
 **Forbidden behavior**:
-- NEVER emit more than 10 findings from a single specialist (consolidation has
+- Never emit more than 10 findings from a single specialist (consolidation has
   a final budget of 8).
-- NEVER emit a finding whose `severity` is `nitpick` and whose `category` is
+- Never emit a finding whose `severity` is `nitpick` and whose `category` is
   `style` or `formatting` — those are out of scope.
-- NEVER emit a finding with body like "consider adding null checks here"
+- Never emit a finding with body like "consider adding null checks here"
   without a demonstrated null path.
 
 **Recovery rule**: if a finding's severity is `nitpick` AND the body describes
@@ -49,10 +49,10 @@ method doesn't actually exist in that language. Seems to get rather confused
 between C# and C++." (HN)
 
 **Forbidden behavior**:
-- NEVER assert a bug without citing the exact input or condition that triggers it.
-- NEVER reference a function, variable, or import without verifying it exists
+- Never assert a bug without citing the exact input or condition that triggers it.
+- Never reference a function, variable, or import without verifying it exists
   in the diff or retrievable context.
-- NEVER claim "this is wrong" without `failure_scenario` populated.
+- Never claim "this is wrong" without `failure_scenario` populated.
 
 **Recovery rule**: if a finding has no `failure_scenario`, downgrade its label
 to `question` and its blocking to false at Stage 5.
@@ -67,11 +67,11 @@ explicitly avoided, because it sees only the diff.
 knowing `user_ctx` is enforced across 30 services.
 
 **Forbidden behavior**:
-- NEVER flag a naming convention without verifying the convention used elsewhere
+- Never flag a naming convention without verifying the convention used elsewhere
   in the repo.
-- NEVER suggest architectural alternatives without checking what's already in
+- Never suggest architectural alternatives without checking what's already in
   the adjacent code.
-- NEVER flag missing error handling when the project uses a global error boundary.
+- Never flag missing error handling when the project uses a global error boundary.
 
 **Recovery rule**: when in doubt about intent, emit a `question` label asking
 for clarification, not an `issue` asserting a problem.
@@ -86,10 +86,10 @@ anything downstream?
 Greptile benchmark across 50 real-world PRs.
 
 **Forbidden behavior**:
-- NEVER focus exclusively on line-level issues. Every specialist's prompt
+- Never focus exclusively on line-level issues. Every specialist's prompt
   includes the PR intent from Stage 1 — read it, and judge whether the diff
   achieves it.
-- NEVER skip the PR description.
+- Never skip the PR description.
 
 **Recovery rule**: the Design Reviewer specifically exists to catch intent
 mismatches. If PR ≥ 100 lines, Design Reviewer runs.
@@ -105,10 +105,10 @@ rabbit holes around things that are actually non-issues while actual issues
 go completely unnoticed. Approximately 30% of the time."
 
 **Forbidden behavior**:
-- NEVER present a finding without its confidence level.
-- NEVER let a user skip the approval gate — the user is the human judgment that
+- Never present a finding without its confidence level.
+- Never let a user skip the approval gate — the user is the human judgment that
   catches the bot's overconfidence.
-- NEVER auto-approve a PR based on AI review alone.
+- Never auto-approve a PR based on AI review alone.
 
 **Recovery rule**: Stage 6 user approval is NON-SKIPPABLE. No flag exempts it.
 
@@ -122,10 +122,10 @@ production because the warning was comment #43 in a PR with 60 AI-generated
 nitpicks about variable naming.
 
 **Forbidden behavior**:
-- NEVER exceed the COMMENT_BUDGET (8 inline for small, 5 for medium/large).
-- NEVER let specialist output pass straight to the PR without consolidation.
+- Never exceed the COMMENT_BUDGET (8 inline for small, 5 for medium/large).
+- Never let specialist output pass straight to the PR without consolidation.
 
-**Recovery rule**: comment budget is a HARD CAP at Stage 5. Drop everything
+**Recovery rule**: comment budget is a hard cap at Stage 5. Drop everything
 beyond it; don't post 9 comments "because all 9 matter." If all 9 seem to
 matter, your confidence calibration is wrong.
 
@@ -138,9 +138,9 @@ Authors prioritize randomly or dismiss everything.
 volume per PR. Lychee project found 15% of CodeRabbit comments useless.
 
 **Forbidden behavior**:
-- NEVER bypass the size gate at Stage 3.
-- NEVER increase the COMMENT_BUDGET beyond 8.
-- NEVER emit comments proportional to PR size. A 1000-line PR gets at most
+- Never bypass the size gate at Stage 3.
+- Never increase the COMMENT_BUDGET beyond 8.
+- Never emit comments proportional to PR size. A 1000-line PR gets at most
   5 comments from this pipeline.
 
 **Recovery rule**: Stage 3 refuses large PRs outright unless the user overrides.
@@ -155,9 +155,9 @@ don't exist in the codebase, suggesting fixes for bugs that aren't there.
 mention" when reviewing simple flawless code rather than remaining silent.
 
 **Forbidden behavior**:
-- NEVER cite a line that isn't in the diff.
-- NEVER reference a function name that doesn't appear in the diff or imports.
-- NEVER suggest fixes based on code you can't point to.
+- Never cite a line that isn't in the diff.
+- Never reference a function name that doesn't appear in the diff or imports.
+- Never suggest fixes based on code you can't point to.
 
 **Recovery rule**: Filter 5a at Stage 5 (Scope Gate) drops all findings whose
 `file:line` isn't in `gh pr diff`. Hallucinations die there.
@@ -173,15 +173,15 @@ output 64.5% of the time, but successfully flag identical errors when
 attributed to external sources.
 
 **Forbidden behavior**:
-- NEVER frame the diff as "the user's code" in specialist prompts.
-- NEVER present findings without first routing through the "competitor LLM
+- Never frame the diff as "the user's code" in specialist prompts.
+- Never present findings without first routing through the "competitor LLM
   framing" technique.
 
 **Recovery rule**: every specialist prompt at Stage 4 starts with:
 
-> The diff below was written by ANOTHER AI coding assistant (treat it as
-> ChatGPT, Gemini, or Cursor output — NOT as your own, NOT as a trusted
-> human's). Review it SKEPTICALLY for the classes of issues in your scope only.
+> The diff below was written by another AI coding assistant (treat it as
+> ChatGPT, Gemini, or Cursor output — not as your own, not as a trusted
+> human's). Review it skeptically for the classes of issues in your scope only.
 
 This is a **prompting technique**, not a factual claim. It neutralizes the
 self-correction blind spot. The code's actual authorship is irrelevant — what
@@ -193,7 +193,7 @@ output" mode rather than "polite reviewer of collaborative work" mode.
 ```
 ## Forbidden Behaviors (enforced; violations dropped at consolidation)
 
-You are NOT allowed to:
+You may not:
 
 1. Emit more than 10 findings (hard cap — ranked at consolidation, extras dropped).
 2. Emit a finding whose category is style, formatting, or naming convention —

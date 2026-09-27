@@ -6,8 +6,8 @@ description: Runnable `gh api` commands to post inline review comments, suggeste
 # GitHub Review API Recipes
 
 Load this file at **Stage 7 (Post Review)**. It contains the exact `gh api`
-commands needed to post inline comments. `gh pr review` does NOT natively support
-inline comments — you MUST use `gh api` for anything beyond top-level review text.
+commands needed to post inline comments. `gh pr review` does not natively support
+inline comments — you must use `gh api` for anything beyond top-level review text.
 
 ## The Critical Distinction: 3 Different Comment Types
 
@@ -15,7 +15,7 @@ inline comments — you MUST use `gh api` for anything beyond top-level review t
 |------|----------|---------|
 | **PR Review** | `POST /repos/{o}/{r}/pulls/{n}/reviews` | Top-level verdict (APPROVE/REQUEST_CHANGES/COMMENT) + optional `comments[]` inline batch |
 | **Review Comment** (inline) | `POST /repos/{o}/{r}/pulls/{n}/comments` | Standalone inline comment on one diff line |
-| **Issue Comment** | `POST /repos/{o}/{r}/issues/{n}/comments` | Plain conversation comment — NOT a review comment |
+| **Issue Comment** | `POST /repos/{o}/{r}/issues/{n}/comments` | Plain conversation comment — not a review comment |
 
 **The pipeline's default path is Recipe 5** (batch review) — one atomic call
 that posts the verdict and all inline comments together. That's what
@@ -169,7 +169,7 @@ JSONEOF
 ```
 
 **Suggestion rules**:
-- The fenced block MUST start with triple-backtick + "suggestion".
+- The fenced block must start with triple-backtick + "suggestion".
 - Content inside replaces ALL lines from `start_line..line` inclusive.
 - For a single-line suggestion, omit `start_line`/`start_side`.
 - Escape newlines as `\n` in JSON strings. Use heredoc files to avoid shell
@@ -179,27 +179,27 @@ JSONEOF
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `commit_id` | SHA string | Required for /comments; defaults to head SHA for /reviews | ALWAYS refetch before posting. Force-pushes invalidate old SHAs. |
+| `commit_id` | SHA string | Required for /comments; defaults to head SHA for /reviews | Always refetch before posting. Force-pushes invalidate old SHAs. |
 | `path` | string | Yes | Repo-relative, no leading slash. `src/foo.ts` not `/src/foo.ts`. |
-| `line` | integer | Yes (or `subject_type: "file"`) | Line in the file, NOT position in the diff. |
+| `line` | integer | Yes (or `subject_type: "file"`) | Line in the file, not position in the diff. |
 | `side` | `LEFT`/`RIGHT` | Yes when using `line` | **RIGHT = additions + context (new version)**. **LEFT = deletions (old version)**. |
 | `start_line` | integer | Only for multi-line | Strictly less than `line`. |
 | `start_side` | `LEFT`/`RIGHT` | Only for multi-line | Required when `start_line` is used. |
 | `body` | string (Markdown) | Yes | GFM. Use `\`\`\`suggestion` for suggested changes. |
 | `event` | string | For reviews | `APPROVE`, `REQUEST_CHANGES`, `COMMENT`, or omit for PENDING. |
-| `position` | integer | **DEPRECATED** | Number of lines below the first `@@` hunk header. Do NOT use — use `line`+`side` instead. |
+| `position` | integer | **DEPRECATED** | Number of lines below the first `@@` hunk header. Do not use — use `line`+`side` instead. |
 | `subject_type` | string | No | `line` (default) or `file`. Use `file` to attach to the file header with no specific line. |
 
 ## The `line` vs `position` Gotcha
 
-**`position` is deprecated. Do NOT use it.** `position` counts diff lines from
+**`position` is deprecated. Do not use it.** `position` counts diff lines from
 the first `@@` hunk header — it's a brittle number computed by parsing raw diffs.
 
 **`line` + `side`** is the modern approach:
 - `side: "RIGHT"` → `line` is the line number in the NEW version of the file
 - `side: "LEFT"` → `line` is the line number in the OLD version of the file
 
-The `line` MUST appear within a diff hunk (changed or context lines shown in
+The `line` must appear within a diff hunk (changed or context lines shown in
 the diff output). You cannot comment on unchanged lines that are outside the
 diff's visible range.
 

@@ -94,7 +94,7 @@ that judgment, not a mechanical must-sell.
   proximity + frog-in-the-pan discreteness → the MOMENTUM SUB-SCORE ranking (value/quality is blended
   in at Stage 4, not here). The script writes `~/.cache/alpha-hunt/momentum-rank.json`; the orchestrator
   then archives a dated copy `momentum-rank-YYYYMM.json` and KEEPS >=2 monthly snapshots so the
-  consistency filter can confirm >=2 consecutive top-quintile appearances. NEVER shell out per-ticker.
+  consistency filter can confirm >=2 consecutive top-quintile appearances. Never shell out per-ticker.
 
 ## Stage 3 — Catalyst intake (every week)
 
@@ -111,7 +111,7 @@ that judgment, not a mechanical must-sell.
 - **8-K item-code triage — two hard rules.** Every 8-K record carries `items[]` and a
   `negative_signal` flag; material codes (2.02/1.01/4.02/2.06/3.01/5.02/2.04/1.02) tier A, noise
   codes (8.01/7.01/9.01-only) tier C. **(1) A 4.02 non-reliance (restatement) filing is
-  `negative_signal:true` — it is a thesis-broken/AVOID flag, NEVER a buy catalyst**, even though it
+  `negative_signal:true` — it is a thesis-broken/AVOID flag, never a buy catalyst**, even though it
   tiers A for salience alone. **(2) News items carry `is_rehash` + `staleness_days`** (cross-week
   near-duplicate detection against prior weeks' first-seen headlines) — **an `is_rehash:true` item
   is a FADE (Tetlock 2011: stale-information reactions reverse at a weekly horizon), forced to tier
@@ -155,7 +155,7 @@ that judgment, not a mechanical must-sell.
   Emits `mention_z` (ApeWisdom 30-day mention z-score) which is `null` until ≥10 historical
   observations have accumulated — **a null is UNKNOWN, not a pass; do not treat it as clean.** A high
   `mention_z` may only **VETO or TRIM** an otherwise-good candidate (already-crowded, "buy the rumor,
-  sell the news") — it must **NEVER initiate or upgrade** a candidate that wasn't otherwise going to
+  sell the news") — it must **never initiate or upgrade** a candidate that wasn't otherwise going to
   make the book.
 - **Other confirmers/vetoes** (references/signals.md "RESEARCH UPGRADES"): 13D activist + sharpened
   insider (Stage 3's strict cluster fields) + index-reconstitution as catalyst candidates.
@@ -208,8 +208,8 @@ field, learning-loop.md §1/§8). At a 4-8 week horizon this is graded against S
 
 ## Stage 6 — Sizing
 
-**MANDATORY: `node scripts/compute-sizing.js <input.json>` computes every weight — never freehand
-this arithmetic in prose.** This closes the gap between `references/llm-guardrails.md` §13 ("the LLM
+`node scripts/compute-sizing.js <input.json>` computes every weight — never freehand
+this arithmetic in prose. This closes the gap between `references/llm-guardrails.md` §13 ("the LLM
 never does arithmetic") and what this stage used to ask for. The LLM's job here is candidate
 selection and judgment inputs only: group survivors into correlation clusters (factor exposure, not
 calm-period pairwise corr) and, per candidate, supply a calibrated `confidence` (win probability) plus
@@ -267,7 +267,7 @@ from reconstitution-timing alone. Say this plainly rather than treating tranchin
   Down-weight any signal family whose rolling 6-13-week hit-rate decayed (decay clock). Once ≥30
   resolved trades exist for a signal family, compute a Deflated Sharpe before trusting a tuned
   threshold for it (learning-loop.md §7) — before that, treat the threshold as an unvalidated prior,
-  not a finding. NEVER let the loop touch risk/personality params
+  not a finding. Never let the loop touch risk/personality params
   (Kelly ceiling, position caps, veto) — tactical params only.
 - **Grade the adversary fleet** (learning-loop.md §8): for BLOCK verdicts logged at Stage 5, look up
   the blocked name's actual return vs SPY at its 4-8 week horizon, regardless of whether it ever
@@ -280,8 +280,8 @@ from reconstitution-timing alone. Say this plainly rather than treating tranchin
 - Append every pick + conviction + dated catalyst + pre-registered exits to
   `~/.cache/alpha-hunt/picks-log.jsonl`, using the rich schema (learning-loop.md §1): `trade_id`,
   `binding_constraint`, `composite_score_components`, `adversary_verdicts`, `overridden_flag`,
-  alongside the existing fields. **APPEND-ONLY — MANDATORY**:
-  resolving a position is a NEW JSONL line referencing the original entry's `trade_id`, NEVER an
+  alongside the existing fields. This is append-only:
+  resolving a position is a NEW JSONL line referencing the original entry's `trade_id`, never an
   in-place edit of it — an editable entry lets a losing thesis be retroactively reworded once the
   outcome is known. Update `holdings.json`.
 - **`bash scripts/state.sh save`** — persist picks-log.jsonl + signal-perf.json + holdings.json to the
