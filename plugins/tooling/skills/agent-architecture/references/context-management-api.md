@@ -41,7 +41,7 @@ When clearing isn't enough, summarize the whole transcript and continue from the
   "pause_after_compaction": True                # returns stop_reason:"compaction" for inspection (dev)
 }
 ```
-Supported: Sonnet 4.6, Opus 4.6/4.7/4.8, Mythos Preview.
+Supported: Opus 5/5.5, Fable 5/5.1, Sonnet 5, Sonnet 4.6, Opus 4.6/4.7/4.8, Mythos Preview.
 
 **Three traps:**
 - **`instructions` REPLACES the default prompt.** If you customize, you must re-include the structural directives — the default wraps the summary in `<summary></summary>` and you'll lose that if you omit it.

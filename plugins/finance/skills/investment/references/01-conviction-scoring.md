@@ -96,7 +96,7 @@ These are EARNED, not granted:
 
 ## Disagreement Flag
 
-When one of (Quality, Value, Momentum) is in top 30% but another is in bottom 30%, set `DISAGREE_MAX = True`. The thesis memo MUST explicitly address: which bundle is right? What does this disagreement signal? Examples:
+When one of (Quality, Value, Momentum) is in top 30% but another is in bottom 30%, set `DISAGREE_MAX = True`. The thesis memo must explicitly address: which bundle is right? What does this disagreement signal? Examples:
 - High Quality, low Value, high Momentum = expensive compounder; thesis must justify pay-up
 - Low Quality, high Value, low Momentum = value trap risk; thesis must specify catalyst
 - High Quality, high Value, low Momentum = forgotten compounder (rare and valuable); thesis can lean confident

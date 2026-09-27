@@ -5,7 +5,7 @@ description: Current macro regime read (as of May 2026) and adjustment rules. Re
 
 # Macro Regime — May 2026 Read
 
-This document captures the macro regime at pipeline-build time. The skill MUST re-read FRED at runtime to verify, but this provides the baseline interpretation.
+This document captures the macro regime at pipeline-build time. The skill must re-read FRED at runtime to verify, but this provides the baseline interpretation.
 
 ## Current Regime Snapshot (May 2026)
 

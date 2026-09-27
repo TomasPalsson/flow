@@ -126,7 +126,7 @@ After presenting the summary, tell the user:
 >
 > Re-run `/impeccable audit` after fixes to see your score improve.
 
-**IMPORTANT**: Be thorough but actionable. Too many P3 issues creates noise. Focus on what actually matters.
+Be thorough but actionable. Too many P3 issues creates noise. Focus on what actually matters.
 
 **NEVER**:
 - Report issues without explaining impact (why does this matter?)

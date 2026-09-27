@@ -7,9 +7,9 @@ description: "Create stunning, interactive single-file HTML explainer pages that
 
 Create self-contained, single-file HTML pages that explain code, projects, concepts, or processes through animation, diagrams, interactive elements, and beautiful design. The output is a premium interactive article — not a boring docs page.
 
-## MANDATORY: Load Frontend Design Skill First
+## Load the Frontend Design Skill First
 
-**Before writing ANY HTML, you MUST invoke the frontend-design skill.** This is non-negotiable. The frontend-design skill provides essential aesthetic guidelines that prevent generic, flat, AI-looking output. Without it, the explainer will look like every other AI-generated page.
+Invoke the frontend-design skill before writing any HTML. It provides the aesthetic guidelines that prevent generic, flat, AI-looking output — without it, the explainer will look like every other AI-generated page.
 
 ```
 Skill tool call:

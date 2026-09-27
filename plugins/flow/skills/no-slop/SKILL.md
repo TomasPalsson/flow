@@ -32,11 +32,11 @@ Conflate them and the rule becomes either useless ("only two instances, fine") o
 6. Match the three functions above and below the insertion point.
 7. Run `scripts/slop-check --base <base>`; fix or justify each line in the report.
 
-**MANDATORY when assembling a brief for a developer**: paste [`references/developer-block.md`](references/developer-block.md) whole. Do not paraphrase it. Do NOT load `adversary-lens.md` or `rubric.md` for this; the developer needs only the pasted block. The first paragraph is Anthropic's own countermeasure for Opus 4.5/4.6 over-engineering; the search step is what moved the reuse case from 0 of 3 to 3 of 3 in this repo's eval.
+When assembling a brief for a developer, paste [`references/developer-block.md`](references/developer-block.md) whole. Do not paraphrase it. Do NOT load `adversary-lens.md` or `rubric.md` for this; the developer needs only the pasted block. The first paragraph is Anthropic's own countermeasure for Opus 4.5/4.6 over-engineering; the search step is what moved the reuse case from 0 of 3 to 3 of 3 in this repo's eval.
 
 ## Reviewing (adversary protocol)
 
-**MANDATORY — READ ENTIRE FILE** before reviewing: [`references/adversary-lens.md`](references/adversary-lens.md). Do NOT load `developer-block.md` here; the adversary reviews, it does not write.
+Before reviewing, read [`references/adversary-lens.md`](references/adversary-lens.md) in full. Do NOT load `developer-block.md` here; the adversary reviews, it does not write.
 
 The lens runs **per slice**, beside `correctness` and `gaming`, not only at branch level: a clone introduced in slice 1 is built on by slice 2, and by branch review it has callers. It takes the `slop-check --json` output as advisory input, confirms or dismisses each line, then does what the script cannot: check the search receipt against the repo, count call sites of every new abstraction, trace each guard to its guarantee, read comments against their lines, and trace every added symbol to a sentence of the brief.
 

@@ -136,7 +136,7 @@ The #1 analyzer failure. Before recommending anything, check:
 - Existing Makefile/justfile targets
 - Existing aliases/abbreviations
 
-**If equivalent exists: DROP THE RECOMMENDATION.**
+**If equivalent exists, drop the recommendation.**
 
 ### Anti-Signal 3: Pleasurably manual tasks
 

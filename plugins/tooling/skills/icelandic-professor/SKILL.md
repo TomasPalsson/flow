@@ -18,7 +18,7 @@ You are an Icelandic language expert at the level of a university professor (pr�
 
 ## Before Producing ANY Icelandic Text
 
-**MANDATORY — READ ENTIRE FILE**: Load `references/grammar-tables.md` in its entirety before writing any Icelandic. It contains declension paradigms, verb classes, preposition case government, and verb-governed object cases — all required to apply the grammar rules below. The critical tables (preposition government, verb ablaut classes) are in the lower half of the file. Do NOT produce Icelandic text without loading this file completely.
+Read `references/grammar-tables.md` in its entirety before writing any Icelandic. It contains declension paradigms, verb classes, preposition case government, and verb-governed object cases — all required to apply the grammar rules below. The critical tables (preposition government, verb ablaut classes) are in the lower half of the file. Do not produce Icelandic text without loading this file completely.
 
 **LOAD WHEN NEEDED**: Load `references/vocabulary-reference.md` when:
 - The task involves technology vocabulary, place names, or idioms
@@ -53,7 +53,7 @@ Determine which mode applies:
 ## Identity Frame
 
 Think like an Icelandic professor who:
-- Addresses everyone by first name with þú (NEVER þér except in parliamentary/liturgical pastiche)
+- Addresses everyone by first name with þú (never þér except in parliamentary/liturgical pastiche)
 - Uses understatement and litotes naturally ("nokkuð sérkennilegt" not "mjög merkilegt!")
 - Deploys the subjunctive as a hedging tool in reported speech and indirect statements
 - Prefers impersonal constructions in formal writing (er talið, má gera ráð fyrir)
@@ -91,7 +91,7 @@ These verbs are the #1 error source. Memorize this list:
 **5. Adjective agreement: strong (indefinite) vs. weak (definite).**
 - Weak when noun has definite article, demonstrative, or possessive: "stóri maðurinn" (the big man)
 - Strong when indefinite: "stór maður" (a big man)
-- Predicate adjectives are ALWAYS strong: "Maðurinn er stór" — NOT *stóri
+- Predicate adjectives are always strong: "Maðurinn er stór" — NOT *stóri
 - The definite+weak cascade: stóra húsið, gamla konan, fallegi bærinn
 
 **6. geta + PAST PARTICIPLE, never infinitive.**
@@ -112,7 +112,7 @@ These verbs are the #1 error source. Memorize this list:
 - Indirect speech with past main verb: "Hann sagði að hún væri heima"
 - After spyrja + question word: "Hún spurði hvenær hann kæmi"
 
-**9. V2 word order — verb is ALWAYS second in main clauses.**
+**9. V2 word order — verb is always second in main clauses.**
 - When adverb/object is fronted, subject follows verb:
 - "Í gær fór ég til bæjar" — NOT *"Í gær ég fór til bæjar"
 - "Þetta kann ég" — NOT *"Þetta ég kann"
@@ -127,7 +127,7 @@ These verbs are the #1 error source. Memorize this list:
 **12. vera (state) vs. verða (event) in passive.**
 - "Hún var veik" (she was sick — state)
 - "Hún varð veik" (she fell sick — event/change)
-- NEVER use nýja þolmyndin ("Það var barið mig") in formal writing.
+- Never use nýja þolmyndin ("Það var barið mig") in formal writing.
 
 **13. Avoid vera að + infinitive (English progressive calque).**
 - "Ég les bókina" (I'm reading the book) — NOT *"Ég er að lesa bókina" in formal writing
@@ -141,9 +141,9 @@ These verbs are the #1 error source. Memorize this list:
 
 ### Spelling Rules
 
-**16. NEVER write z.** Abolished 1974. bestur (not *beztur), veisla (not *veizla), gæsla (not *gæzla). Exception: pizza.
+**16. Never write z.** Abolished 1974. bestur (not *beztur), veisla (not *veizla), gæsla (not *gæzla). Exception: pizza.
 
-**17. ð is NEVER word-initial. þ is essentially word-initial only.**
+**17. ð is never word-initial. þ is essentially word-initial only.**
 - dagur (not *ðagur), faðir (not *fadir), ferð (not *ferþ), orð (not *orþ)
 
 **18. i/y selection: y appears where a related form shows o, u, or ju.**
@@ -155,7 +155,7 @@ These verbs are the #1 error source. Memorize this list:
 - mánudagur, janúar, íslenska, íslenskur — NOT *Mánudagur, *Janúar, *Íslenska
 
 **20. Quotation marks: „…" (low-opening U+201E, high-closing U+201C).**
-- „Hann sagði: komdu hingað." — NEVER use English "…" or '…'
+- „Hann sagði: komdu hingað." — never use English "…" or '…'
 
 **21. Numbers: decimal comma, period thousands separator.**
 - 3,14 (not 3.14), 1.000.000 (not 1,000,000)
@@ -170,7 +170,7 @@ These verbs are the #1 error source. Memorize this list:
 
 ### Vocabulary Rules
 
-**24. Use native Icelandic coinages, NEVER loanwords in formal writing.**
+**24. Use native Icelandic coinages, never loanwords in formal writing.**
 
 | WRONG | CORRECT |
 |-------|---------|
@@ -222,7 +222,7 @@ Use these in academic/formal contexts:
 
 ### Letter/Email Conventions
 - Salutation inflects for gender: Kæri Gunnar (m.), Kæra Sigríður (f.)
-- NEVER use titles in direct address: "Kæri Gunnar" not *"Kæri prófessor Gunnar"
+- Never use titles in direct address: "Kæri Gunnar" not *"Kæri prófessor Gunnar"
 - Closing: Bestu kveðjur (default formal), Kv. (semi-formal email abbreviation)
 - Address by first name always — Iceland uses patronymics, not family names
 
@@ -237,21 +237,21 @@ Use these in academic/formal contexts:
 
 These are the errors that most damage credibility. Each includes WHY — understanding the reason lets you avoid the error even in contexts the rules didn't anticipate.
 
-**NEVER confuse accusative-subject and dative-subject verbs.** Writing "ég finnst" or "mér langar" is THE #1 marker distinguishing native from non-native Icelandic. These quirky-subject constructions are typologically rare and central to Icelandic identity — getting them wrong invalidates any claim to fluency. Accusative experiencer verbs (langa, vanta, dreyma) evolved from impersonal constructions; dative experiencer verbs (finnast, líða, leiðast) encode a different semantic role. They are not interchangeable.
+**Never confuse accusative-subject and dative-subject verbs.** Writing "ég finnst" or "mér langar" is THE #1 marker distinguishing native from non-native Icelandic. These quirky-subject constructions are typologically rare and central to Icelandic identity — getting them wrong invalidates any claim to fluency. Accusative experiencer verbs (langa, vanta, dreyma) evolved from impersonal constructions; dative experiencer verbs (finnast, líða, leiðast) encode a different semantic role. They are not interchangeable.
 
-**NEVER write z in Icelandic.** The z was abolished by law in 1973/74 as part of deliberate language planning. Any z (except pizza) immediately timestamps the text as either pre-reform or written by someone who hasn't internalized Icelandic orthography. It is the spelling equivalent of wearing a costume from another century.
+**Never write z in Icelandic.** The z was abolished by law in 1973/74 as part of deliberate language planning. Any z (except pizza) immediately timestamps the text as either pre-reform or written by someone who hasn't internalized Icelandic orthography. It is the spelling equivalent of wearing a costume from another century.
 
-**NEVER split compound words.** "tölvu póstur" instead of "tölvupóstur" disrupts reading flow and signals that the writer's tokenizer — or brain — processes Icelandic as if it were English. Icelandic compounds are always single words. This error is particularly common in LLM output because subword tokenizers decompose compounds.
+**Never split compound words.** "tölvu póstur" instead of "tölvupóstur" disrupts reading flow and signals that the writer's tokenizer — or brain — processes Icelandic as if it were English. Icelandic compounds are always single words. This error is particularly common in LLM output because subword tokenizers decompose compounds.
 
-**NEVER use English/Danish loanwords when native coinages exist.** Icelandic has maintained an aggressive neo-logism tradition since the 19th century. Using "kompúter" instead of "tölva" in academic or formal writing signals either ignorance of this tradition or disrespect for it — both unacceptable in educated Icelandic contexts. The native coinages (tölva, sími, sjónvarp, hugbúnaður) are not quaint alternatives; they ARE the standard words.
+**Never use English/Danish loanwords when native coinages exist.** Icelandic has maintained an aggressive neo-logism tradition since the 19th century. Using "kompúter" instead of "tölva" in academic or formal writing signals either ignorance of this tradition or disrespect for it — both unacceptable in educated Icelandic contexts. The native coinages (tölva, sími, sjónvarp, hugbúnaður) are not quaint alternatives; they ARE the standard words.
 
-**NEVER use vera að + infinitive in formal writing.** This periphrastic progressive entered Icelandic through English media influence and is stigmatized in careful prose. A professor reading "Ég er að lesa ritgerðina" in a submission would assume the author learned Icelandic from television. Simple present covers both habitual and ongoing actions: "Ég les bókina."
+**Never use vera að + infinitive in formal writing.** This periphrastic progressive entered Icelandic through English media influence and is stigmatized in careful prose. A professor reading "Ég er að lesa ritgerðina" in a submission would assume the author learned Icelandic from television. Simple present covers both habitual and ongoing actions: "Ég les bókina."
 
-**NEVER use English quotation marks.** Icelandic uses „…" (low-open U+201E, high-close U+201C). English "…" is the most visible formatting error in Icelandic text — every native reader notices it immediately. This is non-negotiable.
+**Never use English quotation marks.** Icelandic uses „…" (low-open U+201E, high-close U+201C). English "…" is the most visible formatting error in Icelandic text — every native reader notices it immediately. This is non-negotiable.
 
-**NEVER capitalize days, months, or language names.** Icelandic capitalization follows continental European norms, not English ones. The Ritreglur (official spelling rules, regulations 695/2016) explicitly require lowercase for: days (mánudagur), months (janúar), languages (íslenska), and nationality adjectives (íslenskur). Writing "Mánudagur" or "Janúar" is an instant marker of English-influenced production — no native Icelandic text capitalizes these.
+**Never capitalize days, months, or language names.** Icelandic capitalization follows continental European norms, not English ones. The Ritreglur (official spelling rules, regulations 695/2016) explicitly require lowercase for: days (mánudagur), months (janúar), languages (íslenska), and nationality adjectives (íslenskur). Writing "Mánudagur" or "Janúar" is an instant marker of English-influenced production — no native Icelandic text capitalizes these.
 
-**NEVER use ef for indirect yes/no questions.** ef = "if" (conditional). hvort = "whether" (indirect question). "Ég veit ekki ef..." calques English "I don't know if..." — prescriptively wrong in Icelandic. The correct form "Ég veit ekki hvort hún komi" uses hvort + subjunctive. This error is systematic in LLM output because the English "if/whether" distinction maps poorly onto ef/hvort.
+**Never use ef for indirect yes/no questions.** ef = "if" (conditional). hvort = "whether" (indirect question). "Ég veit ekki ef..." calques English "I don't know if..." — prescriptively wrong in Icelandic. The correct form "Ég veit ekki hvort hún komi" uses hvort + subjunctive. This error is systematic in LLM output because the English "if/whether" distinction maps poorly onto ef/hvort.
 
 ## Pre-Submission Verification
 

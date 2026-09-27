@@ -5,11 +5,11 @@ Exact prompts for each specialist agent in the QA swarm. Copy and customize thes
 ## Universal Preamble (prepend to every agent)
 
 ```
-You are the [ROLE] agent in a QA swarm. Your ONLY job is [MANDATE].
+You are the [ROLE] agent in a QA swarm. Your only job is [MANDATE].
 Other agents handle other QA dimensions — stay within your scope.
 
-Write your COMPLETE findings to `[OUTPUT_PATH]`.
-This file is your primary deliverable. Be exhaustive.
+Write your complete findings to `[OUTPUT_PATH]`.
+This file is your primary deliverable.
 
 Report structure:
 ## Summary (2-3 sentences)
@@ -27,7 +27,7 @@ For every issue found, include:
 - Suggested fix (if obvious)
 
 If you find ZERO issues, explicitly list what you checked under "Passed Checks".
-NEVER write just "no issues found" without evidence of what was tested.
+Never write just "no issues found" without evidence of what was tested.
 ```
 
 ---
@@ -112,7 +112,7 @@ If NO context is provided, detect everything yourself:
 6. Check for .env / .env.example for required environment variables
 7. Identify auth requirements (does the app need login to test?)
 
-ALWAYS report (regardless of context):
+Always report (regardless of context):
 - Tech stack summary
 - App URL (confirmed working, or how to start it)
 - List of changed pages/routes/endpoints mapped from changed files

@@ -61,14 +61,14 @@ Budget/size-tier is determined by the audited SCOPE (subtree, monorepo package, 
 
 These apply regardless of what detection agents claim. No agent override. Internalize before Phase 0.
 
-- **NEVER let a detection agent plan or apply its own fix.** Confirmation bias corrupts review of own work — always spawn a fresh context for fix planning and another fresh context for verification.
-- **NEVER pass Wave 1 severity or confidence scores to other agents.** Only pass facts (file lists, hot-spots, stacks, framework). Opinion cascades poison independence.
-- **NEVER auto-fix auth / permissions / payments / PII / data deletion.** No confidence score, no coverage level, no user override makes this safe.
-- **NEVER parallelize fix application.** Line numbers drift after the first patch and subsequent patches fail silently or patch the wrong location. Fixes are serialized, smallest blast radius first.
-- **NEVER surface P3/nitpick/style findings as primary report.** They go to `findings-backlog.json`. The user can recall with "show backlog".
-- **NEVER treat a null finding result as failure.** A clean audit is a success — present the "Clean Audit" template with "What Was Checked".
-- **NEVER refactor a file with <50% line coverage or no tests** without explicit user opt-in after a warning. "Refactoring without tests is restructuring" — you have no oracle for semantic preservation.
-- **NEVER drop findings below the budget without recording them.** Dropped ≠ deleted. Every filtered finding goes to `findings-backlog.json` so the user can recall them.
+- Never let a detection agent plan or apply its own fix. Confirmation bias corrupts review of own work — always spawn a fresh context for fix planning and another fresh context for verification.
+- Never pass Wave 1 severity or confidence scores to other agents. Only pass facts (file lists, hot-spots, stacks, framework). Opinion cascades poison independence.
+- Never auto-fix auth / permissions / payments / PII / data deletion. No confidence score, no coverage level, no user override makes this safe.
+- Never parallelize fix application. Line numbers drift after the first patch and subsequent patches fail silently or patch the wrong location. Fixes are serialized, smallest blast radius first.
+- Never surface P3/nitpick/style findings as primary report. They go to `findings-backlog.json`. The user can recall with "show backlog".
+- Never treat a null finding result as failure. A clean audit is a success — present the "Clean Audit" template with "What Was Checked".
+- Never refactor a file with <50% line coverage or no tests without explicit user opt-in after a warning. "Refactoring without tests is restructuring" — you have no oracle for semantic preservation.
+- Never drop findings below the budget without recording them. Dropped ≠ deleted. Every filtered finding goes to `findings-backlog.json` so the user can recall them.
 
 (Detection-domain rules — what NOT to flag as findings — live in the Detection anti-patterns section below. This NEVER list covers orchestrator process discipline only.)
 
@@ -98,7 +98,7 @@ Internalize before Phase 0. These are the most common audit noise generators —
 
 > **Architecture note**: SKILL.md is the process orchestrator; references carry the domain knowledge. A reference is a tool the orchestrator reaches for, not content that lives in context by default.
 
-## Phase 0 — Reconnaissance (MANDATORY first step)
+## Phase 0 — Reconnaissance
 
 Run the reconnaissance script. Do NOT skip this and jump to reading files — you will audit the wrong files.
 
@@ -124,9 +124,9 @@ Write `plan.md` summarizing: stacks detected, size tier, which dimensions will r
 
 ## Phase 1 — Parallel Detection (6 dimensions, strict scope bounds)
 
-**MANDATORY — READ ENTIRE FILE** before launching agents: [`references/orchestration.md`](references/orchestration.md) — wave discipline, agent prompt template, dedup rules, failure modes.
+Read [`references/orchestration.md`](references/orchestration.md) in full before launching agents — wave discipline, agent prompt template, dedup rules, failure modes.
 
-**MANDATORY — READ ENTIRE FILE** before launching agents: [`references/finding-schema.md`](references/finding-schema.md) — every agent writes findings in this schema. Schema compliance is validated at Phase 2.
+Read [`references/finding-schema.md`](references/finding-schema.md) in full before launching agents — every agent writes findings in this schema. Schema compliance is validated at Phase 2.
 
 Launch 6 agents in parallel (single message, multiple Agent tool calls). Each agent writes findings as JSON to `.audit/findings-raw/<dimension>.json`. Each agent is `sonnet` model, `mode: bypassPermissions`. Each agent MUST load `references/finding-schema.md` (schema compliance) plus the specific references in the table below. Do NOT load references from other agents' rows — token waste and scope bleed.
 
@@ -147,7 +147,7 @@ Launch 6 agents in parallel (single message, multiple Agent tool calls). Each ag
 
 ## Phase 2 — Deduplication and Prioritization (orchestrator-only)
 
-**MANDATORY — READ ENTIRE FILE**: [`references/triage.md`](references/triage.md) — ranking by `business_impact × technical_risk / fix_cost`, Fowler quadrant, P0-P3 tiers, when NOT to refactor.
+Read [`references/triage.md`](references/triage.md) in full — ranking by `business_impact × technical_risk / fix_cost`, Fowler quadrant, P0-P3 tiers, when NOT to refactor.
 
 Do NOT delegate this phase to a subagent — synthesis is orchestrator work.
 
@@ -166,7 +166,7 @@ Dropped findings go to `findings-backlog.json` (user can recall with "show backl
 
 ## Phase 3 — Gate 1 — User Approval (HARD STOP, non-skippable)
 
-**MANDATORY — READ ENTIRE FILE** before presenting: [`references/finding-schema.md`](references/finding-schema.md) §"Report Format" and §"Null Result Format".
+Read [`references/finding-schema.md`](references/finding-schema.md) in full before presenting §"Report Format" and §"Null Result Format".
 
 Present the ranked, deduplicated findings in Markdown using the template in finding-schema.md. Group by `Critical / Major / Cross-Cutting Discussion / Backlog Count`.
 
@@ -202,7 +202,7 @@ Persist the user's selection to `findings-approved.json`:
 
 ## Phase 4 — Fix Planning (separate agent contexts, orchestrator pre-screens eligibility)
 
-**MANDATORY — READ ENTIRE FILE**: [`references/fix-safety.md`](references/fix-safety.md) — safe-refactoring decision tree, auto-fix precondition stack, "safe-looking" refactorings that break code.
+Read [`references/fix-safety.md`](references/fix-safety.md) in full — safe-refactoring decision tree, auto-fix precondition stack, "safe-looking" refactorings that break code.
 
 **Orchestrator pre-screening (before spawning any fix agent)**: The auto-fix eligibility decision is fragile — a misclassification bypasses Gate 2 and risks applying changes without human review. The orchestrator must deterministically evaluate these conditions from existing artifacts BEFORE delegating to a fix agent:
 
@@ -274,7 +274,7 @@ Protocol for each approved fix, in strict order. The working tree MUST be clean 
 - **Attempt 1**: apply the fix exactly as planned in Phase 4 (the plan was produced in a fresh context and should not be second-guessed).
 - If tests fail → `git checkout -- <files>`, re-read the target file (it may have changed from a prior fix in the queue), produce a MINIMAL revised patch addressing only the same finding, apply once more.
 - **Attempt 2**: if tests fail again → revert, mark the finding as "fix attempt failed — requires human review", move on.
-- **NEVER make a third attempt**. Two failures with tests signal a semantic dependency static analysis missed. Iteration will not fix it; human context will.
+- Never make a third attempt. Two failures with tests signal a semantic dependency static analysis missed. Iteration will not fix it; human context will.
 
 **Cascade failure threshold**: if ≥50% of approved fixes fail both attempts, STOP the apply phase immediately. Present to the user:
 > *"N of M approved fixes failed to apply cleanly — the codebase likely has interdependencies that static analysis missed. Options: `continue` (attempt remaining fixes one-by-one with your review), `abort` (leave remaining fixes unapplied), or `replan` (re-run Phase 4 with the failed fixes as additional context)."*

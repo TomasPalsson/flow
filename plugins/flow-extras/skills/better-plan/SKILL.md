@@ -91,12 +91,12 @@ Poll `GET /__bp/qa` (or the `<plan>.qa.json` sidecar) while the plan is open so 
 
 ## NEVER (the authoring landmines)
 
-- **NEVER write Mermaid syntax in `<Diagram>`** (`graph LR`, `-->`, `[Label]`). The engine only understands `A -> B` arrows + `[accent]` — Mermaid renders a parse error. This is the #1 mistake.
-- **NEVER omit a required prop** (`<PlanHeader>` `title`, `<APISpec>` `method`+`path`, `<AnnotatedCode>` `code`, `<Wireframe>`/`<FileTree>` `children`, `<Collapsible>` `summary`, `<Stat>` `value`, `<Comparison>` `columns`+`rows`, `<ADR>`/`<Step>` `title`, `<Entity>` `name`, `<Checklist>`/`<Timeline>` `items`). A missing one renders a visible warning slot, not the component.
-- **NEVER use `###` for a main section** — only top-level `##` headings generate the nav. Sub-headings vanish from the spine.
-- **NEVER pass `_index` to `<Step>`** — `<Steps>` injects it; passing it manually breaks numbering.
-- **NEVER skip `<PlanHeader>` or bury it mid-document** — it's the masthead; it goes first, once.
-- **NEVER forget the template literal for multi-line props** — DSL/code must be `` {`…`} ``, not a bare string, or it won't compile.
+- Never write Mermaid syntax in `<Diagram>` (`graph LR`, `-->`, `[Label]`). The engine only understands `A -> B` arrows + `[accent]` — Mermaid renders a parse error. This is the #1 mistake.
+- Never omit a required prop (`<PlanHeader>` `title`, `<APISpec>` `method`+`path`, `<AnnotatedCode>` `code`, `<Wireframe>`/`<FileTree>` `children`, `<Collapsible>` `summary`, `<Stat>` `value`, `<Comparison>` `columns`+`rows`, `<ADR>`/`<Step>` `title`, `<Entity>` `name`, `<Checklist>`/`<Timeline>` `items`). A missing one renders a visible warning slot, not the component.
+- Never use `###` for a main section — only top-level `##` headings generate the nav. Sub-headings vanish from the spine.
+- Never pass `_index` to `<Step>` — `<Steps>` injects it; passing it manually breaks numbering.
+- Never skip `<PlanHeader>` or bury it mid-document — it's the masthead; it goes first, once.
+- Never forget the template literal for multi-line props — DSL/code must be `` {`…`} ``, not a bare string, or it won't compile.
 
 ## Choosing a component (when each beats prose)
 
@@ -137,7 +137,7 @@ better-plan components Diagram    # one component's full shape
 better-plan components --json     # machine-readable (name, props[{name,type,required,note}], example)
 ```
 
-**MANDATORY — READ ENTIRE FILE before authoring components**: Load [`references/components.md`](references/components.md). It has every component's exact props, required props, MDX example, and gotchas (the Diagram arrow-DSL `A -> B : label` / `[accent]`; AnnotatedCode `lines` ranges like `"2-4"`; FileTree's indented-text parsing with `# comment` and `<-- chip`; the sub-components `<Step>`/`<Tab>`/`<Entity>`).
+Read [`references/components.md`](references/components.md) in full before authoring components. It has every component's exact props, required props, MDX example, and gotchas (the Diagram arrow-DSL `A -> B : label` / `[accent]`; AnnotatedCode `lines` ranges like `"2-4"`; FileTree's indented-text parsing with `# comment` and `<-- chip`; the sub-components `<Step>`/`<Tab>`/`<Entity>`).
 
 ## The Diagram engine (NOT Mermaid)
 

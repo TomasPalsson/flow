@@ -54,8 +54,8 @@ f_full × kelly_fraction** (locked 0.10-0.25 of full). Full order: cluster budge
   multiplies risk-of-ruin. Use **10-25% of naive full Kelly.**
 - **Size at the cluster level, then split within the cluster** — never independent per-ticker Kelly.
   Two correlated 15% positions are one 30% bet on the shared factor.
-- **MANDATORY: Stage 6 calls `node scripts/compute-sizing.js <input.json>` — NEVER compute weights
-  freehand in prose.** Fixes llm-guardrails.md §13 ("the LLM never does arithmetic"), which the old
+- Stage 6 calls `node scripts/compute-sizing.js <input.json>` — never compute weights
+  freehand in prose. Fixes llm-guardrails.md §13 ("the LLM never does arithmetic"), which the old
   freehand approach violated.
 
 ## 2. Effective Number of Bets — "10 picks" is really 3-6 bets
@@ -128,7 +128,7 @@ in that input schema, and neither should ever be smuggled in as one.
   Chandelier exit** — stop = (highest close since entry) − 3 × ATR(22 DAILY bars). A stop rule with
   no width is not actionable. **This is now REAL, not aspirational**: run
   `node scripts/compute-atr.js <shortlist> [--entry TICKER=YYYY-MM-DD]` at the point sizing
-  happens, for the ~15-25 shortlisted/held names only — NEVER the 1,500-name weekly universe
+  happens, for the ~15-25 shortlisted/held names only — never the 1,500-name weekly universe
   screen (see the trap below). It fetches its own **daily** bars (keyless Yahoo endpoint) and
   computes Wilder ATR(22), independent of `compute-momentum.js`'s weekly-cadence `adjclose`-only
   series.
@@ -181,7 +181,7 @@ leveraged ETFs for multi-day holds. Concentration cap: top 5 positions ≤ ~55-6
 position soft-cap ~20-25% (a genuinely aggressive ceiling), binary positions 2-5%.
 
 ## 11. Managing the existing book — sell / trim / hold (Stage 1b)
-The book is never cash-flat; each weekly run inherits open positions and MUST manage them, not just
+The book is never cash-flat; each weekly run inherits open positions and must manage them, not just
 hunt new adds. The exit doctrine (§6-8) applied to *held* positions. Sell or trim on ANY trigger,
 else hold — the user's mandate is to sell whenever it's judged right, so these are the discipline
 behind the judgment, not a checklist to satisfy mechanically:
@@ -207,7 +207,7 @@ behind the judgment, not a checklist to satisfy mechanically:
   can't run its discipline on these → default to exiting to redeploy, unless a clear dated near-term
   reason to hold (then TRIM + flag). Judgment, not a reflexive dump.
 - **Concentration** — single position > ~20-25% of equity → TRIM to target.
-Every qualitative exit reason logged MUST carry its numeric cross-check alongside it (the band
+Every qualitative exit reason logged must carry its numeric cross-check alongside it (the band
 position, the weeks held, the stop level) — a tripwire against post-hoc rationalization on the sell
 side.
 Execution: partial close (`UnitsToDeduct` = units) for trims, full close (`UnitsToDeduct: null`)

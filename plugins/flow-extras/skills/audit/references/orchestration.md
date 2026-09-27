@@ -43,7 +43,7 @@ Framework: [DJANGO | FASTAPI | NEXTJS | ...]
 - [OTHER DIMENSION 2] — handled by [OTHER AGENT]
 
 ## Reference knowledge
-MANDATORY — read in full before starting: references/finding-schema.md (required for ALL agents)
+Read references/finding-schema.md in full before starting (required for ALL agents)
 
 Additional reference — load EXACTLY ONE of the following based on your dimension, do NOT load multiple:
 - correctness agent → references/language-playbooks.md (correctness sections only)

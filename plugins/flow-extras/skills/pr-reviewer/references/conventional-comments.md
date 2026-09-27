@@ -10,7 +10,7 @@ raw specialist findings into postable, well-framed review comments.
 
 ## The Label Taxonomy (Conventional Comments)
 
-Every posted comment MUST start with one of these labels, optionally followed by
+Every posted comment must start with one of these labels, optionally followed by
 decorations in parentheses, then a colon, then the subject:
 
 ```
@@ -23,9 +23,9 @@ decorations in parentheses, then a colon, then the subject:
 
 | Label | Use When | Blocking by Default |
 |-------|----------|---------------------|
-| `issue` | Flagging a defect — correctness bug, security flaw, data loss, broken contract. MUST include a concrete failure scenario. | Yes (if no decoration) |
-| `suggestion` | Proposing a better approach. MUST explain WHY it's better. | Depends on decoration |
-| `nitpick` | Trivial preference — naming, micro-style. NEVER blocks. | No |
+| `issue` | Flagging a defect — correctness bug, security flaw, data loss, broken contract. Must include a concrete failure scenario. | Yes (if no decoration) |
+| `suggestion` | Proposing a better approach. Must explain why it's better. | Depends on decoration |
+| `nitpick` | Trivial preference — naming, micro-style. Never blocks. | No |
 | `question` | Uncertain concern. Asking for author context before asserting a problem. | No |
 | `thought` | Idea that emerged during review; not for this PR. | No |
 | `todo` | Small required change that isn't a defect (add CHANGELOG, remove debug line). | Yes |
@@ -82,7 +82,7 @@ Severity and confidence are **orthogonal axes**. Both matter.
 | **0.60–0.85** | label: | `suggestion (blocking)` w/ hedging | `suggestion` | `suggestion (non-blocking)` | skip |
 | **<0.60** | label: | `question` | `question` | `question` | skip |
 
-**The rule**: confidence below 0.60 NEVER gets a direct assertion label. Always
+**The rule**: confidence below 0.60 never gets a direct assertion label. Always
 use `question` framing. LLMs calibrated to sound confident will blow past this
 unless you enforce it explicitly.
 
@@ -97,7 +97,7 @@ pattern matching, not data-flow analysis. The false-positive rates that matter:
 | Dead code (framework) | ~70% | lower | Default to `question` in dynamic languages |
 | Type errors (strict) | ~5% | ~2% | High confidence, direct assertion OK |
 | Logic bugs | unmeasurable | unmeasurable | Require demonstrable failure scenario |
-| Performance | very high | very high | NEVER blocking without benchmark |
+| Performance | very high | very high | Never blocking without benchmark |
 
 ## The "Is This Worth Commenting?" Decision Tree
 
@@ -171,7 +171,7 @@ When no principle applies, state observations, not judgments:
 ### Rule 4: Always Include a Failure Scenario for `issue`
 
 An `issue` without a concrete failure scenario is a vague concern. Every `issue`
-body MUST include the input, condition, or execution path that breaks the code.
+body must include the input, condition, or execution path that breaks the code.
 
 ```
 issue (blocking): This loop doesn't break on empty results, causing an
@@ -198,7 +198,7 @@ If your confidence is below 0.85, hedge the language:
 - "worth verifying that..."
 - "Is there a reason we..."
 
-NEVER pair direct assertive language ("This is wrong") with low-confidence labels.
+Never pair direct assertive language ("This is wrong") with low-confidence labels.
 The combination trains authors to treat all your comments as uncertain.
 
 ## Comment Budget Enforcement

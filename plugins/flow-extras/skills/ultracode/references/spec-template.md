@@ -7,7 +7,7 @@ description: Grill question bank + SPEC.md template for ultracode Phase 1. The s
 
 ## Grill bank (pick the 3-5 load-bearing ones; batch them; skip any the request already answers)
 
-1. **Oracle** — What command proves this worked? (test suite, compiler, typecheck, a script). If the answer is "nothing runs it", flag it: no oracle means Sonnet workers lose their safety net and that slice needs an Opus worker or a new test written FIRST.
+1. **Oracle** — What command proves this worked? (test suite, compiler, typecheck, a script). If the answer is "nothing runs it", flag it: no oracle means Sonnet workers lose their safety net and that slice needs an Opus worker or a new test written first.
 2. **Done-boundary** — What is explicitly OUT of scope? (The #1 fleet failure is spec/design flaw, and the most common form is agents "helpfully" expanding scope.)
 3. **Contracts** — Which interfaces/types/schemas do multiple units touch? These get frozen in the spec BEFORE fan-out; they cannot be decided by parallel agents independently.
 4. **Behavior preservation** — Faithful port/refactor (same behavior, bug-for-bug) or improvement allowed? Fleets do mechanical-faithful well and creative-improvement inconsistently; mixing the two in one run produces both.

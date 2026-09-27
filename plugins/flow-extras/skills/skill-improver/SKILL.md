@@ -9,7 +9,7 @@ Improve an existing SKILL.md with surgical precision, not wholesale rewrites. Th
 
 ## Core Principles
 
-**Surgical edits beat rewrites. Every time.** The #1 failure mode when improving skills is regenerating the whole file. That erases deliberate author choices, voice, and system-level decisions you can't see. Define a change budget BEFORE opening the file — list the exact sections you'll touch — and don't exceed it.
+**Surgical edits beat rewrites. Every time.** The #1 failure mode when improving skills is regenerating the whole file. That erases deliberate author choices, voice, and system-level decisions you can't see. Define a change budget before opening the file — list the exact sections you'll touch — and don't exceed it.
 
 **Diagnose before editing.** Skill failures split into two mutually-exclusive classes: activation failures (skill is invisible because the description doesn't trigger) or content failures (fires but produces weak output). Fixing content on an invisible skill is wasted work.
 
@@ -21,7 +21,7 @@ Improve an existing SKILL.md with surgical precision, not wholesale rewrites. Th
 
 ---
 
-## Phase 0: Select Mode (MANDATORY)
+## Phase 0: Select Mode
 
 Before anything else, determine which mode applies:
 
@@ -54,7 +54,7 @@ Apply this diagnostic: "If I removed all step-by-step procedures, would anything
 
 Quick pattern first-cut (detect without loading the reference): Mindset ≈ 50 lines, no steps, high freedom. Navigation ≈ 30 lines, routes to sub-files. Philosophy ≈ 150 lines, "why hard" + craft framework. Process ≈ 200 lines, numbered phases + gates. Tool ≈ 300 lines, decision trees + exact code.
 
-**If pattern mismatch is detected — MANDATORY**: Read `references/pattern-switching.md` completely before proceeding. Do NOT load it if the current pattern is correct — it is only needed for conversions.
+If pattern mismatch is detected, read `references/pattern-switching.md` completely before proceeding. Do not load it if the current pattern is correct — it is only needed for conversions.
 
 **Q3: Is the skill smooth or rough?**
 A skill that reads cleanly end-to-end is SUSPICIOUS. Genuine expert knowledge is hedged, conditional, rough ("except when X, in which case Y"). Smooth = training-distribution reformatting. Find the most specific sentence. If it sounds like a top-3 Stack Overflow answer, knowledge delta is low.
@@ -80,7 +80,7 @@ Surface requests encode dimension problems. Translate:
 | "It's too rigid" | D6 — freedom miscalibrated | Match freedom to task fragility |
 | "I don't like section X" | Usually D1 (redundant content) in that section | Audit E/A/R in that section only |
 
-**MANDATORY for Directed mode**: Read the relevant recipe section in `references/directed-recipes.md` before applying any improvement. Do NOT load `references/pattern-switching.md` unless Q2 in Phase 1 detected a pattern mismatch.
+For Directed mode, read the relevant recipe section in `references/directed-recipes.md` before applying any improvement. Do not load `references/pattern-switching.md` unless Q2 in Phase 1 detected a pattern mismatch.
 
 ### Step 2b: Define a change budget
 
@@ -124,7 +124,7 @@ Keep these three phases strictly separated. Collapsing them produces premature c
 
 ### Step 2a: Explore (no ideas yet)
 
-**Do NOT load** `references/directed-recipes.md` — it contains directed-improvement techniques that are irrelevant in Creative mode.
+Do not load `references/directed-recipes.md` — it contains directed-improvement techniques that are irrelevant in Creative mode.
 
 Read the SKILL.md once. Classify each section E/A/R, identify the VOICE, spot pattern fit, flag dimensional weaknesses.
 
@@ -140,7 +140,7 @@ Generate ideas across ALL SIX categories. Do not let any category be empty — e
 
 2. **Perspective Shifts** — Rewrite from the user's POV, from anti-pattern-first organization, from a skeptical critic's POV. What does an expert in an unrelated domain (teacher, surgeon, editor, game designer) notice?
 
-3. **Compression & Subtraction** (MANDATORY — do not skip) — What's the 20% that carries 80% of value? Which instructions would the model follow without being told? What can be deleted entirely? What could move to references/ instead of the body?
+3. **Compression & Subtraction** (do not skip) — What's the 20% that carries 80% of value? Which instructions would the model follow without being told? What can be deleted entirely? What could move to references/ instead of the body?
 
 4. **Decision-Tree Extraction** — Where are implicit "if/when/unless" branches in the prose? What decisions is the skill leaving to tacit knowledge? What are the five most different inputs and where does guidance diverge?
 
@@ -216,29 +216,29 @@ Before any improvement, check what it might break:
 
 ## NEVER Do These
 
-**NEVER rewrite when a surgical edit suffices.** The rewrite fallacy is the #1 improvement failure. Production failure: agents using the rewritten skill produce homogenized output indistinguishable from zero-skill mode — the calibrated choices (line budget, voice, scope) that made the original work are gone, replaced by your defaults. If 60% of the file is changing for a "targeted" fix, stop — you're writing a new skill, not improving one.
+Never rewrite when a surgical edit suffices. The rewrite fallacy is the #1 improvement failure. Production failure: agents using the rewritten skill produce homogenized output indistinguishable from zero-skill mode — the calibrated choices (line budget, voice, scope) that made the original work are gone, replaced by your defaults. If 60% of the file is changing for a "targeted" fix, stop — you're writing a new skill, not improving one.
 
-**NEVER propose additions before evaluating subtractions.** Training data skews toward building, not removing. Production failure: the skill grows past its pattern's line budget, pushing knowledge delta below 70%, and the agent's attention spreads across bloat instead of hitting the high-value content. For every proposed addition, ask: "Would removing weak existing content serve the same goal?" A 320 → 200 line skill by subtraction outperforms a 320 → 360 line skill by addition.
+Never propose additions before evaluating subtractions. Training data skews toward building, not removing. Production failure: the skill grows past its pattern's line budget, pushing knowledge delta below 70%, and the agent's attention spreads across bloat instead of hitting the high-value content. For every proposed addition, ask: "Would removing weak existing content serve the same goal?" A 320 → 200 line skill by subtraction outperforms a 320 → 360 line skill by addition.
 
-**NEVER remove content you can't articulate a reason for.** Chesterton's fence. Production failure: you delete a "redundant-looking" section, and the next week the user reports the skill now misfires in the specific edge case that section was handling. Burden of proof is on the change. If you can imagine a plausible reason it was written that way, preserve it or make the narrowest possible edit.
+Never remove content you can't articulate a reason for. Chesterton's fence. Production failure: you delete a "redundant-looking" section, and the next week the user reports the skill now misfires in the specific edge case that section was handling. Burden of proof is on the change. If you can imagine a plausible reason it was written that way, preserve it or make the narrowest possible edit.
 
-**NEVER improve the body without auditing the description.** Description-body coupling failures are silent. Production failure (Mode A): you add a new capability to the body that isn't reflected in the description — the skill never activates for that capability's use case, so your improvement is invisible. Production failure (Mode B): you expand the description's WHEN clauses without covering them in the body — the skill activates on new scenarios and produces generic output because the body can't deliver.
+Never improve the body without auditing the description. Description-body coupling failures are silent. Production failure (Mode A): you add a new capability to the body that isn't reflected in the description — the skill never activates for that capability's use case, so your improvement is invisible. Production failure (Mode B): you expand the description's WHEN clauses without covering them in the body — the skill activates on new scenarios and produces generic output because the body can't deliver.
 
-**NEVER use judge score as the sole success criterion.** Goodhart's Law. Production failure: D3 gets gamed by manufacturing 5 new NEVER entries that read as specific but aren't real failure modes. Score rises; an expert reading the skill says "these aren't things I've actually seen" and dismisses the whole NEVER list. The real test: would a domain expert read each change and say "yes, I learned this the hard way"? If no, the score improvement is cosmetic. A score gain only counts if a with/without run on 2-3 prompts (or the skill's own eval) shows no new regression — without that check, a higher score is unverified.
+Never use judge score as the sole success criterion. Goodhart's Law. Production failure: D3 gets gamed by manufacturing 5 new NEVER entries that read as specific but aren't real failure modes. Score rises; an expert reading the skill says "these aren't things I've actually seen" and dismisses the whole NEVER list. The real test: would a domain expert read each change and say "yes, I learned this the hard way"? If no, the score improvement is cosmetic. A score gain only counts if a with/without run on 2-3 prompts (or the skill's own eval) shows no new regression — without that check, a higher score is unverified.
 
-**NEVER smooth away a blunt rule that a test showed resists pushback.** Production failure: a polished skill saying "it is recommended to avoid X as it can sometimes cause issues" gets overridden by in-context persuasion — users pushing back in conversation get compliance. Where testing showed "NEVER X. It will break." held up and a calm rewrite didn't, keep the blunt version. Elsewhere, polishing toward a calm rule that states its reason is fine — it works better on current models than blanket shouting.
+Never smooth away a blunt rule that a test showed resists pushback. Production failure: a polished skill saying "it is recommended to avoid X as it can sometimes cause issues" gets overridden by in-context persuasion — users pushing back in conversation get compliance. Where testing showed "NEVER X. It will break." held up and a calm rewrite didn't, keep the blunt version. Elsewhere, polishing toward a calm rule that states its reason is fine — it works better on current models than blanket shouting.
 
-**NEVER exceed the change budget.** Production failure: what started as "fix the description" becomes a 6-section rewrite; you silently touch sections the user didn't ask about, and when something breaks the user has no map of what changed. Define the exact sections you'll touch BEFORE opening the file. Flag out-of-scope observations separately; don't silently "fix" them.
+Never exceed the change budget. Production failure: what started as "fix the description" becomes a 6-section rewrite; you silently touch sections the user didn't ask about, and when something breaks the user has no map of what changed. Define the exact sections you'll touch before opening the file. Flag out-of-scope observations separately; don't silently "fix" them.
 
-**NEVER comply with a user request that damages the skill.** Sycophancy in skill improvement is high-cost because regressions are invisible until the agent fails in production on a real task. Production failure: user asks for "more examples", you add 4 generic ones, skill now scores 13/20 on knowledge delta (was 17/20), and a week later the user notices the skill's output got vaguer but can't say why. Push back with an alternative.
+Never comply with a user request that damages the skill. Sycophancy in skill improvement is high-cost because regressions are invisible until the agent fails in production on a real task. Production failure: user asks for "more examples", you add 4 generic ones, skill now scores 13/20 on knowledge delta (was 17/20), and a week later the user notices the skill's output got vaguer but can't say why. Push back with an alternative.
 
-**NEVER iterate past convergence.** Production failure: you chase 96/120 from a stable 91/120, and end up at 87/120 after breaking something that was working. Past convergence, improvements and regressions occur at equal rates. Ship the 91 rather than risk an 87 while chasing 96.
+Never iterate past convergence. Production failure: you chase 96/120 from a stable 91/120, and end up at 87/120 after breaking something that was working. Past convergence, improvements and regressions occur at equal rates. Ship the 91 rather than risk an 87 while chasing 96.
 
-**NEVER mistake reformatting for improvement.** Production failure: you convert bullets to a table and add 3 headers. The skill LOOKS more organized. The agent's behavior does not change — same output, same decisions. You've spent effort for zero behavioral delta. If no sentence was added, removed, or substantively rewritten, nothing improved.
+Never mistake reformatting for improvement. Production failure: you convert bullets to a table and add 3 headers. The skill looks more organized. The agent's behavior does not change — same output, same decisions. You've spent effort for zero behavioral delta. If no sentence was added, removed, or substantively rewritten, nothing improved.
 
-**NEVER jump to edits before diagnosis.** Production failure: the skill's real problem is that its description is broken (activation failure), but you spend an hour polishing the body. After your edits the skill still never fires, so none of your improvements have any effect. Phase 1 is mandatory — a skill scoring badly on multiple dimensions often has ONE root cause.
+Never jump to edits before diagnosis. Production failure: the skill's real problem is that its description is broken (activation failure), but you spend an hour polishing the body. After your edits the skill still never fires, so none of your improvements have any effect. Phase 1 is mandatory — a skill scoring badly on multiple dimensions often has ONE root cause.
 
-**NEVER apply feedback that contradicts a prior round without flagging the conflict.** Production failure: round 1 said "be more specific" so you added detail. Round 3 says "be more concise" so you cut detail. Now the skill has lost what made round 1's feedback useful and is back to the pre-round-1 state, having burned two iterations. Resolution rule: specificity wins INSIDE NEVER entries; conciseness wins in procedures. Name the conflict; pick a side with reasoning.
+Never apply feedback that contradicts a prior round without flagging the conflict. Production failure: round 1 said "be more specific" so you added detail. Round 3 says "be more concise" so you cut detail. Now the skill has lost what made round 1's feedback useful and is back to the pre-round-1 state, having burned two iterations. Resolution rule: specificity wins inside NEVER entries; conciseness wins in procedures. Name the conflict; pick a side with reasoning.
 
 ---
 

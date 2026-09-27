@@ -49,7 +49,7 @@ The ratchet is one-way. `/flow:next --escalate` upgrades at any time; a downgrad
 
 ## 3. Discovery — ONE turn
 
-**MANDATORY — READ ENTIRE FILE** (unless the PREP.md gate above fired): [`references/question-bank.md`](references/question-bank.md). It defines the one batched turn: a numbered list of positions you have already taken, each with its reasoning, closing with *"reply with the numbers you want to change, or 'all good'"*. Silence is acceptance of a stated position, not a skipped question.
+Read [`references/question-bank.md`](references/question-bank.md) in full (unless the PREP.md gate above fired). It defines the one batched turn: a numbered list of positions you have already taken, each with its reasoning, closing with *"reply with the numbers you want to change, or 'all good'"*. Silence is acceptance of a stated position, not a skipped question.
 
 Two items are never dropped: the negative-scope position (what this will NOT do) and a number for every adjective in play. `--interview` restores the serial one-question-per-turn form for a user who wants it. `--unattended` proceeds on the stated positions after one offer, recording each as an Assumption with its confidence.
 

@@ -35,7 +35,7 @@ If unsure, start with `metrics-and-datasets.md` (error analysis comes before eve
 
 60–80% of eval effort should be error analysis, not tooling. A one-off bug gets a targeted fix, not a new judge. Only build an expensive evaluator for a failure mode that **recurs across versions**.
 
-**MANDATORY — READ ENTIRE FILE** before doing error analysis or choosing metrics/datasets: load [`references/metrics-and-datasets.md`](references/metrics-and-datasets.md). It has the open/axial coding loop, dataset sizing, the metrics reference, and the RAG triad. **Do NOT** load the judge, statistics, or AWS references for this step.
+Read [`references/metrics-and-datasets.md`](references/metrics-and-datasets.md) in full before doing error analysis or choosing metrics/datasets. It has the open/axial coding loop, dataset sizing, the metrics reference, and the RAG triad. Do not load the judge, statistics, or AWS references for this step.
 
 ## Decision 1 — Deterministic vs model-graded vs human
 
@@ -49,7 +49,7 @@ Grade with the **fastest reliable method**, in this order (Anthropic's explicit 
 | **LLM-as-a-judge (model-graded)** | quality, tone, reasoning, faithfulness, open-ended — and code can't express it | $0.01–0.20/call | only after validation |
 | **Human** | calibrating the judge; novel/high-stakes ground truth | very high | gold standard, unscalable |
 
-Deterministic checks catch 30–60% of failures for free — **always run them first** and let the judge fire only on what survives. "Often all that lies between you and an automatable eval is clever design" (Anthropic). Reserve human grading for calibration only ("avoid if possible").
+Deterministic checks catch 30–60% of failures for free — **always run them first** and let the judge fire only on what survives. "Often all that lies between you and an automatable eval is clever design" (Anthropic). Reserve human grading for calibration only.
 
 **Making model-graded evals reproducible** (they have two variance sources — the system under test AND the judge): pin a dated judge version (never `gpt-4o-latest`); temperature 0 (reduces but does NOT eliminate variance — GPU batching); binary/structured-JSON output; majority vote over 3–5 judge runs for gates; cache verdicts by `hash(judge_version, prompt, input)`; version the judge contract as `(model_id, rubric_version, prompt_hash)`.
 
@@ -88,7 +88,7 @@ Each file is a JSON array of pass/fail (or scores). `compare` and `kappa` requir
 
 A judge is a measurement instrument — **calibrate before trusting it.** An unvalidated judge gives false confidence (judges catch only 30–60% of real defects).
 
-**MANDATORY — READ ENTIRE FILE** before building, validating, or debugging any model-graded eval: load [`references/llm-as-judge.md`](references/llm-as-judge.md). It has the modes, the full bias→mitigation table, the validation loop, rubric design, and a judge prompt template. **Do NOT** load the metrics, statistics, or AWS references unless you separately hit their rows above.
+Read [`references/llm-as-judge.md`](references/llm-as-judge.md) in full before building, validating, or debugging any model-graded eval. It has the modes, the full bias→mitigation table, the validation loop, rubric design, and a judge prompt template. Do not load the metrics, statistics, or AWS references unless you separately hit their rows above.
 
 The non-negotiables (full detail in the reference): binary pass/fail over Likert; one criterion per prompt; chain-of-thought *before* the verdict (then discard it); cross-family judge (never grade a model with itself); validate against human labels until Cohen's κ ≥ 0.6 (≥0.85 high-stakes), reporting **TPR and TNR separately** — accuracy alone hides a judge that passes everything.
 
@@ -102,31 +102,31 @@ Running a frontier judge on 500 examples per change is how teams end up abandoni
  ◢——◣ Tier 1  deterministic + classifiers every commit  seconds ¢
 ```
 
-Most teams build only Tier 3 and never run it. Build Tier 1 first. **MANDATORY — READ ENTIRE FILE** when designing the eval pipeline, arguing significance, choosing sample sizes, scheduling CI, or cutting cost: load [`references/statistics-and-cost.md`](references/statistics-and-cost.md). **Do NOT** load the metrics, judge, or AWS references for this step.
+Most teams build only Tier 3 and never run it. Build Tier 1 first. Read [`references/statistics-and-cost.md`](references/statistics-and-cost.md) in full when designing the eval pipeline, arguing significance, choosing sample sizes, scheduling CI, or cutting cost. Do not load the metrics, judge, or AWS references for this step.
 
 ## Evaluating on AWS (AgentCore / Bedrock)
 
-**MANDATORY — READ ENTIRE FILE** if the system runs on AWS, or the user mentions AgentCore, Bedrock, CloudWatch, or managed eval: load [`references/agentcore-and-bedrock.md`](references/agentcore-and-bedrock.md). **Do NOT** load the metrics, judge, or statistics references for this step, and **do NOT** load this file at all for non-AWS work — it's vendor-specific.
+Read [`references/agentcore-and-bedrock.md`](references/agentcore-and-bedrock.md) in full if the system runs on AWS, or the user mentions AgentCore, Bedrock, CloudWatch, or managed eval. Do not load the metrics, judge, or statistics references for this step, and do not load this file at all for non-AWS work — it's vendor-specific.
 
 One-paragraph orientation: **AgentCore Observability** emits OTEL traces (GenAI semantic conventions) to CloudWatch — that's the *data*, not eval. **AgentCore Evaluations** (GA 2026-03-31) is the managed *scoring* layer: 13 built-in evaluators at session/trace/tool levels, ground-truth via `expected_response`/`expected_trajectory`/`assertions`, **online** (sampled prod) vs **on-demand** (CI/CD) modes, custom code evaluators as Lambda. **Bedrock Evaluations** (managed, separate) does model + RAG eval with 11 metrics and judge models. Don't confuse Observability (data) with Evaluations (scoring), or Evaluations (measures quality) with Policy (blocks actions).
 
 ## NEVER do these (the landmines)
 
-- **NEVER build a judge or dashboard before reading traces.** Error analysis first; you cannot enumerate LLM failure modes from first principles.
-- **NEVER trust an LLM judge you haven't validated against human labels.** Report TPR+TNR, not accuracy — a judge that passes everything scores 99% accurate and catches zero failures.
-- **NEVER use a holistic 1–10 score** where binary pass/fail (or pass/partial/fail) works — middle values absorb disagreement and need bigger samples.
-- **NEVER grade a model with a judge from its own family** — self-preference inflates scores 10–25%.
-- **NEVER ship on a 2-point eval move from ~100 examples** — it's inside the noise. Get a CI; use the calculator.
-- **NEVER tune prompts on the same set you report scores on** — that's train/test contamination; the optimizer overfits to the set and production degrades. Hold out a test set.
-- **NEVER leave the judge model or temperature unpinned** — silent provider updates shift scores 3–8 points; you'll chase phantom regressions.
-- **NEVER rigidly match a single reference trajectory** for agents — frontier agents find valid alternate paths; grade the end state.
-- **NEVER accept the agent's *claim* of completion** — verify the environment actually changed (tests pass, record written).
-- **NEVER test only happy paths** — your worst-experience users already left the dataset; construct adversarial, edge, multi-turn, and tool-failure cases.
-- **NEVER chase 100% pass rate** — it means the eval is too easy. 70% on hard, adversarial cases is more informative.
-- **NEVER treat the eval score as the goal** (Goodhart). When the score and user signals diverge, trust the users and fix the eval.
-- **NEVER let the golden set rot, and NEVER leak prod data into it without decontamination** — refresh ~20%/quarter and feed every confirmed prod failure back in, but if those prod traces ever fed a training/fine-tuning run the model has already seen them, so they inflate scores while measuring nothing (contamination audits find 1–45% leakage in public benchmarks).
-- **NEVER use an LLM judge to verify math or arithmetic** — judges trust a provided answer instead of re-solving it (~70% error rate); use a code/deterministic check.
-- **NEVER reach for BLEU/ROUGE/BERTScore for modern LLM/agent quality** — built for 2002-era MT; near-zero correlation with what your product needs.
+- **Never build a judge or dashboard before reading traces.** Error analysis first; you cannot enumerate LLM failure modes from first principles.
+- **Never trust an LLM judge you haven't validated against human labels.** Report TPR+TNR, not accuracy — a judge that passes everything scores 99% accurate and catches zero failures.
+- **Never use a holistic 1–10 score** where binary pass/fail (or pass/partial/fail) works — middle values absorb disagreement and need bigger samples.
+- **Never grade a model with a judge from its own family** — self-preference inflates scores 10–25%.
+- **Never ship on a 2-point eval move from ~100 examples** — it's inside the noise. Get a CI; use the calculator.
+- **Never tune prompts on the same set you report scores on** — that's train/test contamination; the optimizer overfits to the set and production degrades. Hold out a test set.
+- **Never leave the judge model or temperature unpinned** — silent provider updates shift scores 3–8 points; you'll chase phantom regressions.
+- **Never rigidly match a single reference trajectory** for agents — frontier agents find valid alternate paths; grade the end state.
+- **Never accept the agent's *claim* of completion** — verify the environment actually changed (tests pass, record written).
+- **Never test only happy paths** — your worst-experience users already left the dataset; construct adversarial, edge, multi-turn, and tool-failure cases.
+- **Never chase 100% pass rate** — it means the eval is too easy. 70% on hard, adversarial cases is more informative.
+- **Never treat the eval score as the goal** (Goodhart). When the score and user signals diverge, trust the users and fix the eval.
+- **Never let the golden set rot, and never leak prod data into it without decontamination** — refresh ~20%/quarter and feed every confirmed prod failure back in, but if those prod traces ever fed a training/fine-tuning run the model has already seen them, so they inflate scores while measuring nothing (contamination audits find 1–45% leakage in public benchmarks).
+- **Never use an LLM judge to verify math or arithmetic** — judges trust a provided answer instead of re-solving it (~70% error rate); use a code/deterministic check.
+- **Never reach for BLEU/ROUGE/BERTScore for modern LLM/agent quality** — built for 2002-era MT; near-zero correlation with what your product needs.
 
 ## The five-second cheat sheet
 

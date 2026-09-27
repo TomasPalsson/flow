@@ -24,7 +24,7 @@ Fan-out is a deliberate purchase (~15x the tokens of a single-context pass), and
 | Diff describable in one sentence | No fleet, no plan. Just do it. |
 | One strong agent could nearly solo it (≳45% likely to succeed alone) | Don't decompose — added agents are measured *negative* returns above that line. One Sonnet worker, whole task, adversary review after. |
 | Work splits into units where each agent OWNS files/modules no other agent touches | Fleet. This ownership test — not size — is the real criterion. |
-| Units share an interface, schema, or causal chain | Fix the contract FIRST (sequentially, in the spec), then fleet the now-independent remainder. Parallelizing causally-linked units produces semantic conflicts that each pass tests alone and fail together. |
+| Units share an interface, schema, or causal chain | Fix the contract first (sequentially, in the spec), then fleet the now-independent remainder. Parallelizing causally-linked units produces semantic conflicts that each pass tests alone and fail together. |
 
 You can't measure "45% solo-success" mid-flight — use proxies: the change lives in one file/module; repo history has a comparable single-PR diff; the oracle runs in seconds; nothing needs a frozen contract. **Two or more of these → skip the fleet, one worker + adversary review.**
 
@@ -32,7 +32,7 @@ Scale by adding *units* (pipeline stages, waves), never by widening one unit pas
 
 ## Phase 1 — Grill, then freeze a SPEC
 
-**MANDATORY — read [`references/spec-template.md`](references/spec-template.md) before writing the spec.**
+Read [`references/spec-template.md`](references/spec-template.md) before writing the spec.
 
 Spec quality is the highest-leverage token you will spend: 41.77% of measured multi-agent failures are specification/design flaws, and ambiguous specs measurably *raise reward-hacking rates* (33-44% on ambiguous vs well-specified tasks) — a vague spec doesn't just get misread, it invites the fleet to game it. Fleet agents cannot ask follow-ups; the SPEC is their only lifeline.
 
@@ -50,7 +50,7 @@ When trial output is weak: **edit the SPEC or the agent prompts and re-run the t
 
 **Roles** — the stable ratio is **1 developer : 2+ adversaries per diff**, hard-separated: the implementer never reviews, the reviewer never implements. Fix application goes back to the developer (or a fresh `developer` acting as fixer on large batches) — a reviewer who edits inherits the implementer's bias the whole split exists to kill.
 
-**Model pinning — the silent 5x trap.** Subagent `model:` frontmatter defaults to `inherit`: an unpinned agent on a Fable/Opus session silently bills the frontier tier for bulk code-writing. The `developer` and `adversary` agents are pinned `model: sonnet`; when writing raw `agent()` calls, set `model: 'sonnet'` (or `'haiku'` for mechanical transforms) explicitly, every call. Never use Fable/Opus as fan-out workers — one Fable 2k-line diff costs what 4-5 Sonnet implementer calls cost. Full arithmetic: load [`references/fleet-economics.md`](references/fleet-economics.md) **before sizing a fleet, picking non-default tiers, or quoting costs**; do NOT load it for posture-only turns.
+**Model pinning — the silent 5x trap.** Subagent `model:` frontmatter defaults to `inherit`: an unpinned agent on a Fable/Opus session silently bills the frontier tier for bulk code-writing. The `developer` and `adversary` agents are pinned `model: sonnet`; when writing raw `agent()` calls, set `model: 'sonnet'` (or `'haiku'` for mechanical transforms) explicitly, every call. Never use Fable/Opus as fan-out workers — one Fable 2k-line diff costs what 4-5 Sonnet implementer calls cost. Full arithmetic: load [`references/fleet-economics.md`](references/fleet-economics.md) **before sizing a fleet, picking non-default tiers, or quoting costs**; do not load it for posture-only turns.
 
 **Work queue.** Prefer a mechanically-enumerable list as the queue — compiler errors, failing tests, lint violations, a file list — sharded along module/crate/directory ownership boundaries. Enumerate ONCE up front; never re-run slow global commands (full builds, repo-wide greps) inside agent loops — one slow command from one agent can stall the whole fleet's I/O.
 
@@ -62,9 +62,9 @@ When trial output is weak: **edit the SPEC or the agent prompts and re-run the t
 | Many writers, big repo | Shard worktrees: N agents share one worktree per shard (Bun: 4 × 16) |
 | Any shared checkout | Git whitelist in every prompt: commit-only-your-assigned-files; **banned: stash, reset, checkout, pull, merge**, and any slow global command. Agents each "reasonably managing their own work" destroy each other's without this. |
 
-Worktrees only convert invisible overwrites into visible merge conflicts — they do NOT prevent semantic conflicts. That prevention happened in Phase 1 (contracts frozen before fan-out).
+Worktrees only convert invisible overwrites into visible merge conflicts — they do not prevent semantic conflicts. That prevention happened in Phase 1 (contracts frozen before fan-out).
 
-**Artifacts to disk.** Workers write full output to `.ultracode/<slug>/` and return summary + paths + evidence — never full file contents through your context. Each prompt carries: objective, output format + path, tool guidance, boundaries (what it must NOT touch), and the SPEC verbatim.
+**Artifacts to disk.** Workers write full output to `.ultracode/<slug>/` and return summary + paths + evidence — never full file contents through your context. Each prompt carries: objective, output format + path, tool guidance, boundaries (what it must not touch), and the SPEC verbatim.
 
 **Circuit breaker.** Set the workflow budget from your estimate and check at phase boundaries: spend past ~2x estimate with under half the units done means a *process* defect (retry loops, bloated prompts, agents re-deriving shared context) — stop the run, read the journal, patch the prompt/spec, and resume with `resumeFromRunId` (completed agents replay from cache; you pay only for the fix). Pushing on at 2x burn "to finish" is how five-figure runaway incidents happen.
 
@@ -94,7 +94,7 @@ LLM review alone plateaus near coin-flip at catching false success (AUROC ≤0.6
 - Test-count diff vs baseline — any *decrease* on a "fix" diff is a hard flag. Run the suite and count tests executed; exit codes lie by omission ("0 skipped" is a count you verify, not a claim you accept).
 - Grep the diff for `skip`, `xfail`, `.skip(`, `todo`, commented-out asserts; for assertions made structurally weaker; for literals in source matching test-expected values.
 
-**LLM lenses.** Give each adversary ONLY the diff + SPEC — never the developer's reasoning, never "tests are green" (an auditor told the outcome succeeded rationalizes the process; the adversary self-commits to expected behavior before looking, which is what collapses false-acceptance from 72% to ~1%). Assign *distinct* lenses — correctness / security-authz / gaming / cross-file — because N identical reviewers share correlated blind spots; a 3-judge ensemble of duplicates still waves through 55% of false positives.
+**LLM lenses.** Give each adversary only the diff + SPEC — never the developer's reasoning, never "tests are green" (an auditor told the outcome succeeded rationalizes the process; the adversary self-commits to expected behavior before looking, which is what collapses false-acceptance from 72% to ~1%). Assign *distinct* lenses — correctness / security-authz / gaming / cross-file — because N identical reviewers share correlated blind spots; a 3-judge ensemble of duplicates still waves through 55% of false positives.
 
 **Structural blind spots.** Race conditions, TOCTOU, timing, complex authorization logic: no prompt fixes these — the model isn't executing a scheduler. Route these classes to a sanitizer/analyzer/fuzzer co-signer or human eyes; an adversary verdict on them is only ever PLAUSIBLE.
 
@@ -127,20 +127,20 @@ Sonnet-by-default is an economics + oracle argument, not a capability claim — 
 
 ## NEVER
 
-- **NEVER let a fleet agent inherit the session model.** `inherit` is the default; on a Fable session that's a silent 5x cost multiplier on every worker. Pin every call.
-- **NEVER hand-fix one agent's bad output mid-fleet.** Patch the prompt/spec and re-run — the defect exists in N-1 other agents' futures.
-- **NEVER accept an agent's self-report as verification.** "Tests pass" is a claim; the count of tests executed, the command, and its output are evidence. 75.8% of self-assessed coding-agent "successes" in one audit were false.
-- **NEVER show a reviewer the implementer's reasoning or the outcome.** Both anchor the reviewer into rationalizing; the whole value of the split is independent derivation.
-- **NEVER run N identical reviewers and call it rigor.** Correlated contexts double-count the same blind spots. Distinct lenses or nothing.
-- **NEVER blanket-upgrade the fleet tier to fix quality.** Fix the spec, or add one scoped higher-tier adjudication pass. Tier multipliers apply to every agent; adjudication applies to one call.
-- **NEVER let parallel writers touch a shared checkout without the git whitelist.** Collision is measured in minutes, not probability.
-- **NEVER parallelize units that share an unfrozen contract.** Each side passes its own tests; the system fails at merge, where it's most expensive.
-- **NEVER skip the trial run because the spec "is clear".** The trial tests the orchestration — collisions, prompt gaps, reward-hack pressure — which no spec review can exercise.
-- **NEVER treat an adversary's "no findings" as a pass by itself.** Require what it checked (its self-commitment + deterministic sweep results); silence without receipts is a stall, not a verdict.
+- Never let a fleet agent inherit the session model. `inherit` is the default; on a Fable session that's a silent 5x cost multiplier on every worker. Pin every call.
+- Never hand-fix one agent's bad output mid-fleet. Patch the prompt/spec and re-run — the defect exists in N-1 other agents' futures.
+- Never accept an agent's self-report as verification. "Tests pass" is a claim; the count of tests executed, the command, and its output are evidence. 75.8% of self-assessed coding-agent "successes" in one audit were false.
+- Never show a reviewer the implementer's reasoning or the outcome. Both anchor the reviewer into rationalizing; the whole value of the split is independent derivation.
+- Never run N identical reviewers and call it rigor. Correlated contexts double-count the same blind spots. Distinct lenses or nothing.
+- Never blanket-upgrade the fleet tier to fix quality. Fix the spec, or add one scoped higher-tier adjudication pass. Tier multipliers apply to every agent; adjudication applies to one call.
+- Never let parallel writers touch a shared checkout without the git whitelist. Collision is measured in minutes, not probability.
+- Never parallelize units that share an unfrozen contract. Each side passes its own tests; the system fails at merge, where it's most expensive.
+- Never skip the trial run because the spec "is clear". The trial tests the orchestration — collisions, prompt gaps, reward-hack pressure — which no spec review can exercise.
+- Never treat an adversary's "no findings" as a pass by itself. Require what it checked (its self-commitment + deterministic sweep results); silence without receipts is a stall, not a verdict.
 
 ## References
 
-| File | Load when | Do NOT load |
+| File | Load when | Do not load |
 |---|---|---|
 | [`references/spec-template.md`](references/spec-template.md) | Phase 1, every pipeline run | — |
 | [`references/fleet-economics.md`](references/fleet-economics.md) | Sizing/costing a fleet; any non-default tier choice | Posture-only turns |

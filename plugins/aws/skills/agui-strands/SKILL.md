@@ -86,7 +86,7 @@ load-bearing.**
 
 - **AG-UI wire is camelCase, has no `[DONE]` sentinel**, frames as `data: {json}\n\n`, and
   `TOOL_CALL_ARGS.delta` is a **JSON-string fragment** — concatenate per `toolCallId`, parse once at
-  `TOOL_CALL_END`. A run MUST be bracketed `RUN_STARTED … RUN_FINISHED|RUN_ERROR`.
+  `TOOL_CALL_END`. A run must be bracketed `RUN_STARTED … RUN_FINISHED|RUN_ERROR`.
 - **Flush the leftover SSE buffer after the read loop.** `buffer = lines.pop()` keeps the partial
   last line; if `RUN_FINISHED` lands in the final chunk you `break` before parsing it →
   `finish-step` never fires → client hangs in `streaming` forever. (Baked into the scaffold.)
@@ -103,21 +103,21 @@ load-bearing.**
 
 ## NEVER (things this stack teaches the hard way)
 
-- **NEVER** paraphrase the bridge `type` strings from memory — `tool-input-available` /
+- Never paraphrase the bridge `type` strings from memory — `tool-input-available` /
   `tool-input-delta` / `tool-output-available` are distinct; one wrong string silently drops the
   part and the card never renders. Copy from `references/ai-sdk-bridge.md` or `scripts/route_bridge.ts`.
-- **NEVER** rely on `createUIMessageStream` to write `start`/`finish` for you on the bridge path — it
+- Never rely on `createUIMessageStream` to write `start`/`finish` for you on the bridge path — it
   does not. You write both; the SDK only back-fills `messageId`. (Auto-write is the `streamText` path.)
-- **NEVER** set `session_manager` on the *template* Strands agent — `StrandsAgent` silently ignores it.
+- Never set `session_manager` on the *template* Strands agent — `StrandsAgent` silently ignores it.
   Use `session_manager_provider` and set `replay_history_into_strands=False`.
-- **NEVER** put AWS creds/profile in `.env` or `.env.local` — Next bundles them into the Lambda where
+- Never put AWS creds/profile in `.env` or `.env.local` — Next bundles them into the Lambda where
   the profile breaks the SDK credential chain. Use `.envrc` (direnv) locally; the IAM role when deployed.
-- **NEVER** tag the AgentCore ECR image `:latest` — the runtime won't roll on source changes. Use a
+- Never tag the AgentCore ECR image `:latest` — the runtime won't roll on source changes. Use a
   content-addressed tag (sha1 of source files) so Terraform forces a rebuild.
-- **NEVER** set `runtime = "edge"` on the chat route — the AWS SDK + web-stream transform need Node.
-- **NEVER** treat the system prompt as optional — without explicit tool-mandate instructions Claude
+- Never set `runtime = "edge"` on the chat route — the AWS SDK + web-stream transform need Node.
+- Never treat the system prompt as optional — without explicit tool-mandate instructions Claude
   answers in prose and no card ever renders (no error fires either).
-- **NEVER** build the agent image as amd64 or with default buildx — AgentCore is arm64-only and
+- Never build the agent image as amd64 or with default buildx — AgentCore is arm64-only and
   rejects manifest lists; build `--platform linux/arm64 --provenance=false --sbom=false`.
 
 ## Decision trees
@@ -151,15 +151,15 @@ Lambda** (per-instance, cold starts) → the agent forgets context after message
 
 ## When to load the references (do it before writing that layer)
 
-- **MANDATORY — READ ENTIRE FILE** before writing/altering the route bridge or any frontend card:
-  [`references/ai-sdk-bridge.md`](references/ai-sdk-bridge.md) — translation table, every part `type`,
-  the start/finish truth, the card-rendering state machine.
-- **MANDATORY — READ ENTIRE FILE** before writing/altering the agent or its tools:
-  [`references/ag-ui-strands.md`](references/ag-ui-strands.md) — `StrandsAgent` internals, `@tool`
-  schema rules, `BedrockModel`, history replay, frontend tools, the gotchas.
-- **MANDATORY — READ ENTIRE FILE** before any deploy/infra work:
-  [`references/agentcore-deploy.md`](references/agentcore-deploy.md) — the runtime contract, arm64 +
-  buildx flags, Terraform, IAM, sessionId, OpenNext streaming, ARN wiring.
+- Read [`references/ai-sdk-bridge.md`](references/ai-sdk-bridge.md) in full before
+  writing/altering the route bridge or any frontend card — translation table, every part
+  `type`, the start/finish truth, the card-rendering state machine.
+- Read [`references/ag-ui-strands.md`](references/ag-ui-strands.md) in full before
+  writing/altering the agent or its tools — `StrandsAgent` internals, `@tool` schema rules,
+  `BedrockModel`, history replay, frontend tools, the gotchas.
+- Read [`references/agentcore-deploy.md`](references/agentcore-deploy.md) in full before any
+  deploy/infra work — the runtime contract, arm64 + buildx flags, Terraform, IAM, sessionId,
+  OpenNext streaming, ARN wiring.
 - Load [`references/agui-protocol.md`](references/agui-protocol.md) ONLY to verify exact wire-level
   field names (camelCase), the RunAgentInput schema, or the STEP/REASONING/STATE event set. **Do NOT
   load it for the bridge** — `ai-sdk-bridge.md` already has the translation table. **Do NOT load it for

@@ -27,7 +27,7 @@ The unit of work is a **deepening slice**, not a refactor and not a rewrite. Eve
 
 **Do NOT run flow-deepen** when: the spec's tasks aren't all built yet (it is downstream of execution, never mid-flight); the request is "audit the repo" with no `.specs/` context (→ `/flow-extras:audit`); the request is "clean up this function" (→ `/simplify`); the request is "add X" (→ `/flow:next`); or the proposed change introduces a new method, return value, or error type visible to callers (that is a feature — split it out).
 
-## MANDATORY: load the detection checklist
+## Load the detection checklist
 
 Before Phase 2, **read `references/detection-heuristics.md` in full.** It carries the complete greppable detection signal catalogue (the five smell families), the agent-failure guardrails, the AFK/HITL tag decision table, and the three-part behavior-preserving acceptance-criteria pattern. Do not hunt from memory — the catalogue is the skill's expert knowledge and the body below assumes it is loaded.
 
@@ -71,7 +71,7 @@ Then **rank them and recommend the top ones** — do not dump every candidate on
 
 Draft each recommended deepening as a task line in the K-B `TASKS.md` grammar `flow lint` parses — **drafted, not written; nothing hits disk before Phase 5.**
 
-- **Location**: a new `## Phase N — Deepening` section appended to the EXISTING spec's `TASKS.md`. IDs continue from the highest existing `T###`. Append-only: never renumber, reorder or delete a line that is already there, and NEVER open a new `.specs/` dir.
+- **Location**: a new `## Phase N — Deepening` section appended to the EXISTING spec's `TASKS.md`. IDs continue from the highest existing `T###`. Append-only: never renumber, reorder or delete a line that is already there, and never open a new `.specs/` dir.
 - **Vertical, not horizontal**: the task description states call-site-observable behavior ("caller creates a user with one method call instead of three"), never a layer ("extract the repository interface").
 - **ID kind**: AFK by default — behavior-preserving + test-gated — so it is a `T###` task. Escalate to HITL only on the four triggers (interface-shape choice, external-contract change, public-symbol deletion, or a characterization test that reveals a possible bug); a HITL deepening is a `CHK###` checkpoint line that names the decision, placed before the `T###` that depends on it.
 - **`after:`**: serialize same-module tasks with `— after: T0NN` — the earlier task pins the seam, the later one refactors through that pin. Two tasks may only carry `[P]` when their `files:` lists are disjoint, or `flow lint` fails them. A single straight chain across every task means they are too coupled; split into per-module chains.
@@ -102,7 +102,7 @@ On approval: append the `## Phase N — Deepening` section (with its `Goal:` and
 
 Each slice runs in its OWN fresh session — eight refactors in one context and the agent goes dumb and starts rewriting. The guard that keeps "behavior-preserving" honest: **the characterization test is a commit gate, not advice.** A slice is not done until the pinning-test commit exists in its branch and the full suite is green byte-for-byte. `flow lint` computes the waves from the `after:` lines, so each seam is pinned before the next task refactors through it.
 
-**ALWAYS end with the next step (so the user never has to remember the flow):**
+**End with the next step, always** (so the user never has to remember the flow):
 
 > *"Deepening phase appended to `<SPEC-DIR>/TASKS.md` (N tasks, M checkpoints), all behavior-preserving and characterization-test-gated; `flow lint` is clean and `Approved:` is cleared. **Next in the flow:** reply \"approved\" (the table above is the plan) — then `/flow:next` builds wave 1. (Flow: `/flow:spec → /flow:next → [merged] → flow-deepen → /flow:next`.)"*
 

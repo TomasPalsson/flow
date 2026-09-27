@@ -174,7 +174,7 @@ inline parse error is shown in the diagram slot.
 - Lines without `->` are **silently skipped** (blank lines, comments, anything else).
 - If DSL produces zero nodes AND zero edges, shows error: `'No edges found — DSL must contain at least one "A -> B" arrow.'`
 
-**IMPORTANT:** DSL is passed as a template literal string child, NOT as JSX children. In MDX this means wrapping in `{``...``}`:
+DSL is passed as a template literal string child, not as JSX children. In MDX this means wrapping in `{``...``}`:
 
 ```mdx
 <Diagram type="flow" caption="Render pipeline">

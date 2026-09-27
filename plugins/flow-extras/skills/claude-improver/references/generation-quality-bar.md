@@ -239,7 +239,7 @@ Include decision trees, working examples (not pseudocode), "if X fails, do Y" fa
 
 ## Generation Anti-Patterns (AI-specific)
 
-1. **Generating before researching** — produces training-distribution content (zero delta). Research MUST come first.
+1. **Generating before researching** — produces training-distribution content (zero delta). Research must come first.
 2. **Same template regardless of domain** — React/Rust/SQL get identical structure. Classify domain FIRST.
 3. **Optimizing for length** — 500 lines ≠ thorough; skill-judge explicitly penalizes length without delta.
 4. **Copying structure without quality** — producing correct sections with generic content.

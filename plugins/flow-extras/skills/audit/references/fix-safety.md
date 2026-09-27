@@ -29,7 +29,7 @@ If ANY fails, downgrade to `review-required` at minimum, or `discussion` for cro
 ### LSP-based Rename (Variable / Function / Private Method)
 **Safe when**: IDE/LSP performs the rename via AST (not grep/sed), no dynamic dispatch (`getattr`, `eval`, reflection), not a public API.
 **Auto-fix verdict**: Yes, if private. Propose-only if public.
-**NEVER use grep/sed for rename** — it misses string references, reflection, dynamic dispatch.
+Never use grep/sed for rename — it misses string references, reflection, dynamic dispatch.
 
 ### Extract Variable (Introduce Explaining Variable)
 **Safe when**: The expression has NO side effects (no function calls that mutate state, no I/O).
@@ -87,7 +87,7 @@ If ANY fails, downgrade to `review-required` at minimum, or `discussion` for cro
 
 ## Refactorings That LOOK Safe But Break Code
 
-These are the landmines. If a fix plan proposes any of these, the fix agent MUST flag the specific risk and require Gate 2 approval.
+These are the landmines. If a fix plan proposes any of these, the fix agent must flag the specific risk and require Gate 2 approval.
 
 ### `==` to `===` in JavaScript
 ```js

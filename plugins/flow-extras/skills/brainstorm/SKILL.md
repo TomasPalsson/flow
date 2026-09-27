@@ -19,9 +19,9 @@ Generate genuinely useful, codebase-grounded improvement ideas — from bold tra
 
 ---
 
-## MANDATORY: Load Frontend Design Skill First
+## Load Frontend Design Skill First
 
-**Before writing the HTML output in Phase 4, you MUST invoke the frontend-design skill.** This is non-negotiable. The frontend-design skill provides the aesthetic guidance that prevents generic, flat, AI-looking output. Without it, the brainstorm page will look like every other AI-generated page and undermine the credibility of the ideas themselves.
+**Before writing the HTML output in Phase 4, invoke the frontend-design skill.** The frontend-design skill provides the aesthetic guidance that prevents generic, flat, AI-looking output. Without it, the brainstorm page will look like every other AI-generated page and undermine the credibility of the ideas themselves.
 
 ```
 Skill tool call:
@@ -223,7 +223,7 @@ The output is a single self-contained HTML file, not a chat reply. The chat resp
 
 ### Before writing any HTML
 
-1. **Confirm the frontend-design skill was invoked** (see the MANDATORY section near the top). If not, invoke it now. Its color, typography, spacing, and motion guidance drives every visual decision below. Without it, the page will look like default AI output and the ideas will inherit that credibility hit.
+1. **Confirm the frontend-design skill was invoked** (see the "Load Frontend Design Skill First" section near the top). If not, invoke it now. Its color, typography, spacing, and motion guidance drives every visual decision below. Without it, the page will look like default AI output and the ideas will inherit that credibility hit.
 2. **Choose the aesthetic direction** that fits the codebase. A brainstorm for a CLI tool should not look like a consumer SaaS landing page. Match the visual voice to the subject: editorial restraint for infra/tooling, higher energy for product UX brainstorms.
 
 ### What the HTML must contain
@@ -407,37 +407,37 @@ If any box is unchecked, fix before delivering the path to the user.
 
 ## NEVER Do These
 
-- **NEVER generate ideas before exploring the codebase.** Ungrounded ideas are "trendslop" — trendy recommendations (add observability, add caching, extract a shared library) that sound authoritative but aren't relevant to THIS repo. This is a property of LLM training distributions, not prompt quality — grounding in actual code is the only fix.
+- Never generate ideas before exploring the codebase. Ungrounded ideas are "trendslop" — trendy recommendations (add observability, add caching, extract a shared library) that sound authoritative but aren't relevant to THIS repo. This is a property of LLM training distributions, not prompt quality — grounding in actual code is the only fix.
 
-- **NEVER suggest things without checking if they already exist.** "Add error handling for missing config" when the code already handles it at `config.js:23` destroys all credibility. Grep before you suggest. This is the single fastest way to get your entire brainstorm dismissed.
+- Never suggest things without checking if they already exist. "Add error handling for missing config" when the code already handles it at `config.js:23` destroys all credibility. Grep before you suggest. This is the single fastest way to get your entire brainstorm dismissed.
 
-- **NEVER skip the removal/simplification category.** Training data overwhelmingly celebrates what was built, not what was deliberately removed. Without explicit invocation, you will produce only addition ideas. Deletion and simplification are often the highest-value improvements — "remove the 200-line custom retry logic and use the stdlib" is a real idea.
+- Never skip the removal/simplification category. Training data overwhelmingly celebrates what was built, not what was deliberately removed. Without explicit invocation, you will produce only addition ideas. Deletion and simplification are often the highest-value improvements — "remove the 200-line custom retry logic and use the stdlib" is a real idea.
 
-- **NEVER generate ideas that optimize the wrong metric.** The most common brainstorm failure: producing correct solutions to the wrong problem. "Improve CI pipeline speed" when the actual friction is that devs don't understand WHY the pipeline failed. Always trace from user-visible pain backward to root cause, not from code pattern forward to solution.
+- Never generate ideas that optimize the wrong metric. The most common brainstorm failure: producing correct solutions to the wrong problem. "Improve CI pipeline speed" when the actual friction is that devs don't understand WHY the pipeline failed. Always trace from user-visible pain backward to root cause, not from code pattern forward to solution.
 
-- **NEVER present transformation-level ideas when the foundation is broken.** "Add a plugin system" is worthless advice to a user whose error messages say "Error: undefined." The Foundation tier exists to enforce this — never bury must-fix issues below exciting redesigns.
+- Never present transformation-level ideas when the foundation is broken. "Add a plugin system" is worthless advice to a user whose error messages say "Error: undefined." The Foundation tier exists to enforce this — never bury must-fix issues below exciting redesigns.
 
-- **NEVER suggest adding a dependency for something the standard library handles.** "Add lodash for array filtering" or "add axios for HTTP" in a codebase using built-ins adds maintenance cost for zero user benefit. Always check what's already imported and available before proposing new dependencies.
+- Never suggest adding a dependency for something the standard library handles. "Add lodash for array filtering" or "add axios for HTTP" in a codebase using built-ins adds maintenance cost for zero user benefit. Always check what's already imported and available before proposing new dependencies.
 
-- **NEVER treat effort as a proxy for impact.** A two-week refactor for "cleaner internal architecture" has zero user-visible impact. A one-line default value change can eliminate every new user's first error. Effort and impact are nearly uncorrelated — every idea must justify its value through user-visible or developer-visible transformation, not engineering elegance.
+- Never treat effort as a proxy for impact. A two-week refactor for "cleaner internal architecture" has zero user-visible impact. A one-line default value change can eliminate every new user's first error. Effort and impact are nearly uncorrelated — every idea must justify its value through user-visible or developer-visible transformation, not engineering elegance.
 
-- **NEVER prescribe unfamiliar technology in a Solution field without evidence it fits.** "Migrate to GraphQL" when the codebase uses REST with zero GraphQL dependencies, or "refactor to event-driven architecture" in a 300-line script, prescribes expertise the team may not have. When solution complexity exceeds what the codebase warrants, write "Research spike needed" — not a confident prescription for territory the code doesn't support.
+- Never prescribe unfamiliar technology in a Solution field without evidence it fits. "Migrate to GraphQL" when the codebase uses REST with zero GraphQL dependencies, or "refactor to event-driven architecture" in a 300-line script, prescribes expertise the team may not have. When solution complexity exceeds what the codebase warrants, write "Research spike needed" — not a confident prescription for territory the code doesn't support.
 
-- **NEVER trust a stale cache for findings about files that changed.** The cache is an optimization, not a source of truth. If `git diff` shows a file changed, re-explore it through all lenses — a one-line change to error handling can flip a Friction finding entirely. Only trust cached findings for files with no diff.
+- Never trust a stale cache for findings about files that changed. The cache is an optimization, not a source of truth. If `git diff` shows a file changed, re-explore it through all lenses — a one-line change to error handling can flip a Friction finding entirely. Only trust cached findings for files with no diff.
 
-- **NEVER mirror the user's framing uncritically.** If the user describes their project as "a well-structured React app," resist generating only React-ecosystem improvements. The most valuable insight might be "this doesn't need React at all" or "the state management is the bottleneck, not the component library." Challenge the frame when the code warrants it.
+- Never mirror the user's framing uncritically. If the user describes their project as "a well-structured React app," resist generating only React-ecosystem improvements. The most valuable insight might be "this doesn't need React at all" or "the state management is the bottleneck, not the component library." Challenge the frame when the code warrants it.
 
-- **NEVER use a Sankey diagram for findings → ideas or lenses → ideas.** Sankey's visual grammar implies proportional flow magnitude. The finding-to-idea relationship is categorical (cited / not cited), not quantitative. Rendering it as Sankey implies false precision — "User lens generates 40% of Growth tier" is a statement the data does not support. Use the linked-brushing bipartite overlay instead.
+- Never use a Sankey diagram for findings → ideas or lenses → ideas. Sankey's visual grammar implies proportional flow magnitude. The finding-to-idea relationship is categorical (cited / not cited), not quantitative. Rendering it as Sankey implies false precision — "User lens generates 40% of Growth tier" is a statement the data does not support. Use the linked-brushing bipartite overlay instead.
 
-- **NEVER use a chord diagram for the 5×5 lens co-occurrence matrix.** Chord diagrams require the reader to decode arc position + chord width + direction simultaneously. For sparse 5×5 data a heatmap is ~10× more readable for the same information, and a heatmap scales down to mobile. Chord is a chart for dense, high-magnitude bidirectional flows — brainstorm data is neither.
+- Never use a chord diagram for the 5×5 lens co-occurrence matrix. Chord diagrams require the reader to decode arc position + chord width + direction simultaneously. For sparse 5×5 data a heatmap is ~10× more readable for the same information, and a heatmap scales down to mobile. Chord is a chart for dense, high-magnitude bidirectional flows — brainstorm data is neither.
 
-- **NEVER use a force-directed "theme cluster" graph for ideas.** Force layouts require similarity weights between nodes. The brainstorm data has `dependencies` (structural) and `tier`/`level` (categorical) but no semantic similarity. Without weights, the clustering is random positional noise that looks meaningful. Use the dependency DAG (real structural meaning) instead.
+- Never use a force-directed "theme cluster" graph for ideas. Force layouts require similarity weights between nodes. The brainstorm data has `dependencies` (structural) and `tier`/`level` (categorical) but no semantic similarity. Without weights, the clustering is random positional noise that looks meaningful. Use the dependency DAG (real structural meaning) instead.
 
-- **NEVER use scrollytelling for the full idea list.** Scrollytelling locks reading order. The 15+ ideas in a brainstorm report need random access — the reader wants to jump to the Foundation L1 items, then to the Delight bets. Scrollytelling is only appropriate for the top 2-3 featured ideas where a problem → evidence → solution arc rewards sequential reading.
+- Never use scrollytelling for the full idea list. Scrollytelling locks reading order. The 15+ ideas in a brainstorm report need random access — the reader wants to jump to the Foundation L1 items, then to the Delight bets. Scrollytelling is only appropriate for the top 2-3 featured ideas where a problem → evidence → solution arc rewards sequential reading.
 
-- **NEVER add decorative visual weight that competes with content for attention.** Particle backgrounds, parallax hero layers, mouse-follower cursors, giant decorative numerals, 180px quote marks — all of these push the thesis of the report down the visual hierarchy. A brainstorm report is a decision document. Ornament that obscures the argument destroys the document's job.
+- Never add decorative visual weight that competes with content for attention. Particle backgrounds, parallax hero layers, mouse-follower cursors, giant decorative numerals, 180px quote marks — all of these push the thesis of the report down the visual hierarchy. A brainstorm report is a decision document. Ornament that obscures the argument destroys the document's job.
 
-- **NEVER render dependency information as body text when a graph would show it.** "Blocks: G.01 · D.01 · D.04" in 11px monospace is the graph, typeset as text. If a relationship can be drawn, draw it. If the data is a graph, the visualization is a graph.
+- Never render dependency information as body text when a graph would show it. "Blocks: G.01 · D.01 · D.04" in 11px monospace is the graph, typeset as text. If a relationship can be drawn, draw it. If the data is a graph, the visualization is a graph.
 
 ---
 

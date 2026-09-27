@@ -23,61 +23,61 @@ Every stage gates the next. Skipping a stage is a pipeline violation.
 
 ### Signal Discipline — the Rules That Prevent Noise
 
-- **NEVER post more than 8 inline comments in a single review.** The comment budget
+- Never post more than 8 inline comments in a single review. The comment budget
   is a hard cap. If you have 30 findings, you rank by severity × confidence and drop
   the bottom 22. Every comment past ~20 stops being read by the author — research
   on AI bot noise is clear on this threshold.
-- **NEVER comment on something a linter or type checker already catches.** If ESLint,
+- Never comment on something a linter or type checker already catches. If ESLint,
   tsc, clippy, or your project's `$LINT_CMD` would flag it, the right fix is to wire
   the tool into CI, not to leave a human comment. This is the #1 AI bot failure mode.
-- **NEVER comment on lines outside the diff.** Pre-existing problems in adjacent
+- Never comment on lines outside the diff. Pre-existing problems in adjacent
   untouched code are out of scope. File a separate issue instead. "The fence exists
   because someone built it" — you are reviewing this PR, not the whole repo.
-- **NEVER leave more than ONE comment for the same pattern seen 3+ times.** Rule
+- Never leave more than one comment for the same pattern seen 3+ times. Rule
   of Three: if you see `any` types in 5 places, leave one pattern-level comment,
   not 5 individual ones. Per-occurrence nitpicking is the fastest way to look
   incompetent.
-- **NEVER assign high severity to low-confidence findings.** If confidence < 60%,
+- Never assign high severity to low-confidence findings. If confidence < 60%,
   downgrade to `question` regardless of potential severity. SAST false positive
   rates are 60–90% untuned — your pattern-matching intuition is wrong more often
   than it's right.
-- **NEVER assert a bug without citing the exact file, line, and a concrete failure
-  scenario.** "This might be wrong" is uncitable and worse than silence. Every
+- Never assert a bug without citing the exact file, line, and a concrete failure
+  scenario. "This might be wrong" is uncitable and worse than silence. Every
   `issue` must include an input or condition that breaks the code.
-- **NEVER post before the user approves the review.** The user approval gate is
+- Never post before the user approves the review. The user approval gate is
   not optional — it exists specifically so the user can veto noise before it hits
   the PR author's notifications.
 
 ### Framing Discipline
 
-- **NEVER say "you" in a comment body.** The word triggers defensiveness even when
+- Never say "you" in a comment body. The word triggers defensiveness even when
   the critique is valid. Replace with "we", passive voice, or subjectless construction.
   "Can we handle null here?" beats "You forgot null handling."
-- **NEVER use REQUEST_CHANGES for style, nitpicks, or preferences.** Google's
+- Never use REQUEST_CHANGES for style, nitpicks, or preferences. Google's
   explicit rule: "Don't block CLs from being submitted based only on personal style
   preferences." Only blocking issues (correctness, security, broken contract) get
   REQUEST_CHANGES; everything else is COMMENT or APPROVE with comments.
-- **NEVER use `issue` (blocking) for a judgment call.** Judgment calls are
+- Never use `issue` (blocking) for a judgment call. Judgment calls are
   `suggestion (non-blocking)`. The `issue` label must be reserved for facts, not
   opinions — otherwise the label loses discriminating power and authors tune out.
-- **NEVER open with negatives.** If the PR has a non-obvious good decision, the
+- Never open with negatives. If the PR has a non-obvious good decision, the
   review can include one `praise:` comment — but only if it's specific. Generic
   praise ("nice work") is rated as noise by recipients.
 
 ### Pipeline Integrity
 
-- **NEVER review without reading the PR description first.** Reading code before
+- Never review without reading the PR description first. Reading code before
   reading the "why" produces shallow feedback on correct design. If the description
-  is inadequate, STOP and return the PR with a request for context — do not
+  is inadequate, return the PR with a request for context — do not
   review blind.
-- **NEVER skip triage.** Reviewing all files with equal depth is how 4-hour reviews
+- Never skip triage. Reviewing all files with equal depth is how 4-hour reviews
   yield 1.8 useful comments on a 1,000-line PR. Risk-tier your files and spend
   your budget proportionally.
-- **NEVER use the same context for scanning and fixing.** Reviewer, consolidator,
+- Never use the same context for scanning and fixing. Reviewer, consolidator,
   and poster are separate agent contexts — confirmation bias makes a self-reviewing
   agent ignore its own noise.
-- **NEVER accept a specialist agent's findings without validating line coverage.**
-  Every finding MUST reference a line in the diff. Findings without an in-diff
+- Never accept a specialist agent's findings without validating line coverage.
+  Every finding must reference a line in the diff. Findings without an in-diff
   line are hallucinations and get dropped at consolidation.
 
 ---
@@ -116,9 +116,9 @@ single biggest novice failure mode.**
    - Is the approach explained? (What chose this over alternatives?)
    - Are risks or tradeoffs called out?
    - Is the test plan stated or obvious from the diff?
-3. **If the description is inadequate**: STOP. Post a single top-level COMMENT
+3. **If the description is inadequate**: post a single top-level COMMENT
    review asking the specific questions you need answered before you can review.
-   Do NOT review the diff blind. Exit the pipeline.
+   Do not review the diff blind. Exit the pipeline.
 4. Otherwise: extract the intent — 1-2 sentence summary of what the PR is trying
    to do. Save to `.pr-review/intent.md`. This becomes the anchor for every
    specialist's review.
@@ -157,13 +157,13 @@ Count total lines changed: `gh pr diff $PR_NUMBER | wc -l`.
 - **≤ 400 lines**: proceed.
 - **401–1000 lines**: proceed but cap comment budget at 5 (reviewer attention
   is degraded past this size — fewer, higher-signal comments).
-- **> 1000 lines**: STOP and ask the user. Present the size and suggest
+- **> 1000 lines**: ask the user. Present the size and suggest
   decomposition points. The user may override and ask you to proceed anyway.
   Research is clear: defect detection drops from 87% at <100 LOC to 28% at
   1000+. Reviewing a monolithic PR is often worse than not reviewing it.
 
-  **If the user overrides and proceeds, MANDATORY — READ ENTIRE FILE**: Load
-  [`planning.md`](planning.md) NOW and write `.pr-review/plan.md` BEFORE
+  If the user overrides and proceeds, load the entire file
+  [`planning.md`](planning.md) and write `.pr-review/plan.md` before
   launching any specialist. On large PRs the plan is the contract — users need
   to see the triage and specialist assignments before you burn sonnet tokens.
 
@@ -172,7 +172,7 @@ Count total lines changed: `gh pr diff $PR_NUMBER | wc -l`.
 
 ## Stage 4: Parallel Specialist Review
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/ai-bot-anti-patterns.md`](references/ai-bot-anti-patterns.md)
+Load the entire file [`references/ai-bot-anti-patterns.md`](references/ai-bot-anti-patterns.md)
 before launching specialists. Every specialist prompt must include the "forbidden
 behaviors" section from that file.
 
@@ -190,7 +190,7 @@ max 4 concurrent). Each writes findings as a JSON array to `.pr-review/findings/
 
 ### The Prompting Trick That Beats the Same-AI Blind Spot
 
-**Critical technique**: When prompting each specialist agent, frame the diff as
+When prompting each specialist agent, frame the diff as
 **"written by a competitor LLM (ChatGPT/Gemini/Cursor)"** rather than as the
 user's code. This is a prompting technique, not a factual claim.
 
@@ -235,7 +235,7 @@ if the Rule of Three applies.
 
 ## Stage 5: Consolidation (The Filtering Pipeline)
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/conventional-comments.md`](references/conventional-comments.md)
+Load the entire file [`references/conventional-comments.md`](references/conventional-comments.md)
 before consolidating — it has the severity rubric, confidence gating, decision
 tree, and framing rules.
 
@@ -293,9 +293,9 @@ author sees.** Write 2–4 sentences that:
 2. State the verdict and the single highest-severity finding in plain language.
 3. If findings were dropped at the budget filter (5e), acknowledge it:
    "N additional observations omitted for brevity."
-4. NEVER summarize each inline comment — they're inline for a reason.
-5. NEVER emit filler: "Looks good.", "See inline comments.", "Reviewed this PR."
-   are ALL forbidden.
+4. Never summarize each inline comment — they're inline for a reason.
+5. Never emit filler: "Looks good.", "See inline comments.", "Reviewed this PR."
+   are all forbidden.
 
 Example good summary:
 > "This PR moves session creation into a service, matching the intent stated in
@@ -345,11 +345,11 @@ Ask: **"Should I post this review? Respond 'yes', 'drop <N>', 'edit <N>', or 'ca
 - `cancel` → delete `.pr-review/` and exit
 - anything ambiguous → ask again explicitly
 
-**STOP. Do NOT proceed until the user gives a clear answer.**
+Do not proceed until the user gives a clear answer.
 
 ## Stage 7: Post Review (Single Atomic Call)
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/gh-api-recipes.md`](references/gh-api-recipes.md)
+Load the entire file [`references/gh-api-recipes.md`](references/gh-api-recipes.md)
 before composing the API call — it has the exact `gh api` syntax and the
 deprecated-field gotchas (`position` vs `line`+`side`).
 
@@ -415,14 +415,14 @@ human-readable error messages.
 file directly. Update `.pr-review/state.local.md` after each stage. Spawn Stage 4
 specialists as background agents with `run_in_background: true` and `model: sonnet`.
 
-**Do NOT load** `execution-prompt.md` on the primary path — the stages above are
+Do not load `execution-prompt.md` on the primary path — the stages above are
 the authoritative instructions and loading the state-machine version duplicates
 ~300 lines of already-present content.
 
 **Accelerated path (ralph-loop plugin only — OPTIONAL)**: When ralph-loop is
 installed and you want unattended execution, and only then:
 
-> **MANDATORY — READ ENTIRE FILE**: Load [`execution-prompt.md`](execution-prompt.md)
+> Load the entire file [`execution-prompt.md`](execution-prompt.md)
 > and pass it as the prompt argument with `--completion-promise "REVIEW POSTED"`.
 
 ralph-loop will pause at the Stage 6 user approval gate by design.

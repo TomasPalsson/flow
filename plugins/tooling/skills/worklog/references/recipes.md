@@ -196,7 +196,7 @@ curl -s -X POST "http://127.0.0.1:9323/blocks/$ID/delete"
 
 Response: `{"ok": true, "deleted_id": N, "deleted_tempo_id": "tw-12345"|null}`.
 
-**Critical:** The daemon handles the Tempo DELETE first. If Tempo fails, the local block is preserved and the response is 500 with `{"error": "..."}`. Do NOT separately orchestrate the Tempo delete.
+The daemon handles the Tempo DELETE first. If Tempo fails, the local block is preserved and the response is 500 with `{"error": "..."}`. Do not separately orchestrate the Tempo delete.
 
 If `deleted_tempo_id` is `null` AND the block previously had a `tempo_worklog_id`, the daemon ran the local delete but skipped Tempo because credentials were missing — the Tempo entry orphaned. Tell the user explicitly so they can clean it up in Tempo's UI.
 

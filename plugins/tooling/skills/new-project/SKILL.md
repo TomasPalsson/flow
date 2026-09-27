@@ -73,7 +73,7 @@ If the description is truly ambiguous between two stacks (e.g., "backend API" wi
 
 ## Stage 2: Stack Decision (inline)
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/scaffold-commands.md`](references/scaffold-commands.md) before proceeding. Do not guess commands from memory — the 2026 syntax differs from older tutorials for nearly every tool.
+Read [`references/scaffold-commands.md`](references/scaffold-commands.md) in full before proceeding. Do not guess commands from memory — the 2026 syntax differs from older tutorials for nearly every tool.
 
 **Also load** [`references/stack-decisions.md`](references/stack-decisions.md) IF the description didn't already unambiguously name a stack at Stage 1. **Do NOT load** if the stack was explicit — skip straight to scaffold-commands.md.
 
@@ -142,7 +142,7 @@ Write each file only if the scaffold tool didn't already create it, or if theirs
 
 ### 5a. README.md (type-appropriate)
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/readme-templates.md`](references/readme-templates.md) before writing README.md. Use the template matching the stack (library / CLI / web-app / service). Do NOT produce a 200-line README — match the template, fill blanks, leave `TODO:` stubs for unknowns.
+Read [`references/readme-templates.md`](references/readme-templates.md) in full before writing README.md. Use the template matching the stack (library / CLI / web-app / service). Do not produce a 200-line README — match the template, fill blanks, leave `TODO:` stubs for unknowns.
 
 **Also skim** [`references/anti-patterns.md`](references/anti-patterns.md) before writing any supporting file — it lists the landmines (gitignore ordering, `.env.example` importance, incompatible tool combos).
 
@@ -249,11 +249,11 @@ Delete `.claude/workflow-state.local.md` on success.
 
 ## NEVER rules (irreversible-damage only)
 
-- **NEVER overwrite an existing directory.** Check `test -d` before any scaffolding command.
-- **NEVER run `gh repo create` without explicit Stage-6 confirmation** — even if the user said yes earlier. Show the exact command.
-- **NEVER leave partial directories on failure.** Always `rm -rf` the scaffold target on mid-pipeline error.
-- **NEVER `git add` before `.gitignore` exists with `.env` in it.** `.gitignore` does not affect already-tracked files — the ordering matters.
-- **NEVER invoke the existing `new-project` Go binary** — it is a TUI, cannot be driven non-interactively, and will hang the session.
+- **Never overwrite an existing directory.** Check `test -d` before any scaffolding command.
+- **Never run `gh repo create` without explicit Stage-6 confirmation** — even if the user said yes earlier. Show the exact command.
+- **Never leave partial directories on failure.** Always `rm -rf` the scaffold target on mid-pipeline error.
+- **Never `git add` before `.gitignore` exists with `.env` in it.** `.gitignore` does not affect already-tracked files — the ordering matters.
+- **Never invoke the existing `new-project` Go binary** — it is a TUI, cannot be driven non-interactively, and will hang the session.
 
 Other anti-patterns (tool mixing, stale templates, setup.py, Pages Router, etc.) are covered in [`references/anti-patterns.md`](references/anti-patterns.md).
 

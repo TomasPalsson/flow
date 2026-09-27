@@ -40,47 +40,47 @@ Before writing infrastructure code, answer these questions — they drive every 
 | Real-time (WebSocket) | Persistent connections, pub/sub | `Realtime` or `ApiGatewayWebSocket` |
 | AI/ML streaming | Response streaming, long inference | `Function` (streaming) or `Service` (GPU) |
 
-**MANDATORY** — Read [components.md](references/components.md) before selecting or configuring components. **Do NOT load** patterns.md, deployment.md, or troubleshooting.md for component selection.
+Read [components.md](references/components.md) before selecting or configuring components. Do not load patterns.md, deployment.md, or troubleshooting.md for component selection.
 
-**MANDATORY** — Read [patterns.md](references/patterns.md) when designing multi-service architecture or choosing between patterns. **Do NOT load** deployment.md or troubleshooting.md for architecture design.
+Read [patterns.md](references/patterns.md) when designing multi-service architecture or choosing between patterns. Do not load deployment.md or troubleshooting.md for architecture design.
 
 ---
 
 ## Common Pitfalls — Things That Will Burn You
 
-- **NEVER use `.env` files for resource credentials** — SST's linking system (`link: [resource]` + `Resource.X.name`) is type-safe, auto-rotates credentials, and manages IAM permissions automatically. `.env` files are insecure, stage-unaware, and cause credential drift across team members.
+- **Never use `.env` files for resource credentials** — SST's linking system (`link: [resource]` + `Resource.X.name`) is type-safe, auto-rotates credentials, and manages IAM permissions automatically. `.env` files are insecure, stage-unaware, and cause credential drift across team members.
 
-- **NEVER forget `/// <reference path="./.sst/platform/config.d.ts" />` at the top of sst.config.ts** — without it, TypeScript won't know about `$config`, `sst.aws.*`, or `$app`. Run `sst dev` once to generate the types if they're missing.
+- **Never forget `/// <reference path="./.sst/platform/config.d.ts" />` at the top of sst.config.ts** — without it, TypeScript won't know about `$config`, `sst.aws.*`, or `$app`. Run `sst dev` once to generate the types if they're missing.
 
-- **NEVER set `removal: "remove"` in production** — this deletes all resources (including databases with your data) when you run `sst remove`. Production must use `"retain"`: `removal: input?.stage === "production" ? "retain" : "remove"`.
+- **Never set `removal: "remove"` in production** — this deletes all resources (including databases with your data) when you run `sst remove`. Production must use `"retain"`: `removal: input?.stage === "production" ? "retain" : "remove"`.
 
-- **NEVER import resources managed by another IaC tool** — SST takes full ownership of imported resources. Removing the import from code deletes the actual resource. If another team manages it, reference it via `Linkable` instead.
+- **Never import resources managed by another IaC tool** — SST takes full ownership of imported resources. Removing the import from code deletes the actual resource. If another team manages it, reference it via `Linkable` instead.
 
-- **NEVER put secrets in `sst.config.ts` directly** — they end up in state files and git. Use `new sst.Secret("MySecret")` + `sst secret set MySecret value`. Secrets are encrypted in S3.
+- **Never put secrets in `sst.config.ts` directly** — they end up in state files and git. Use `new sst.Secret("MySecret")` + `sst secret set MySecret value`. Secrets are encrypted in S3.
 
-- **NEVER manually create IAM roles for linked resources** — when you `link: [bucket]` on a function, SST automatically grants the correct IAM permissions. Adding manual policies causes conflicts and over-permissioning.
+- **Never manually create IAM roles for linked resources** — when you `link: [bucket]` on a function, SST automatically grants the correct IAM permissions. Adding manual policies causes conflicts and over-permissioning.
 
-- **NEVER skip the `--fallback` flag for secrets in preview/PR environments** — PR-based preview stages don't have secrets set. `sst secret set MySecret fallback-value --fallback` provides a default for all stages without explicit secrets.
+- **Never skip the `--fallback` flag for secrets in preview/PR environments** — PR-based preview stages don't have secrets set. `sst secret set MySecret fallback-value --fallback` provides a default for all stages without explicit secrets.
 
-- **NEVER use `process.env` to access linked resources in functions** — linked resources are injected encrypted into `globalThis` (not env vars) and decrypted by the SST SDK. Use `import { Resource } from "sst"` and `Resource.MyBucket.name`.
+- **Never use `process.env` to access linked resources in functions** — linked resources are injected encrypted into `globalThis` (not env vars) and decrypted by the SST SDK. Use `import { Resource } from "sst"` and `Resource.MyBucket.name`.
 
-- **NEVER deploy containers without setting `health.path`** — ECS services will repeatedly restart without proper health checks. Use a lightweight `/health` endpoint returning 200, not your main handler.
+- **Never deploy containers without setting `health.path`** — ECS services will repeatedly restart without proper health checks. Use a lightweight `/health` endpoint returning 200, not your main handler.
 
-- **NEVER use VPC for Lambda unless you actually need private resource access** — VPC adds cold start latency (seconds, not ms) and requires NAT Gateway ($32+/month) for internet access. Most Lambda functions don't need VPC. DynamoDB, S3, SQS, SNS, EventBridge are all accessible without VPC.
+- **Never use VPC for Lambda unless you actually need private resource access** — VPC adds cold start latency (seconds, not ms) and requires NAT Gateway ($32+/month) for internet access. Most Lambda functions don't need VPC. DynamoDB, S3, SQS, SNS, EventBridge are all accessible without VPC.
 
-- **NEVER run `sst dev` on shared or production stages** — `sst dev` replaces Lambda functions with stub proxies. If you kill the CLI, the stubs remain deployed and all invocations will timeout. Run `sst deploy` to restore real functions. Personal stages only.
+- **Never run `sst dev` on shared or production stages** — `sst dev` replaces Lambda functions with stub proxies. If you kill the CLI, the stubs remain deployed and all invocations will timeout. Run `sst deploy` to restore real functions. Personal stages only.
 
-- **NEVER expect automatic rollback on failed deploys** — unlike CloudFormation, SST v3 has NO rollback. A failed deploy leaves infrastructure partially updated. Always test in a dev stage first. Use `sst diff` to preview changes before deploying.
+- **Never expect automatic rollback on failed deploys** — unlike CloudFormation, SST v3 has NO rollback. A failed deploy leaves infrastructure partially updated. Always test in a dev stage first. Use `sst diff` to preview changes before deploying.
 
-- **NEVER forget `protect: true` for production** — this prevents `sst remove` from executing at all on the stage, as a safety net beyond `removal: "retain"`.
+- **Never forget `protect: true` for production** — this prevents `sst remove` from executing at all on the stage, as a safety net beyond `removal: "retain"`.
 
-- **NEVER delete the SSM parameter at `/sst/passphrase/<app>/<stage>`** — without it, SST cannot decrypt your state file or deploy your app. This is the encryption key for all secrets in state.
+- **Never delete the SSM parameter at `/sst/passphrase/<app>/<stage>`** — without it, SST cannot decrypt your state file or deploy your app. This is the encryption key for all secrets in state.
 
-- **NEVER use managed NAT Gateway in dev/staging stages** — use `nat: "ec2"` (t4g.nano ~$4/month) instead of `nat: "managed"` ($32/month per AZ). Reserve managed NAT for production where you need HA.
+- **Never use managed NAT Gateway in dev/staging stages** — use `nat: "ec2"` (t4g.nano ~$4/month) instead of `nat: "managed"` ($32/month per AZ). Reserve managed NAT for production where you need HA.
 
-- **NEVER name resources with lowercase or special characters** — SST component names must be PascalCase alphanumeric (e.g., `"MyBucket"` not `"my-bucket"`). SST auto-generates actual AWS resource names from this.
+- **Never name resources with lowercase or special characters** — SST component names must be PascalCase alphanumeric (e.g., `"MyBucket"` not `"my-bucket"`). SST auto-generates actual AWS resource names from this.
 
-- **NEVER deploy to production without `$transform` for global standards** — use global transforms to enforce ARM architecture, log retention, tagging, and permissions boundaries across all functions.
+- **Never deploy to production without `$transform` for global standards** — use global transforms to enforce ARM architecture, log retention, tagging, and permissions boundaries across all functions.
 
 ---
 
@@ -179,7 +179,7 @@ const api = new sst.aws.ApiGatewayV2("Api", {
 });
 ```
 
-**MANDATORY** — Read [deployment.md](references/deployment.md) when setting up CI/CD, GitHub Actions, SST Console auto-deploy, custom domains, or preview environments. **Do NOT load** components.md or patterns.md for deployment setup.
+Read [deployment.md](references/deployment.md) when setting up CI/CD, GitHub Actions, SST Console auto-deploy, custom domains, or preview environments. Do not load components.md or patterns.md for deployment setup.
 
 ---
 
@@ -260,4 +260,4 @@ new sst.aws.Bucket("MyBucket", {
 2. Env var undefined → frontends use `environment` prop (not `link`), with `NEXT_PUBLIC_`/`VITE_` prefix for client-side
 3. API URL undefined → return from `run()` and pass via `environment: { NEXT_PUBLIC_API: api.url }`
 
-**MANDATORY** — Read [troubleshooting.md](references/troubleshooting.md) for detailed error resolution, state recovery, or migration from v2/Serverless Framework/CDK. **Do NOT load** other references when debugging.
+Read [troubleshooting.md](references/troubleshooting.md) for detailed error resolution, state recovery, or migration from v2/Serverless Framework/CDK. Do not load other references when debugging.

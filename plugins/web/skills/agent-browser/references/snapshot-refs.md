@@ -80,7 +80,7 @@ agent-browser click @e12
 
 ## Ref Lifecycle
 
-**IMPORTANT**: Refs are invalidated when the page changes!
+Refs are invalidated when the page changes.
 
 ```bash
 # Get initial snapshot

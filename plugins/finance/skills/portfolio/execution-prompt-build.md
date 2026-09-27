@@ -85,7 +85,7 @@ node scripts/fetch-global-quote.js TICKER1.SUFFIX TICKER2.SUFFIX ... [--batch-si
 ```
 
 **A full-universe screen (hundreds of symbols, e.g. the ~841-name output of `fetch-universe.js`)
-MUST be throttled — do not call this script with the whole universe at defaults-only and no plan
+must be throttled — do not call this script with the whole universe at defaults-only and no plan
 for scale.** Live-verified: 841/841 symbols failed in one run with `No set-cookie header present in
 Yahoo's response. Something must have changed, please report.` — Yahoo's anti-bot layer withholding
 the cookie its crumb flow depends on, not a per-symbol problem, and it reads exactly like one unless

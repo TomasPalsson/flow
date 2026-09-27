@@ -27,7 +27,7 @@ Before rolling, settle these in one short block (write them; they feed the roll)
 - **Mode** of *this surface*: `persuade` (visitor decides and acts: landing, pricing, campaign), `operate` (completes a task: app, dashboard, settings, forms, checkout), `read` (understands: docs, articles, changelog), `experience` (is inside the work: portfolio, gallery). A dev tool's landing page is persuade; a fashion house's docs are read. Mode gates how bold the roll may be. Operate and read surfaces get quiet worlds and conventional skeletons; their distinctiveness lives in details.
 - **Platform**: `web`, `ios`, `android`. Phones exclude pointer-dependent skeletons.
 - **Locks** — anything the user or the repo has already decided: brand hex (`--lock palette=#…`), a required font, required scripts (`--scripts latin,cyrillic`), no webfonts (email, React Native → `--no-webfonts`), longevity (`--longevity campaign` allows fast-decaying looks). A brief that pins an aesthetic ("make it Bauhaus", "keep our brand") beats the roll: `--lock world=bauhaus`.
-- **Existing design system?** If the repo has `DESIGN.md`, a token file, a Tailwind theme with custom colours, or styled shared components, this is **extend mode**: **MANDATORY — read [`references/extend-mode.md`](references/extend-mode.md)** and follow it instead of Step 1. A component or section inside an established surface always inherits that surface. Never turn a local addition into a new identity.
+- **Existing design system?** If the repo has `DESIGN.md`, a token file, a Tailwind theme with custom colours, or styled shared components, this is **extend mode**: read [`references/extend-mode.md`](references/extend-mode.md) and follow it instead of Step 1. A component or section inside an established surface always inherits that surface. Never turn a local addition into a new identity.
 - **Scene sentence**: who uses this, where, under what light. This decides light or dark, not the category (`--scene light|dark` once decided).
 - **Thin category?** If the subject has little cultural material of its own (SRE tooling, invoicing, generic B2B), **read [`references/thin-domain.md`](references/thin-domain.md)** before rolling: it produces a `--grounded` candidates file.
 
@@ -59,7 +59,7 @@ The GROUNDED ANTECEDENT line (thin-domain runs only) supplies material and thesi
 
 ## Step 3 — Build, fully committed
 
-**MANDATORY — READ ENTIRE FILE NOW, not earlier:** [`references/build-craft.md`](references/build-craft.md). It holds palette composition from the seed, type loading, motion, states, browser surfaces and the craft floor. It is loaded after the contract on purpose.
+Read [`references/build-craft.md`](references/build-craft.md) in full now, not earlier. It holds palette composition from the seed, type loading, motion, states, browser surfaces and the craft floor. It is loaded after the contract on purpose.
 
 While building:
 

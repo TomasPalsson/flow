@@ -9,13 +9,13 @@ You are exploring live AWS resources to support debugging or development. Every 
 
 ## NEVER Do
 
-- **NEVER run `aws dynamodb scan` without `--limit`** — full table scans on multi-GB tables will flood context and run for minutes
-- **NEVER call `aws s3api list-objects-v2` without `--max-items` and `--prefix`** — buckets can have millions of objects
-- **NEVER use `--output table`** — border characters tokenize individually, worst format for LLMs
-- **NEVER call detail on more than 3 resources in one turn** — each detail call should answer a specific hypothesis
-- **NEVER run raw `describe-*` without `--query`** — up to 98% token waste
-- **NEVER include full ARNs in reasoning** — use the human-readable name/ID
-- **NEVER forget `--no-cli-pager`** — it will hang waiting for interactive input (the `aws-explore` script handles this, but remember for any raw `aws` calls)
+- **Never run `aws dynamodb scan` without `--limit`** — full table scans on multi-GB tables will flood context and run for minutes
+- **Never call `aws s3api list-objects-v2` without `--max-items` and `--prefix`** — buckets can have millions of objects
+- **Never use `--output table`** — border characters tokenize individually, worst format for LLMs
+- **Never call detail on more than 3 resources in one turn** — each detail call should answer a specific hypothesis
+- **Never run raw `describe-*` without `--query`** — up to 98% token waste
+- **Never include full ARNs in reasoning** — use the human-readable name/ID
+- **Never forget `--no-cli-pager`** — it will hang waiting for interactive input (the `aws-explore` script handles this, but remember for any raw `aws` calls)
 
 ## Pre-requisites
 
@@ -25,7 +25,7 @@ The `aws-explore` script is at `~/.local/bin/aws-explore`. It validates credenti
 
 ## Progressive Disclosure Protocol
 
-**ALWAYS follow this order. Do NOT skip to detail without running overview first.**
+**Always follow this order. Do not skip to detail without running overview first.**
 
 ### Step 1: Overview
 

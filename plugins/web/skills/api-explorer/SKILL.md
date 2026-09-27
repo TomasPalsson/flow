@@ -95,7 +95,7 @@ Use the signals from Steps 1-2 to classify:
 
 ## Phase 2: Exploration (20 minutes)
 
-**MANDATORY — READ ENTIRE FILE BEFORE PROCEEDING**: Load [`references/js-recipes.md`](references/js-recipes.md) completely. It contains the fetch/XHR interceptor required for `initScript`, the WebSocket monitor, and all framework-specific extraction scripts used throughout this phase.
+Before proceeding, load [`references/js-recipes.md`](references/js-recipes.md) completely. It contains the fetch/XHR interceptor required for `initScript`, the WebSocket monitor, and all framework-specific extraction scripts used throughout this phase.
 
 **Do NOT load** `references/spec-template.md` during this phase — load it only when you reach Phase 4.
 
@@ -114,7 +114,7 @@ Then capture network traffic with aggressive filtering:
 list_network_requests(resourceTypes: ["fetch","xhr"], pageSize: 20, pageIdx: 0)
 ```
 
-**NEVER call `list_network_requests` without `resourceTypes` and `pageSize` on any real website.** Unfiltered requests on a production SPA produce 100-300+ entries and overwhelm context. The `["fetch","xhr"]` filter alone gives a 10:1 noise reduction.
+**Never call `list_network_requests` without `resourceTypes` and `pageSize` on any real website.** Unfiltered requests on a production SPA produce 100-300+ entries and overwhelm context. The `["fetch","xhr"]` filter alone gives a 10:1 noise reduction.
 
 ### Systematic Route Visit Order
 
@@ -209,7 +209,7 @@ Call the main data endpoint from a completely fresh context (no prior navigation
 
 ## Phase 4: Spec Generation
 
-**MANDATORY — READ ENTIRE FILE**: Load [`references/spec-template.md`](references/spec-template.md) for the complete output template.
+Load [`references/spec-template.md`](references/spec-template.md) in full for the complete output template.
 
 **Do NOT load** `references/js-recipes.md` during this phase — it was needed for Phase 2 only.
 
@@ -228,7 +228,7 @@ Every fact in the spec must carry one of:
 - **(inferred)** — observed once or derived from code analysis, not replay-verified
 - **(unverified)** — suspected from signals but not directly observed
 
-NEVER omit confidence markers to make the spec look cleaner. Consuming agents need to know what to trust and what to validate independently.
+Never omit confidence markers to make the spec look cleaner. Consuming agents need to know what to trust and what to validate independently.
 
 ### Contradictory Observations
 
@@ -285,15 +285,15 @@ Write the spec to a file the user specifies, or to `./api-spec-<domain>.md` by d
 
 ## NEVER Do These
 
-- **NEVER call `list_network_requests` without `resourceTypes` and `pageSize`** — unfiltered on a real SPA = 100-300 entries, context overflow
-- **NEVER use `evaluate_script` to capture initialization requests** — it fires after page load; use `initScript` via `navigate_page` instead
-- **NEVER read large response bodies inline** — use `get_network_request(responseFilePath: "/tmp/...")` to save to disk
-- **NEVER assume a captured request is independently replayable** — it depends on the full navigation path and session state that preceded it
-- **NEVER explore authenticated pages before mapping the unauthenticated surface** — you contaminate every observation with session state
-- **NEVER document the error response as the API contract** — first requests often return 401/400; the success response has a different schema
-- **NEVER assume the first list page is representative** — edge cases appear on page 2+, last page, and with maximum data density
-- **NEVER trust that DevTools shows what really hit the network** — service workers can intercept and modify requests between the app and the network
-- **NEVER treat WebSocket heartbeat frames as data** — count them separately; failing to respond to pings causes silent disconnects
-- **NEVER replay cookies extracted from the browser in a separate HTTP client** — TLS fingerprint mismatch (JA3) causes silent failure on Cloudflare-protected sites
-- **NEVER skip the initialization sequence in your spec** — it's the most commonly underdocumented and most critical aspect for consumers
-- **NEVER assume JS bundle route extraction is complete** — code-split lazy-loaded routes won't appear in the main bundle; admin panels and premium features live in separate chunks that only load when navigated to. Mark any bundle-derived route list as "(partial)" in the spec
+- **Never call `list_network_requests` without `resourceTypes` and `pageSize`** — unfiltered on a real SPA = 100-300 entries, context overflow
+- **Never use `evaluate_script` to capture initialization requests** — it fires after page load; use `initScript` via `navigate_page` instead
+- **Never read large response bodies inline** — use `get_network_request(responseFilePath: "/tmp/...")` to save to disk
+- **Never assume a captured request is independently replayable** — it depends on the full navigation path and session state that preceded it
+- **Never explore authenticated pages before mapping the unauthenticated surface** — you contaminate every observation with session state
+- **Never document the error response as the API contract** — first requests often return 401/400; the success response has a different schema
+- **Never assume the first list page is representative** — edge cases appear on page 2+, last page, and with maximum data density
+- **Never trust that DevTools shows what really hit the network** — service workers can intercept and modify requests between the app and the network
+- **Never treat WebSocket heartbeat frames as data** — count them separately; failing to respond to pings causes silent disconnects
+- **Never replay cookies extracted from the browser in a separate HTTP client** — TLS fingerprint mismatch (JA3) causes silent failure on Cloudflare-protected sites
+- **Never skip the initialization sequence in your spec** — it's the most commonly underdocumented and most critical aspect for consumers
+- **Never assume JS bundle route extraction is complete** — code-split lazy-loaded routes won't appear in the main bundle; admin panels and premium features live in separate chunks that only load when navigated to. Mark any bundle-derived route list as "(partial)" in the spec

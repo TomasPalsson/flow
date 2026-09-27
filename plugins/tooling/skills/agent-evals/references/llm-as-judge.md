@@ -56,7 +56,7 @@ Use the bundled tool: `python scripts/eval_stats.py kappa --judge judge.json --h
 
 **Decompose → assert → aggregate.** Never ask for a holistic score. One specific binary criterion per prompt ("Did the response cite at least one source from the provided context?" not "Is it well-grounded?"). Aggregate: any assertion fails → overall fail.
 
-- **CoT before verdict, then discard the reasoning** — prevents the model contradicting facts it just stated; cut math errors 70%→15%.
+- **CoT before verdict, then discard the reasoning** — prevents the model contradicting facts it just stated; cut math errors 70%→15%. On a judge model with thinking on (current Claude models), get this from the request's thinking configuration (`thinking:{type:"adaptive"}` + `effort`) and delete the `<thinking>` line from the template below; keep it for judges that run without thinking.
 - **2–4 few-shot examples with full critiques**, not bare labels.
 - **Structured JSON output** so the verdict isn't buried in prose.
 - **Explicit scope:** "evaluate only using the information provided; do not use background knowledge."

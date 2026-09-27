@@ -23,9 +23,9 @@ If a command can't be detected, leave it empty — don't guess.
 
 ## NEVER Do
 
-- **NEVER hardcode a fallback package manager** — if no lock file is found, leave PKG_MGR empty; guessing causes wrong commands downstream
-- **NEVER run commands with side effects during detection** — no `npm install`, `cargo build`, `pip install`; read config files only
-- **NEVER infer a package manager from directory names** — only lock files are reliable indicators
+- Never hardcode a fallback package manager — if no lock file is found, leave PKG_MGR empty; guessing causes wrong commands downstream
+- Never run commands with side effects during detection — no `npm install`, `cargo build`, `pip install`; read config files only
+- Never infer a package manager from directory names — only lock files are reliable indicators
 
 ## Step 2: Project Structure
 

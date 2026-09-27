@@ -23,7 +23,7 @@ Analyze what makes the design feel complex or cluttered:
 
 If any of these are unclear from the codebase, do not guess. STOP and call the AskUserQuestion tool to clarify.
 
-**CRITICAL**: Simplicity is not about removing features. It's about removing obstacles between users and their goals. Every element should justify its existence.
+Simplicity is not about removing features. It's about removing obstacles between users and their goals. Every element should justify its existence.
 
 ## Plan Simplification
 
@@ -34,7 +34,7 @@ Create a ruthless editing strategy:
 - **Progressive disclosure**: What can be hidden until needed?
 - **Consolidation opportunities**: What can be combined or integrated?
 
-**IMPORTANT**: Simplification is hard. It requires saying no to good ideas to make room for great execution. Be ruthless.
+Simplification is hard. It requires saying no to good ideas to make room for great execution. Be ruthless.
 
 ## Simplify the Design
 

@@ -72,13 +72,13 @@ BAD:  "Don't add docstrings to unchanged code"
 GOOD: "Add docstrings only to new functions you write"
 ```
 
-**Specific over vague.** Remove all judgment calls from Claude.
+**Specific over vague.** Name the outcome and the reason, not a numeric cap — a cap tuned against one model's verbosity starves the answer on hard questions.
 ```
 BAD:  "Be brief when appropriate"
-GOOD: "Maximum 3 paragraphs unless showing code"
+GOOD: "Answers are read in a terminal: lead with the result, add detail only when asked"
 ```
 
-**One rule per line.** Dense, scannable. No prose paragraphs.
+**Structure for facts, a sentence for behavior.** Commands, paths and conventions scan best as one-line entries. A behavioral rule keeps its reason in the same sentence — a bare rule gets applied where it doesn't fit.
 
 **Emphasis sparingly.** Use IMPORTANT/MUST only if the rule would go in lines 1-5 AND has historically been violated. If you can't confirm past violations, use declarative phrasing — emphasis loses power when overused.
 
@@ -111,15 +111,15 @@ Does this apply to every session or only specific file areas?
 | CLAUDE.md | Advisory | Universal: project context, conventions, preferences |
 | Skills | On-demand | Domain knowledge, workflows, recipes |
 
-CLAUDE.md is advisory. The `<system-reminder>` wrapper tells Claude the content "may or may not be relevant." For anything that MUST happen, use hooks.
+CLAUDE.md is advisory. The `<system-reminder>` wrapper tells Claude the content "may or may not be relevant." For anything that must happen, use hooks.
 
 ### Structure
 
 Most projects need 40-60 lines. Required section: **Behavioral Rules** (the four Karpathy rules — see below, mandatory in every CLAUDE.md). Other sections as needed: **Commands** (non-obvious only), **Architecture** (only if non-self-evident), **Conventions** (only diffs from defaults), **Gotchas** (highest-value section — things that caused real bugs). Omit empty sections except Behavioral Rules. Put the 2-3 most critical project-specific rules at lines 1-5 (primacy) and repeat them at lines 95-100 (recency); the Karpathy rules belong in the primacy zone.
 
-### Karpathy Behavioral Rules (MANDATORY — include verbatim in every CLAUDE.md)
+### Karpathy Behavioral Rules (include verbatim in every CLAUDE.md)
 
-These four rules MUST appear in every CLAUDE.md this skill generates or audits. They address documented LLM coding failures and pass the "Would Claude make a mistake without this?" test for every codebase. Do not paraphrase, do not omit, do not mark optional. If auditing an existing CLAUDE.md that lacks them, add them.
+These four rules must appear in every CLAUDE.md this skill generates or audits. They address documented LLM coding failures and pass the "Would Claude make a mistake without this?" test for every codebase. Do not paraphrase, do not omit, do not mark optional. If auditing an existing CLAUDE.md that lacks them, add them.
 
 - Surface assumptions. When multiple interpretations exist, ask — don't pick silently.
 - Minimum code that solves the problem. No speculative abstractions, flags, or features.
@@ -178,14 +178,14 @@ Note: CLAUDE.md model routing is advisory only (~93.8% of tokens default to Opus
 
 ## NEVER Do These
 
-- **NEVER rely on CLAUDE.md for enforcement** — the `<system-reminder>` wrapper tells Claude it "may or may not be relevant." If it must happen every time, make it a hook. Engineers who skip this discover it the hard way.
-- **NEVER embed code snippets** — they go stale after any refactor. Use `file:line` references instead ("See `src/auth.ts:42`"). Snippets are also token-expensive.
-- **NEVER import large files with @** — `@docs/architecture.md` (500 lines) loads into every session, burning your instruction budget before a single actual rule is read.
-- **NEVER put everything in root CLAUDE.md for multi-area projects** — use `.claude/rules/<area>.md` with `paths:` frontmatter. A 150-line root CLAUDE.md degrades ALL instructions uniformly; 40-line root + scoped rules does not.
-- **NEVER include time-sensitive facts** ("as of v2.1 this API is deprecated") — CLAUDE.md persists across months. Stale gotchas actively mislead Claude and are worse than having no gotcha.
-- **NEVER assume a rule is working by intuition** — test empirically: generate output without the rule, then with it. If identical, delete the rule. If different but the "with" output is worse, the rule is actively harmful — also delete. Run this test during initial generation and monthly reviews. Most CLAUDE.md files are 30-40% deletable.
-- **NEVER write rules Claude can infer from config files** — Claude reads `package.json`, `tsconfig.json`, `.eslintrc` directly. Duplicating their content is pure token waste with zero compliance benefit.
-- **NEVER omit the four Karpathy Behavioral Rules** — they are mandatory in every CLAUDE.md this skill produces or audits (see "Karpathy Behavioral Rules" above). The pruning test does NOT apply to them; they stay even if the team "already knows" them. The only carve-out is replacement by an identical deterministic hook.
+- Never rely on CLAUDE.md for enforcement — the `<system-reminder>` wrapper tells Claude it "may or may not be relevant." If it must happen every time, make it a hook. Engineers who skip this discover it the hard way.
+- Never embed code snippets — they go stale after any refactor. Use `file:line` references instead ("See `src/auth.ts:42`"). Snippets are also token-expensive.
+- Never import large files with @ — `@docs/architecture.md` (500 lines) loads into every session, burning your instruction budget before a single actual rule is read.
+- Never put everything in root CLAUDE.md for multi-area projects — use `.claude/rules/<area>.md` with `paths:` frontmatter. A 150-line root CLAUDE.md degrades ALL instructions uniformly; 40-line root + scoped rules does not.
+- Never include time-sensitive facts ("as of v2.1 this API is deprecated") — CLAUDE.md persists across months. Stale gotchas actively mislead Claude and are worse than having no gotcha.
+- Never assume a rule is working by intuition — test empirically: generate output without the rule, then with it. If identical, delete the rule. If different but the "with" output is worse, the rule is actively harmful — also delete. Run this test during initial generation and monthly reviews. Most CLAUDE.md files are 30-40% deletable.
+- Never write rules Claude can infer from config files — Claude reads `package.json`, `tsconfig.json`, `.eslintrc` directly. Duplicating their content is pure token waste with zero compliance benefit.
+- Never omit the four Karpathy Behavioral Rules — they are mandatory in every CLAUDE.md this skill produces or audits (see "Karpathy Behavioral Rules" above). The pruning test does NOT apply to them; they stay even if the team "already knows" them. The only carve-out is replacement by an identical deterministic hook.
 
 ## After Generation
 

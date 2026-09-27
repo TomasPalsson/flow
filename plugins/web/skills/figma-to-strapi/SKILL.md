@@ -8,7 +8,7 @@ description: "Convert Figma component designs into Strapi v5 component schemas A
 Generate Strapi v5 component schemas and matching React/Next.js components by inspecting Figma components. Maps design properties to CMS fields, then produces a typed `.tsx` component with Tailwind styling that renders the content.
 
 **Prerequisites:** Figma MCP authenticated, Strapi project at `cms/`, Next.js project at `website/`.
-**MANDATORY:** You MUST call the `figma:figma-use` skill (via the Skill tool) before making ANY Figma MCP call. This skill loads the Figma plugin's execution context. Without it, `use_figma` calls will fail or return incomplete data. Call it once at the start — it persists for the session.
+Call the `figma:figma-use` skill (via the Skill tool) before making any Figma MCP call. This skill loads the Figma plugin's execution context. Without it, `use_figma` calls will fail or return incomplete data. Call it once at the start — it persists for the session.
 
 ---
 
@@ -88,7 +88,7 @@ return result;
 
 ### Phase 3: Map to Strapi Schema
 
-**MANDATORY — READ ENTIRE FILE**: Before mapping fields, load [`references/mapping-table.md`](references/mapping-table.md) completely. It contains critical decision trees for INSTANCE_SWAP handling, variant axis conversion, naming conventions, and edge cases. **Do NOT load during Phases 1-2** — only here. **Essential when** the component has INSTANCE_SWAP properties, 5+ variants, or nested instances — these require the detailed decision trees in the reference.
+Before mapping fields, load [`references/mapping-table.md`](references/mapping-table.md) completely. It contains critical decision trees for INSTANCE_SWAP handling, variant axis conversion, naming conventions, and edge cases. **Do NOT load during Phases 1-2** — only here. **Essential when** the component has INSTANCE_SWAP properties, 5+ variants, or nested instances — these require the detailed decision trees in the reference.
 
 Apply the mapping from the reference table. Quick summary:
 
@@ -107,7 +107,7 @@ Apply the mapping from the reference table. Quick summary:
 
 ### Phase 4: Present, Confirm, Write Schema
 
-**NEVER write files without showing the user first.** Present the generated schema, wait for confirmation, then write to `cms/src/components/<category>/`. If the user suggests field name changes, apply them — they know their editorial language better than Figma layer names do.
+**Never write files without showing the user first.** Present the generated schema, wait for confirmation, then write to `cms/src/components/<category>/`. If the user suggests field name changes, apply them — they know their editorial language better than Figma layer names do.
 
 ### Phase 5: Extract Visual DNA
 
@@ -145,7 +145,7 @@ Combine the Strapi schema (content model) with the visual DNA (exact styling) to
 **Component generation rules:**
 
 1. **Props from schema:** Each Strapi attribute becomes a typed prop. Map: `string`/`text` → `string`, `boolean` → `boolean`, `enumeration` → union type, `media` → `{ url: string; alternativeText?: string }`, `component` → imported sub-component type or inline interface.
-2. **Styling from visual DNA (CRITICAL):** Use the EXACT values from Phase 5:
+2. **Styling from visual DNA:** Use the exact values from Phase 5:
    - Use `get_design_context` output as the primary source for Tailwind classes
    - Use extracted hex colors in arbitrary Tailwind values: `bg-[#1a2536]`, `text-[#ffffff]`
    - Use exact gradient CSS: `bg-[linear-gradient(180deg,_#1a2536_0%,_#2a5a5a_50%,_#4ecfa0_100%)]`
@@ -156,9 +156,9 @@ Combine the Strapi schema (content model) with the visual DNA (exact styling) to
 3. **Sensible defaults:** Provide placeholder content matching the Figma default values so the component renders meaningfully without data.
 4. **Keep it simple:** Generate a single presentational component. No data fetching, no Strapi API calls — those belong in the page or container that uses this component.
 
-**NEVER approximate colors.** Don't write `bg-green-400` when the actual color is `#4ecfa0`. Don't write `text-gray-600` when it's `rgba(255,255,255,0.8)`. Always use the exact extracted value with Tailwind's arbitrary value syntax `[...]`.
+**Never approximate colors.** Don't write `bg-green-400` when the actual color is `#4ecfa0`. Don't write `text-gray-600` when it's `rgba(255,255,255,0.8)`. Always use the exact extracted value with Tailwind's arbitrary value syntax `[...]`.
 
-**NEVER skip decorative elements.** If the Figma design has subtle background bars, overlays, patterns, or gradients — reproduce them. These are what make a design look polished vs generic. Use absolute positioning within a `relative` container.
+**Never skip decorative elements.** If the Figma design has subtle background bars, overlays, patterns, or gradients — reproduce them. These are what make a design look polished vs generic. Use absolute positioning within a `relative` container.
 
 **Live preview flow:**
 
@@ -210,19 +210,19 @@ Then ask the user:
 
 ## Anti-Patterns
 
-**NEVER create a field for every visual layer.** Drop shadows, background colors, divider lines, padding — these are design concerns, not content. **Why:** Editors get overwhelmed by visual minutiae. If your schema has 10 fields and 7 are colors/spacing, you've created admin debt. Strapi editors aren't Figma property panels — they're content teams who need to focus on meaning, not style.
+**Never create a field for every visual layer.** Drop shadows, background colors, divider lines, padding — these are design concerns, not content. **Why:** Editors get overwhelmed by visual minutiae. If your schema has 10 fields and 7 are colors/spacing, you've created admin debt. Strapi editors aren't Figma property panels — they're content teams who need to focus on meaning, not style.
 
-**NEVER use `richtext` for button labels or short text (<150 chars).** **Why:** richtext invokes Strapi's heavy block editor. Button labels need consistency, not formatting. Editors expect a simple text input, see a full editor, and waste time formatting when they shouldn't. Use `string`.
+**Never use `richtext` for button labels or short text (<150 chars).** **Why:** richtext invokes Strapi's heavy block editor. Button labels need consistency, not formatting. Editors expect a simple text input, see a full editor, and waste time formatting when they shouldn't. Use `string`.
 
-**NEVER rely only on child node inspection when component properties exist.** Properties are the designer's explicit declaration of "what's editable." **Why:** A component might have a TEXT property named "label" AND a TEXT child node. Inspecting only children duplicates fields or misses the property's semantic meaning. Properties are authoritative — children are supplementary.
+**Never rely only on child node inspection when component properties exist.** Properties are the designer's explicit declaration of "what's editable." **Why:** A component might have a TEXT property named "label" AND a TEXT child node. Inspecting only children duplicates fields or misses the property's semantic meaning. Properties are authoritative — children are supplementary.
 
-**NEVER nest components >2 levels deep.** If you're creating component-inside-component-inside-component, flatten. **Why:** Strapi's editor UX collapses beyond 2 levels. Editors can't see or navigate the structure. You'll get: "How do I edit the button inside the card inside the section?"
+**Never nest components >2 levels deep.** If you're creating component-inside-component-inside-component, flatten. **Why:** Strapi's editor UX collapses beyond 2 levels. Editors can't see or navigate the structure. You'll get: "How do I edit the button inside the card inside the section?"
 
-**NEVER use auto-generated Figma layer names ("Frame 47", "Text Layer 1") as field names.** Ask the user for editorial names. **Why:** Editors see these names in the admin panel. "Text Layer 1" is nonsense to a content team. They need editorial language: "headline", "description", "ctaLabel" — words that match how they think about content.
+**Never use auto-generated Figma layer names ("Frame 47", "Text Layer 1") as field names.** Ask the user for editorial names. **Why:** Editors see these names in the admin panel. "Text Layer 1" is nonsense to a content team. They need editorial language: "headline", "description", "ctaLabel" — words that match how they think about content.
 
-**NEVER approximate colors with named Tailwind classes.** Don't write `bg-green-400` when the extracted color is `#4ecfa0`. Don't write `text-gray-200` when it's `rgba(255,255,255,0.8)`. **Why:** Named classes are from Tailwind's default palette, not the design. Using them produces a component that looks "close enough" but never matches — the gradient is slightly off, the text is slightly wrong, the overall feel is generic instead of designed. Always use arbitrary values: `bg-[#4ecfa0]`, `text-[rgba(255,255,255,0.8)]`.
+**Never approximate colors with named Tailwind classes.** Don't write `bg-green-400` when the extracted color is `#4ecfa0`. Don't write `text-gray-200` when it's `rgba(255,255,255,0.8)`. **Why:** Named classes are from Tailwind's default palette, not the design. Using them produces a component that looks "close enough" but never matches — the gradient is slightly off, the text is slightly wrong, the overall feel is generic instead of designed. Always use arbitrary values: `bg-[#4ecfa0]`, `text-[rgba(255,255,255,0.8)]`.
 
-**NEVER skip decorative elements because they're "not content."** Background bars, gradient overlays, semi-transparent shapes, subtle patterns — these are what distinguish a designed component from a generic one. **Why:** The Hero example: without the vertical bars and precise gradient, it's just centered text on a green background — indistinguishable from a template. With them, it's a specific, recognizable design. Extract their exact positions, dimensions, opacities, and colors from the visual DNA and reproduce them.
+**Never skip decorative elements because they're "not content."** Background bars, gradient overlays, semi-transparent shapes, subtle patterns — these are what distinguish a designed component from a generic one. **Why:** The Hero example: without the vertical bars and precise gradient, it's just centered text on a green background — indistinguishable from a template. With them, it's a specific, recognizable design. Extract their exact positions, dimensions, opacities, and colors from the visual DNA and reproduce them.
 
 ---
 

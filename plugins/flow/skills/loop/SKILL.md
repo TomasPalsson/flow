@@ -26,7 +26,7 @@ Facts that shape every decision below (verified against the vendor docs on 2026-
 
 Whether the run finishes or hits a cap, it ends at a draft pull request naming what remains; it never records that a human verified the result — that stays yours to do when you come back.
 
-**MANDATORY — READ ENTIRE FILE** before writing the bootstrap yourself: load [`references/yolo-bootstrap.md`](references/yolo-bootstrap.md).
+Before writing the bootstrap yourself, read [`references/yolo-bootstrap.md`](references/yolo-bootstrap.md) in full.
 
 ## Step 1 — Pick the shape
 
@@ -42,7 +42,7 @@ Whether the run finishes or hits a cap, it ends at a draft pull request naming w
 
 ## Step 2 — Write a verifier that can fail
 
-**MANDATORY — READ ENTIRE FILE**: load [`references/verifier-design.md`](references/verifier-design.md) before writing the command. Do not load `loop-prompt.md` yet; it is Step 3's file.
+Read [`references/verifier-design.md`](references/verifier-design.md) in full before writing the command. Do not load `loop-prompt.md` yet; it is Step 3's file.
 
 If the goal is a UI behaviour or a visual target, also load [`references/browser-verifier.md`](references/browser-verifier.md) — three named traps there each produce a verifier that cannot fail.
 
@@ -57,7 +57,7 @@ If the goal cannot be written as a command, write the closest command you can an
 
 ## Step 3 — Write the per-iteration prompt and the task list
 
-**MANDATORY — READ ENTIRE FILE**: load [`references/loop-prompt.md`](references/loop-prompt.md). Do not reload `verifier-design.md`; the verifier is fixed by now.
+Read [`references/loop-prompt.md`](references/loop-prompt.md) in full. Do not reload `verifier-design.md`; the verifier is fixed by now.
 
 Every iteration receives the same stack: where it is (iteration n of N, goal, verifier), what is red (the verifier tail), what was learned (`.claude/loop/LEARNINGS.md`, patterns first, and `git log <base>..HEAD`), the one-task rule, the prohibitions with their consequence, the honest exit, then your task body. `flow loop` supplies everything but the body; write the body to `.claude/loop/prompt.md` and pass `--prompt-file`.
 
@@ -85,7 +85,7 @@ Inside an iteration (either shape), you are the model in the loop. Read the lear
 
 ## Step 5 — Finish honestly
 
-The loop ends in one of four states; the log line says which, and `flow loop status` shows it. **MANDATORY when the status is anything but `done`**: load [`references/failure-modes.md`](references/failure-modes.md) — it maps every `stop_reason` to what the log shows and the next move.
+The loop ends in one of four states; the log line says which, and `flow loop status` shows it. When the status is anything but `done`, read [`references/failure-modes.md`](references/failure-modes.md) — it maps every `stop_reason` to what the log shows and the next move.
 
 | Status | Meaning | What you do |
 |---|---|---|

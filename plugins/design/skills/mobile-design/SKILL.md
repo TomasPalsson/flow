@@ -50,7 +50,7 @@ Do Phase 2 of `/design` (Nielsen tiers, focal element, states). Then make the mo
 
 **Gate:** Before any visuals, name the primary task, where its action sits (bottom), the navigation pattern, the modal pattern, the touch-target minimum, and the fact that you will design light AND dark.
 
-For the full iOS-HIG-vs-Material-3 divergence table and the platform decision frameworks, **load [`references/platform-craft.md`](references/platform-craft.md) — read the "Platform Divergence" section** when resolving a specific nav/modal/component/picker decision. Do NOT load for an obvious choice.
+For the full iOS-HIG-vs-Material-3 divergence table and the platform decision frameworks, **load [`references/platform-craft.md`](references/platform-craft.md) — read the "Platform Divergence" section** when resolving a specific nav/modal/component/picker decision. Don't load it for an obvious choice.
 
 ---
 
@@ -72,7 +72,7 @@ Plus the mobile craft musts: build a **theme token object** (colors light+dark v
 
 **Gate:** Can you articulate how every visual layer renders on Android specifically — the shadow, the blur, the font weight, the elevation under a rounded clip? If you cannot picture the Android rendering of each layer, you have not finished Phase 3; you have an iOS design that will surprise you on the other platform. (Concretely this means: a theme token object with light+dark colors, pre-computed `lineHeight`/`letterSpacing`, a `Platform.select` shadow scale, virtualized lists, UI-thread motion, and no native effect without a cross-platform fallback.)
 
-For the complete RN/Expo craft translation (font loading, gesture-handler/Reanimated setup, version-gated `boxShadow`/`gap`, P3, DPR images, token architecture), **load [`references/platform-craft.md`](references/platform-craft.md) — read the "RN/Expo Craft" section** when you need a specific number or API. For the full failure catalog, **load [`references/anti-patterns.md`](references/anti-patterns.md) before shipping any cross-platform (iOS + Android) screen.** Do NOT load for early planning, a single-platform-only app where the cross-platform traps do not apply, or when the five rules above already cover your case.
+For the complete RN/Expo craft translation (font loading, gesture-handler/Reanimated setup, version-gated `boxShadow`/`gap`, P3, DPR images, token architecture), **load [`references/platform-craft.md`](references/platform-craft.md) — read the "RN/Expo Craft" section** when you need a specific number or API. For the full failure catalog, **load [`references/anti-patterns.md`](references/anti-patterns.md) before shipping any cross-platform (iOS + Android) screen.** Don't load for early planning, a single-platform-only app where the cross-platform traps do not apply, or when the five rules above already cover your case.
 
 ---
 
@@ -80,7 +80,7 @@ For the complete RN/Expo craft translation (font loading, gesture-handler/Reanim
 
 This phase has no web equivalent and is the skill's core. After building, you do not guess whether it looks right — you **see and drive the real running app** and check it against the Phase 1-3 vision. Skip this only if no device/emulator is reachable (then say so explicitly and fall back to code inspection).
 
-**MANDATORY — READ ENTIRE FILE:** Load [`references/device-verification.md`](references/device-verification.md) before running any device command. It has the exact adb/iOS-sim recipes, the multi-display screenshot gotcha, and the verification checklist. The scripts below are the fast path; the reference is the ground truth and the fallback.
+Read [`references/device-verification.md`](references/device-verification.md) before running any device command. It has the exact adb/iOS-sim recipes, the multi-display screenshot gotcha, and the verification checklist. The scripts below are the fast path; the reference is the ground truth and the fallback.
 
 The loop:
 
@@ -102,7 +102,7 @@ Same discipline as `/design` Phase 5: a **separate, skepticism-tuned subagent** 
 
 This phase is mandatory for any screen the user will actually ship. Skip it only for a throwaway prototype or a quick one-off iteration where the user explicitly said "just something rough" — say that you skipped it and why.
 
-**Do NOT load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself** — it belongs to the evaluator subagent. Loading it contaminates the generator/evaluator separation. You read only [`evaluator-prompt.md`](evaluator-prompt.md) to understand what the subagent does.
+**Don't load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself** — it belongs to the evaluator subagent. Loading it contaminates the generator/evaluator separation. You read only [`evaluator-prompt.md`](evaluator-prompt.md) to understand what the subagent does.
 
 To run it:
 1. Collect the design output (file paths) and the Phase 4 screenshot paths (light, dark, and any state/device variants).
@@ -119,21 +119,21 @@ To run it:
 
 Reinforces, does not replace, the `/design` NEVER list. These are the mobile-specific landmines a trained eye catches instantly.
 
-- **NEVER anchor a primary action at the top of a tall screen.** It is out of thumb reach. Bottom, inside the safe area.
-- **NEVER hardcode safe-area padding** (`paddingTop: 44`, `bottom: 0`). Use `useSafeAreaInsets()` — every device differs.
-- **NEVER ship an iOS shadow (`shadowColor/Offset/Opacity/Radius`) without an Android `elevation`.** The card looks flat on Android, silently.
-- **NEVER build a design around an iOS-only native effect (blur/glass/SF Symbols) without a designed Android fallback.** It renders as a flat fill and the whole look collapses.
-- **NEVER write `lineHeight` as a multiplier or `letterSpacing` as em in React Native.** Both are absolute; text overlaps or mis-tracks.
-- **NEVER use `ScrollView` for a long or dynamic list.** It mounts every row; use `FlatList`/`FlashList`.
-- **NEVER rely on hover for any affordance**, and never ship a tappable with no pressed feedback.
-- **NEVER skip dark mode** — it is an OS setting, not a feature. Define light+dark tokens; never hardcode colors in leaf components.
-- **NEVER omit `KeyboardAvoidingView`** on a form — the submit button hides under the keyboard (invisible in the iOS simulator).
-- **NEVER leave Android on `windowSoftInputMode="adjustPan"`** — it slides the whole screen (and the tab bar) up with the keyboard. Set `adjustResize` so the layout reflows instead.
-- **NEVER ship an interactive element without `accessibilityLabel` + `accessibilityRole`** — VoiceOver/TalkBack users get nothing.
-- **NEVER set `allowFontScaling={false}` on body or label text** — it overrides the user's accessibility setting (WCAG 1.4.4).
-- **NEVER use more than 5 bottom tabs**, and never hide primary navigation behind a hamburger.
-- **NEVER ship a screen you have not looked at rendered on a device (or honestly noted you could not).** Phase 4 is not optional polish.
-- **NEVER use an emoji as a functional icon.** Use a cross-platform icon set (Lucide, Phosphor, Material).
+- **Never anchor a primary action at the top of a tall screen.** It is out of thumb reach. Bottom, inside the safe area.
+- **Never hardcode safe-area padding** (`paddingTop: 44`, `bottom: 0`). Use `useSafeAreaInsets()` — every device differs.
+- **Never ship an iOS shadow (`shadowColor/Offset/Opacity/Radius`) without an Android `elevation`.** The card looks flat on Android, silently.
+- **Never build a design around an iOS-only native effect (blur/glass/SF Symbols) without a designed Android fallback.** It renders as a flat fill and the whole look collapses.
+- **Never write `lineHeight` as a multiplier or `letterSpacing` as em in React Native.** Both are absolute; text overlaps or mis-tracks.
+- **Never use `ScrollView` for a long or dynamic list.** It mounts every row; use `FlatList`/`FlashList`.
+- **Never rely on hover for any affordance**, and never ship a tappable with no pressed feedback.
+- **Never skip dark mode** — it is an OS setting, not a feature. Define light+dark tokens; never hardcode colors in leaf components.
+- **Never omit `KeyboardAvoidingView`** on a form — the submit button hides under the keyboard (invisible in the iOS simulator).
+- **Never leave Android on `windowSoftInputMode="adjustPan"`** — it slides the whole screen (and the tab bar) up with the keyboard. Set `adjustResize` so the layout reflows instead.
+- **Never ship an interactive element without `accessibilityLabel` + `accessibilityRole`** — VoiceOver/TalkBack users get nothing.
+- **Never set `allowFontScaling={false}` on body or label text** — it overrides the user's accessibility setting (WCAG 1.4.4).
+- **Never use more than 5 bottom tabs**, and never hide primary navigation behind a hamburger.
+- **Never ship a screen you have not looked at rendered on a device (or honestly noted you could not).** Phase 4 is not optional polish.
+- **Never use an emoji as a functional icon.** Use a cross-platform icon set (Lucide, Phosphor, Material).
 
 ---
 

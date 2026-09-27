@@ -17,7 +17,7 @@ Understand current performance and identify problems:
    - How bad is it? (Perceivable? Annoying? Blocking?)
    - Who's affected? (All users? Mobile only? Slow connections?)
 
-**CRITICAL**: Measure before and after. Premature optimization wastes time. Optimize what actually matters.
+Measure before and after. Premature optimization wastes time. Optimize what actually matters.
 
 ## Optimization Strategy
 
@@ -233,7 +233,7 @@ const observer = new IntersectionObserver((entries) => {
 - Bundle size
 - Request count
 
-**IMPORTANT**: Measure on real devices with real network conditions. Desktop Chrome with fast connection isn't representative.
+Measure on real devices with real network conditions. Desktop Chrome with fast connection isn't representative.
 
 **NEVER**:
 - Optimize without measuring (premature optimization)

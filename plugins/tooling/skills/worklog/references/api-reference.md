@@ -140,7 +140,7 @@ body: {"day":"2026-05-12","dry_run":false}
   }
 ```
 
-**CRITICAL:** `dry_run` defaults to `true` if the field is omitted. To actually sync, **explicitly send `{"dry_run": false}`.**
+`dry_run` defaults to `true` if the field is omitted. To actually sync, explicitly send `{"dry_run": false}`.
 
 `status` enum: `"synced"` / `"dry-run"` / `"skipped"` / `"error"`. Per-block failures land in `results[].status = "error"` AND `errors[]` — they do NOT cause a 5xx. Status code 200 with non-empty `errors[]` is the normal partial-failure shape.
 

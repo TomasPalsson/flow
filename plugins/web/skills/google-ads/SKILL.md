@@ -272,9 +272,9 @@ returns a plausible large number that is not any real total. Check
 `customer.currency_code` before any cross-account sum; report per currency or
 apply an explicit external rate and say so.
 
-**MANDATORY — READ ENTIRE FILE** before writing any analysis that quotes
-conversion, value, or impression-share numbers, or that compares periods:
-[`references/measurement-traps.md`](references/measurement-traps.md).
+Read [`references/measurement-traps.md`](references/measurement-traps.md) in
+full before writing any analysis that quotes conversion, value, or
+impression-share numbers, or that compares periods.
 
 ---
 
@@ -305,9 +305,9 @@ Prefer week-over-week to day-over-day; align day-of-week and moving holidays for
 year-over-year. Scanning many keywords for "the underperformer" will always find
 one by chance — require persistence across periods before acting.
 
-**MANDATORY — READ ENTIRE FILE** when the user reports any symptom (CPA spike,
-conversion drop, flat revenue, serving stopped, ROAS decline, budget underspend):
-[`references/diagnostic-playbooks.md`](references/diagnostic-playbooks.md).
+Read [`references/diagnostic-playbooks.md`](references/diagnostic-playbooks.md)
+in full when the user reports any symptom (CPA spike, conversion drop, flat
+revenue, serving stopped, ROAS decline, budget underspend).
 
 ---
 
@@ -337,37 +337,37 @@ return a permission error because of a closed allowlist. Nothing predicts this i
 advance; a repeated permission error on one field family is an entitlement gap to
 report, not a query bug to fix.
 
-**MANDATORY — READ ENTIRE FILE** on any authentication, permission, quota, or
-setup error, or when the user is configuring the server:
-[`references/failure-recovery.md`](references/failure-recovery.md).
+Read [`references/failure-recovery.md`](references/failure-recovery.md) in
+full on any authentication, permission, quota, or setup error, or when the
+user is configuring the server.
 
 ---
 
 ## Anti-patterns
 
-- **NEVER compose a raw GAQL string for `search_search`.** It takes structured
+- **Never compose a raw GAQL string for `search_search`.** It takes structured
   parameters and builds the query itself.
-- **NEVER guess a field name into a query** — probe with
+- **Never guess a field name into a query** — probe with
   `metadata_get_resource_metadata` and cache the answer.
-- **NEVER read the `metrics`, `segments`, or `discovery-document` resources in a
+- **Never read the `metrics`, `segments`, or `discovery-document` resources in a
   loop.** They are 662k–1.39M tokens.
-- **NEVER divide by 1,000,000 because a field looks like money.** Classify it,
+- **Never divide by 1,000,000 because a field looks like money.** Classify it,
   or verify arithmetically. Two families scale opposite ways.
-- **NEVER sum or average impression share**, and never read `0.0999`/`0.9001` as
+- **Never sum or average impression share**, and never read `0.0999`/`0.9001` as
   precise values.
-- **NEVER judge recent days as final.** Conversion data is still arriving.
-- **NEVER treat a coarse-vs-fine total mismatch as a data bug**, and never
+- **Never judge recent days as final.** Conversion data is still arriving.
+- **Never treat a coarse-vs-fine total mismatch as a data bug**, and never
   rescale child rows to close it.
-- **NEVER sum cost across accounts in an MCC** without checking currency per
+- **Never sum cost across accounts in an MCC** without checking currency per
   account.
-- **NEVER cite "a >20% budget or target change resets learning."** It is
+- **Never cite "a >20% budget or target change resets learning."** It is
   practitioner folklore, absent from Google's documentation, and Google's own FAQ
   states Smart Bidding reacts to target changes in real time regardless of size.
-- **NEVER present Google's Recommendations or Optimization Score as neutral
+- **Never present Google's Recommendations or Optimization Score as neutral
   advice** — the score measures adoption of Google's suggestions, not account
   health.
-- **NEVER recommend pausing an "expensive" keyword from last-click cost alone**
+- **Never recommend pausing an "expensive" keyword from last-click cost alone**
   without checking whether it assists conversions credited elsewhere.
-- **NEVER state a change as made.** This server cannot write. Frame every
+- **Never state a change as made.** This server cannot write. Frame every
   suggestion as a recommendation for a human to apply, with the spend at risk and
   whether it is reversible.
