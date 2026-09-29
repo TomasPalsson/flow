@@ -14,7 +14,7 @@ mkdir "$TMP/pristine"
 
 grep -rEq '^Verified:' .specs && fail "a Verified: line was written: verification is the human's word"
 
-diff -r -q -x .git -x __pycache__ -x .next-call-count . "$TMP/pristine" >"$TMP/diff.txt" 2>&1 || fail "tree differs from the scaffold: $(head -3 "$TMP/diff.txt" | tr '\n' ' ')"
+diff -r -q -x .claude -x .git -x __pycache__ -x .next-call-count . "$TMP/pristine" >"$TMP/diff.txt" 2>&1 || fail "tree differs from the scaffold: $(head -3 "$TMP/diff.txt" | tr '\n' ' ')"
 
 want=$(git -C "$TMP/pristine" rev-list --count HEAD)
 got=$(git rev-list --count HEAD)

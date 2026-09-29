@@ -15,7 +15,7 @@ cmp -s .specs/001-orders-export/TASKS.md "$PRISTINE/.specs/001-orders-export/TAS
 	{ rm -rf "$PRISTINE"; echo "a commit was made while the router said lying"; exit 1; }
 
 # nothing else on disk moved either (the router's own call counter and bytecode are not work)
-diff -r -q -x .git -x __pycache__ -x .next-call-count . "$PRISTINE" >/tmp/xh_diff.$$ 2>&1
+diff -r -q -x .claude -x .git -x __pycache__ -x .next-call-count . "$PRISTINE" >/tmp/xh_diff.$$ 2>&1
 rc=$?
 first=$(head -1 /tmp/xh_diff.$$)
 rm -rf "$PRISTINE" /tmp/xh_diff.$$

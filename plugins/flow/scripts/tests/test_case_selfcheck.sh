@@ -94,3 +94,119 @@ printf '%s|%s\\n' \"\${GIT_CONFIG_GLOBAL:-unset}\" \"\${GIT_DIR:-unset}\" > \"$s
 	assert_eq "$(head -1 "$seen")" "/dev/null|unset" "scaffold sees neutral git env"
 	rm -rf "$root"
 }
+
+# ---------- --live (stub claude, no spend) ----------
+
+# _csc_live_case <root> <name> <extra-grader-yaml> [timeout]: a case whose file grader needs x = 2.
+_csc_live_case() {
+	local d="$1/$2"
+	mkdir -p "$d"
+	printf 'schema_version: "1.1"\nname: %s\ntags: [xhard]\nruns: 1\nexecution:\n  prompt: "p"\n  max_turns: 5\n  timeout_seconds: %s\n  allowed_tools: [Read, Bash]\ngraders:\n  - name: file-ok\n    type: regex\n    target: { source: file, path: a.py }\n    pattern: "x = 2"\n    match: contains\n%s\n' "$2" "${4:-30}" "$3" >"$d/case.yaml"
+	printf '#!/usr/bin/env bash\nset -eu\nprintf "x = 1\\n" > a.py\n' >"$d/scaffold.sh"
+	printf '#!/usr/bin/env bash\nset -eu\nprintf "x = 2\\n" > a.py\n' >"$d/solution.sh"
+	chmod +x "$d/scaffold.sh" "$d/solution.sh"
+}
+
+# _csc_live <root> <log> <case> [K=V ...]: run --live against the stub claude.
+_csc_live() {
+	local root="$1" log="$2" name="$3"
+	shift 3
+	run_cmd env CASE_LIVE_CLAUDE="$CSC_FIX/_live/claude" STUB_LOG="$log" STUB_TRACE="$CSC_FIX/_live/trace.jsonl" \
+		CASE_DIR="$root/$name" "$@" "$CSC" --live --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" "$name"
+}
+
+t_case_selfcheck_live_pass_line_and_results() {
+	_csc_no_yaml t_case_selfcheck_live_pass_line_and_results && return
+	local root log
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-lv '  - name: saw-router
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: bash-twice
+    type: tool_used
+    tool: Bash
+    input_match: "flow next|ls"
+    min: 1
+    max: 2
+  - name: says-done
+    type: llm
+    criteria: "PASS if done"'
+	_csc_live "$root" "$log" xhard-lv
+	assert_rc 0 "all graders pass -> exit 0"
+	assert_contains "$OUT" 'LIVE xhard-lv score=1.00 post=ok turns=3 cost=$0.25' "per-case line"
+	assert_contains "$OUT" 'case-selfcheck --live: 1/1 runs passed, mean score 1.00, cost $0.25' "final line"
+	assert_eq "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); r=d["runs"][0]; print(d["passed"], d["total"], r["case"], r["run"], r["score"], r["post"], r["timed_out"])' "$log/out/results.json")" "1 1 xhard-lv 1 1.0 True False" "results.json shape"
+	assert_eq "$(cat "$log/mds")" "1" "CLAUDE.md loading disabled for the agent"
+	assert_eq "$(cat "$log/flow-path")" "$(cd "$SCAN_DIR/.." && pwd -P)/bin/flow" "PATH puts this plugin's bin first"
+	assert_contains "$(cat "$log/agent-args")" "--permission-mode dontAsk --allowedTools Read Bash --max-turns 5 --output-format stream-json" "agent argv"
+	assert_contains "$(cat "$log/judge-args")" "--max-turns 1 --output-format json" "judge argv"
+	if [ -f "$log/out/xhard-lv/run-1/trace.jsonl" ]; then _pass "trace kept"; else _fail "trace kept" "missing"; fi
+	if [ -d "$log/out/xhard-lv/run-1/tree" ]; then _fail "tree deleted without --keep" "still there"; else _pass "tree deleted without --keep"; fi
+	rm -rf "$root" "$log"
+}
+
+t_case_selfcheck_live_failures_reported() {
+	_csc_no_yaml t_case_selfcheck_live_failures_reported && return
+	local root log
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-lf '  - name: no-router
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: not_contains
+  - name: bash-once
+    type: tool_used
+    tool: Bash
+    min: 0
+    max: 1
+  - name: judged
+    type: llm
+    criteria: "PASS if done"'
+	_csc_live "$root" "$log" xhard-lf STUB_JUDGE=FAIL
+	assert_rc 1 "failed graders -> exit 1"
+	assert_contains "$OUT" "LIVE xhard-lf score=0.25 post=ok" "score counts weights"
+	assert_contains "$OUT" "  - no-router: trace not_contains /flow next/" "regex failure line"
+	assert_contains "$OUT" "  - bash-once: Bash used 2 times (min 0, max 1)" "tool_used failure line"
+	assert_contains "$OUT" "  - judged: FAIL: nope" "judge sentence"
+	assert_contains "$OUT" "0/1 runs passed" "final line counts failure"
+	rm -rf "$root" "$log"
+}
+
+t_case_selfcheck_live_timeout_kills() {
+	_csc_no_yaml t_case_selfcheck_live_timeout_kills && return
+	local root log
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-lt '' 2
+	_csc_live "$root" "$log" xhard-lt STUB_SLEEP=30
+	assert_rc 1 "timed-out run exits 1"
+	assert_contains "$OUT" "[timed out]" "hang flagged on the line"
+	assert_contains "$OUT" "  - file-ok:" "graders still score a timed-out run"
+	assert_eq "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["runs"][0]["timed_out"])' "$log/out/results.json")" "True" "results.json records timed_out"
+	rm -rf "$root" "$log"
+}
+
+t_case_selfcheck_live_ledger_line() {
+	_csc_no_yaml t_case_selfcheck_live_ledger_line && return
+	local root log
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-ll ''
+	_csc_live "$root" "$log" xhard-ll
+	assert_rc 0 "run without --ledger passes"
+	if [ -e "$log/ledger.jsonl" ]; then _fail "no ledger without --ledger" "written"; else _pass "no ledger without --ledger"; fi
+	run_cmd env CASE_LIVE_CLAUDE="$CSC_FIX/_live/claude" STUB_LOG="$log" STUB_TRACE="$CSC_FIX/_live/trace.jsonl" \
+		CASE_DIR="$root/xhard-ll" "$CSC" --live --ledger --root "$root" --out "$log/out2" --ledger-path "$log/ledger.jsonl" xhard-ll
+	assert_rc 0 "ledger run passes"
+	assert_eq "$(wc -l <"$log/ledger.jsonl" | tr -d ' ')" "1" "exactly one ledger line"
+	assert_eq "$(python3 -c '
+import json, sys
+d = json.loads(open(sys.argv[1]).readline())
+print(list(d), d["model"], d["judgeModel"], d["tags"], d["meanDelta"], d["partial"], d["reason"], len(d["sha"]))' "$log/ledger.jsonl")" \
+		"['ts', 'sha', 'model', 'judgeModel', 'tags', 'meanDelta', 'costUsd', 'partial', 'reason'] claude-sonnet-5 claude-haiku-4-5 {'xhard': {'score': 1.0, 'delta': 0, 'cases': 1, 'post': {'pass': 1, 'total': 1}}} 0 False live runner (outside the eval sandbox) 40" "ledger line shape"
+	rm -rf "$root" "$log"
+}

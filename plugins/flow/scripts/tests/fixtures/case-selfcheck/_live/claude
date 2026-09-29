@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Stub `claude` for case-selfcheck --live tests. No network, no spend.
+# STUB_LOG: dir to record observations into. STUB_TRACE: canned stream-json file.
+# STUB_JUDGE: PASS|FAIL. STUB_SLEEP: seconds to hang. CASE_DIR: case whose solution.sh to run.
+case " $* " in
+*" --output-format json "*)
+	printf '%s\n' "$*" >>"$STUB_LOG/judge-args"
+	if [ "${STUB_JUDGE:-PASS}" = PASS ]; then
+		printf '{"result":"PASS: ok","total_cost_usd":0.001}\n'
+	else
+		printf '{"result":"FAIL: nope","total_cost_usd":0.001}\n'
+	fi
+	exit 0
+	;;
+esac
+command -v flow >"$STUB_LOG/flow-path"
+printf '%s' "${CLAUDE_CODE_DISABLE_CLAUDE_MDS:-unset}" >"$STUB_LOG/mds"
+printf '%s\n' "$*" >"$STUB_LOG/agent-args"
+if [ -n "${STUB_SLEEP:-}" ]; then sleep "$STUB_SLEEP"; fi
+cat "$STUB_TRACE"
+if [ -n "${CASE_DIR:-}" ] && [ -x "$CASE_DIR/solution.sh" ]; then bash "$CASE_DIR/solution.sh"; fi

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """case-selfcheck — prove an xhard eval case can be passed and that its
 untouched scaffold fails it. See evals/README.md, "Self-check"."""
+import concurrent.futures
 import glob
+import json
 import os
 import re
 import shutil
@@ -9,6 +11,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 try:
     import yaml
@@ -19,15 +22,20 @@ except ImportError:
 PLUGIN = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
+def read_contract(expr, what):
+    """Words printed by `expr` (a JS expression over contract.js as `c`), or None (reason printed)."""
+    rc, out = run(["node", "-e", "const c=require(process.argv[1]);console.log(%s)" % expr,
+                   os.path.join(PLUGIN, "bin", "lib", "eval", "contract.js")], None, {}, 30)
+    words = out.split() if rc == 0 else []
+    if not words:
+        print("case-selfcheck: could not read %s via node (exit %d): %s" % (what, rc, last_line(out)))
+        return None
+    return words
+
+
 def load_tags():
     """TAGS from contract.js, or None (with a reason printed) on any failure."""
-    rc, out = run(["node", "-e", "console.log(require(process.argv[1]).TAGS.join(' '))",
-                   os.path.join(PLUGIN, "bin", "lib", "eval", "contract.js")], None, {}, 30)
-    tags = out.split() if rc == 0 else []
-    if not tags:
-        print("case-selfcheck: could not read TAGS via node (exit %d): %s" % (rc, last_line(out)))
-        return None
-    return tags
+    return read_contract("c.TAGS.join(' ')", "TAGS")
 
 
 def clean_env():
@@ -114,17 +122,24 @@ def base_env(d):
             "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CEILING_DIRECTORIES": d}
 
 
-def scaffold(case_dir, d, tree):
-    rc, out = run(["bash", os.path.join(case_dir, "scaffold.sh")], tree, base_env(d), 120)
+def live_env(d):
+    """base_env with the real HOME kept (auth) for --live runs."""
+    env = base_env(d)
+    del env["HOME"]
+    return env
+
+
+def scaffold(case_dir, d, tree, env=None):
+    rc, out = run(["bash", os.path.join(case_dir, "scaffold.sh")], tree, env or base_env(d), 120)
     if rc != 0:
         return "scaffold exited %d: %s" % (rc, last_line(out))
     return None
 
 
-def postcheck(case_dir, name, d, tree):
-    env = base_env(d)
-    env.update({"EVAL_CASE": name, "EVAL_RUN": "selfcheck",
-                "EVAL_TRACE": os.path.join(d, "trace"), "EVAL_PLUGIN_ROOT": PLUGIN})
+def postcheck(case_dir, name, d, tree, env=None, run_id="selfcheck", trace=None):
+    env = dict(env or base_env(d))
+    env.update({"EVAL_CASE": name, "EVAL_RUN": run_id,
+                "EVAL_TRACE": trace or os.path.join(d, "trace"), "EVAL_PLUGIN_ROOT": PLUGIN})
     return run(["bash", os.path.join(case_dir, "postcheck.sh")], tree, env, 120)
 
 
@@ -240,14 +255,306 @@ def check_case(case_dir, name, tags_ok, keep_list):
                   % (name, pristine_fails, len(file_graders), skipped, extra))
 
 
+# ---------------------------------------------------------------- --live ----
+
+def claude_bin():
+    return os.environ.get("CASE_LIVE_CLAUDE", "claude")
+
+
+def trace_events(path):
+    events = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                try:
+                    ev = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(ev, dict):
+                    events.append(ev)
+    except OSError:
+        pass
+    return events
+
+
+def read_text(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+def result_event(events):
+    res = [e for e in events if e.get("type") == "result"]
+    return res[-1] if res else {}
+
+
+def last_assistant_text(events):
+    for ev in reversed(events):
+        if ev.get("type") != "assistant":
+            continue
+        blocks = (ev.get("message") or {}).get("content") or []
+        texts = [b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"]
+        if texts:
+            return "\n".join(texts)
+    return ""
+
+
+def run_agent(case, tree, trace_path, stderr_path, model):
+    """claude -p in the tree, own process group, wall-clock capped. Returns timed_out."""
+    ex = case.get("execution") or {}
+    cmd = [claude_bin(), "-p", ex["prompt"], "--plugin-dir", PLUGIN]
+    extras = os.path.join(os.path.dirname(PLUGIN), "flow-extras")
+    if os.path.isdir(extras):
+        cmd += ["--plugin-dir", extras]
+    cmd += ["--setting-sources", "project", "--strict-mcp-config", "--model", model,
+            "--permission-mode", "dontAsk"]
+    tools = ex.get("allowed_tools") or []
+    if tools:
+        cmd += ["--allowedTools"] + [str(t) for t in tools]
+    cmd += ["--max-turns", str(ex.get("max_turns", 10)), "--output-format", "stream-json",
+            "--verbose", "--no-session-persistence"]
+    env = dict(os.environ)
+    env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1"
+    env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1"
+    env["PATH"] = os.path.join(PLUGIN, "bin") + os.pathsep + env.get("PATH", "")
+    limit = int(ex.get("timeout_seconds", 300))
+    timed_out = False
+    with open(trace_path, "w") as out, open(stderr_path, "w") as err:
+        p = subprocess.Popen(cmd, cwd=tree, env=env, stdin=subprocess.DEVNULL, stdout=out,
+                             stderr=err, start_new_session=True)
+        try:
+            p.wait(timeout=limit)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            p.wait()
+    return timed_out
+
+
+def judge(g, focus, model):
+    """(passed, reason, cost) from one headless judge call."""
+    prompt = ("%s\n\n```\n%s\n```\n\nReply with exactly one line: PASS or FAIL, then a colon "
+              "and one sentence why." % (g.get("criteria", ""), focus))
+    cwd = tempfile.mkdtemp(prefix="case-live-judge.")
+    try:
+        env = dict(os.environ)
+        env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1"
+        cmd = [claude_bin(), "-p", prompt, "--model", model, "--setting-sources", "project",
+               "--strict-mcp-config", "--permission-mode", "dontAsk", "--no-session-persistence",
+               "--max-turns", "1", "--output-format", "json"]
+        pr = subprocess.run(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True,
+                            text=True, errors="replace", timeout=300)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, "judge call failed: %s" % e, 0.0
+    finally:
+        shutil.rmtree(cwd, ignore_errors=True)
+    try:
+        data = json.loads(pr.stdout)
+        reply = str(data.get("result", "")).strip()
+        cost = float(data.get("total_cost_usd") or 0)
+    except (ValueError, AttributeError, TypeError):
+        return False, "judge reply unparseable: %s" % last_line(pr.stdout + pr.stderr), 0.0
+    words = reply.split()
+    first = re.sub(r"\W+$", "", words[0]).upper() if words else ""
+    return first == "PASS", reply or "(empty reply)", cost
+
+
+def grade_live(g, tree, trace_path, events, judge_model):
+    """(passed, why, judge_cost) for any grader in a live run."""
+    if is_file_grader(g):
+        return eval_grader(g, tree), "%s %s" % (g.get("type"), g.get("pattern", g.get("path", ""))), 0.0
+    t = g.get("type")
+    if t == "regex":
+        text = read_text(trace_path) or ""
+        flags = 0
+        for ch in str(g.get("flags", "")):
+            flags |= {"i": re.I, "m": re.M, "s": re.S}.get(ch, 0)
+        found = re.search(g.get("pattern", ""), text, flags) is not None
+        ok = found if g.get("match", "contains") == "contains" else not found
+        return ok, "trace %s /%s/" % (g.get("match", "contains"), g.get("pattern", "")), 0.0
+    if t == "tool_used":
+        pat = g.get("input_match")
+        count = 0
+        for ev in events:
+            if ev.get("type") != "assistant":
+                continue
+            for b in (ev.get("message") or {}).get("content") or []:
+                if not (isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == g.get("tool")):
+                    continue
+                if pat is None or re.search(str(pat), json.dumps(b.get("input"))):
+                    count += 1
+        lo, hi = int(g.get("min", 1)), g.get("max")
+        ok = lo <= count and (hi is None or count <= int(hi))
+        return ok, "%s used %d times (min %d, max %s)" % (
+            g.get("tool"), count, lo, hi if hi is not None else "-"), 0.0
+    if t == "llm":
+        focus = g.get("focus") or {}
+        if isinstance(focus, dict) and focus.get("source") == "file":
+            text = read_text(os.path.join(tree, focus.get("path", "")))
+            text = "(file missing)" if text is None else text
+        else:
+            text = result_event(events).get("result") or last_assistant_text(events)
+        return judge(g, text, judge_model)
+    return False, "unsupported grader type %r" % t, 0.0
+
+
+def live_run(case_dir, case, name, k, out_dir, opts):
+    run_dir = os.path.join(out_dir, name, "run-%d" % k)
+    tree = os.path.join(run_dir, "tree")
+    os.makedirs(tree)
+    trace_path = os.path.join(run_dir, "trace.jsonl")
+    rec = {"case": name, "run": k, "score": 0.0, "post": False, "turns": 0, "cost": 0.0,
+           "secs": 0, "timed_out": False, "passed": False, "failed": [], "trace": trace_path}
+    t0 = time.time()
+    env = live_env(run_dir)
+    err = scaffold(case_dir, run_dir, tree, env)
+    if err:
+        rec["failed"].append("scaffold: %s" % err)
+        rec["secs"] = int(time.time() - t0)
+        return rec
+    rec["timed_out"] = run_agent(case, tree, trace_path, os.path.join(run_dir, "stderr.log"),
+                                 opts["model"])
+    events = trace_events(trace_path)
+    res = result_event(events)
+    rec["turns"] = res.get("num_turns") or sum(1 for e in events if e.get("type") == "assistant")
+    rec["cost"] = float(res.get("total_cost_usd") or 0)
+    total = got = 0.0
+    for g in case["graders"]:
+        w = float(g.get("weight", 1))
+        ok, why, jcost = grade_live(g, tree, trace_path, events, opts["judge_model"])
+        rec["cost"] += jcost
+        total += w
+        if ok:
+            got += w
+        else:
+            rec["failed"].append("%s: %s" % (g.get("name", g.get("type")), why))
+    rec["score"] = got / total if total else 0.0
+    rec["post"] = True
+    if os.path.exists(os.path.join(case_dir, "postcheck.sh")):
+        rc, pout = postcheck(case_dir, name, run_dir, tree, env, "run-%d" % k, trace_path)
+        rec["post"] = rc == 0
+        if rc != 0:
+            rec["failed"].append("postcheck: %s" % tail(pout, 5))
+    rec["secs"] = int(time.time() - t0)
+    rec["passed"] = rec["score"] == 1 and rec["post"]
+    if not opts["keep"]:
+        shutil.rmtree(tree, ignore_errors=True)
+    return rec
+
+
+def live_line(rec):
+    line = "LIVE %s score=%.2f post=%s turns=%s cost=$%.2f %ds%s" % (
+        rec["case"], rec["score"], "ok" if rec["post"] else "FAIL", rec["turns"], rec["cost"],
+        rec["secs"], " [timed out]" if rec["timed_out"] else "")
+    return "\n".join([line] + ["  - %s" % f.replace("\n", "\n    ") for f in rec["failed"]])
+
+
+def write_ledger(path, recs, opts):
+    rc, sha = run(["git", "rev-parse", "HEAD"], PLUGIN, {}, 30)
+    now = time.time()
+    ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now)) + ".%03dZ" % int(now % 1 * 1000)
+    mean = sum(r["score"] for r in recs) / len(recs)
+    line = {"ts": ts, "sha": sha.strip() if rc == 0 else "", "model": opts["model"],
+            "judgeModel": opts["judge_model"],
+            "tags": {"xhard": {"score": mean, "delta": 0, "cases": len({r["case"] for r in recs}),
+                               "post": {"pass": sum(1 for r in recs if r["post"]), "total": len(recs)}}},
+            "meanDelta": 0, "costUsd": sum(r["cost"] for r in recs),
+            "partial": any(r["timed_out"] for r in recs),
+            "reason": "live runner (outside the eval sandbox)"}
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(line, separators=(",", ":")) + "\n")
+
+
+def live_main(root, names, opts):
+    tags_ok = load_tags()
+    defaults = read_contract(
+        "[c.DEFAULT_MODELS.model,c.DEFAULT_MODELS.judgeModel].join(' ')", "DEFAULT_MODELS")
+    if tags_ok is None or defaults is None:
+        return 2
+    opts["model"] = opts["model"] or defaults[0]
+    opts["judge_model"] = opts["judge_model"] or defaults[1]
+    if not names:
+        try:
+            names = sorted(n for n in os.listdir(root)
+                           if n.startswith("xhard-") and os.path.isdir(os.path.join(root, n)))
+        except OSError as e:
+            print("case-selfcheck: cannot read root %s: %s" % (root, e))
+            return 2
+    out_dir = opts["out"] or os.path.join(tempfile.gettempdir(),
+                                          "case-live-%s" % time.strftime("%Y%m%d-%H%M%S"))
+    out_dir = os.path.abspath(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
+    print("case-selfcheck --live: out %s" % out_dir)
+    cases = []
+    bad = 0
+    for name in names:
+        case_dir = os.path.join(root, name)
+        if not os.path.isdir(case_dir):
+            print("FAIL %s: no such case dir" % name)
+            bad += 1
+            continue
+        case, err = check_shape(case_dir, name, tags_ok)
+        if err:
+            print("FAIL %s: %s" % (name, err))
+            bad += 1
+            continue
+        cases.append((case_dir, case, name))
+    if bad:
+        print("case-selfcheck --live: shape check failed for %d case(s), nothing run" % bad)
+        return 1
+    jobs = [(cd, c, n, k) for cd, c, n in cases for k in range(1, opts["runs"] + 1)]
+    recs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=opts["jobs"]) as pool:
+        futs = [pool.submit(live_run, cd, c, n, k, out_dir, opts) for cd, c, n, k in jobs]
+        for (cd, c, n, k), f in zip(jobs, futs):
+            try:
+                rec = f.result()
+            except Exception as e:
+                rec = {"case": n, "run": k, "score": 0.0, "post": False, "turns": 0, "cost": 0.0,
+                       "secs": 0, "timed_out": False, "passed": False,
+                       "failed": ["internal error %s: %s" % (type(e).__name__, e)]}
+            recs.append(rec)
+            print(live_line(rec))
+    npass = sum(1 for r in recs if r["passed"])
+    mean = sum(r["score"] for r in recs) / len(recs) if recs else 0.0
+    cost = sum(r["cost"] for r in recs)
+    results = os.path.join(out_dir, "results.json")
+    with open(results, "w", encoding="utf-8") as fh:
+        json.dump({"model": opts["model"], "judgeModel": opts["judge_model"], "runs": recs,
+                   "passed": npass, "total": len(recs), "meanScore": mean, "costUsd": cost}, fh, indent=2)
+    if opts["ledger"] and recs:
+        write_ledger(opts["ledger_path"], recs, opts)
+    print("case-selfcheck --live: %d/%d runs passed, mean score %.2f, cost $%.2f, results %s" % (
+        npass, len(recs), mean, cost, results))
+    return 0 if recs and npass == len(recs) else 1
+
+
 def main(argv):
     root = os.path.join(PLUGIN, "evals")
     keep = False
     names = []
+    live = False
+    opts = {"model": None, "judge_model": None, "runs": 1, "jobs": 1, "out": None, "keep": False,
+            "ledger": False, "ledger_path": os.path.join(PLUGIN, "evals", "ledger.jsonl")}
+    valued = {"--model": "model", "--judge-model": "judge_model", "--runs": "runs", "-j": "jobs",
+              "--out": "out", "--ledger-path": "ledger_path"}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a == "--root" and i + 1 < len(argv):
+        if a in valued and i + 1 < len(argv):
+            opts[valued[a]] = argv[i + 1]
+            i += 1
+        elif a == "--live":
+            live = True
+        elif a == "--ledger":
+            opts["ledger"] = True
+        elif a == "--root" and i + 1 < len(argv):
             root = os.path.abspath(argv[i + 1])
             i += 1
         elif a == "--keep":
@@ -258,6 +565,15 @@ def main(argv):
         else:
             names.append(a)
         i += 1
+    if live:
+        try:
+            opts["runs"] = max(1, int(opts["runs"]))
+            opts["jobs"] = min(8, max(1, int(opts["jobs"])))
+        except ValueError:
+            print("case-selfcheck: --runs and -j take integers")
+            return 2
+        opts["keep"] = keep
+        return live_main(root, names, opts)
     if not names:
         try:
             names = sorted(n for n in os.listdir(root)

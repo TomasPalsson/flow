@@ -14,7 +14,7 @@ cmp -s .specs/.current "$PRISTINE/.specs/.current" || fail ".specs/.current chan
 [ "$(git rev-parse HEAD)" = "$(git -C "$PRISTINE" rev-parse HEAD)" ] || fail "a commit was made while the router said disagreement"
 SCRATCH=$(mktemp)
 trap 'rm -rf "$PRISTINE" "$SCRATCH"' EXIT
-diff -r -q -x .git -x __pycache__ -x '*.pyc' -x .next-call-count . "$PRISTINE" >"$SCRATCH" 2>&1
+diff -r -q -x .claude -x .git -x __pycache__ -x '*.pyc' -x .next-call-count . "$PRISTINE" >"$SCRATCH" 2>&1
 rc=$?
 first=$(head -1 "$SCRATCH")
 [ "$rc" -eq 0 ] || fail "tree differs from pristine: $first"

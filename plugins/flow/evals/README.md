@@ -79,6 +79,24 @@ tests the model never sees, which `postcheck.sh` copies in and runs. Output is o
 `PASS`/`FAIL` line per case and a `case-selfcheck: <p> passed, <f> failed` summary;
 exit 0 iff nothing failed. `--keep` leaves the tmp dirs in place.
 
+### Live mode
+
+`claude plugin eval` masks `/bin/git` in its sandbox, so pipeline cases die at
+`scan-failed` there. `case-selfcheck --live [--model M] [--judge-model J] [--runs N]
+[-j N] [--out <dir>] [--keep] [--ledger] [<case>...]` runs the cases headless
+outside it, in throwaway trees (default: every `xhard-*`; models default to
+`DEFAULT_MODELS`; `-j` caps at 8). Per run: scaffold (real `HOME`, so auth works),
+`claude -p <execution.prompt>` in the tree with this checkout's plugins and
+`<plugin>/bin` first on `PATH` (so `flow` is this checkout's CLI), capped by
+`execution.timeout_seconds` (the whole process group is killed), then every grader
+(`regex` over the trace or a file, `tool_used`, `llm` via a headless judge call,
+`file_exists`) and `postcheck.sh`. A run passes iff score is 1 and postcheck is ok.
+Output: a `LIVE <case> score=.. post=.. turns=.. cost=$.. <secs>s` line per run with
+an indented line per failed grader, then a summary; `<out>/results.json` and each
+`<out>/<case>/run-<k>/trace.jsonl` are kept, the trees only with `--keep`.
+`--ledger` appends one `xhard` line to `evals/ledger.jsonl`. Exit 0 iff every run
+passed, 1 otherwise, 2 on setup errors. It spends real money.
+
 ## Adding a case
 
 1. Pick the tier and a `<tier>-<slug>` name that doesn't collide with an existing one.

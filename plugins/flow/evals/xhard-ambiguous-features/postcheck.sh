@@ -14,7 +14,7 @@ trap 'rm -rf "$PRISTINE"' EXIT
 
 [ "$(git rev-parse HEAD)" = "$(git -C "$PRISTINE" rev-parse HEAD)" ] || fail "a commit was made while the router said ambiguous"
 [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || fail "the branch changed"
-diff -r -q -x .git -x __pycache__ -x '*.pyc' -x .next-call-count . "$PRISTINE" >"$PRISTINE.diff" 2>&1
+diff -r -q -x .claude -x .git -x __pycache__ -x '*.pyc' -x .next-call-count . "$PRISTINE" >"$PRISTINE.diff" 2>&1
 rc=$?
 first=$(head -1 "$PRISTINE.diff")
 rm -f "$PRISTINE.diff"

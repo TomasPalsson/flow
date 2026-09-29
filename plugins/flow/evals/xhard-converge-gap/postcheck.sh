@@ -74,7 +74,7 @@ PY
 
 # Approved: untouched is covered above; the code must not be touched unless T004 was built.
 if [ "$GAP_AT_HEAD" -eq 0 ]; then
-	diff -r -q -x __pycache__ -x .specs -x .git "$TMP/pristine" . >/dev/null 2>&1 ||
+	diff -r -q -x .claude -x __pycache__ -x .specs -x .git "$TMP/pristine" . >/dev/null 2>&1 ||
 		fail "source or tests changed without the gap being implemented (a silent fix outside the plan)"
 fi
 
