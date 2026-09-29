@@ -330,6 +330,7 @@ T_FILES=()
 T_VERIFY=()
 T_AFTER=()
 T_DONE=()
+T_BYUSER=()
 T_DROPPED=()
 T_PHASE=()
 T_LINE=()
@@ -503,6 +504,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   f_verify=""
   f_after=""
   f_done=""
+  f_byuser=0
   f_dropped=""
   has_verify=0
   seg_rest="$rest"
@@ -534,7 +536,11 @@ while IFS= read -r raw || [ -n "$raw" ]; do
       after:*) trim_var "${seg#after:}"; f_after=$R_TRIM ;;
       # `flow tick --by <who>` writes "done: <sha> by <who>", and a CHK can
       # only be ticked that way — so the sha is the first word, never the tail.
-      done:*) trim_var "${seg#done:}"; f_done=${R_TRIM%% by *} ;;
+      done:*)
+        trim_var "${seg#done:}"
+        f_done=${R_TRIM%% by *}
+        case "$R_TRIM" in *' by user') f_byuser=1 ;; esac
+        ;;
       dropped:*) trim_var "${seg#dropped:}"; f_dropped=$R_TRIM ;;
       *)
         if seg_key "$seg"; then
@@ -562,6 +568,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   T_VERIFY[$N]=$f_verify
   T_AFTER[$N]=$f_after
   T_DONE[$N]=$f_done
+  T_BYUSER[$N]=$f_byuser
   T_DROPPED[$N]=$f_dropped
   T_PHASE[$N]=$PHASE
   T_LINE[$N]=$LN
@@ -764,7 +771,20 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
           add_err "$ln" "$id" "done-sha-before-base" "TASKS.md claims $id done at $sha, which is at or before Base: $H_BASE" "uncheck $id — nothing was committed for it since Base"
         else
           hit=0
+          # a by-user T whose files: are all untracked at HEAD lives outside
+          # this repo (stealth store, another repo) — nothing here to join.
+          ext=0
+          if [ "${T_BYUSER[$i]}" = 1 ] && [ "${id#T}" != "$id" ]; then
+            ext=1
+            for p in ${T_FILES[$i]//,/ }; do
+              trim_var "$p"
+              [ -z "$R_TRIM" ] && continue
+              if [ -n "$(git -C "$TOPLEVEL" ls-tree -r --name-only HEAD -- "$R_TRIM" 2>/dev/null)" ]; then ext=0; break; fi
+            done
+          fi
+          [ "$ext" -eq 1 ] && hit=1
           for p in ${T_FILES[$i]//,/ }; do
+            [ "$hit" -eq 1 ] && break
             trim_var "$p"
             p=$R_TRIM
             [ -z "$p" ] && continue
