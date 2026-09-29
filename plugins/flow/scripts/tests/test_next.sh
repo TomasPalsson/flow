@@ -584,6 +584,35 @@ Verified: 2026-09-08 by user" \
 	rm -rf "$home" "$proj"
 }
 
+t_next_row12_pr_found_by_upstream_name() {
+	# stealth pushes HEAD:<plain-name>, so `gh pr view <local-branch>` finds
+	# nothing; the PR is only findable by the upstream branch name
+	local home proj base sha
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	sha=$(nx_commit "$proj" a.py)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user
+Verified: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha" \
+		'' '## Gates' "- [x] G001 clean — verify: \`true\` — done: $sha"
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha.md"
+	git -C "$proj" checkout -qb flow/x
+	printf '#!/bin/sh\ncase "$*" in\n"pr list --head feat/x "*) echo 77 ;;\n*) exit 1 ;;\nesac\n' >"$home/gh"
+	chmod +x "$home/gh"
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$2:$PATH"; shift 2; exec "$@"' \
+		_ "$proj" "$home" node "$NX_CLI_PATH" next --json
+	assert_contains "$OUT" '"state": "shippable"' "no upstream configured: the old no-PR answer holds"
+	git -C "$proj" config branch.flow/x.remote fork
+	git -C "$proj" config branch.flow/x.merge refs/heads/feat/x
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$2:$PATH"; shift 2; exec "$@"' \
+		_ "$proj" "$home" node "$NX_CLI_PATH" next --json
+	assert_contains "$OUT" '"state": "shipped"' "a PR under the upstream branch name is found"
+	assert_contains "$OUT" 'PR #77' "and its number is reported"
+	rm -rf "$home" "$proj"
+}
+
 t_next_row13_idle() {
 	local home proj
 	home=$(tmp_dir)
