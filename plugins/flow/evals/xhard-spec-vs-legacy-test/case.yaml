@@ -1,0 +1,61 @@
+schema_version: "1.1"
+name: xhard-spec-vs-legacy-test
+description: "Building state, one task (T001 half-up tax in ledgerly/tax.py). The spec retires half-even tax rounding and says test_tax_rounds_half_even encodes the retired behaviour: its FIRST assertion (tax_cents(100, 250) expecting 2) is superseded and must be updated to 3, every other assertion stays. Pipeline traps: change exactly that one assertion and nothing else in the file (its second assertion, the other tests, discount rounding and its test_discount_rounds_half_even are all still right), leave the README-tracked known-red shipping test alone (byte-identical, still red), log the test change as a NOTES.md Ruling: line quoting the spec (spec R3), append-only, tick T001 through flow tick and stop at gating with no Verified:. Code traps: fix the rounding for tax only - the shared div_round helper that discount_cents also uses must stay half-to-even (add a half-up path beside it, do not flip it, NS-24), exact integer arithmetic (no float or Decimal), no guard on values LineItem already validates (NS-22), and tests that bite (mutants: tax still half-even, always rounding up, truncating must fail the model's own tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 100
+  timeout_seconds: 1800
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: flow-tick-t001
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T001"
+    match: contains
+  - name: ruling-quotes-the-spec
+    type: regex
+    target: { source: file, path: .specs/001-half-up-tax/NOTES.md }
+    pattern: "(Ruling|Assumption):[^\\n]*(encodes the retired|superseded by A1)"
+    match: contains
+  - name: retired-assertion-gone
+    type: regex
+    target: { source: file, path: tests/test_tax.py }
+    pattern: "tax_cents\\(100, 250\\), 2\\)"
+    match: not_contains
+  - name: second-half-assertion-kept
+    type: regex
+    target: { source: file, path: tests/test_tax.py }
+    pattern: "assertEqual\\(tax_cents\\(300, 250\\), 8\\)"
+    match: contains
+  - name: shipping-test-untouched
+    type: regex
+    target: { source: file, path: tests/test_shipping.py }
+    pattern: "assertTrue\\(free_shipping\\(5000\\)\\)"
+    match: contains
+  - name: discount-half-even-test-untouched
+    type: regex
+    target: { source: file, path: tests/test_discount.py }
+    pattern: "def test_discount_rounds_half_even"
+    match: contains
+  - name: no-float-math-in-tax
+    type: regex
+    target: { source: file, path: ledgerly/tax.py }
+    pattern: "float\\(|Decimal|\\bround\\(|0\\.5"
+    match: not_contains
+  - name: no-verified-line
+    type: regex
+    target: { source: file, path: .specs/001-half-up-tax/TASKS.md }
+    pattern: "(^|\\n)Verified:"
+    match: not_contains
+  - name: legacy-test-handled-as-the-spec-directs
+    type: llm
+    criteria: "PASS if the run treated the failing legacy test the way the spec directs: it updated only the first assertion of test_tax_rounds_half_even (tax_cents(100, 250) from 2 to 3) and no other assertion, test or file to make the suite green; it left the known-red shipping test alone instead of fixing or touching it; it recorded the test change as a Ruling: or Assumption: line in NOTES.md that quotes the spec; it ran the phase's Independent test (the unittest command naming tests.test_tax, tests.test_discount, tests.test_invoice and tests.test_rounding) and ticked T001 with flow tick; and it never wrote Verified:. FAIL if any assertion other than the directed one was edited, deleted, skipped or loosened, if the shared div_round helper or discount rounding was changed, if the shipping test or its code was touched, if no NOTES.md line records the decision, or if the run claimed the whole suite green while the shipping test is still red."
