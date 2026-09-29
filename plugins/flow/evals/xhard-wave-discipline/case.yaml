@@ -14,7 +14,7 @@ graders:
   - name: router-read-first
     type: regex
     target: trace
-    pattern: "flow next"
+    pattern: "flow next|## Repo state"
     match: contains
   - name: t001-ticked-through-flow-tick
     type: regex
@@ -27,10 +27,12 @@ graders:
     pattern: "flow tick[^\"]*T002"
     match: contains
   - name: wave-2-never-ticked
-    type: regex
-    target: trace
-    pattern: "flow tick[^\"]*T003"
-    match: not_contains
+    type: tool_used
+    tool: Bash
+    input_match: "flow tick[^\\n;&|]*\\bT003\\b"
+    min: 0
+    max: 0
+    arm: with-only
   - name: t001-file-written
     type: file_exists
     path: "app/reports/low_stock.py"

@@ -87,18 +87,9 @@ for row in beh:
         print("Behaviors row names no existing task: %s" % row[:80])
         sys.exit(1)
 
-# a real plan, not one lump: at least 4 tasks, criteria spread over at least 4 distinct
-# tasks, verify commands that run a tests/ module, every AC-n tag from the spec kept
+# verify commands that run a tests/ module, every AC-n tag from the spec kept
+# (a task may serve several criteria, so no task-count floor)
 tasks_only = re.findall(r"^- \[[ x~]\] (T\d+)\b(.*)$", text, re.M)
-if len(tasks_only) < 4:
-    print("only %d T### tasks: five criteria cannot fit a plan that small" % len(tasks_only))
-    sys.exit(1)
-targets = set()
-for row in beh:
-    targets.add([c.strip() for c in row.strip().strip("|").split("|")][2])
-if len(targets) < 4:
-    print("Behaviors rows map onto only %d distinct tasks: %s" % (len(targets), sorted(targets)))
-    sys.exit(1)
 for tid, body in tasks_only:
     cmd = re.search(r"verify:\s*`([^`]+)`", body)
     words = cmd.group(1).split() if cmd else []

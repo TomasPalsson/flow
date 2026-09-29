@@ -38,13 +38,17 @@ spec, tasks = sys.argv[1], sys.argv[2]
 # only by OPENING with the negation ("No streaming ..."); a negation word buried in
 # a requirement ("streams in chunks instead of being refused") does not count
 lead = re.compile(r"^(no|not|never|without)\b", re.I)
+# a line that REJECTS streaming is also safe: a rejection word directly before the
+# streaming word ("instead of streaming", "not stream", "no chunking"), the refusal
+# named before it ("refuses ... instead of streaming"), or "out of scope" on the line
+rejects = re.compile(r"\b(instead of|rather than|not|no|never|without)\s+(?:\w+\s+){0,2}(?:stream|chunk)|\brefus\w*\b.*(?:stream|chunk)|out of scope|out-of-scope|non-?goal", re.I)
 head_ok = re.compile(r"non-?goals?|not this|out of scope|out-of-scope", re.I)
 heading = ""
 for n, line in enumerate(open(spec, encoding="utf-8"), 1):
     if line.lstrip().startswith("#"):
         heading = line
         continue
-    if re.search(r"stream|chunk", line, re.I) and not head_ok.search(heading) and not lead.match(re.sub(r"^[\s>*|-]*(?:(?:FR|NFR|D|AC)-\d+\s*\|[^|]*\|)?[\s>*|-]*", "", line)):
+    if re.search(r"stream|chunk", line, re.I) and not head_ok.search(heading) and not rejects.search(line) and not lead.match(re.sub(r"^[\s>*|-]*(?:(?:FR|NFR|D|AC)-\d+\s*\|[^|]*\|)?[\s>*|-]*", "", line)):
         print("spec.md:%d treats streaming/chunking as something to build: %s" % (n, line.strip()[:100]))
         sys.exit(1)
 for n, line in enumerate(open(tasks, encoding="utf-8"), 1):

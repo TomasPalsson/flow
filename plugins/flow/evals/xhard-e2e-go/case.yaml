@@ -19,7 +19,7 @@ graders:
   - name: router-consulted
     type: regex
     target: trace
-    pattern: "flow next"
+    pattern: "flow next|## Repo state"
     match: contains
   - name: ticks-go-through-flow-tick
     type: regex

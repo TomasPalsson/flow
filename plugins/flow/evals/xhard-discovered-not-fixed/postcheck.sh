@@ -55,7 +55,7 @@ extra=$(printf '%s\n' "$changed" | grep -v -e '^app/pricing.py$' -e '^tests/test
 # the discovery is logged, append-only
 [ -f "$NOTES" ] || { echo "NOTES.md is gone"; exit 1; }
 head -1 "$NOTES" | grep -q '^- Assumption: the tiers are inclusive' || { echo "NOTES.md's existing lines were rewritten"; exit 1; }
-grep -Eq '^Discovered:.*format_total.*(defer|fold into T[0-9]{3})' "$NOTES" ||
+grep -Eq '^(- )?Discovered:.*format_total.*(defer|fold into T[0-9]{3})' "$NOTES" ||
 	{ echo "NOTES.md has no 'Discovered: ... format_total ... — defer' line for the neighbouring bug"; exit 1; }
 
 # the tick: by flow tick, lint clean, the task's own commit

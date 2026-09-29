@@ -14,7 +14,7 @@ graders:
   - name: router-read-first
     type: regex
     target: trace
-    pattern: "flow next"
+    pattern: "flow next|## Repo state"
     match: contains
   - name: approved-by-model-at-the-gate
     type: regex

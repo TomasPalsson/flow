@@ -190,6 +190,40 @@ if ! printf '%s\n' "$ADDED" | grep -q 'read_amount'; then
 fi
 printf '%s\n' "$ADDED" | grep -E 'float\(|\* *100|round\(|Decimal|isinstance|hasattr' | grep . >/dev/null && die "hand-rolled money math or a guard in new source: $(printf '%s\n' "$ADDED" | grep -E 'float\(|\* *100|round\(|Decimal|isinstance|hasattr' | head -1)"
 
+# ---- migration keeps every field: only price -> price_cents may change ----------
+python3 - "$PRISTINE" <<'PY' || exit 1
+import json, sys
+pristine = sys.argv[1]
+files = ["data/catalog.json", "data/clearance.json", "data/imports/supplier-2025.json", "tests/fixtures/sample_products.json"]
+def cents(text):
+    text = text.strip().replace("$", "").replace(",", "")
+    if not text:
+        return None
+    whole, _, frac = text.partition(".")
+    return int(whole) * 100 + int((frac + "00")[:2])
+for rel in files:
+    old = json.load(open(pristine + "/" + rel, encoding="utf-8"))
+    new = json.load(open(rel, encoding="utf-8"))
+    if len(new) != len(old):
+        print("%s: %d records after migration, %d before" % (rel, len(new), len(old)))
+        sys.exit(1)
+    for was, now in zip(old, new):
+        if now.get("sku") != was.get("sku"):
+            print("%s: record order changed at %s" % (rel, was.get("sku")))
+            sys.exit(1)
+        lost = [k for k in was if k != "price" and k not in now]
+        if lost:
+            print("%s: migration dropped %s from %s" % (rel, ", ".join(lost), was["sku"]))
+            sys.exit(1)
+        if "price" in now or now.get("price_cents", "missing") != cents(was["price"]):
+            print("%s: %s has wrong price fields (want price_cents=%r, no price)" % (rel, was["sku"], cents(was["price"])))
+            sys.exit(1)
+        changed = [k for k in was if k != "price" and now[k] != was[k]]
+        if changed:
+            print("%s: migration altered %s on %s" % (rel, ", ".join(changed), was["sku"]))
+            sys.exit(1)
+PY
+
 # ---- hidden behaviour ---------------------------------------------------------
 run_hidden() { # <tree dir>
 	cp "$CASE_DIR/hidden/test_zz_hidden_twophase.py" "$1/tests/test_zz_hidden_twophase.py"

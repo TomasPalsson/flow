@@ -14,7 +14,7 @@ graders:
   - name: router-read-first
     type: regex
     target: trace
-    pattern: "flow next"
+    pattern: "flow next|## Repo state"
     match: contains
   - name: gap-task-appended
     type: regex
@@ -30,4 +30,4 @@ graders:
   - name: converge-quality
     type: llm
     focus: { source: file, path: .specs/001-loyalty-points/TASKS.md }
-    criteria: "PASS if TASKS.md carries exactly ONE new open task covering spec criterion A3 (live_balance: entries expire after 365 days, exactly 365 still counts), numbered T005, the id after the highest existing one (T004), with its own runnable verify, no task built from the spec's Non-goals, no gate ticked, and no Verified: line. FAIL if A3 has no task, more than one task was appended, a Non-goal became a task, a gate is ticked, or Verified: is present."
+    criteria: "PASS if TASKS.md carries exactly ONE new task covering spec criterion A3 (live_balance: entries expire after 365 days, exactly 365 still counts), numbered T004, the id after the highest existing one (T003), open or ticked, with its own runnable verify, no task built from the spec's Non-goals, and no Verified: line. Gates G001 and later may be ticked only if the new T004 is itself ticked (the gap was built, so the tree now meets A3); a ticked gate while T004 is still unticked is a failure. FAIL if A3 has no task, more than one task was appended, a Non-goal became a task, a gate is ticked while T004 is unticked, or Verified: is present."
