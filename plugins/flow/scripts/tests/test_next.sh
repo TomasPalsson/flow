@@ -599,13 +599,18 @@ Verified: 2026-09-08 by user" \
 		'' '## Gates' "- [x] G001 clean — verify: \`true\` — done: $sha"
 	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha.md"
 	git -C "$proj" checkout -qb flow/x
-	printf '#!/bin/sh\ncase "$*" in\n"pr list --head feat/x "*) echo 77 ;;\n*) exit 1 ;;\nesac\n' >"$home/gh"
+	printf '#!/bin/sh\ncase "$*" in\n"pr list --head feat/x "*someone*) echo 77 ;;\n*) exit 1 ;;\nesac\n' >"$home/gh"
 	chmod +x "$home/gh"
 	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$2:$PATH"; shift 2; exec "$@"' \
 		_ "$proj" "$home" node "$NX_CLI_PATH" next --json
 	assert_contains "$OUT" '"state": "shippable"' "no upstream configured: the old no-PR answer holds"
 	git -C "$proj" config branch.flow/x.remote fork
 	git -C "$proj" config branch.flow/x.merge refs/heads/feat/x
+	git -C "$proj" config remote.fork.url /somewhere/local/path
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$2:$PATH"; shift 2; exec "$@"' \
+		_ "$proj" "$home" node "$NX_CLI_PATH" next --json
+	assert_contains "$OUT" '"state": "shippable"' "a remote url with no parseable owner is not guessed at"
+	git -C "$proj" config remote.fork.url git@github.com:someone/repo.git
 	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export PATH="$2:$PATH"; shift 2; exec "$@"' \
 		_ "$proj" "$home" node "$NX_CLI_PATH" next --json
 	assert_contains "$OUT" '"state": "shipped"' "a PR under the upstream branch name is found"

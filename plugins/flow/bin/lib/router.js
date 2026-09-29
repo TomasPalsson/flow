@@ -353,8 +353,12 @@ function prNumber(root, branch) {
   const merge = git(root, ['config', `branch.${branch}.merge`]).out;
   const name = merge.replace(/^refs\/heads\//, '');
   if (!name || name === merge || name === branch) return null;
-  return ghNumber(['pr', 'list', '--head', name, '--author', '@me', '--state', 'all',
-    '--json', 'number', '-q', '.[0].number']);
+  const remote = git(root, ['config', `branch.${branch}.remote`]).out;
+  const url = remote ? git(root, ['config', `remote.${remote}.url`]).out : '';
+  const m = url.match(/^(?:[\w.-]+@[^:/]+:|[a-z+]+:\/\/(?:[^@/]+@)?[^/]+\/)([A-Za-z0-9-]+)\/[^/]+?(?:\.git)?\/?$/i);
+  if (!m) return null;
+  return ghNumber(['pr', 'list', '--head', name, '--state', 'all', '--json', 'number,headRepositoryOwner',
+    '-q', `[.[] | select(.headRepositoryOwner.login == "${m[1]}")][0].number`]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
