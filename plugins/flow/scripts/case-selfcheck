@@ -285,6 +285,14 @@ def read_text(path):
         return None
 
 
+def event_content(ev):
+    """An event's message content, or None. Some stream-json events carry `message`
+    as a plain string, not an object; reading `.get` off it crashed the grading of
+    three finished runs."""
+    msg = ev.get("message") if isinstance(ev, dict) else None
+    return msg.get("content") if isinstance(msg, dict) else None
+
+
 def result_event(events):
     res = [e for e in events if e.get("type") == "result"]
     return res[-1] if res else {}
@@ -294,7 +302,7 @@ def last_assistant_text(events):
     for ev in reversed(events):
         if ev.get("type") != "assistant":
             continue
-        blocks = (ev.get("message") or {}).get("content") or []
+        blocks = event_content(ev) or []
         texts = [b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"]
         if texts:
             return "\n".join(texts)
@@ -365,7 +373,7 @@ def decoded_trace(events, raw):
     for ev in events:
         if ev.get("subtype") == "hook_response":
             parts += [ev.get("stdout") or "", ev.get("output") or ""]
-        content = (ev.get("message") or {}).get("content")
+        content = event_content(ev)
         if isinstance(content, str):
             parts.append(content)
         elif isinstance(content, list):
@@ -390,7 +398,7 @@ def transcript(events, prompt=""):
     first, the end shows how it finished."""
     parts = []
     for ev in events:
-        content = (ev.get("message") or {}).get("content")
+        content = event_content(ev)
         if not isinstance(content, list):
             continue
         for b in content:
@@ -460,7 +468,7 @@ def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
         for ev in events:
             if ev.get("type") != "assistant":
                 continue
-            for b in (ev.get("message") or {}).get("content") or []:
+            for b in event_content(ev) or []:
                 if not (isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == g.get("tool")):
                     continue
                 if pat is None or re.search(str(pat), json.dumps(b.get("input"))):
@@ -498,6 +506,16 @@ def live_run(case_dir, case, name, k, out_dir, opts):
         return rec
     rec["timed_out"] = run_agent(case, tree, trace_path, os.path.join(run_dir, "stderr.log"),
                                  opts["model"])
+    grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec)
+    rec["secs"] = int(time.time() - t0)
+    if not opts["keep"]:
+        shutil.rmtree(tree, ignore_errors=True)
+    return rec
+
+
+def grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec):
+    """Grade one finished run in place (graders, then postcheck) into rec. Separate
+    from live_run so a finished run can be re-graded without paying for the agent."""
     events = trace_events(trace_path)
     res = result_event(events)
     rec["turns"] = res.get("num_turns") or sum(1 for e in events if e.get("type") == "assistant")
@@ -520,11 +538,7 @@ def live_run(case_dir, case, name, k, out_dir, opts):
         rec["post"] = rc == 0
         if rc != 0:
             rec["failed"].append("postcheck: %s" % tail(pout, 5))
-    rec["secs"] = int(time.time() - t0)
     rec["passed"] = rec["score"] == 1 and rec["post"]
-    if not opts["keep"]:
-        shutil.rmtree(tree, ignore_errors=True)
-    return rec
 
 
 def live_line(rec):
