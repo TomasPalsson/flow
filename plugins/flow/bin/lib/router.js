@@ -338,16 +338,27 @@ function passCommand(root) {
 
 // prNumber(root, branch) -> "41" | null. gh is optional: no gh, no network,
 // or any failure all mean "no PR", which routes to 11 (open one) not 12.
+// Stealth pushes HEAD:<plain-name>, often from a fork, so `pr view <local>`
+// misses; fall back to a head-name lookup under the branch's upstream name.
 function prNumber(root, branch) {
   if (!branch || branch === 'HEAD') return null;
-  const r = spawnSync('gh', ['pr', 'view', branch, '--json', 'number', '-q', '.number'], {
-    cwd: root,
-    encoding: 'utf8',
-    timeout: 15000,
-  });
-  if (r.status !== 0) return null;
-  const n = (r.stdout || '').trim();
-  return /^\d+$/.test(n) ? n : null;
+  const ghNumber = (args) => {
+    const r = spawnSync('gh', args, { cwd: root, encoding: 'utf8', timeout: 15000 });
+    if (r.status !== 0) return null;
+    const n = (r.stdout || '').trim();
+    return /^\d+$/.test(n) ? n : null;
+  };
+  const direct = ghNumber(['pr', 'view', branch, '--json', 'number', '-q', '.number']);
+  if (direct) return direct;
+  const merge = git(root, ['config', `branch.${branch}.merge`]).out;
+  const name = merge.replace(/^refs\/heads\//, '');
+  if (!name || name === merge || name === branch) return null;
+  const remote = git(root, ['config', `branch.${branch}.remote`]).out;
+  const url = remote ? git(root, ['config', `remote.${remote}.url`]).out : '';
+  const m = url.match(/^(?:[\w.-]+@[^:/]+:|[a-z+]+:\/\/(?:[^@/]+@)?[^/]+\/)([A-Za-z0-9-]+)\/[^/]+?(?:\.git)?\/?$/i);
+  if (!m) return null;
+  return ghNumber(['pr', 'list', '--head', name, '--state', 'all', '--json', 'number,headRepositoryOwner',
+    '-q', `[.[] | select(.headRepositoryOwner.login == "${m[1]}")][0].number`]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
