@@ -337,18 +337,94 @@ def run_agent(case, tree, trace_path, stderr_path, model):
     return timed_out
 
 
+JUDGE_SYSTEM = ("You are an eval grader. You judge only the material in the user's message "
+                 "against the criteria given there. You have no tools and no environment: "
+                 "never ask for more input, never comment on your own working directory.")
+
+TRANSCRIPT_CAP = 90000
+
+
+def _strings(value):
+    """Every string inside a JSON value, in order — a tool input as the model wrote it."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in _strings(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in _strings(v)]
+    return []
+
+
+def decoded_trace(events, raw):
+    """The text a `target: trace` regex searches: hook output, assistant text, tool
+    inputs, tool results and the final result, JSON-decoded — the raw JSONL escapes
+    every quote as \\" and every non-ASCII char as \\uXXXX, so a pattern holding a
+    plain `"` or `—` could never match it. The raw text is appended so a pattern
+    written against the old raw form still matches."""
+    parts = []
+    for ev in events:
+        if ev.get("subtype") == "hook_response":
+            parts += [ev.get("stdout") or "", ev.get("output") or ""]
+        content = (ev.get("message") or {}).get("content")
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for b in content:
+                if not isinstance(b, dict):
+                    continue
+                if b.get("type") == "text":
+                    parts.append(b.get("text", ""))
+                elif b.get("type") == "tool_use":
+                    parts += _strings(b.get("input"))
+                elif b.get("type") == "tool_result":
+                    parts += _strings(b.get("content"))
+        if ev.get("type") == "result":
+            parts.append(str(ev.get("result") or ""))
+    return "\n".join(p for p in parts if p) + "\n" + (raw or "")
+
+
+def transcript(events, prompt=""):
+    """The whole run as text for an llm grader with no focus: every assistant text,
+    tool call and (clipped) tool result, in order, then the final message. Over the
+    cap, the head and the tail survive — the start shows what the run armed or read
+    first, the end shows how it finished."""
+    parts = []
+    for ev in events:
+        content = (ev.get("message") or {}).get("content")
+        if not isinstance(content, list):
+            continue
+        for b in content:
+            if not isinstance(b, dict):
+                continue
+            if b.get("type") == "text" and ev.get("type") == "assistant":
+                parts.append("ASSISTANT: " + b.get("text", ""))
+            elif b.get("type") == "tool_use":
+                parts.append("TOOL %s: %s" % (b.get("name"), json.dumps(b.get("input"))[:600]))
+            elif b.get("type") == "tool_result":
+                parts.append("RESULT: " + str(b.get("content"))[:600])
+    final = result_event(events).get("result") or last_assistant_text(events)
+    body = "\n".join(parts)
+    if len(body) > TRANSCRIPT_CAP:
+        half = TRANSCRIPT_CAP // 2
+        body = body[:half] + "\n[... middle of the run clipped ...]\n" + body[-half:]
+    # The user's prompt is part of the material: a pre-approval ("treat this as go")
+    # lives there, and without it the judge calls every approved gate "invented".
+    return "USER PROMPT\n%s\n\nRUN TRANSCRIPT\n%s\n\nFINAL MESSAGE\n%s" % (prompt, body, final)
+
+
 def judge(g, focus, model):
-    """(passed, reason, cost) from one headless judge call."""
-    prompt = ("%s\n\n```\n%s\n```\n\nReply with exactly one line: PASS or FAIL, then a colon "
-              "and one sentence why." % (g.get("criteria", ""), focus))
+    """(passed, reason, cost) from one headless judge call: no tools, grader system
+    prompt, prompt on stdin (a whole-run transcript overflows one argv string)."""
+    prompt = ("CRITERIA\n%s\n\nMATERIAL\n```\n%s\n```\n\nReply with exactly one line: PASS or "
+              "FAIL, then a colon and one sentence why." % (g.get("criteria", ""), focus))
     cwd = tempfile.mkdtemp(prefix="case-live-judge.")
     try:
         env = dict(os.environ)
         env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1"
-        cmd = [claude_bin(), "-p", prompt, "--model", model, "--setting-sources", "project",
-               "--strict-mcp-config", "--permission-mode", "dontAsk", "--no-session-persistence",
-               "--max-turns", "1", "--output-format", "json"]
-        pr = subprocess.run(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True,
+        cmd = [claude_bin(), "-p", "--model", model, "--setting-sources", "project",
+               "--strict-mcp-config", "--tools", "", "--system-prompt", JUDGE_SYSTEM,
+               "--no-session-persistence", "--max-turns", "1", "--output-format", "json"]
+        pr = subprocess.run(cmd, cwd=cwd, env=env, input=prompt, capture_output=True,
                             text=True, errors="replace", timeout=300)
     except (OSError, subprocess.TimeoutExpired) as e:
         return False, "judge call failed: %s" % e, 0.0
@@ -365,13 +441,13 @@ def judge(g, focus, model):
     return first == "PASS", reply or "(empty reply)", cost
 
 
-def grade_live(g, tree, trace_path, events, judge_model):
+def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
     """(passed, why, judge_cost) for any grader in a live run."""
     if is_file_grader(g):
         return eval_grader(g, tree), "%s %s" % (g.get("type"), g.get("pattern", g.get("path", ""))), 0.0
     t = g.get("type")
     if t == "regex":
-        text = read_text(trace_path) or ""
+        text = decoded_trace(events, read_text(trace_path))
         flags = 0
         for ch in str(g.get("flags", "")):
             flags |= {"i": re.I, "m": re.M, "s": re.S}.get(ch, 0)
@@ -398,8 +474,10 @@ def grade_live(g, tree, trace_path, events, judge_model):
         if isinstance(focus, dict) and focus.get("source") == "file":
             text = read_text(os.path.join(tree, focus.get("path", "")))
             text = "(file missing)" if text is None else text
-        else:
+        elif focus in ("last_message", {"source": "last_message"}):
             text = result_event(events).get("result") or last_assistant_text(events)
+        else:
+            text = transcript(events, prompt)
         return judge(g, text, judge_model)
     return False, "unsupported grader type %r" % t, 0.0
 
@@ -427,7 +505,8 @@ def live_run(case_dir, case, name, k, out_dir, opts):
     total = got = 0.0
     for g in case["graders"]:
         w = float(g.get("weight", 1))
-        ok, why, jcost = grade_live(g, tree, trace_path, events, opts["judge_model"])
+        ok, why, jcost = grade_live(g, tree, trace_path, events, opts["judge_model"],
+                                    (case.get("execution") or {}).get("prompt", ""))
         rec["cost"] += jcost
         total += w
         if ok:

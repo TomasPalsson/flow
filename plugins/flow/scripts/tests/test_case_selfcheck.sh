@@ -176,6 +176,29 @@ t_case_selfcheck_live_failures_reported() {
 	rm -rf "$root" "$log"
 }
 
+# A trace regex holding a plain `"` or `—` must match the JSON-escaped trace, and
+# a no-focus llm judge must see the user's prompt (a pre-approval lives there).
+t_case_selfcheck_live_decoded_trace_and_prompt() {
+	_csc_no_yaml t_case_selfcheck_live_decoded_trace_and_prompt && return
+	run_cmd python3 - "$CSC" <<'PY'
+import importlib.machinery, importlib.util, json, sys
+loader = importlib.machinery.SourceFileLoader("csc", sys.argv[1])
+spec = importlib.util.spec_from_loader("csc", loader)
+csc = importlib.util.module_from_spec(spec)
+loader.exec_module(csc)
+ev = [{"type": "user", "message": {"content": [{"type": "tool_result", "content": 'Next: reply "approved" — full plan'}]}},
+      {"type": "result", "result": "done"}]
+raw = "\n".join(json.dumps(e) for e in ev)
+import re
+print("decoded", bool(re.search('Next: reply "approved" — full', csc.decoded_trace(ev, raw))))
+print("raw", bool(re.search('Next: reply "approved"', raw)))
+print("prompt", "treat this as go" in csc.transcript(ev, "treat this as go"))
+PY
+	assert_contains "$OUT" "decoded True" "decoded trace matches a plain-quote pattern"
+	assert_contains "$OUT" "raw False" "the raw JSONL alone would not"
+	assert_contains "$OUT" "prompt True" "transcript carries the user prompt"
+}
+
 t_case_selfcheck_live_refuses_out_under_claude_home() {
 	_csc_no_yaml t_case_selfcheck_live_refuses_out_under_claude_home && return
 	local root home
