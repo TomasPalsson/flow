@@ -31,6 +31,8 @@ Every finding: `{ predicate, severity, file, line, scenario, receipt }` — `sce
 - **significant** — a correctness risk or a missing test for a P0 behavior. Blocks the task.
 - **minor** — style or preference. Recorded, never blocking; at most 3 per review.
 
+Whole-branch lens: a hunk that changes pre-existing lines outside the feature (a formatter's or not) is a finding, and a gate-fix commit does not exempt it. Any changed or removed line in an existing test file is severity **fatal** and blocks the task.
+
 Reviewer `verdict` is one of `CLEAN` / `FINDINGS` / `BLOCKED` (could not read the diff).
 
 ## Confidence re-score (independent, anchored)

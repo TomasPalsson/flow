@@ -45,7 +45,7 @@ Before reporting done, run `${CLAUDE_PLUGIN_ROOT}/skills/no-slop/scripts/slop-ch
 Commit `refactor(<scope>): clean <ID> implementation`.
 
 ### Inline gates
-Run `flow check --fix` (typecheck → lint → format → test; missing gates skip). Fix the code, not the test. Never silence a type error with `as any` or `@ts-expect-error`. Commit `chore: pass inline quality gates`.
+Run `flow check --fix --since <Base>` (typecheck → lint → format → test; missing gates skip). Fix the code, not the test. Never silence a type error with `as any` or `@ts-expect-error`. Commit `chore: pass inline quality gates`.
 
 ## 4. Error recovery
 
@@ -63,4 +63,4 @@ For browser work: `${CLAUDE_PLUGIN_ROOT}/skills/shared/claude-in-chrome-referenc
 
 ## 5. Report
 
-Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. List every defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`; do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.
+Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. The report ALWAYS ends with a `Seen:` section: one line per defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`, or the literal `Seen: none`. Do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.
