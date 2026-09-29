@@ -157,6 +157,20 @@ t_eval_dry_run_prints_pinned_models() {
 	assert_not_contains "$OUT" "--plugin-dir" "t_eval_dry_run_prints_pinned_models no-plugin-dir-without-flow-extras"
 }
 
+# t_eval_dry_run_case_filter — --case narrows the tag's selection to the named
+# case, and a name no selected case carries refuses instead of spawning nothing.
+t_eval_dry_run_case_filter() {
+	local proj home
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag routing --case routing-fix-skill
+	assert_rc 0 "t_eval_dry_run_case_filter rc"
+	assert_contains "$OUT" "--case routing-fix-skill" "t_eval_dry_run_case_filter named-case"
+	assert_not_contains "$OUT" "--case quality-reuse-slugify" "t_eval_dry_run_case_filter other-case-absent"
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality --case routing-fix-skill
+	assert_rc 1 "t_eval_dry_run_case_filter unselected-name-refuses"
+}
+
 # t_eval_dry_run_loads_sibling_flow_extras — when plugins/flow-extras exists
 # beside plugins/flow in the repo, its routing skills must be loaded into the
 # same eval session via --plugin-dir (flow-extras/audit etc. need to be

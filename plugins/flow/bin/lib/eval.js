@@ -37,12 +37,13 @@ function printHelp() {
       'flow eval — run the plugin eval suite (claude plugin eval) and append a ledger line',
       '',
       'Usage:',
-      '  flow eval [--tag <tag>]... [--runs N] [--threshold N] [--max-cost-usd N]',
+      '  flow eval [--tag <tag>]... [--case <name>]... [--runs N] [--threshold N] [--max-cost-usd N]',
       '            [--ablation <arm>] [--history] [--dry-run]',
       '',
       'Options:',
       '  --tag <tag>          one of ' + TAGS.join(', ') + ' (repeatable;',
       '                       default: all tags)',
+      '  --case <name>        only this case, within the selected tags (repeatable)',
       '  --runs N             repetitions per case (default 3)',
       '  --threshold N        minimum per-case score to pass (forwarded to the CLI)',
       '  --max-cost-usd N     cost ceiling per case before that case\'s run goes partial (default 25)',
@@ -150,10 +151,11 @@ function tagRollup(toplevel, cases, selectedTags, postResults) {
 }
 
 function parseArgs(argv) {
-  const out = { tags: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, concurrency: null, history: false, dryRun: false };
+  const out = { tags: [], cases: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, concurrency: null, history: false, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tag') out.tags.push(argv[++i]);
+    else if (a === '--case') out.cases.push(argv[++i]);
     else if (a === '--runs') out.runs = argv[++i];
     else if (a === '--threshold') out.threshold = argv[++i];
     else if (a === '--max-cost-usd') out.maxCostUsd = argv[++i];
@@ -335,8 +337,14 @@ function dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env) 
   const model = readConfigKey(toplevel, CONFIG_KEYS.model) || DEFAULT_MODELS.model;
   const judgeModel = readConfigKey(toplevel, CONFIG_KEYS.judgeModel) || DEFAULT_MODELS.judgeModel;
   const allowBash = Boolean(socatPath);
-  const cases = selectCases(toplevel, EVALS_ROOT, selectedTags, allowBash);
-  const postcheckNames = postcheck.postcheckCaseNames(toplevel, EVALS_ROOT, caseTags, selectedTags);
+  const cases = selectCases(toplevel, EVALS_ROOT, selectedTags, allowBash)
+    .filter((c) => !args.cases.length || args.cases.includes(c.name));
+  const postcheckNames = postcheck.postcheckCaseNames(toplevel, EVALS_ROOT, caseTags, selectedTags)
+    .filter((n) => cases.some((c) => c.name === n));
+  if (args.cases.length && !cases.length) {
+    stderr.write(`flow eval: no selected case is named ${args.cases.join(', ')}\n`);
+    return EXIT.fail;
+  }
   const specs = cases.map((c) => {
     const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}-${c.name}.json`);
     const keepTemp = postcheck.hasExecutablePostcheck(toplevel, EVALS_ROOT, c.name);
