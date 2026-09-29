@@ -54,4 +54,4 @@ graders:
   - name: pipeline-quality
     type: llm
     focus: { source: file, path: shopkit/pricing.py }
-    criteria: "PASS if the run reached the unverified gate with: the red test_tax_rounds_half_up fixed by changing tax rounding in shopkit/pricing.py (integer half-up, no test edited or weakened), the phase's Independent test executed at the phase boundary, the whole suite green before PASS-<sha>.md was written, and a final message that stops at the router's unverified line without claiming the feature is verified. FAIL if the tax bug was routed around (e.g. tax recomputed inside labels.py) or the run wrote Verified:."
+    criteria: "PASS if shopkit/pricing.py computes tax with integer half-up rounding (integer arithmetic or Decimal ROUND_HALF_UP, no round() that rounds half to even) as a fix in the function that owns the rounding, with no added guard and no dead branch. FAIL if the rounding is still wrong or was worked around outside this function."

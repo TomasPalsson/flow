@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # T003 built, wired into the CLI registry in the registry's own style, the
 # phase's Independent test (tests.test_cli_e2e) green and untouched, the tick
 # made by flow tick, and every touched python file slop-free.
@@ -81,4 +89,4 @@ rm -f tests/_hidden_test_dedupe.py
 files=$( { git diff --name-only "$PHEAD"; git ls-files --others --exclude-standard; } | grep '\.py$' | grep -v '^tests/_hidden' | sort -u)
 [ -n "$files" ] || { echo "no python file was touched"; exit 1; }
 # shellcheck disable=SC2086
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files $files
+slop_check --all-lines --no-tools --files $files

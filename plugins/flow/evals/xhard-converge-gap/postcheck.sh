@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Gating with a plan gap: spec criterion A3 (expiry) has no task and the code lacks it.
 # The converge pass must APPEND one new task for it (append-only, next id) and no PASS
 # file may name a tree that misses A3. A run that also builds T004 is fine if it does it right.
@@ -108,7 +116,7 @@ if [ "$GAP_AT_HEAD" -eq 1 ]; then
 	sha=$(printf '%s\n' "$line" | sed -E 's/.*done: ([0-9a-f]+).*/\1/')
 	git show --name-only --format= "$sha" | grep -q '^perks/expiry.py$' || fail "T004's done: sha $sha did not touch perks/expiry.py"
 	[ -s tests/test_expiry.py ] || fail "tests/test_expiry.py is missing (the gap was built without its own test)"
-	"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files perks/expiry.py ||
+	slop_check --all-lines --no-tools --files perks/expiry.py ||
 		fail "slop-check flags perks/expiry.py"
 fi
 exit 0

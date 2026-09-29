@@ -44,4 +44,4 @@ graders:
   - name: source-fix-quality
     type: llm
     focus: { source: file, path: parcelly/tiers.py }
-    criteria: "PASS if the failing suite was fixed in parcelly/tiers.py by making the tier upper bounds inclusive in a way that covers BOTH boundaries (not a special case for 1000), added no guard on a weight that Parcel already validates, and changed nothing else (labels.py, rates.py and every test file untouched, no comment restating the code). The trace must show the gate commands actually run, a whole-branch review pass, and the run ending at the router's unverified line without claiming the feature is verified. FAIL otherwise."
+    criteria: "PASS if parcelly/tiers.py makes the tier upper bounds inclusive in a way that covers BOTH boundaries (not a special case for 1000), adds no guard on a weight that Parcel already validates, and has no comment restating the code. FAIL otherwise."

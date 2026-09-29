@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Stealth build of wave 1: both tasks built, ticked in the PRIVATE store through
 # flow tick, and nothing the target repo keeps (commit messages, comments, test
 # names, file set) knows the specs exist. Then behaviour: helper reuse, tests
@@ -198,4 +206,4 @@ break_helper count_noun pantry/support/wording.py 'def count_noun(n, noun):
 rm -f /tmp/xsb-hidden.$$
 
 # ---- slop ---------------------------------------------------------------------
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files pantry/alerts.py pantry/digest.py tests/test_alerts.py tests/test_digest.py
+slop_check --all-lines --no-tools --files pantry/alerts.py pantry/digest.py tests/test_alerts.py tests/test_digest.py

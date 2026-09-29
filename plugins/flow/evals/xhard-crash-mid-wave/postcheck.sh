@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # T001 ticked against the pre-crash commit (no rebuild commit), the tree lints
 # clean, and T002, if attempted, is built and ticked correctly.
 FLOW="$EVAL_PLUGIN_ROOT/bin/flow"
@@ -56,7 +64,7 @@ if grep -Eq '^- \[x\] T002 ' "$TASKS"; then
 	rc=$?
 	rm -f tests/_hidden_test_t002.py
 	[ "$rc" -eq 0 ] || fail "hidden behaviour tests for shelf_line failed"
-	"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files app/labels.py tests/test_labels.py || exit 1
+	slop_check --all-lines --no-tools --files app/labels.py tests/test_labels.py || exit 1
 else
 	grep -Eq '^- \[ \] T002 ' "$TASKS" || fail "T002 line was rewritten"
 	[ ! -e app/labels.py ] || fail "app/labels.py exists but T002 is not ticked"

@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Full autoApprove pipeline from drafting on a red baseline: the model approves its
 # own plan (and says so), fixes the red tax bug in the SOURCE, builds total_label on
 # the existing usd() helper with no redundant guard, ticks everything through flow
@@ -68,5 +76,5 @@ state=$(node "$FLOW" next --peek --json 2>/dev/null | python3 -c 'import json,sy
 [ "$state" = "unverified" ] || fail "router state is '$state', want unverified"
 
 tests_new=$(grep -rl "total_label" tests)
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files shopkit/labels.py shopkit/pricing.py $tests_new || fail "slop-check flags the touched files"
+slop_check --all-lines --no-tools --files shopkit/labels.py shopkit/pricing.py $tests_new || fail "slop-check flags the touched files"
 exit 0

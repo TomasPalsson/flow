@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Two-phase pipeline end to end: artifacts and gate discipline first (>= 2 phases,
 # a non-bounded route, each phase's Independent test executed per the trace), then
 # the migrated data against the pristine files, then code (reuse, no float math),
@@ -110,7 +118,31 @@ PY
 BASEC=$(git log --format=%h --grep='^base: shopdesk catalogue tools$' -n 1)
 [ -n "$BASEC" ] || die "scaffold history missing"
 [ -z "$(git diff --diff-filter=D --name-only "$BASEC")" ] || die "a file was deleted"
-git diff -U0 "$BASEC" -- 'tests/*.py' | grep -E '^-' | grep -v -E '^---' | grep . >/dev/null && die "an existing test line was removed or changed: the old tests already hold"
+# tests may change (the prompt mandates price -> price_cents in the Product constructor)
+# but none may be weakened: every base def test_* survives and no base test file loses
+# an assert line (the constructor argument is not an assert line, so the rename passes).
+for tf in $(git ls-tree -r --name-only "$BASEC" -- tests | grep -E '\.py$'); do
+	python3 - "$tf" "$BASEC" <<'PY' || exit 1
+import re, subprocess, sys
+path, base = sys.argv[1], sys.argv[2]
+old = subprocess.run(["git", "show", base + ":" + path], capture_output=True, text=True, check=True).stdout
+try:
+    new = open(path, encoding="utf-8").read()
+except OSError:
+    print("%s is gone" % path)
+    sys.exit(1)
+tests = lambda t: set(re.findall(r"^\s*def (test_\w+)", t, re.M))
+asserts = lambda t: len(re.findall(r"^\s*(?:self\.assert\w+|assert\b)", t, re.M))
+missing = tests(old) - tests(new)
+if missing:
+    print("%s lost test(s): %s" % (path, ", ".join(sorted(missing))))
+    sys.exit(1)
+if asserts(new) < asserts(old):
+    print("%s has fewer assert lines than the base (%d < %d): a test was weakened" % (path, asserts(new), asserts(old)))
+    sys.exit(1)
+PY
+done
+[ $? -eq 0 ] || exit 1
 git diff --quiet "$BASEC" -- data/archive || die "data/archive changed: it is frozen history"
 python3 -m unittest discover -s tests >/dev/null 2>&1 || die "suite red after the pipeline"
 
@@ -211,4 +243,4 @@ if printf '%s\n' "$ADDED" | grep -q 'read_amount'; then
 fi
 
 # ---- slop ---------------------------------------------------------------------
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --base "$BASEC" --head HEAD --strict --no-tools
+slop_check --base "$BASEC" --head HEAD --no-tools

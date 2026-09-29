@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Full pipeline end to end: artifacts and gate discipline first, then the code
 # (reuse, no guard, style), then mutants of the new code against the MODEL's own
 # tests, then the hidden behaviour tests. One reason line on failure.
@@ -209,4 +217,4 @@ rm -f /tmp/xhard-hidden.$$
 # ---- slop ---------------------------------------------------------------------
 TOUCHED=$( { git diff --name-only "$BASEC" -- tests shelfkit; git ls-files --others --exclude-standard tests shelfkit; } | grep '\.py$' | grep -v '__init__' | sort -u)
 # shellcheck disable=SC2086
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files $TOUCHED
+slop_check --all-lines --no-tools --files $TOUCHED

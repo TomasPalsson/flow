@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # The one task is built, its own boundary bug (inclusive end) is absent, the tests pin the
 # boundary (a mutation that re-introduces the bug turns them red), the far helper is reused,
 # T001 is ticked with its own commit, and the run stopped at the gating state.
@@ -72,6 +80,6 @@ grep -Eq '^Verified:' "$TASKS" && fail "Verified: written by the model"
 state=$(node "$FLOW" next --json --peek 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')
 [ "$state" = "gating" ] || fail "router state is '$state', want gating"
 
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files inn/desk/window.py tests/test_window.py ||
+slop_check --all-lines --no-tools --files inn/desk/window.py tests/test_window.py ||
 	fail "slop-check flags window.py or its test"
 exit 0

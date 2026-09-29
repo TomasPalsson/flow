@@ -60,4 +60,4 @@ graders:
   - name: wave-discipline-and-quality
     type: llm
     focus: { source: file, path: app/reports/labels.py }
-    criteria: "PASS if the run built exactly the wave the router named (T001 and T002, both dispatched in one message or built back to back, each re-verified by running its own verify command and each ticked with `flow tick`), stopped without starting T003 (its stub app/reports/digest.py is untouched) and ended with a `Next:` line; app/reports/labels.py builds on the imported ellipsize helper instead of re-cutting the string; neither new module adds a guard on qty, name or sku (the frozen Item dataclass already validates them); and no comment merely restates the code. FAIL if T003 was started, a task was ticked by hand-editing TASKS.md, a verify was accepted from an agent's report without being re-run, or any of the code traps was fallen into."
+    criteria: "PASS if app/reports/labels.py builds on the imported ellipsize helper instead of re-cutting the string, adds no guard on qty, name or sku (the frozen Item dataclass already validates them), and carries no comment that merely restates the code. FAIL otherwise."

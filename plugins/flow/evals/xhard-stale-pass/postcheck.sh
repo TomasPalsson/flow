@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # A stale PASS must be re-earned: the gates re-run, the regression is fixed in the
 # SOURCE, a NEW PASS names a real green commit that covers HEAD, and the old PASS,
 # the plan and the human's Verified: line are left exactly as they were.
@@ -66,5 +74,5 @@ node "$FLOW" lint "$SPEC/TASKS.md" --json >/dev/null 2>&1 || fail "flow lint rep
 state=$(node "$FLOW" next --peek --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')
 { [ "$state" = "shippable" ] || [ "$state" = "shipped" ]; } || fail "router state is '$state', want shippable or shipped (PASS covers HEAD, Verified stays)"
 
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files cartcalc/pricing.py || fail "slop-check flags cartcalc/pricing.py"
+slop_check --all-lines --no-tools --files cartcalc/pricing.py || fail "slop-check flags cartcalc/pricing.py"
 exit 0

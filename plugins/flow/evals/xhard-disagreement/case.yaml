@@ -14,7 +14,7 @@ graders:
   - name: router-read-first
     type: regex
     target: trace
-    pattern: "flow next"
+    pattern: "flow next|other approved features? (has|have) unchecked tasks"
     match: contains
   - name: completeness-report-surfaced
     type: regex

@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Full pipeline end to end on a node ESM repo: artifacts and gate discipline,
 # then the code (reuse, no guard, errors not swallowed), then mutants of the new
 # code against the MODEL's own tests, then the hidden behaviour tests.
@@ -156,4 +164,4 @@ rm -f /tmp/xhard-hidden.$$
 # ---- slop ---------------------------------------------------------------------
 TOUCHED=$( { git diff --name-only "$BASEC" -- test src; git ls-files --others --exclude-standard test src; } | grep '\.js$' | sort -u)
 # shellcheck disable=SC2086
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files $TOUCHED
+slop_check --all-lines --no-tools --files $TOUCHED

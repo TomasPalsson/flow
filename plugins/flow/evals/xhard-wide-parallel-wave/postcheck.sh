@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Wave 1 (T001-T004) built and ticked, each with a commit touching its own files; wave 2
 # (T005) untouched; every formatter goes through the shared fit_right helper (no copies);
 # hidden behaviour tests pass; nothing human or gate-shaped was written.
@@ -103,7 +111,7 @@ cp "$CASE_DIR/hidden/test_cells_hidden.py" tests/_hidden_test_cells.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests._hidden_test_cells >/dev/null 2>&1 || fail "hidden behaviour tests failed for the four formatters"
 rm -f tests/_hidden_test_cells.py
 
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files \
+slop_check --all-lines --no-tools --files \
 	cells/fmt/money.py cells/fmt/percent.py cells/fmt/duration.py cells/fmt/filesize.py ||
 	fail "slop-check flags the new formatter modules"
 exit 0

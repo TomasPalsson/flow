@@ -51,7 +51,7 @@ PY
 
 cmp -s "$DIR/spec.md" "$PRISTINE/$DIR/spec.md" || fail "spec.md changed"
 cmp -s .specs/.current "$PRISTINE/.specs/.current" || fail ".specs/.current changed"
-diff -r -q -x .claude -x .git -x TASKS.md -x __pycache__ -x '*.pyc' .specs "$PRISTINE/.specs" >"$SCRATCH/sdiff.txt" 2>&1 ||
+diff -r -q -x .claude -x .git -x .next-call-count -x TASKS.md -x __pycache__ -x '*.pyc' .specs "$PRISTINE/.specs" >"$SCRATCH/sdiff.txt" 2>&1 ||
 	fail "extra or changed file under .specs: $(head -1 "$SCRATCH/sdiff.txt")"
 diff -r -q -x .claude -x .git -x .specs -x __pycache__ -x '*.pyc' . "$PRISTINE" >"$SCRATCH/diff.txt" 2>&1 ||
 	fail "source or tests changed (build attempted?): $(head -1 "$SCRATCH/diff.txt")"

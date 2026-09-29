@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 set -u
+# slop-check with every finding fatal except NS-16 (advisory: spelling similarity only)
+slop_check() {
+	local out rc
+	out=$("$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" "$@") || rc=$?
+	[ "${rc:-0}" -eq 0 ] || { printf '%s\n' "$out"; return "$rc"; }
+	out=$(printf '%s\n' "$out" | grep -v ': NS-16 ')
+	[ -z "$out" ] || { printf '%s\n' "$out"; return 1; }
+}
 # Gating on a really red suite: the SOURCE gets fixed, no test is touched, a PASS
 # file names a real green commit, both gates are ticked by flow tick, the router
 # lands on `unverified`, and nobody wrote Verified:.
@@ -15,8 +23,7 @@ mkdir "$TMP/pristine"
 
 python3 -m unittest discover -s tests >/dev/null 2>&1 || fail "suite still red after the gating run"
 
-cmp -s tests/test_boundaries.py "$TMP/pristine/tests/test_boundaries.py" || fail "tests/test_boundaries.py was edited (fix the source, never the test)"
-python3 - "$TMP/pristine" <<'PY' || fail "a pre-existing test file lost or changed lines (append-only)"
+python3 - "$TMP/pristine" <<'PY' || fail "a pre-existing test file lost or changed lines (append-only; the boundary tests may only gain a regression test)"
 import os, sys
 pristine = sys.argv[1]
 for name in sorted(os.listdir(os.path.join(pristine, "tests"))):
@@ -56,5 +63,5 @@ node "$FLOW" lint "$SPEC/TASKS.md" --json >/dev/null 2>&1 || fail "flow lint rep
 state=$(node "$FLOW" next --peek --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')
 [ "$state" = "unverified" ] || fail "router state is '$state', want unverified"
 
-"$EVAL_PLUGIN_ROOT/skills/no-slop/scripts/slop-check" --all-lines --strict --no-tools --files parcelly/tiers.py || fail "slop-check flags parcelly/tiers.py"
+slop_check --all-lines --no-tools --files parcelly/tiers.py || fail "slop-check flags parcelly/tiers.py"
 exit 0
