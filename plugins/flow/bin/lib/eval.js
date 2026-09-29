@@ -206,13 +206,26 @@ function appendLedger(toplevel, line) {
   fs.appendFileSync(p, `${line}\n`);
 }
 
+// hasFlowExtras / claudeHasPluginDir — flow-extras rides along via
+// --plugin-dir only when the installed CLI still has that flag: 2.1.284's
+// `claude plugin eval` rejects it as an unknown option and writes no result
+// file, which failed every case of a run before its first turn.
+function hasFlowExtras(toplevel) {
+  return Boolean(toplevel) && fs.existsSync(path.join(toplevel, 'plugins', 'flow-extras'));
+}
+
+function claudeHasPluginDir(claudePath) {
+  const r = spawnSync(claudePath, ['plugin', 'eval', '--help'], { encoding: 'utf8', timeout: 30000 });
+  return /--plugin-dir\b/.test(`${r.stdout || ''}${r.stderr || ''}`);
+}
+
 // buildChildArgv(...) -> one `claude plugin eval` argv for a single case.
 // `grant` (a case's allowed_tools ∩ GATED, from selectCases) is omitted from
 // --allow-tools when empty. No `--tag` any more: each spawn picks exactly
 // one case via `--case`, so there is nothing left for a tag to narrow (also loads sibling plugins/flow-extras, if present, via --plugin-dir).
-function buildChildArgv(model, judgeModel, args, jsonPath, caseName, grant, keepTemp, toplevel) {
+function buildChildArgv(model, judgeModel, args, jsonPath, caseName, grant, keepTemp, toplevel, pluginDirOk) {
   const argv = ['plugin', 'eval', 'plugins/flow', '--trust-plugin', '--no-publish', '--scaffold'];
-  if (toplevel && fs.existsSync(path.join(toplevel, 'plugins', 'flow-extras'))) argv.push('--plugin-dir', 'plugins/flow-extras');
+  if (pluginDirOk && hasFlowExtras(toplevel)) argv.push('--plugin-dir', 'plugins/flow-extras');
   if (grant.length) argv.push('--allow-tools', ...grant);
   argv.push(
     '--model', model,
@@ -240,7 +253,8 @@ function spawnCase(claudePath, spec, toplevel) {
   } catch {
     raw = null;
   }
-  const parsed = raw !== null ? parseAggregate(raw) : { ok: false, error: 'no result file' };
+  const childErr = `${spawnResult.stderr || ''}`.trim().split('\n').slice(-3).join(' | ');
+  const parsed = raw !== null ? parseAggregate(raw) : { ok: false, error: `no result file${childErr ? `: ${childErr}` : ''}` };
   try {
     fs.unlinkSync(spec.jsonPath);
   } catch { /* best effort */ }
@@ -345,10 +359,14 @@ function dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env) 
     stderr.write(`flow eval: no selected case is named ${args.cases.join(', ')}\n`);
     return EXIT.fail;
   }
+  const pluginDirOk = hasFlowExtras(toplevel) && claudeHasPluginDir(claudePath);
+  if (hasFlowExtras(toplevel) && !pluginDirOk) {
+    stdout.write('flow eval: this claude has no `plugin eval --plugin-dir` — flow-extras skills are not loaded (notice, not a failure)\n');
+  }
   const specs = cases.map((c) => {
     const jsonPath = path.join(os.tmpdir(), `flow-eval-${process.pid}-${Date.now()}-${c.name}.json`);
     const keepTemp = postcheck.hasExecutablePostcheck(toplevel, EVALS_ROOT, c.name);
-    return { name: c.name, jsonPath, argv: buildChildArgv(model, judgeModel, args, jsonPath, c.name, c.grant, keepTemp, toplevel) };
+    return { name: c.name, jsonPath, argv: buildChildArgv(model, judgeModel, args, jsonPath, c.name, c.grant, keepTemp, toplevel, pluginDirOk) };
   });
 
   if (args.dryRun) {

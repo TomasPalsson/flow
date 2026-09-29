@@ -180,9 +180,22 @@ t_eval_dry_run_loads_sibling_flow_extras() {
 	proj=$(ev_repo)
 	mkdir -p "$proj/plugins/flow-extras/skills"
 	home=$(tmp_dir)
-	ev_cli_in "$proj" "$home" eval --dry-run --tag quality
+	ev_cli_stub_in "$proj" "$home" "$(ev_fakebin)" eval --dry-run --tag quality
 	assert_rc 0 "t_eval_dry_run_loads_sibling_flow_extras rc"
 	assert_contains "$OUT" "--plugin-dir plugins/flow-extras" "t_eval_dry_run_loads_sibling_flow_extras plugin-dir-forwarded"
+}
+
+# t_eval_dry_run_skips_plugin_dir_the_cli_lacks — a claude whose `plugin eval`
+# has no --plugin-dir gets none (it would reject the whole run) and a notice.
+t_eval_dry_run_skips_plugin_dir_the_cli_lacks() {
+	local proj home
+	proj=$(ev_repo)
+	mkdir -p "$proj/plugins/flow-extras/skills"
+	home=$(tmp_dir)
+	CLAUDE_STUB_NO_PLUGIN_DIR=1 ev_cli_stub_in "$proj" "$home" "$(ev_fakebin)" eval --dry-run --tag quality
+	assert_rc 0 "t_eval_dry_run_skips_plugin_dir_the_cli_lacks rc"
+	assert_not_contains "$OUT" "--plugin-dir plugins/flow-extras" "t_eval_dry_run_skips_plugin_dir_the_cli_lacks no-plugin-dir"
+	assert_contains "$OUT" "flow-extras skills are not loaded" "t_eval_dry_run_skips_plugin_dir_the_cli_lacks notice"
 }
 
 # t_eval_dry_run_routing_case_gets_no_allow_tools — the flip side: a case

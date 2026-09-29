@@ -7,7 +7,16 @@
 # CLAUDE_STUB_JSON, when set, names an exact file to copy instead (a
 # postcheck test builds one with real kept-dir paths it cannot know ahead of
 # time, so a fixed fixture name won't do); it wins over CLAUDE_STUB_RESULT.
+# `plugin eval --help` prints a --plugin-dir line unless CLAUDE_STUB_NO_PLUGIN_DIR=1
+# (the 2.1.284 CLI dropped that flag).
 set -u
+
+case " $* " in
+*" --help "*)
+  [ "${CLAUDE_STUB_NO_PLUGIN_DIR:-}" = "1" ] || echo "  --plugin-dir <dir>  load another plugin"
+  exit 0
+  ;;
+esac
 
 json_path=""
 while [ $# -gt 0 ]; do
