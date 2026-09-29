@@ -33,6 +33,11 @@ const args = process.argv.slice(2);
 const FLAG_CONTINUE = args.includes('--continue');
 const FLAG_FIX = args.includes('--fix');
 const FLAG_JSON = args.includes('--json');
+const SINCE = (() => {
+  const i = args.findIndex(a => a === '--since' || a.startsWith('--since='));
+  if (i < 0) return null;
+  return args[i].startsWith('--since=') ? args[i].slice(8) : (args[i + 1] || '');
+})();
 const FLAG_HELP = args.includes('--help') || args.includes('-h');
 
 const ROOT = process.cwd();
@@ -55,6 +60,8 @@ ${C.accent}Usage:${C.reset}
 
 ${C.accent}Options:${C.reset}
   --fix       Apply auto-fixes for lint and format
+  --since <ref>  Lint/format only files changed since <ref> (plus untracked);
+              typecheck and test stay unscoped
   --continue  Run all gates even if some fail
   --json      Output JSON only (no human-readable output)
   -h, --help  Show this help message
@@ -145,6 +152,42 @@ function onPath(cmd) {
 
 function gate(kind, cmd) { return { kind, cmd }; }
 function skipped(kind, message) { return { kind, cmd: null, message }; }
+/** A gate whose tool takes a file list: `--since` runs `[...base, '--', ...files]`. */
+function scopable(kind, base, exts, extra = []) {
+  return { kind, cmd: [...base, '.'], scopable: { base: [...base, ...extra], exts } };
+}
+
+/**
+ * Explicitly named files bypass a tool's configured excludes unless it is told
+ * to honour them, so a scoped run would lint/rewrite generated or vendored code
+ * an unscoped run skips. ruff has a bare flag; black's takes a regex, rebuilt
+ * from the exclude keys of [tool.black] in pyproject.toml.
+ */
+const FORCE_EXCLUDE = ['--force-exclude'];
+
+function tomlStringValue(section, key) {
+  const m = new RegExp(`^${key}\\s*=\\s*(\"\"\"|'''|\"|')`, 'm').exec(section);
+  if (!m) return null;
+  const q = m[1];
+  const rest = section.slice(m.index + m[0].length);
+  const end = rest.indexOf(q);
+  if (end < 0) return null;
+  let v = rest.slice(0, end);
+  if (q[0] === '"') v = v.replace(/\\\\/g, '\\');
+  if (q.length === 3) v = v.replace(/^\r?\n/, '');
+  return v;
+}
+
+function blackForceExclude(root) {
+  const text = readText(path.join(root, 'pyproject.toml'));
+  const m = /^\[tool\.black\][^\n]*\n([\s\S]*?)(?=^\[|(?![\s\S]))/m.exec(text);
+  if (!m) return [];
+  const pats = ['exclude', 'extend-exclude', 'force-exclude']
+    .map(k => tomlStringValue(m[1], k))
+    .filter(Boolean)
+    .map(v => `(?x:${v})`);
+  return pats.length ? ['--force-exclude', pats.join('|')] : [];
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Node.js: package manager + scripts
@@ -314,6 +357,77 @@ function formatGateFromScript(root, mgr, scriptName, script) {
   return skipped('format', `format script was not recognised as a check-only command: ${script}; add a format:check script`);
 }
 
+const JS_EXTS = ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts'];
+const PRETTIER_EXTS = [...JS_EXTS, '.json', '.jsonc', '.css', '.scss', '.less', '.md', '.mdx', '.yaml', '.yml', '.html', '.vue'];
+const BIOME_EXTS = [...JS_EXTS, '.json', '.jsonc', '.css'];
+/** Flags of eslint/prettier/biome that consume the next argument. */
+const VALUE_FLAGS = new Set([
+  '--ext', '-c', '--config', '--format', '-f', '--ignore-path', '--cache-location', '--max-warnings',
+  '--rulesdir', '--resolve-plugins-relative-to', '--parser', '--plugin', '--rule', '--env', '--global',
+  '--parser-options', '--ignore-pattern', '--output-file', '-o', '--log-level', '--end-of-line',
+  '--tab-width', '--print-width', '--config-path', '--stdin-filepath',
+]);
+
+/** argv with its path operands removed (flags and their values kept). */
+function stripOperands(argv, keep) {
+  const out = argv.slice(0, keep);
+  for (let i = keep; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('-')) {
+      out.push(a);
+      if (VALUE_FLAGS.has(a) && i + 1 < argv.length) out.push(argv[++i]);
+    }
+  }
+  return out;
+}
+
+/**
+ * A single-command eslint/prettier/biome script as a scopable gate, or null when
+ * it is anything else (compound, unknown tool, not installed, unknown mode).
+ * `want` is 'lint' | 'write' | 'check'.
+ */
+function scopableFromScript(root, kind, script, want) {
+  const text = script.trim();
+  if (SHELL_OPERATOR.test(text)) return null;
+  const parts = shellSplit(text);
+  if (!parts || parts.length === 0) return null;
+  const wrappers = ['npx', 'bunx', 'pnpm', 'yarn', 'npm', 'bun', 'run', 'exec', '--'];
+  while (parts.length > 1 && wrappers.includes(parts[0])) parts.shift();
+  const tool = parts[0];
+  const rest = parts.slice(1);
+  const bin = ['eslint', 'prettier', 'biome'].includes(tool) ? resolveJsBin(root, tool) : null;
+  if (!bin) return null;
+
+  let args;
+  let exts;
+  if (want === 'lint') {
+    if (tool === 'eslint') {
+      args = FLAG_FIX && !rest.includes('--fix') ? [...rest, '--fix'] : rest;
+      exts = JS_EXTS;
+    } else if (tool === 'biome' && (rest[0] === 'lint' || rest[0] === 'check')) {
+      args = FLAG_FIX && !rest.includes('--write') && !rest.includes('--fix') ? [...rest, '--write'] : rest;
+      exts = BIOME_EXTS;
+    } else return null;
+  } else {
+    if (tool !== 'prettier' && tool !== 'biome') return null;
+    const mode = formatterMode(tool, rest);
+    if (want === 'write') {
+      if (mode !== 'write') return null;
+      args = rest;
+    } else if (mode === 'check') {
+      args = rest;
+    } else if (mode === 'write') {
+      args = checkArgsFor(tool, rest);
+    } else return null;
+    exts = tool === 'prettier' ? PRETTIER_EXTS : BIOME_EXTS;
+  }
+  const keep = tool === 'biome' ? 1 : 0;
+  return { kind, cmd: null, scopable: { base: [bin, ...stripOperands(args, keep)], exts } };
+}
+
+/** Keep the unscoped `cmd` a gate would run, and attach the scopable form when known. */
+function withScope(g, sc) { return sc ? { ...g, scopable: sc.scopable } : g; }
+
 function buildNodeGates(root) {
   const pkg = readJSON(path.join(root, 'package.json')) || {};
   const scripts = pkg.scripts || {};
@@ -336,22 +450,24 @@ function buildNodeGates(root) {
 
   // lint
   if (scripts.lint) {
-    if (FLAG_FIX && scripts['lint:fix']) gates.push(gate('lint', runScript(mgr, 'lint:fix')));
-    else if (FLAG_FIX) gates.push(gate('lint', runScript(mgr, 'lint', ['--fix'])));
-    else gates.push(gate('lint', runScript(mgr, 'lint')));
+    const useFix = FLAG_FIX && scripts['lint:fix'];
+    const lintGate = useFix ? gate('lint', runScript(mgr, 'lint:fix'))
+      : FLAG_FIX ? gate('lint', runScript(mgr, 'lint', ['--fix']))
+      : gate('lint', runScript(mgr, 'lint'));
+    gates.push(withScope(lintGate, scopableFromScript(root, 'lint', useFix ? scripts['lint:fix'] : scripts.lint, 'lint')));
   }
 
   // format
   if (FLAG_FIX) {
-    if (scripts.format) gates.push(gate('format', runScript(mgr, 'format')));
-    else if (scripts.prettier) gates.push(gate('format', runScript(mgr, 'prettier')));
-  } else if (scripts['format:check']) {
-    gates.push(gate('format', runScript(mgr, 'format:check')));
-  } else if (scripts['check-format']) {
-    gates.push(gate('format', runScript(mgr, 'check-format')));
+    const name = scripts.format ? 'format' : scripts.prettier ? 'prettier' : null;
+    if (name) gates.push(withScope(gate('format', runScript(mgr, name)), scopableFromScript(root, 'format', scripts[name], 'write')));
+  } else if (scripts['format:check'] || scripts['check-format']) {
+    const name = scripts['format:check'] ? 'format:check' : 'check-format';
+    gates.push(withScope(gate('format', runScript(mgr, name)), scopableFromScript(root, 'format', scripts[name], 'check')));
   } else if (scripts.format || scripts.prettier) {
     const name = scripts.format ? 'format' : 'prettier';
-    gates.push(formatGateFromScript(root, mgr, name, scripts[name]));
+    const fg = formatGateFromScript(root, mgr, name, scripts[name]);
+    gates.push(fg.cmd ? withScope(fg, scopableFromScript(root, 'format', scripts[name], 'derive')) : fg);
   }
 
   // test
@@ -400,13 +516,13 @@ function buildPythonGates(root) {
   if (mypy) gates.push(gate('typecheck', [...mypy, '.']));
 
   const ruff = resolvePyTool(root, 'ruff');
-  if (ruff) gates.push(gate('lint', FLAG_FIX ? [...ruff, 'check', '--fix', '.'] : [...ruff, 'check', '.']));
+  if (ruff) gates.push(scopable('lint', FLAG_FIX ? [...ruff, 'check', '--fix'] : [...ruff, 'check'], ['.py', '.pyi'], FORCE_EXCLUDE));
 
   const black = resolvePyTool(root, 'black');
   if (black) {
-    gates.push(gate('format', FLAG_FIX ? [...black, '.'] : [...black, '--check', '.']));
+    gates.push(scopable('format', FLAG_FIX ? [...black] : [...black, '--check'], ['.py', '.pyi'], blackForceExclude(root)));
   } else if (ruff) {
-    gates.push(gate('format', FLAG_FIX ? [...ruff, 'format', '.'] : [...ruff, 'format', '--check', '.']));
+    gates.push(scopable('format', FLAG_FIX ? [...ruff, 'format'] : [...ruff, 'format', '--check'], ['.py', '.pyi'], FORCE_EXCLUDE));
   }
 
   const pytest = resolvePyTool(root, 'pytest');
@@ -439,7 +555,7 @@ function buildGoGates(root) {
   } else if (onPath('golangci-lint')) {
     gates.push(gate('lint', FLAG_FIX ? ['golangci-lint', 'run', '--fix'] : ['golangci-lint', 'run']));
   }
-  gates.push(gate('format', FLAG_FIX ? ['gofmt', '-w', '.'] : ['gofmt', '-l', '.']));
+  gates.push(scopable('format', FLAG_FIX ? ['gofmt', '-w'] : ['gofmt', '-l'], ['.go']));
   gates.push(gate('test', ['go', 'test', './...']));
   return gates;
 }
@@ -639,6 +755,50 @@ function noVerdictReason(result, time_ms) {
   return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// --since: scope lint/format to the files the feature changed
+// ─────────────────────────────────────────────────────────────────────────────
+
+function git(argv) {
+  return spawnSync('git', argv, { cwd: ROOT, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
+}
+
+/** Changed set: tracked ACMR diff vs <ref> plus untracked, cwd-relative, existing only. */
+function changedFiles(ref) {
+  const known = git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+  if (!ref || known.status !== 0) {
+    stderr.write(`check-all: unknown ref ${ref}\nfix: pass a ref git knows, e.g. --since HEAD or --since main (git rev-parse --verify <ref>)\n`);
+    process.exit(2);
+  }
+  // -z: NUL-separated and never C-quoted, so non-ASCII names survive intact.
+  const diff = git(['diff', '--name-only', '-z', '--relative', '--diff-filter=ACMR', ref]);
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '-z']);
+  const names = [...(diff.stdout || '').split('\0'), ...(untracked.stdout || '').split('\0')]
+    .filter(Boolean);
+  return [...new Set(names)].filter(f => exists(path.join(ROOT, f)));
+}
+
+/** The tool name shown in `(unscoped: <tool> takes no file list)`. */
+function toolLabel(cmd) {
+  if (['cargo', 'yarn'].includes(cmd[0])) return cmd.slice(0, 2).join(' ');
+  if (['npm', 'pnpm', 'bun'].includes(cmd[0]) && cmd[1] === 'run') return cmd.slice(0, 3).join(' ');
+  return cmd[0];
+}
+
+/** Rewrite one gate for --since: scoped, skipped (nothing changed), or flagged unscoped. */
+function scopeGate(g, changed) {
+  if (!g.cmd) return g;
+  if (g.kind !== 'lint' && g.kind !== 'format') return { ...g, scope: 'all' };
+  if (!g.scopable) {
+    return { ...g, scope: 'unscoped', message: `(unscoped: ${toolLabel(g.cmd)} takes no file list)` };
+  }
+  const files = changed.filter(f => g.scopable.exts.includes(path.extname(f)));
+  if (files.length === 0) {
+    return { kind: g.kind, suffix: g.suffix, cmd: null, scope: 'changed', files: 0, message: 'skipped (no changed files)' };
+  }
+  return { ...g, cmd: [...g.scopable.base, '--', ...files], scope: 'changed', files: files.length };
+}
+
 function runGate(g) {
   const name = gateName(g);
   const cmd = g.cmd;
@@ -743,7 +903,7 @@ function printGateResult(g) {
   const col = statusColor(g.status);
   const timeStr = g.status === 'pass' || g.status === 'fail' ? `${C.muted} ${g.time_ms}ms${C.reset}` : '';
   stderr.write(`  ${icon} ${col}${g.name.padEnd(12)}${C.reset}${timeStr}\n`);
-  if (g.status !== 'pass' && g.message && g.message !== NOTHING_TO_RUN) {
+  if ((g.status !== 'pass' || g.scope === 'unscoped') && g.message && g.message !== NOTHING_TO_RUN) {
     stderr.write(`     ${C.muted}${g.message}${C.reset}\n`);
   }
   if (g.status === 'fail' && g.output) {
@@ -788,13 +948,14 @@ function main() {
     printHelp();
     process.exit(0);
   }
+  const changed = SINCE === null ? null : changedFiles(SINCE);
 
   const { ecosystem, gates } = detectGates();
   if (!ecosystem) noProjectFile();
 
   if (!FLAG_JSON) printHeader(ecosystem);
 
-  const ordered = orderGates(gates);
+  const ordered = orderGates(gates).map(g => (changed ? scopeGate(g, changed) : g));
   const results = [];
   let anyFailed = false;
   let stopped = false;
@@ -808,6 +969,7 @@ function main() {
         time_ms: 0,
         output: '',
         ...(g.message ? { message: g.message } : {}),
+        ...(g.scope ? { scope: g.scope, files: g.files } : {}),
         ...(stopped && g.cmd ? { message: 'not run: an earlier gate failed (use --continue)' } : {}),
       };
       results.push(rec);
@@ -818,6 +980,11 @@ function main() {
     if (!FLAG_JSON) stderr.write(`  ${C.muted}⋯ ${gateName(g)}...${C.reset}\r`);
 
     const rec = runGate(g);
+    if (g.scope) {
+      rec.scope = g.scope;
+      if (g.files !== undefined) rec.files = g.files;
+      if (g.scope === 'unscoped') rec.message = g.message;
+    }
     results.push(rec);
     if (!FLAG_JSON) printGateResult(rec);
 
@@ -836,7 +1003,7 @@ function main() {
 
   if (!FLAG_JSON) printSummary(summary);
 
-  stdout.write(JSON.stringify({ ecosystem, gates: results, summary }, null, 2) + '\n');
+  stdout.write(JSON.stringify({ ecosystem, ...(changed ? { since: SINCE } : {}), gates: results, summary }, null, 2) + '\n');
   process.exit(anyFailed ? 1 : 0);
 }
 

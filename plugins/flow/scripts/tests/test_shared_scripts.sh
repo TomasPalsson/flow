@@ -1081,3 +1081,222 @@ t_shared_diff_scope_json_wins_over_pretty() {
 	assert_not_contains "$OUT" "git change analysis" "t_shared_diff_scope_json_wins_over_pretty no-pretty-header"
 	rm -rf "$d"
 }
+
+# ---------------------------------------------------------------------------
+# check-all --since <ref> — gate only what the feature changed
+# ---------------------------------------------------------------------------
+
+# _ss_since_fixture <dir> — committed python repo: old.py carries lint AND format
+# debt, a stub .venv/bin/pytest leaves a sentinel; the repo is left clean.
+_ss_since_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	mkdir -p "$d/.venv/bin"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	printf 'import os\nx  =  1\n' >"$d/old.py"
+	printf '#!/bin/sh\ntouch "$PWD/pytest-ran"\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\npytest-ran\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_ignores_debt_in_untouched_file() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'y = 2\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue
+	assert_rc 1 "t_shared_check_all_since_ignores_debt_in_untouched_file unscoped-red"
+
+	rm -f "$d/pytest-ran"
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ignores_debt_in_untouched_file since-green"
+	assert_contains "$OUT" '"since": "HEAD"' "t_shared_check_all_since_ignores_debt_in_untouched_file since-field"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"scope": "changed"' "t_shared_check_all_since_ignores_debt_in_untouched_file scope"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_ignores_debt_in_untouched_file file-count"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "test"')" '"scope": "all"' "t_shared_check_all_since_ignores_debt_in_untouched_file test-scope"
+	assert_eq "$([ -e "$d/pytest-ran" ] && echo ran)" "ran" "t_shared_check_all_since_ignores_debt_in_untouched_file tests-still-run"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_changed_file_with_lint_error_is_red() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'import sys\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_changed_file_with_lint_error_is_red rc"
+	assert_contains "$(_ss_gate "$OUT" lint)" '"status": "fail"' "t_shared_check_all_since_changed_file_with_lint_error_is_red lint-red"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_fix_rewrites_only_changed_files() {
+	local d before
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	before=$(cat "$d/old.py")
+	printf 'z  =  3\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_rc 0 "t_shared_check_all_since_fix_rewrites_only_changed_files rc"
+	assert_eq "$(cat "$d/old.py")" "$before" "t_shared_check_all_since_fix_rewrites_only_changed_files untouched-identical"
+	assert_eq "$(cat "$d/new.py")" "z = 3" "t_shared_check_all_since_fix_rewrites_only_changed_files changed-formatted"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_no_changed_files_skips_lint_and_format() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_no_changed_files_skips_lint_and_format rc"
+	assert_contains "$(_ss_gate "$OUT" lint)" '"status": "skipped"' "t_shared_check_all_since_no_changed_files_skips_lint_and_format lint"
+	assert_contains "$(_ss_gate "$OUT" format)" '"status": "skipped"' "t_shared_check_all_since_no_changed_files_skips_lint_and_format format"
+	assert_contains "$OUT" 'skipped (no changed files)' "t_shared_check_all_since_no_changed_files_skips_lint_and_format message"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_script_gate_is_flagged_unscoped() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"lint":"exit 0"}}\n' >"$d/package.json"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+
+	_ss_in "$d" check-all --json --since HEAD
+	assert_rc 0 "t_shared_check_all_since_script_gate_is_flagged_unscoped rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"scope": "unscoped"' "t_shared_check_all_since_script_gate_is_flagged_unscoped scope"
+	assert_contains "$OUT" '(unscoped: npm run lint takes no file list)' "t_shared_check_all_since_script_gate_is_flagged_unscoped message"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_unknown_ref_exits_2() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"test":"exit 0"}}\n' >"$d/package.json"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+
+	_ss_in "$d" check-all --json --since no-such-ref
+	assert_rc 2 "t_shared_check_all_since_unknown_ref_exits_2 rc"
+	assert_contains "$ERR" "check-all: unknown ref no-such-ref" "t_shared_check_all_since_unknown_ref_exits_2 message"
+	assert_contains "$ERR" "fix:" "t_shared_check_all_since_unknown_ref_exits_2 fix-line"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_equals_form_and_non_ascii_names() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'import sys\n' >"$d/é.py"
+
+	_ss_in "$d" check-all --json --continue --since=HEAD
+	assert_rc 1 "t_shared_check_all_since_equals_form_and_non_ascii_names rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_equals_form_and_non_ascii_names file-count"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_honours_configured_excludes() {
+	local d before
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	mkdir -p "$d/gen"
+	printf '[project]\nname="x"\n[tool.ruff]\nextend-exclude=["gen"]\n' >"$d/pyproject.toml"
+	printf 'import os\nq  =  1\n' >"$d/gen/h.py"
+	printf 'y = 2\n' >"$d/new.py"
+	before=$(cat "$d/gen/h.py")
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_honours_configured_excludes green"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/gen/h.py")" "$before" "t_shared_check_all_since_honours_configured_excludes fix-leaves-excluded"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_works_from_a_subdirectory() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	mkdir -p "$d/sub/.venv/bin"
+	printf '[project]\nname="x"\n' >"$d/sub/pyproject.toml"
+	printf '#!/bin/sh\nexit 0\n' >"$d/sub/.venv/bin/pytest"
+	chmod +x "$d/sub/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	printf 'y = 2\n' >"$d/sub/ok.py"
+	printf 'z = 1\n' >"$d/top.py"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'z = 3\n' >"$d/sub/new.py"
+	printf 'import os\n' >"$d/top.py"
+
+	_ss_in "$d/sub" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_works_from_a_subdirectory rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_works_from_a_subdirectory file-count"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_black_gets_force_exclude_regex() {
+	local d
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf '[project]\nname="x"\n[tool.black]\nextend-exclude = "/gen/"\n' >"$d/pyproject.toml"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$PWD/black-argv"\nexit 0\n' >"$d/.venv/bin/black"
+	chmod +x "$d/.venv/bin/black"
+	printf 'y = 2\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_contains "$(cat "$d/black-argv")" "--check --force-exclude (?x:/gen/) -- new.py" "t_shared_check_all_since_black_gets_force_exclude_regex argv"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_scopes_prettier_scripts() {
+	local d before
+	command -v prettier >/dev/null 2>&1 || { printf '  skip prettier not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"format":"prettier --write .","format:check":"prettier --check ."}}\n' >"$d/package.json"
+	printf 'const a   =   1\n' >"$d/old.js"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'const b = 2;\n' >"$d/new.js"
+	before=$(cat "$d/old.js")
+
+	_ss_in "$d" check-all --json --continue
+	assert_rc 1 "t_shared_check_all_since_scopes_prettier_scripts unscoped-red"
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_scopes_prettier_scripts since-green"
+	assert_contains "$(_ss_gate "$OUT" format)" '"scope": "changed"' "t_shared_check_all_since_scopes_prettier_scripts scope"
+
+	printf 'const c   =   3\n' >"$d/new.js"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_rc 0 "t_shared_check_all_since_scopes_prettier_scripts fix-rc"
+	assert_eq "$(cat "$d/old.js")" "$before" "t_shared_check_all_since_scopes_prettier_scripts untouched-identical"
+	assert_eq "$(cat "$d/new.js")" "const c = 3;" "t_shared_check_all_since_scopes_prettier_scripts changed-formatted"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_scopes_eslint_script() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	mkdir -p "$d/stubbin"
+	printf '{"name":"x","scripts":{"lint":"eslint --ext .js src"}}\n' >"$d/package.json"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$PWD/eslint-argv"\nexit 0\n' >"$d/stubbin/eslint"
+	chmod +x "$d/stubbin/eslint"
+	printf 'stubbin/\neslint-argv\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'a\n' >"$d/new.js"
+	printf 'b\n' >"$d/notes.txt"
+
+	_ss_in_env "$d" "PATH=$d/stubbin:$PATH" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/eslint-argv")" "--ext .js --fix -- new.js" "t_shared_check_all_since_scopes_eslint_script argv"
+	rm -rf "$d"
+}
