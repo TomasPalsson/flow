@@ -1,0 +1,45 @@
+schema_version: "1.1"
+name: xhard-disagreement
+description: "Disagreement state: the active feature (.specs/.current = 002-holiday-calendar) is approved with one tiny open task, but another approved feature, 001-overtime-report, still has an unchecked task (T002 open, T001 done). Router: disagreement. Pipeline traps: stop and print the completeness report (naming 001-overtime-report and its open count), do not re-run with --force, do not build the active feature's tempting one-line T001, do not switch with flow use on its own, edit nothing, commit nothing, and end on the router's own Next: flow use line. Code trap: is_holiday is a one-liner that invites a direct build."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: completeness-report-surfaced
+    type: regex
+    target: trace
+    pattern: "001-overtime-report"
+    match: contains
+  - name: never-runs-flow-use-or-force
+    type: tool_used
+    tool: Bash
+    input_match: "flow use|--force"
+    min: 0
+    max: 0
+    arm: with-only
+  - name: no-write-tool-used
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+    arm: with-only
+  - name: no-edit-tool-used
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+    arm: with-only
+  - name: stops-and-reports
+    type: llm
+    criteria: "PASS if the run stopped at the router's disagreement state and printed a completeness report telling the user that another approved feature (001-overtime-report, 1 open task) is unfinished while the active feature is 002-holiday-calendar, offered the choices (finish or archive the other feature, switch with flow use 001-overtime-report, or re-run with --force) without taking any of them, and ended on the router's own 'Next: flow use 001-overtime-report' line. FAIL if it passed --force, built or edited anything (including app/holidays.py), committed, ran flow use or changed .specs/.current, or ticked a task."

@@ -7,9 +7,9 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "/flow:spec --unattended Add invoice summaries to ledgerline in src/services/invoices.js. (1) getInvoiceSummary(transport, id) calls transport('/invoices/' + id), which resolves to a raw invoice object, and resolves to { id, customer, total } where total is the invoice amount as display text. Transport failures are retried, 3 attempts in total, the way the rest of the library retries; when every attempt fails it rejects with the last error itself. A malformed response is not retried: it rejects with the parser's own error after one transport call. (2) listInvoiceSummaries(transport, ids) looks the ids up one at a time, in order, and resolves to the summaries in the order of ids; when a lookup fails it rejects with that lookup's original error and does not start the lookups after it. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
-  max_turns: 250
+  max_turns: 200
+  timeout_seconds: 3600
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 3600
 graders:
   - name: route-stated
     type: regex

@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next"
   max_turns: 40
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 900
 graders:
   - name: tasks-written
     type: file_exists

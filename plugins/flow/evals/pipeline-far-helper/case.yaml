@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:spec --unattended Add a `url_path` property to `Post` in app/models/post.py that returns '/posts/<slug-of-title>', where <slug-of-title> is a URL slug derived from the post's title. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
   max_turns: 150
+  timeout_seconds: 2400
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 2400
 graders:
   - name: route-stated
     type: regex

@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:prep people keep asking for exports, do something about it"
   max_turns: 25
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
-timeout_seconds: 900
 graders:
   - name: prep-file-written
     type: file_exists

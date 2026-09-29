@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next --unattended — keep going through the whole plan and get it finished. I'm away from the keyboard, so don't wait for me and don't stop for anything."
   max_turns: 100
+  timeout_seconds: 1800
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 1800
 graders:
   - name: router-read-first
     type: regex

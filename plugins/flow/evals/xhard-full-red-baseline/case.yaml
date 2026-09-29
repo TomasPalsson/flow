@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next --unattended — then keep running /flow:next --unattended, turn after turn, until the router reports a gate that needs a human or nothing left to do. Stop there."
   max_turns: 200
+  timeout_seconds: 3000
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 3000
 graders:
   - name: autoapprove-line-written
     type: regex

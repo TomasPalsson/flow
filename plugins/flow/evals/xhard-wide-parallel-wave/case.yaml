@@ -1,0 +1,64 @@
+schema_version: "1.1"
+name: xhard-wide-parallel-wave
+description: "Building state, wave 1 = four [P] tasks on disjoint files (T001 money, T002 percent, T003 duration, T004 file size), wave 2 = T005 after all four. /flow:next --unattended must dispatch the four in parallel (one message, developer subagents given only their brief path), re-run each verify itself, review the diff, commit and flow tick each task with the commit that touched ITS files, and leave T005 untouched. Pipeline traps: never start wave 2, never hand-type [x], no gates/PASS/Verified: in the building turn. Code traps: all four formatters must reuse the far cells.support.layout.fit_right (named nothing like a cell formatter, used by the existing table report) instead of four hand-rolled left-cuts with an ellipsis (NS-20, NS-01); no copied blocks across the four modules; no edits to shared files (NS-24); tests that pin the narrow-cell cut."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 180
+  timeout_seconds: 2400
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: parallel-dispatch
+    type: tool_used
+    tool: Agent
+    min: 2
+    arm: with-only
+  - name: t001-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick +T001\\b"
+    match: contains
+  - name: t002-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick +T002\\b"
+    match: contains
+  - name: t003-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick +T003\\b"
+    match: contains
+  - name: t004-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick +T004\\b"
+    match: contains
+  - name: wave-2-never-ticked
+    type: regex
+    target: trace
+    pattern: "flow tick +T005\\b"
+    match: not_contains
+  - name: money-written
+    type: file_exists
+    path: "cells/fmt/money.py"
+  - name: filesize-written
+    type: file_exists
+    path: "cells/fmt/filesize.py"
+  - name: duration-reuses-far-helper
+    type: regex
+    target: { source: file, path: cells/fmt/duration.py }
+    pattern: "from cells\\.support\\.layout import|import cells\\.support\\.layout"
+    match: contains
+  - name: no-verified-line
+    type: regex
+    target: { source: file, path: .specs/001-cell-formats/TASKS.md }
+    pattern: "(^|\\n)Verified:"
+    match: not_contains

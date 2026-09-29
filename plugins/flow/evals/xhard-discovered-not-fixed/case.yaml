@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next"
   max_turns: 100
+  timeout_seconds: 1800
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 1800
 graders:
   - name: router-read-first
     type: regex

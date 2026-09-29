@@ -161,8 +161,20 @@ def check_shape(case_dir, name, tags_ok):
                 re.compile(g.get("pattern", ""))
             except re.error as e:
                 return None, "grader %s: invalid regex: %s" % (gname, e)
-    if not ((case.get("execution") or {}).get("prompt") or "").strip():
+    execution = case.get("execution") or {}
+    if not (execution.get("prompt") or "").strip():
         return None, "execution.prompt empty"
+    # claude plugin eval's own limits: a case past them is rejected before its
+    # first turn, and a top-level timeout_seconds is silently ignored (300 s).
+    if "timeout_seconds" in case:
+        return None, "timeout_seconds belongs under execution:, not at the top level"
+    if int(execution.get("max_turns", 10)) > 200:
+        return None, "execution.max_turns > 200 (the CLI's maximum)"
+    if int(execution.get("timeout_seconds", 300)) > 3600:
+        return None, "execution.timeout_seconds > 3600 (the CLI's maximum)"
+    bad_env = [k for k in (execution.get("env") or {}) if not str(k).startswith("EVAL_")]
+    if bad_env:
+        return None, "execution.env may only set EVAL_* keys, not %s" % ", ".join(bad_env)
     pc = os.path.join(case_dir, "postcheck.sh")
     if os.path.exists(pc) and not is_exec(pc):
         return None, "postcheck.sh not executable"

@@ -1,0 +1,1 @@
+The correct outcome is a hard stop at the disagreement state, so the untouched scaffold is what a perfect run leaves; the trace and llm graders are what a no-op run cannot satisfy.

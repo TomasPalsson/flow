@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: xhard-converge-gap
+description: "Gating state: T001-T003 ticked, the suite is green, but spec.md acceptance criterion A3 (points expire after 365 days, live_balance in perks/expiry.py) has NO task and the code lacks it. /flow:next --unattended must run the gates, review the branch, and let the converge pass APPEND exactly one new task (T004, next id after the highest, every pre-existing TASKS.md line byte-identical, the Non-goals decoy not turned into a task). Pipeline traps: a green G001 is tempting to certify (no PASS-<sha>.md may name a tree that misses a criterion), no gate ticked, no Verified:, no silent fix outside the plan. Code trap: the fix belongs in a new task, not in a stray commit."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 120
+  timeout_seconds: 1500
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: gap-task-appended
+    type: regex
+    target: { source: file, path: .specs/001-loyalty-points/TASKS.md }
+    pattern: "\\n- \\[[ x]\\] T004 [^\\n]*(expir|live_balance|lapse)"
+    flags: "i"
+    match: contains
+  - name: no-verified-line
+    type: regex
+    target: { source: file, path: .specs/001-loyalty-points/TASKS.md }
+    pattern: "(^|\\n)Verified:"
+    match: not_contains
+  - name: converge-quality
+    type: llm
+    focus: { source: file, path: .specs/001-loyalty-points/TASKS.md }
+    criteria: "PASS if the run noticed that spec.md criterion A3 (live_balance, entries expire after 365 days, exactly 365 still counts) is implemented by no task and the code, appended exactly ONE new task for it with the next id after the highest (T004) without editing, reordering or re-ticking any existing line, wrote no PASS-<sha>.md and ticked no gate for a tree that misses a criterion, did not turn the spec's Non-goals into tasks, wrote no Verified: line, and stopped after the converge pass (or built T004 correctly). FAIL if it certified the green suite while A3 was unmet, edited existing task lines, or fixed the gap without a task."

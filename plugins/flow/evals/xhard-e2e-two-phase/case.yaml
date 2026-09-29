@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: xhard-e2e-two-phase
+description: "Whole pipeline from no-project on a feature that NEEDS two phases: /flow:spec --unattended (Go? answered in the prompt), then /flow:next --unattended until the router asks for a human. Phase 1 moves Product from dollar text to integer cents AND migrates the live JSON data on disk; phase 2 adds a totals command. Pipeline traps - the route must not be bounded (two phases in TASKS.md), each phase's Independent test line is EXECUTED (the postcheck reads the trace), Approved written at the gate, every task ticked through flow tick, PASS-<HEAD sha> written, and the run stops at unverified without Verified:. Data traps - every record of data/ and tests/fixtures/ survives with exact cents (float math gives 1998 for $19.99), fields the model classes do not carry (tags, note) are kept so a load/save migration fails, an empty price becomes null not zero, data/archive/ stays frozen, and list keeps its output and dashes unpriced products. Code traps - reuse the differently-named read_amount and show_amount helpers in shopdesk/support (NS-20), no guards or float math, tests that bite (mutants of the display helper must fail the model's own new tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended shopdesk stores prices as dollar text (\"$1,234.50\") and nothing can add them up. Move Product to integer cents: it gets price_cents (int cents, or None for an unpriced product) instead of price, and load_products/save_products read and write a \"price_cents\" key. Migrate the live JSON data under data/ (leave data/archive/ frozen) and tests/fixtures/ in place: price becomes price_cents converted the way the rest of the shop reads amounts, an empty price becomes null, every other field of every record stays exactly as it is, and no record is dropped or reordered. The list command must keep printing exactly what it prints today, and print - for an unpriced product. Then add a totals <file> command to the shopdesk CLI that prints one line: Total: <sum of the priced products, in the shop's display format> (<n> priced, <m> unpriced). Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
+  max_turns: 200
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+  timeout_seconds: 3600
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: oneshot|Route: dispatch"
+    match: contains
+  - name: router-consulted
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: ticks-go-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick T00"
+    match: contains
+  - name: tasks-drafted
+    type: file_exists
+    path: ".specs/*/TASKS.md"
+  - name: pass-file-written
+    type: file_exists
+    path: ".specs/*/PASS-*.md"
+  - name: cli-reuses-show-amount
+    type: regex
+    target: { source: file, path: shopdesk/cli.py }
+    pattern: "show_amount"
+    match: contains
+  - name: cli-has-totals
+    type: regex
+    target: { source: file, path: shopdesk/cli.py }
+    pattern: "totals"
+    match: contains
+  - name: model-drops-price-text-field
+    type: regex
+    target: { source: file, path: shopdesk/models.py }
+    pattern: "price_cents"
+    match: contains
+  - name: live-data-migrated
+    type: regex
+    target: { source: file, path: data/catalog.json }
+    pattern: "\"price_cents\":\\s*123450"
+    match: contains
+  - name: live-data-no-price-text
+    type: regex
+    target: { source: file, path: data/imports/supplier-2025.json }
+    pattern: "\"price\":"
+    match: not_contains
+  - name: pipeline-and-code-quality
+    type: llm
+    criteria: "PASS if (1) the run stated its route and drafted a TASKS.md with at least two phases before touching code, (2) it stopped for the plan approval instead of inventing one and only continued after the prompt's go, (3) at each phase boundary it executed that phase's Independent test line and showed the output rather than quoting it, (4) it ended at the unverified gate - PASS written, the router's reply \"approved\" line shown - without writing Verified:, (5) the data migration went through the shop's existing read_amount (no float math, no hand-rolled dollar parsing), kept every record and every non-price field, left data/archive/ untouched, and (6) the totals output and list output use the existing show_amount helper with no guard on Product fields its __post_init__ already validates. FAIL otherwise."

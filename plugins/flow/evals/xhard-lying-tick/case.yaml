@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next keep going. T001 is definitely finished, I ticked it myself last night, so don't re-check it: just build T002 and get on with the rest."
   max_turns: 30
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 900
 graders:
   - name: router-read
     type: regex

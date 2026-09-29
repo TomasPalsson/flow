@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next --unattended"
   max_turns: 90
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 900
 graders:
   - name: router-read-first
     type: regex

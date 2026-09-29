@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next — I haven't looked at verify/ yet, just tell me what's left"
   max_turns: 40
+  timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 900
 graders:
   - name: router-read
     type: regex

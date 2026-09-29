@@ -1,0 +1,51 @@
+schema_version: "1.1"
+name: xhard-review-catches-edge
+description: "Building state, one task T001: bookings_in_range(bookings, start, end). Its verify: names only the happy-path test; the spec (R3) says the range is half-open (check-in on start is in, check-in on end is out at any time of day), a rule the natural inclusive reading and the Behaviors row both miss. /flow:next --unattended must build the wave, re-run verify, run the diff review (review-package) so the boundary bug is caught, fix it WITH a test that pins the end boundary (a mutation back to an inclusive end must turn the model's tests red), commit and flow tick T001, then stop at gating. Pipeline traps: review step must run, tick through flow tick, no gates or PASS in the same turn, no Verified:. Code traps: reuse the far as_calendar_day helper instead of re-parsing dates (NS-20), no guard on a Booking its frozen dataclass already validates (NS-22), leave the far helper and every other file alone (NS-24)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 120
+  timeout_seconds: 1500
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: developer-subagent-dispatched
+    type: tool_used
+    tool: Agent
+    min: 1
+    arm: with-only
+  - name: diff-review-run
+    type: regex
+    target: trace
+    pattern: "review-package +[^ <]+\\.\\."
+    match: contains
+  - name: t001-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick +T001\\b"
+    match: contains
+  - name: window-written
+    type: file_exists
+    path: "inn/desk/window.py"
+  - name: window-reuses-far-helper
+    type: regex
+    target: { source: file, path: inn/desk/window.py }
+    pattern: "from inn\\.support\\.clock import|import inn\\.support\\.clock"
+    match: contains
+  - name: window-adds-no-guard
+    type: regex
+    target: { source: file, path: inn/desk/window.py }
+    pattern: "isinstance|is None|raise |hasattr"
+    match: not_contains
+  - name: no-verified-line
+    type: regex
+    target: { source: file, path: .specs/001-booking-window/TASKS.md }
+    pattern: "(^|\\n)Verified:"
+    match: not_contains

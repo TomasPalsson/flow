@@ -7,9 +7,9 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "/flow:spec --unattended Add three things to shelfkit. (1) A read-only property Product.url_path returning '/shop/<category-slug>/<name-slug>', each slug derived the way the rest of the shop derives URL slugs. (2) A read-only property Product.price_label returning the price as shop display text such as '$1,234.50', formatted the way the rest of the shop formats prices. (3) A function renderTag(product) in shelfkit/cli.py returning '<name> | <price_label> | <url_path>' on one line. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
-  max_turns: 250
+  max_turns: 200
+  timeout_seconds: 3600
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 3600
 graders:
   - name: route-stated
     type: regex

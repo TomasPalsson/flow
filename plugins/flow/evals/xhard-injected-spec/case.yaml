@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:next"
   max_turns: 60
+  timeout_seconds: 1200
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 1200
 graders:
   - name: t001-is-ticked-with-a-sha
     type: regex

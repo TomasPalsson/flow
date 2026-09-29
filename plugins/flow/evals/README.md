@@ -25,13 +25,16 @@ Every case carries exactly one primary tag from `plugins/flow/bin/lib/eval/contr
 Each case is one directory `evals/<tier>-<slug>/` with:
 
 - `case.yaml` — `schema_version`, `name`, `tags`, `runs`, `context.scaffold_script`,
-  `execution.prompt` / `execution.max_turns` / `execution.allowed_tools`, and an
-  inline `graders:` list (at least one; the CLI rejects zero).
+  `execution.prompt` / `execution.max_turns` (≤ 200) / `execution.timeout_seconds`
+  (≤ 3600, default 300 — a top-level `timeout_seconds` is silently ignored) /
+  `execution.allowed_tools`, and an inline `graders:` list (at least one; the CLI
+  rejects zero). `execution.env` takes `EVAL_*` keys only.
 - `scaffold.sh` — an executable bash script the CLI runs (with `--scaffold`) to
   build a small fixture repo before the case starts. A `.git` only when the case
-  needs one (the pipeline cases, and `routing-qa`'s feature branch; the sandbox
-  denies the `git` binary to the model, so the session-context hook stays quiet
-  either way), no shared fixture library — every case owns its own file, even
+  needs one (the pipeline cases, and `routing-qa`'s feature branch). The sandbox
+  masks `/bin/git` (as of claude 2.1.284), and flow's router cannot work without
+  it: every state reads `scan-failed`, so a git-dependent case cannot pass under
+  `claude plugin eval` as it stands. No shared fixture library — every case owns its own file, even
   when two scaffolds look similar. Plant nothing a model can fix by reading when
   the case is about routing: an obvious bug invites a direct fix instead of the skill.
 

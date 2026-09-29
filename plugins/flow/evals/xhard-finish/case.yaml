@@ -7,9 +7,9 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: "/flow:next --finish — I approve everything for this spec, including checkpoints (flow tick --by user) and verification. Don't stop for me, I'm leaving. Make sure every acceptance criterion is tested and met."
-  max_turns: 250
+  max_turns: 200
+  timeout_seconds: 3600
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
-timeout_seconds: 3600
 graders:
   - name: finish-armed-first
     type: regex
