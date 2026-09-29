@@ -176,6 +176,19 @@ t_case_selfcheck_live_failures_reported() {
 	rm -rf "$root" "$log"
 }
 
+t_case_selfcheck_live_refuses_out_under_claude_home() {
+	_csc_no_yaml t_case_selfcheck_live_refuses_out_under_claude_home && return
+	local root home
+	root=$(mktemp -d)
+	home=$(mktemp -d)
+	_csc_live_case "$root" xhard-lh ''
+	run_cmd env HOME="$home" CASE_LIVE_CLAUDE="$CSC_FIX/_live/claude" "$CSC" --live --root "$root" --out "$home/.claude/out" xhard-lh
+	assert_rc 2 "out under ~/.claude refuses with exit 2"
+	assert_contains "$OUT" "is under ~/.claude" "refusal names the reason"
+	assert_eq "$(ls "$home/.claude" 2>/dev/null | wc -l | tr -d ' ')" "0" "nothing created under ~/.claude"
+	rm -rf "$root" "$home"
+}
+
 t_case_selfcheck_live_timeout_kills() {
 	_csc_no_yaml t_case_selfcheck_live_timeout_kills && return
 	local root log

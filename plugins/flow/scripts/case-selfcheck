@@ -489,6 +489,12 @@ def live_main(root, names, opts):
     out_dir = opts["out"] or os.path.join(tempfile.gettempdir(),
                                           "case-live-%s" % time.strftime("%Y%m%d-%H%M%S"))
     out_dir = os.path.abspath(out_dir)
+    # Claude Code denies every write under ~/.claude in -p mode; a run there
+    # builds nothing and grades as a model failure (seen: 26 cases, 0 writes).
+    claude_home = os.path.realpath(os.path.join(os.path.expanduser("~"), ".claude"))
+    if (os.path.realpath(out_dir) + os.sep).startswith(claude_home + os.sep):
+        print("case-selfcheck: --out %s is under ~/.claude, where the agent cannot write — use a dir outside it (default: the system tmp dir)" % out_dir)
+        return 2
     os.makedirs(out_dir, exist_ok=True)
     print("case-selfcheck --live: out %s" % out_dir)
     cases = []
