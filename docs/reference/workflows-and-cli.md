@@ -119,6 +119,8 @@ Commands:
   tick <ID> [--dir <d>] [--by user] [--sha <c>]     The only writer of [x] — records the newest
                                                      commit since Base touching the task's files:
                                                      (or --sha), never a claim
+  finish <on|off|status|check>                      Arm /flow:next --finish for the active spec (FINISH.md);
+                                                     (check --hook is the Stop hook body)
   use <NNN-slug>                                    Point .specs/.current at one feature
   pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
                                                      for the active feature, 1 otherwise
