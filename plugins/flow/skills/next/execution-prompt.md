@@ -21,7 +21,7 @@ If the brief carries a `## Contract` block, it is **binding for RED**, where stu
 
 - Follow CLAUDE.md. Use the `Test:` command from the brief header, never a hardcoded one.
 - **Touch only the paths in `files:`.** Anything else you find goes in your report, not in a commit.
-- Commit after each sub-phase with a conventional message.
+- Commit after each sub-phase with a conventional message. Commit ONLY your own `files:`, with a pathspec commit — `git commit -m "<msg>" -- <each path in files:>` — never `git add -A` or `git add .`, and check `git show --name-only --format= HEAD` lists only your files. Parallel tasks share one working tree; a sweeping add lands their work in your commit.
 - **Never** tick your own box. `flow tick` is the only writer of `[x]`, and the orchestrator runs it.
 - **Never** edit a test to go green, skip it, xfail it, or lower a threshold to pass a gate. The Stop gate blocks the turn while gates are red and the tamper notice puts any weakening on the record — satisfy the check, do not suppress it. Formatting and file/function size are handled by hooks; do not spend a phase on them.
 - Browser or screenshot evidence goes into `<Feature>/verify/`. A verification claim with no file there does not count.
@@ -63,4 +63,4 @@ For browser work: `${CLAUDE_PLUGIN_ROOT}/skills/shared/claude-in-chrome-referenc
 
 ## 5. Report
 
-Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.
+Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. List every defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`; do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.

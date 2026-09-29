@@ -594,9 +594,18 @@ function route(root, ctx, opts) {
         { feature }));
     }
     const gateList = openGates.length ? openGates.map((g) => g.id).join(', ') : 'none unchecked';
+    const tickList = openGates.length ? openGates.map((g) => g.id).join(' ') : '<gate ids>';
     return done(mk('gating', '/flow:next',
-      `${doneWork} of ${totalWork} tasks done, gates open: ${gateList} — run them, then write PASS-${headSha || '<sha>'}.md`,
+      `${doneWork} of ${totalWork} tasks done, gates open: ${gateList} — run them, write PASS-${headSha || '<sha>'}.md, then flow tick ${tickList}`,
       { feature }));
+  }
+
+  // A green PASS with a G### still open is not done: the gates are ticked by
+  // flow tick, and ticking only touches the feature dir, so the PASS stays valid.
+  if (openGates.length) {
+    const ids = openGates.map((g) => g.id).join(' ');
+    return done(mk('gating', '/flow:next',
+      `${cover.pass} is green; tick the gates: flow tick ${ids}`, { feature }));
   }
 
   // ── 9 · unverified. HARD GATE — the second stored human fact.

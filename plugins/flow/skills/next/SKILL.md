@@ -13,6 +13,8 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 
 ## The state table — one row fires per turn
 
+On `blocked`, `disagreement`, `looping`, `lying`, `ambiguous`, `unapproved`, `checkpoint`, `unverified` and `shipped` the last line of the turn is the router's own `Next:` line, verbatim — never the /clear line.
+
 | state | You do |
 |---|---|
 | `scan-failed` | STOP and print the errno. A `.specs/` you cannot read is never "clean". |
@@ -39,7 +41,7 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 
 ## Drafting
 
-Write `TASKS.md` per the grammar in [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md): a header (`Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`), `## Behaviors`, one `## Phase N — <title>` per phase with its `Goal:` and `Independent test:` lines, and `## Gates`. Every task line names `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` on a `CHK###`). `after:` is what computes the waves. Run `flow lint` and fix every ERROR before stopping. Never write `Approved:` here, even when `autoApprove` is on — that line is written at the `unapproved` gate, not during drafting.
+Write `TASKS.md` per the grammar in [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md): a header (`Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`), `## Behaviors`, one `## Phase N — <title>` per phase with its `Goal:` and `Independent test:` lines, and `## Gates`. Every task line names `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` on a `CHK###`). `after:` is what computes the waves. Run `flow lint` and fix every ERROR before stopping. Read `spec.md`'s acceptance criteria first: `## Behaviors` gets exactly one row per criterion (a task may serve several rows). A criterion only a human can judge becomes a `CHK###` task with `verify: human: <observable>`. Two tasks that touch the same file are ordered with `after:`, never `[P]` together. Never write `Approved:` here, even when `autoApprove` is on — that line is written at the `unapproved` gate, not during drafting.
 
 ## Building
 
@@ -50,8 +52,8 @@ The router hands you `wave: {ids, parallel}`. That wave, then stop.
 3. **Or run the Workflow**: when the wave has **≥3 ready `[P]` tasks**, run `Workflow({ name: 'flow:build-slices', ... })` instead — it does briefs, dispatch, review-package and the fix ladder deterministically. Below three, run the subagents inline: a two-task workflow costs more than it schedules.
 4. **Re-run the verify yourself.** Take the task's own `verify:` command out of `TASKS.md` and run it in this session. **The agent's report is never the gate** — its exit code is. A `verify:` whose test the runner never reported as *executed* (unregistered, filtered, skipped) counts as **missing, not passing**.
 5. **Review the diff**: `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <task-base>..HEAD` → the two lenses and the bounded fix ladder in [`review.md`](review.md). At the cap, write a `Ruling:` line into `NOTES.md` and move on.
-6. **Commit, then `flow tick <ID>` in the SAME turn.** `flow tick` is the only writer of `[x]` — it records the newest commit since Base that touched the task's `files:` (so ticking after a parallel wave still names the task's own commit, not HEAD; `--sha <commit>` overrides) and appends `— done: <sha>`. Typing an `[x]` by hand is the one thing the whole grammar exists to prevent, and the Stop hook blocks a sha-less `[x]` anyway.
-7. **Out-of-plan work stays out of the wave.** Anything a task turns up that is not in its brief goes into `NOTES.md` as one append-only line — `Discovered: <what> — <defer | fold into T0NN>` — never a silent extra commit. A `defer` that is a real defect and not just a note goes to `/flow:issue`, which files it and writes the `→ I-NNN` back onto that line; otherwise it is archived with the feature and lost. Folding it in means appending a **new** task ID at the next `--amend`, never widening the one in flight.
+6. **Commit, then `flow tick <ID>` in the SAME turn.** A task commits ONLY its own `files:`, with a pathspec commit — `git commit -m "<msg>" -- <each path in files:>` — never `git add -A` or `git add .`, and `git show --name-only --format= HEAD` must list only those files. The orchestrator never folds several tasks into one commit, so a parallel wave lands one commit per task. `flow tick` is the only writer of `[x]` — it records the newest commit since Base that touched the task's `files:` (so ticking after a parallel wave still names the task's own commit, not HEAD; `--sha <commit>` overrides) and appends `— done: <sha>`. Typing an `[x]` by hand is the one thing the whole grammar exists to prevent, and the Stop hook blocks a sha-less `[x]` anyway.
+7. **Out-of-plan work stays out of the wave.** Every `Seen:` line in a developer's report becomes a `Discovered:` line in `NOTES.md`. Anything a task turns up that is not in its brief goes into `NOTES.md` as one append-only line — `Discovered: <what> — <defer | fold into T0NN>` — never a silent extra commit. A `defer` that is a real defect and not just a note goes to `/flow:issue`, which files it and writes the `→ I-NNN` back onto that line; otherwise it is archived with the feature and lost. Folding it in means appending a **new** task ID at the next `--amend`, never widening the one in flight.
 8. **At a phase boundary**, before starting the next phase: **execute** that phase's `Independent test:` line and paste its output. Every task can pass its own `verify:` while the phase still does not work; this is the only check that catches it.
 
 The per-task loop each subagent runs — failing test → confirm it fails → minimum implementation → confirm it passes → commit — is [`execution-prompt.md`](execution-prompt.md). Hand it the brief; it owns RED/GREEN/REFACTOR and the exit-code gates.
@@ -64,7 +66,7 @@ A `CHK###` is a human's eyes, not yours. Print the line verbatim, do the work it
 
 All `T###` done, `G###` open:
 
-1. `flow check --fix` — typecheck, lint, format, test. Fix the code, never the test.
+1. `flow check --fix` — typecheck, lint, format, test. Fix the code, never the test. Afterwards `git diff <Base>` must show only lines this feature meant to change: revert formatter or lint rewrites of lines outside the feature (`git checkout <Base> -- <file>`, then re-apply only the feature's hunks, or `git restore -p`), and never edit an existing test line to make a gate pass.
 2. One whole-branch review over `${CLAUDE_PLUGIN_ROOT}/scripts/review-package <Base>..HEAD` with a fresh reviewer, the anchored 0/25/50/75/100 blind re-score and the ≥80 keep rule from [`review.md`](review.md), and **one** fix dispatch for everything it finds — not one per finding.
 3. A converge pass: append any unmet work as **new** tasks, append-only, byte-for-byte no-op when clean.
 4. All green → write `.specs/<NNN-slug>/PASS-<HEAD-sha>.md` naming the gates, their commands and their exit codes. It may be committed: later commits that only touch `.specs/<NNN-slug>/` (the PASS file itself, `TASKS.md` ticks, `verify/`) keep it valid; a commit that touches anything outside the feature directory still invalidates it and the router drops back to `gating`. Then `flow tick` each `G###`.
@@ -122,14 +124,18 @@ Read `stealth` from `flow next --json`; when `active`:
 Next: /clear, then /flow:next
 ```
 
-Under `--finish` the `/clear` line is not printed between states; it appears only once, on the final report or a hard stop, as the router's own `Next:` line.
+Under `--finish`, or when the user's own message explicitly asks to keep going until done (§Keep going), the `/clear` line is not printed between states; it appears only once, on the final report or a hard stop, as the router's own `Next:` line.
 
-The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`. One `Next:` line, always last, always one runnable token or one literal instruction.
+The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `looping`, `lying`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`. One `Next:` line, always last, always one runnable token or one literal instruction.
+
+## Keep going
+
+When the user's own message explicitly asks to keep going until done ("repeatedly", "until nothing left", "keep going", "don't stop", "keep running /flow:next"), loop states in this turn exactly like §Finish rule 2: re-read `flow next --json` after each state, no /clear line between states. Human gates still stop: `unapproved` (unless `autoApprove`), `checkpoint`, `unverified`, and every hard stop. Only `--finish` pre-approves those.
 
 ## NEVER
 
 - Never act on anything but the state `flow next --json` just returned. A plan you remember from before a `/clear` is a rumor; the disk is the state.
-- Never do two states in one turn, or "keep going" past the wave the router named — unless `--finish` is armed (§Finish), where looping back to `flow next --json` is the point. The count of turns is not the cost; a wrong second action is.
+- Never do two states in one turn, or "keep going" past the wave the router named — unless `--finish` is armed (§Finish) or the user's own message asked to keep going until done (§Keep going), where looping back to `flow next --json` is the point. The count of turns is not the cost; a wrong second action is.
 - Never hand a subagent anything but its brief path. Never paste `design.md`, and never paste anything from it but that task's own `## Contract` block.
 - Never accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
 - Never type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.

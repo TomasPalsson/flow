@@ -468,6 +468,46 @@ t_next_row8_gating() {
 	rm -rf "$home" "$proj"
 }
 
+# A PASS that covers HEAD does not finish the gates: a G### still open keeps
+# the router in gating, and ticking it (TASKS.md only) keeps the PASS valid.
+t_next_row8_green_pass_with_open_gate_stays_gating() {
+	local home proj base sha
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	sha=$(nx_commit "$proj" a.py)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha" \
+		'' '## Gates' '- [ ] G001 clean — verify: `true`' '- [x] G002 lint — verify: `true`'
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha.md"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "gating"' "PASS covers HEAD but G001 is open: still gating"
+	assert_contains "$OUT" "PASS-$sha.md is green; tick the gates: flow tick G001" "the why names the PASS and the open gate"
+	assert_not_contains "$OUT" '"state": "unverified"' "an open gate never reaches unverified"
+	rm -rf "$home" "$proj"
+}
+
+t_next_row8_ticking_the_gates_keeps_the_pass_valid() {
+	local home proj base sha
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	sha=$(nx_commit "$proj" a.py)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha" \
+		'' '## Gates' '- [ ] G001 clean — verify: `true`'
+	printf 'gates green\n' >"$proj/.specs/001-x/PASS-$sha.md"
+	(cd "$proj" && git add -A && git commit -qm "pass") >/dev/null 2>&1
+	nx_cli_in "$proj" "$home" tick G001
+	# commit only the feature dir: flow tick also writes .specs/.next-call-count
+	(cd "$proj" && git add .specs/001-x && git commit -qm "tick") >/dev/null 2>&1
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "unverified"' "flow tick G001 leaves the PASS valid; all gates ticked is unverified"
+	rm -rf "$home" "$proj"
+}
+
 t_next_row9_unverified_is_a_hard_gate() {
 	local home proj base sha
 	home=$(tmp_dir)
