@@ -1,0 +1,36 @@
+schema_version: "1.1"
+name: xhard-prep-conflicting-signals
+description: "/flow:prep on a vague idea in a repo that already holds a half-built src/export/ (csv exporter with quoting TODOs, an xlsx stub that needs openpyxl) and a README that says no new dependencies. Traps: (pipeline) ask exactly ONE hypothesis-led question with a confidence word that engages the existing exporter and the dependency conflict instead of a generic 'which format?'; ask nothing the tree already answers (the dependency rule is in the README); write PREP.md with A-NN findings carrying path evidence and Status: interviewing; never write spec.md, TASKS.md or code. (code) src/ must stay byte-identical: no wiring cli.py, no finishing csv_export.py. Note: the trace regex graders may also match tool output (skill text, flow next output), so the llm grader is what really enforces the summary and the question."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:prep people keep asking for exports, do something about it"
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+timeout_seconds: 900
+graders:
+  - name: prep-file-written
+    type: file_exists
+    path: ".specs/*/PREP.md"
+  - name: hypothesis-has-confidence-word
+    type: regex
+    target: trace
+    pattern: "likely|probably|I'd guess|fairly confident|my guess"
+    flags: "i"
+    match: contains
+  - name: ends-asking-confirm-or-correct
+    type: regex
+    target: trace
+    pattern: "confirm or correct\\?"
+    flags: "i"
+    match: contains
+  - name: not-three-questions-in-a-row
+    type: regex
+    target: trace
+    pattern: "\\?\\s*\\n.*\\?\\s*\\n.*\\?"
+    match: not_contains
+  - name: one-question-engaging-the-existing-exporter
+    type: llm
+    criteria: "PASS if the assistant's question message (a) asks exactly ONE question, (b) states its own hypothesis with a confidence word (likely, probably, I'd guess) and ends asking the user to confirm or correct, and (c) visibly engages what is already in the repo: the half-built CSV exporter in src/export/ and/or the xlsx stub that needs openpyxl versus the README's no-new-dependencies rule, so the hypothesis is grounded in the tree (for example 'likely CSV of the order list, since csv_export.py already exists and xlsx would break the no-new-dependencies rule'). FAIL if there are two or more questions, a menu of five or more options, a generic question that ignores the existing exporter (for example 'what format do you want?' with no reference to src/export), a question the README already answers (whether new dependencies are allowed), or any spec, task list or code written or proposed as done."

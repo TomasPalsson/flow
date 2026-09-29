@@ -413,9 +413,18 @@ function route(root, ctx, opts) {
     scan_failed: false,
     consecutive_calls: 0,
   };
+  // finish: armed when the active feature carries a FINISH.md. Lazy, because
+  // done() also runs on rows that fire before the feature is resolved.
+  const finishInfo = () => {
+    const slug = (resolveFeature(root, branch, env) || {}).slug;
+    if (!slug) return { armed: false, file: null };
+    const rel = path.join('.specs', slug, 'FINISH.md');
+    return fs.existsSync(path.join(root, rel)) ? { armed: true, file: rel } : { armed: false, file: rel };
+  };
   const done = (r) => {
     r.gates = gates;
     r.stealth = { active: st.active, store: st.store, suggest: false, reasons: [] };
+    r.finish = finishInfo();
     return r;
   };
 

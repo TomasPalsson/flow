@@ -18,6 +18,20 @@ Registered on both the `Bash` and `Edit|Write|NotebookEdit` matcher groups. Warn
 
 Escape hatch: `flow off` for the directory (via `hook_skip_if_off`).
 
+## finish-gate.sh
+
+```
+finish-gate.sh — Stop hook for /flow:next --finish.
+```
+
+Fast path: exits 0 with no output when no `.specs/*/FINISH.md` exists, so a
+repo that never armed finish mode never spawns node on Stop. When one exists,
+it runs `flow finish check --hook --session <id>` and prints that command's
+stdout verbatim: a block while the armed spec sits in a work state (drafting
+through shippable), silence on a hard stop, auto-disarm once the spec is done,
+and a release after 3 identical blocks with no progress. Registered after
+`loop-gate.sh`.
+
 ## format-lint.sh
 
 ```

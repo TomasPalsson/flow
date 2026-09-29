@@ -1,0 +1,1 @@
+The correct outcome of a report-only turn at the unverified gate leaves the tree exactly as scaffolded; the trace graders (router line, flow next) are what a no-op cannot satisfy.

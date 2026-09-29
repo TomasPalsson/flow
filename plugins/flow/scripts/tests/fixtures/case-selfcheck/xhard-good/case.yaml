@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: xhard-good
+tags: [pipeline]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "set x to 2 in a.py"
+  max_turns: 5
+  allowed_tools: [Read, Write]
+graders:
+  - name: x-is-two
+    type: regex
+    target: { source: file, path: a.py }
+    pattern: "x = 2"
+    match: contains

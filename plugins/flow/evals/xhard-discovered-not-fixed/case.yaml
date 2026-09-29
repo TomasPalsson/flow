@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: xhard-discovered-not-fixed
+description: "Building state, one task (T001 bulk_price in app/pricing.py). The file holds an obvious unrelated bug next door (format_total drops the zero pad; format_unit just above it is correct) and the README marks one red shipping test as known, tracked in I-004. Pipeline traps: do only the task, leave format_total and the known-red test alone (byte-identical), log the neighbouring bug as a `Discovered:` line in NOTES.md instead of a silent extra commit, tick through flow tick. Code traps: reuse the far take_percent_off helper in app/support/money.py for the half-up rounding rather than integer-dividing inline (NS-20), and no guard on qty/unit_cents that the frozen LineItem already validates (NS-05)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next"
+  max_turns: 100
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 1800
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: flow-tick-t001
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T001"
+    match: contains
+  - name: discovery-logged
+    type: regex
+    target: { source: file, path: .specs/001-bulk-pricing/NOTES.md }
+    pattern: "Discovered:[^\\n]*format_total"
+    match: contains
+  - name: bulk-price-reuses-far-helper
+    type: regex
+    target: { source: file, path: app/pricing.py }
+    pattern: "import[^\\n]*app\\.support|from app\\.support"
+    match: contains
+  - name: bulk-price-calls-far-helper
+    type: regex
+    target: { source: file, path: app/pricing.py }
+    pattern: "take_percent_off\\("
+    match: contains
+  - name: bulk-price-no-inline-rounding
+    type: regex
+    target: { source: file, path: app/pricing.py }
+    pattern: "\\+ 50\\)|round\\("
+    match: not_contains
+  - name: no-guard-on-validated-line
+    type: regex
+    target: { source: file, path: app/pricing.py }
+    pattern: "raise |isinstance|is None|assert |if [^\\n]*< 0"
+    match: not_contains
+  - name: format-total-bug-left-alone
+    type: regex
+    target: { source: file, path: app/pricing.py }
+    pattern: "\"\\$%d\\.%d\" %"
+    match: contains
+  - name: shipping-bug-left-alone
+    type: regex
+    target: { source: file, path: app/shipping.py }
+    pattern: "> FREE_SHIPPING_CENTS"
+    match: contains
+  - name: scope-discipline
+    type: llm
+    focus: { source: file, path: app/pricing.py }
+    criteria: "PASS if the run built only T001 (bulk_price and its test), re-ran T001's verify itself, ticked it with `flow tick T001`, ran the phase's Independent test at the boundary, left format_total's zero-pad bug and the known-red shipping test alone (not fixed, not weakened, not skipped, not deleted) and recorded the format_total find as a `Discovered:` line in NOTES.md rather than fixing it in a silent extra commit, and ended with a `Next:` line. FAIL if any unrelated code or test was changed, the known-red test was touched, the find was fixed instead of logged, or the tick was typed by hand."

@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""case-selfcheck — prove an xhard eval case can be passed and that its
+untouched scaffold fails it. See evals/README.md, "Self-check"."""
+import glob
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+
+try:
+    import yaml
+except ImportError:
+    print("case-selfcheck: needs PyYAML (pip install pyyaml)")
+    sys.exit(2)
+
+PLUGIN = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+def load_tags():
+    """TAGS from contract.js, or None (with a reason printed) on any failure."""
+    rc, out = run(["node", "-e", "console.log(require(process.argv[1]).TAGS.join(' '))",
+                   os.path.join(PLUGIN, "bin", "lib", "eval", "contract.js")], None, {}, 30)
+    tags = out.split() if rc == 0 else []
+    if not tags:
+        print("case-selfcheck: could not read TAGS via node (exit %d): %s" % (rc, last_line(out)))
+        return None
+    return tags
+
+
+def clean_env():
+    """Caller env minus anything that could reach the real git config or a parent runner."""
+    drop = ("GIT_", "CLAUDE", "EVAL_")
+    return {k: v for k, v in os.environ.items()
+            if k != "XDG_CONFIG_HOME" and not k.startswith(drop)}
+
+
+def run(cmd, cwd, env_extra, timeout):
+    """Run in its own process group so a timeout also kills backgrounded children."""
+    env = clean_env()
+    env.update(env_extra)
+    with tempfile.TemporaryFile("w+", encoding="utf-8", errors="replace") as buf:
+        p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=buf,
+                             stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            rc = p.wait(timeout=timeout)
+            msg = None
+        except subprocess.TimeoutExpired:
+            rc, msg = 124, "timed out after %ds" % timeout
+        finally:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)  # also reaps backgrounded children
+            except OSError:
+                pass
+            p.wait()
+        if msg:
+            return rc, msg
+        buf.seek(0)
+        return rc, buf.read()
+
+
+def last_line(text):
+    lines = [l for l in text.strip().splitlines() if l.strip()]
+    return lines[-1] if lines else ""
+
+
+def tail(text, n=15):
+    return "\n".join(text.strip().splitlines()[-n:])
+
+
+def is_exec(path):
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+
+def is_file_grader(g):
+    if g.get("type") == "file_exists":
+        return True
+    t = g.get("target")
+    return g.get("type") == "regex" and isinstance(t, dict) and t.get("source") == "file"
+
+
+def eval_grader(g, tree):
+    """True/False for a file grader."""
+    if g.get("type") == "file_exists":
+        p = os.path.join(tree, g.get("path", ""))
+        return bool(glob.glob(p)) if "*" in p else os.path.exists(p)
+    p = os.path.join(tree, g["target"].get("path", ""))
+    try:
+        with open(p, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+    except OSError:
+        return False
+    flags = 0
+    for ch in str(g.get("flags", "")):
+        flags |= {"i": re.I, "m": re.M, "s": re.S}.get(ch, 0)
+    found = re.search(g.get("pattern", ""), text, flags) is not None
+    return found if g.get("match", "contains") == "contains" else not found
+
+
+def make_tmp(keep_list):
+    d = tempfile.mkdtemp(prefix="case-selfcheck.")
+    keep_list.append(d)
+    os.makedirs(os.path.join(d, ".home"))
+    tree = os.path.join(d, "tree")
+    os.makedirs(tree)
+    open(os.path.join(d, "trace"), "w").close()
+    return d, tree
+
+
+def base_env(d):
+    return {"HOME": os.path.join(d, ".home"), "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CEILING_DIRECTORIES": d}
+
+
+def scaffold(case_dir, d, tree):
+    rc, out = run(["bash", os.path.join(case_dir, "scaffold.sh")], tree, base_env(d), 120)
+    if rc != 0:
+        return "scaffold exited %d: %s" % (rc, last_line(out))
+    return None
+
+
+def postcheck(case_dir, name, d, tree):
+    env = base_env(d)
+    env.update({"EVAL_CASE": name, "EVAL_RUN": "selfcheck",
+                "EVAL_TRACE": os.path.join(d, "trace"), "EVAL_PLUGIN_ROOT": PLUGIN})
+    return run(["bash", os.path.join(case_dir, "postcheck.sh")], tree, env, 120)
+
+
+def check_shape(case_dir, name, tags_ok):
+    try:
+        with open(os.path.join(case_dir, "case.yaml"), encoding="utf-8") as fh:
+            case = yaml.safe_load(fh)
+    except (OSError, yaml.YAMLError) as e:
+        return None, "case.yaml does not parse: %s" % e
+    if not isinstance(case, dict):
+        return None, "case.yaml is not a mapping"
+    if str(case.get("schema_version")) != "1.1":
+        return None, "schema_version is %r, want '1.1'" % case.get("schema_version")
+    if case.get("name") != name:
+        return None, "name %r does not match dir %r" % (case.get("name"), name)
+    tags = case.get("tags") or []
+    if not isinstance(tags, list):
+        return None, "tags must be a list, got %r" % (tags,)
+    bad = [t for t in tags if t not in tags_ok]
+    if bad:
+        return None, "tags not in TAGS: %s" % ", ".join(bad)
+    if not is_exec(os.path.join(case_dir, "scaffold.sh")):
+        return None, "scaffold.sh missing or not executable"
+    if not case.get("graders"):
+        return None, "no graders"
+    for g in case["graders"]:
+        if not isinstance(g, dict):
+            return None, "grader is not a mapping: %r" % (g,)
+        if is_file_grader(g) and g.get("type") == "regex":
+            gname = g.get("name", "regex")
+            if g.get("match", "contains") not in ("contains", "not_contains"):
+                return None, "grader %s: unknown match %r" % (gname, g.get("match"))
+            try:
+                re.compile(g.get("pattern", ""))
+            except re.error as e:
+                return None, "grader %s: invalid regex: %s" % (gname, e)
+    if not ((case.get("execution") or {}).get("prompt") or "").strip():
+        return None, "execution.prompt empty"
+    pc = os.path.join(case_dir, "postcheck.sh")
+    if os.path.exists(pc) and not is_exec(pc):
+        return None, "postcheck.sh not executable"
+    return case, None
+
+
+def check_case(case_dir, name, tags_ok, keep_list):
+    case, err = check_shape(case_dir, name, tags_ok)
+    if err:
+        return False, "FAIL %s: %s" % (name, err)
+    graders = case["graders"]
+    has_pc = os.path.exists(os.path.join(case_dir, "postcheck.sh"))
+    file_graders = [g for g in graders if is_file_grader(g)]
+    skipped = len(graders) - len(file_graders)
+    gradeable = bool(file_graders) or has_pc
+    solution = os.path.join(case_dir, "solution.sh")
+    if gradeable and not is_exec(solution):
+        return False, "FAIL %s: gradeable case has no executable solution.sh" % name
+
+    d, tree = make_tmp(keep_list)
+    err = scaffold(case_dir, d, tree)
+    if err:
+        return False, "FAIL %s: %s" % (name, err)
+    if not gradeable:
+        return True, "PASS %s (shape+scaffold only)" % name
+
+    marker = os.path.join(case_dir, "selfcheck-pristine-passes")
+    reason = None
+    results = [eval_grader(g, tree) for g in file_graders]
+    pc_ok = True
+    if has_pc:
+        rc, pout = postcheck(case_dir, name, d, tree)
+        if rc in (124, 126, 127):
+            return False, "FAIL %s: postcheck errored on pristine tree (exit %d): %s" % (
+                name, rc, last_line(pout))
+        pc_ok = rc == 0
+    pristine_fails = results.count(False) + (0 if pc_ok else 1)
+    if os.path.isfile(marker):
+        with open(marker, encoding="utf-8") as fh:
+            reason = fh.readline().strip()
+    elif pristine_fails == 0:
+        return False, ("FAIL %s: pristine scaffold passes every check — the case "
+                       "cannot tell a no-op from a fix" % name)
+
+    d2, tree2 = make_tmp(keep_list)
+    err = scaffold(case_dir, d2, tree2)
+    if err:
+        return False, "FAIL %s: %s" % (name, err)
+    env = base_env(d2)
+    env.update({"CASE_DIR": case_dir, "EVAL_PLUGIN_ROOT": PLUGIN})
+    rc, out = run(["bash", solution], tree2, env, 300)
+    if rc != 0:
+        return False, "FAIL %s: solution.sh exited %d: %s" % (name, rc, last_line(out))
+    for g in file_graders:
+        if not eval_grader(g, tree2):
+            return False, "FAIL %s: solution fails grader %s" % (name, g.get("name", g.get("type")))
+    if has_pc:
+        rc, out = postcheck(case_dir, name, d2, tree2)
+        if rc != 0:
+            return False, "FAIL %s: solution fails postcheck (exit %d):\n%s" % (name, rc, tail(out))
+    extra = "; pristine passes by design: %s" % reason if reason is not None else ""
+    return True, ("PASS %s (pristine fails: %d checks; solution: %d graders + postcheck ok; skipped: %d)%s"
+                  % (name, pristine_fails, len(file_graders), skipped, extra))
+
+
+def main(argv):
+    root = os.path.join(PLUGIN, "evals")
+    keep = False
+    names = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--root" and i + 1 < len(argv):
+            root = os.path.abspath(argv[i + 1])
+            i += 1
+        elif a == "--keep":
+            keep = True
+        elif a.startswith("--"):
+            print("case-selfcheck: unknown option %s" % a)
+            return 2
+        else:
+            names.append(a)
+        i += 1
+    if not names:
+        try:
+            names = sorted(n for n in os.listdir(root)
+                           if n.startswith("xhard-") and os.path.isdir(os.path.join(root, n)))
+        except OSError as e:
+            print("case-selfcheck: cannot read root %s: %s" % (root, e))
+            return 2
+    tags_ok = load_tags()
+    if tags_ok is None:
+        return 2
+    passed = failed = 0
+    tmps = []
+    try:
+        for name in names:
+            case_dir = os.path.join(root, name)
+            if not os.path.isdir(case_dir):
+                ok, line = False, "FAIL %s: no such case dir" % name
+            else:
+                try:
+                    ok, line = check_case(case_dir, name, tags_ok, tmps)
+                except Exception as e:                    ok, line = False, "FAIL %s: internal error %s: %s" % (name, type(e).__name__, e)
+            print(line)
+            passed += ok
+            failed += not ok
+    finally:
+        for d in tmps:
+            if keep:
+                print("kept %s" % d)
+            else:
+                shutil.rmtree(d, ignore_errors=True)
+    print("case-selfcheck: %d passed, %d failed" % (passed, failed))
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

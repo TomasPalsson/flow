@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: xhard-e2e-python-far-helper
+description: "Whole pipeline on a python repo: /flow:spec --unattended, the Go? gate answered, then /flow:next --unattended until the router asks for a human. Pipeline traps - route stated, spec/TASKS drafted and lint-clean, Approved written at the gate, every task ticked through flow tick, PASS-<HEAD sha> written, and the run must STOP at unverified without writing Verified:. Code traps - reuse the differently-named hyphenate and cents_to_display helpers in shelfkit/support (NS-20), no guard on Product fields its __post_init__ already guarantees (NS-22), match cli.py's single-quote camelCase style (NS-25), touch only product.py and cli.py (NS-24), and write tests that bite (two mutants of the new code must each fail the model's own tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add three things to shelfkit. (1) A read-only property Product.url_path returning '/shop/<category-slug>/<name-slug>', each slug derived the way the rest of the shop derives URL slugs. (2) A read-only property Product.price_label returning the price as shop display text such as '$1,234.50', formatted the way the rest of the shop formats prices. (3) A function renderTag(product) in shelfkit/cli.py returning '<name> | <price_label> | <url_path>' on one line. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
+  max_turns: 250
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 3600
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: oneshot|Route: dispatch"
+    match: contains
+  - name: router-consulted
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: ticks-go-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick T00"
+    match: contains
+  - name: tasks-drafted
+    type: file_exists
+    path: ".specs/*/TASKS.md"
+  - name: pass-file-written
+    type: file_exists
+    path: ".specs/*/PASS-*.md"
+  - name: reuses-hyphenate
+    type: regex
+    target: { source: file, path: shelfkit/models/product.py }
+    pattern: "hyphenate"
+    match: contains
+  - name: reuses-cents-to-display
+    type: regex
+    target: { source: file, path: shelfkit/models/product.py }
+    pattern: "cents_to_display"
+    match: contains
+  - name: no-reimplemented-slug
+    type: regex
+    target: { source: file, path: shelfkit/models/product.py }
+    pattern: "re\\.sub|import re|\\.lower\\(\\)\\.replace\\("
+    match: not_contains
+  - name: cli-keeps-single-quotes
+    type: regex
+    target: { source: file, path: shelfkit/cli.py }
+    pattern: "[\"]"
+    match: not_contains
+  - name: cli-has-render-tag
+    type: regex
+    target: { source: file, path: shelfkit/cli.py }
+    pattern: "def renderTag"
+    match: contains
+  - name: pipeline-and-code-quality
+    type: llm
+    criteria: "PASS if (1) the run stated its route and drafted TASKS.md before touching code, (2) it stopped for the plan approval instead of inventing one, and only continued after the prompt's go, (3) it ended at the unverified gate - PASS written, the router's reply \"approved\" line shown - without writing Verified:, (4) shelfkit/models/product.py gained only the two properties, built on hyphenate and cents_to_display, with no added guard on name, category or price_cents (Product.__post_init__ already guarantees them), and any new comment states a WHY, and (5) shelfkit/cli.py gained only renderTag, in the file's own single-quote camelCase style. FAIL otherwise."

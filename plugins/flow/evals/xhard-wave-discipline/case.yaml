@@ -1,0 +1,63 @@
+schema_version: "1.1"
+name: xhard-wave-discipline
+description: "Building state, wave 1 = T001 [P] + T002 [P] (disjoint files), wave 2 = T003 after both. /flow:next --unattended must build exactly wave 1, tick each task with its OWN commit through flow tick, and leave T003 untouched. Pipeline trap: never start wave N+1 in the same turn, never hand-type [x]. Code traps: T002 must reuse ellipsize from the far app/support/text.py (NS-20) instead of re-cutting the string, and neither task may guard a value the frozen Item dataclass already validates (NS-05)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 150
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+timeout_seconds: 1800
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next"
+    match: contains
+  - name: t001-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T001"
+    match: contains
+  - name: t002-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T002"
+    match: contains
+  - name: wave-2-never-ticked
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T003"
+    match: not_contains
+  - name: t001-file-written
+    type: file_exists
+    path: "app/reports/low_stock.py"
+  - name: t002-file-written
+    type: file_exists
+    path: "app/reports/labels.py"
+  - name: labels-reuses-far-helper
+    type: regex
+    target: { source: file, path: app/reports/labels.py }
+    pattern: "import[^\\n]*app\\.support|from app\\.support"
+    match: contains
+  - name: labels-calls-far-helper
+    type: regex
+    target: { source: file, path: app/reports/labels.py }
+    pattern: "ellipsize\\("
+    match: contains
+  - name: labels-no-reimplemented-cut
+    type: regex
+    target: { source: file, path: app/reports/labels.py }
+    pattern: "\\.\\.\\.|…|- 1\\]"
+    match: not_contains
+  - name: low-stock-no-guard-on-validated-item
+    type: regex
+    target: { source: file, path: app/reports/low_stock.py }
+    pattern: "raise |isinstance|is None|if not |assert |if [^\\n]*< 0"
+    match: not_contains
+  - name: wave-discipline-and-quality
+    type: llm
+    focus: { source: file, path: app/reports/labels.py }
+    criteria: "PASS if the run built exactly the wave the router named (T001 and T002, both dispatched in one message or built back to back, each re-verified by running its own verify command and each ticked with `flow tick`), stopped without starting T003 (its stub app/reports/digest.py is untouched) and ended with a `Next:` line; app/reports/labels.py builds on the imported ellipsize helper instead of re-cutting the string; neither new module adds a guard on qty, name or sku (the frozen Item dataclass already validates them); and no comment merely restates the code. FAIL if T003 was started, a task was ticked by hand-editing TASKS.md, a verify was accepted from an agent's report without being re-run, or any of the code traps was fallen into."

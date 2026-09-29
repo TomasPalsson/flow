@@ -17,6 +17,7 @@ Every case carries exactly one primary tag from `plugins/flow/bin/lib/eval/contr
 | `routing` | The right skill fires for a plain-language request, and the wrong ones don't; two negative cases prove nothing fires when nothing should | `tool_used` graders are `arm: with-only` — a plugin-fired indicator, not part of the baseline-vs-plugin score |
 | `invariant` | A promise the plugin makes holds regardless of the specific skill: reproduce before fixing, never weaken a test to make it pass, don't claim completion without having verified | both, unless the check only makes sense with the plugin |
 | `pipeline` | The full `/flow:spec` → `/flow:next` pipeline end to end on a fixture, graded on the artifacts and code it produces, not just whether a skill fired: `flow-feature` (`/flow:spec --unattended` then `/flow:next --unattended` repeatedly, unattended build, graded on the route being stated and a real regression test written for the new properties — not a fixed `.specs/` artifact path, since the route it takes decides whether one exists at all), `fix-bug` (patches a bug, graded on the patched source and a mutation post-check that re-introduces the bug to prove the new test bites), `far-helper` (the same unattended pipeline on a repo whose slug helper is called `to_kebab` and lives in `app/support/` — found by its package or its body, never by its name), `spec-first-turn` (its one batched discovery turn states the route and offers every pre-answered position in the same message), `spec-only` (`/flow:spec --unattended` in one shot — no resumed transcript, since the route's approval gate never scales down — graded on what it writes or says and that it never lands the change itself), `prep-first-turn` (first turn asks exactly one hypothesis-led question; writing `PREP.md` before that question is prep's designed behaviour and must not count against it), `prep-resume-seed` (a bare `/flow:prep` with a `/flow:develop-idea` seed PREP.md on disk resumes that seed instead of asking for the idea) | `--ablation none`, one run each; the pipeline output itself is the point |
+| `xhard` | The hardest tier, aimed at the full flow pipeline (prep → spec → next → build waves → phase tests → gates → PASS → verify, plus one `/flow:next --finish` run), run with `--ablation none`: every case stacks two or more traps, grades behaviour with hidden tests the model never sees (`hidden/`, run by `postcheck.sh`), and ships a `solution.sh` that `scripts/case-selfcheck` uses to prove the case can be passed and that the untouched scaffold fails it. | both, unless the case says otherwise |
 | `needs-bash` | Secondary tag on any case that grants the `Bash` tool; skipped with a notice when `socat` is absent | — |
 
 ## Case shape
@@ -48,6 +49,32 @@ prints `postcheck <case> <pass>/<total>`). The standard shape for a quality
 case is `slop-check --all-lines --files <path>...` (no git needed; every line
 of each listed file counts as added) `--strict`, run against the file(s) the
 task should touch.
+
+## Self-check
+
+`plugins/flow/scripts/case-selfcheck [--root <evals-dir>] [--keep] [<case-name>...]`
+(python3 + PyYAML) proves an `xhard-*` case is winnable and not a no-op. With no
+names it checks every `xhard-*` directory under the root (default: this `evals/`).
+Per case, first failure wins:
+
+1. Shape: `case.yaml` parses, `schema_version` is `"1.1"`, `name` matches the dir,
+   tags are in `TAGS`, `scaffold.sh` is executable, graders and `execution.prompt`
+   are non-empty, `postcheck.sh` (if any) is executable.
+2. A case is gradeable when it has a `file_exists` grader, a `regex` grader over
+   `{source: file}`, or a `postcheck.sh`. A gradeable case must ship an executable
+   `solution.sh`; a routing-only case just gets shape + scaffold checks.
+3. Pristine: scaffold into a fresh tmp dir and evaluate the file graders and
+   `postcheck.sh`. If they all pass, the case cannot tell a no-op from a fix and
+   fails, unless the case dir holds a one-line `selfcheck-pristine-passes` file
+   giving the reason a no-op is legal (e.g. a "must stop at the gate" case).
+4. Solution: scaffold again, run `solution.sh` (cwd = the tree, `CASE_DIR` and
+   `EVAL_PLUGIN_ROOT` set), then every file grader and `postcheck.sh` must pass.
+
+`llm`, `tool_used`, and trace-targeted regex graders are skipped and counted.
+`solution.sh` is the reference fix a model would have to reach; `hidden/` holds the
+tests the model never sees, which `postcheck.sh` copies in and runs. Output is one
+`PASS`/`FAIL` line per case and a `case-selfcheck: <p> passed, <f> failed` summary;
+exit 0 iff nothing failed. `--keep` leaves the tmp dirs in place.
 
 ## Adding a case
 

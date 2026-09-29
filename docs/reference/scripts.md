@@ -286,3 +286,17 @@ the file is now over 60 lines, a warning to stderr (exit stays 0).
 
 Exit codes: 0 written · 2 usage · 3 exact duplicate · 4 cannot write
 ```
+
+## case-selfcheck
+
+```
+Usage: case-selfcheck [--root <evals-dir>] [--keep] [<case-name>...]
+
+Proves each eval case can tell a no-op from a fix. Default: every
+evals/xhard-* case. Per case: shape (case.yaml, tags, executable scaffold),
+then scaffold a pristine tree — its file graders + postcheck.sh must NOT all
+pass (unless the case ships selfcheck-pristine-passes) — then scaffold again,
+run solution.sh, and every file grader + postcheck.sh must pass. llm,
+tool_used and trace graders are skipped and counted.
+Prints PASS/FAIL per case; exit 0 iff no FAIL.
+```

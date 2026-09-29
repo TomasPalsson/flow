@@ -1,6 +1,6 @@
 ---
 name: next
-description: "The only build verb. Reads `flow next --json`, does exactly the one thing that state names, and stops: draft TASKS.md, build one wave of tasks through fresh developer subagents, run a phase's independent test, run the gates and write PASS-<sha>.md, open or promote the PR, archive a merged feature. Every turn ends with a /clear recommendation, and position is recomputed from disk so /clear, a crash or a compaction self-heals. Use WHENEVER a feature directory is current (`.specs/.current`) and the user says /flow:next, \"next\", \"keep building\", \"continue the build\", \"what's next\", \"keep going\", \"continue from where we left off\", \"ship it\" — even when the next task looks small enough to do directly; the router, not you, decides what one thing happens. Flags: --force, --escalate, --qa, --unattended, --stealth. Not for opening a feature (that is /flow:spec) and not for a bug (/flow:fix)."
+description: "The only build verb. Reads `flow next --json`, does exactly the one thing that state names, and stops: draft TASKS.md, build one wave of tasks through fresh developer subagents, run a phase's independent test, run the gates and write PASS-<sha>.md, open or promote the PR, archive a merged feature. Every turn ends with a /clear recommendation, and position is recomputed from disk so /clear, a crash or a compaction self-heals. Use WHENEVER a feature directory is current (`.specs/.current`) and the user says /flow:next, \"next\", \"keep building\", \"continue the build\", \"what's next\", \"keep going\", \"continue from where we left off\", \"ship it\", \"keep going until the spec is done\", \"I approve everything\", \"I'm leaving\" — even when the next task looks small enough to do directly; the router, not you, decides what one thing happens. Flags: --force, --escalate, --qa, --unattended, --stealth, --finish. Not for opening a feature (that is /flow:spec) and not for a bug (/flow:fix)."
 ---
 
 # /flow:next — do the one thing
@@ -27,11 +27,11 @@ flow next --json  →  one state  →  one action  →  "Next: /clear, then /flo
 | `prep-ready` | `Next: /flow:spec`. A `PREP.md` is ready and has no `spec.md` — `/flow:spec` reuses that directory. |
 | `ambiguous` | `Next: flow use <NNN-slug>`. **Never guess** which feature is live. |
 | `drafting` | Write `TASKS.md` (§Drafting below), then stop. |
-| `unapproved` | HARD GATE. Read `TASKS.md` and print **What will happen** — one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths — then the router's line verbatim, and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. When `.claude/flow.config.json` has `"autoApprove": true`, print **What will happen** the same way, then prepend `Approved: <YYYY-MM-DD> by model (autoApprove)` and `Base: <sha>` yourself and continue to the next state in the same turn — no stop. `Verified:` still needs the human, in every mode. |
+| `unapproved` | HARD GATE. Read `TASKS.md` and print **What will happen** — one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths — then the router's line verbatim, and stop. On the user's "approved", prepend `Approved: <YYYY-MM-DD> by user` and `Base: <sha>` — never write it yourself. When `.claude/flow.config.json` has `"autoApprove": true`, print **What will happen** the same way, then prepend `Approved: <YYYY-MM-DD> by model (autoApprove)` and `Base: <sha>` yourself and continue to the next state in the same turn — no stop. `Verified:` still needs the human, in every mode. Under `--finish`: see §Finish rule 3. |
 | `building` | Build exactly the wave the router names (§Building). |
-| `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. |
+| `checkpoint` | Print the `CHK###` line verbatim, gather the evidence it asks for into `verify/`, and stop for the user. Under `--finish`: see §Finish rule 4. |
 | `gating` | Run the `## Gates` (§Gates). |
-| `unverified` | HARD GATE. Print the router's line verbatim (`Next: read <feature-dir>/verify/, reply "approved"`) and stop. On approval write `Verified: <YYYY-MM-DD> by user`. |
+| `unverified` | HARD GATE. Print the router's line verbatim (`Next: read <feature-dir>/verify/, reply "approved"`) and stop. On approval write `Verified: <YYYY-MM-DD> by user`. Under `--finish`: see §Finish rule 5. |
 | `stale-pass` | Commits landed after the newest `PASS-*`. Re-run the gates. |
 | `shippable` | Open the PR (§Ship). |
 | `shipped` | `Next: gh pr view --web`. Once merged, archive (§Ship). |
@@ -58,7 +58,7 @@ The per-task loop each subagent runs — failing test → confirm it fails → m
 
 ## Checkpoints
 
-A `CHK###` is a human's eyes, not yours. Print the line verbatim, do the work it names (open the browser, take the screenshot, capture the console), write the artifacts into `.specs/<NNN-slug>/verify/` — **a verification claim with no file there does not count** — and stop. On the user's yes: `flow tick CHK### --by user`.
+A `CHK###` is a human's eyes, not yours. Print the line verbatim, do the work it names (open the browser, take the screenshot, capture the console), write the artifacts into `.specs/<NNN-slug>/verify/` — **a verification claim with no file there does not count** — and stop. On the user's yes: `flow tick CHK### --by user`. (Under `--finish`: rule 4.)
 
 ## Gates
 
@@ -90,6 +90,19 @@ Read `stealth` from `flow next --json`; when `active`:
 5. Archive with `mv`, not `git mv` (the directory is in the store), then commit the store.
 6. Never `flow publish` — it refuses in stealth anyway.
 
+## Finish
+
+`--finish` means the user pre-approved every gate of THIS spec (the usual prompt: "keep going until the spec is done, I approve everything, I'm leaving"). Evidence is never pre-approved: exit codes, the re-run `verify:`, `PASS-*` files and each phase's `Independent test:` run exactly as always.
+
+1. **First action: `flow finish on`** (pass `--note` with the user's own words if they gave any). `--finish` implies `--unattended` for DECISION gates.
+2. **Loop in this turn.** After each state's action run `flow next --json` again and act on the new state. Do NOT end the turn with `Next: /clear, then /flow:next` between states; the finish-gate Stop hook re-prompts if you try to stop early. Context pressure: if the conversation is long, let compaction happen — state is on disk; re-read `flow next --json` after it.
+3. `unapproved` → print **What will happen**, then prepend `Approved: <YYYY-MM-DD> by user (pre-approved: /flow:next --finish)` and `Base: <sha>`, and continue.
+4. `checkpoint` → do the work the `CHK` line names, write its evidence into `.specs/<NNN-slug>/verify/<CHK-id>.md` (commands run, output, screenshot paths), then `flow tick <CHK-id> --by user`. No evidence file → no tick.
+5. `unverified` → before writing `Verified:`, write `.specs/<NNN-slug>/verify/acceptance.md`: one row per acceptance criterion / Behavior in `spec.md` and `TASKS.md ## Behaviors` — criterion, the command you ran NOW, its exit code, what it showed. Any row unmet → append new task(s) per the converge rule and keep building; never write `Verified:` over an unmet row. All met → write `Verified: <YYYY-MM-DD> by user (pre-approved: /flow:next --finish)`.
+6. `shippable` → `gh pr create --draft`. The PR stays draft: never `gh pr ready`, never merge. The PR body carries the `Ruling:` lines, as in §Ship. No git remote or `gh` fails → write one `NOTES.md` line `Discovered: no PR opened — <reason>` and run `flow finish off`; the spec is done locally.
+7. **Hard stops** (`blocked`, `lying`, `looping`, `scan-failed`, `disagreement`, `ambiguous`, `loop-active`, `prep-interviewing`, `prep-ready`) still stop: print the reason and the router's line; `FINISH.md` stays armed.
+8. **Done** (`shipped`/`idle`, or rule 6's no-PR path) → `flow finish off`, then a final report: tasks done, gates and their exit codes, acceptance rows, PR link or why none. The last line is then the router's `Next:` line.
+
 ## Flags
 
 | Flag | Effect |
@@ -98,6 +111,7 @@ Read `stealth` from `flow next --json`; when `active`:
 | `--escalate` | Ratchet the route up (`bounded` → `oneshot` → `dispatch`) and rewrite the header. One-way; a downgrade needs `--force` and a `Ruling:` line. |
 | `--qa` | Run the `qa` skill as an extra gate. |
 | `--unattended` | Auto-resolve DECISION gates on the recommendation already stated, recording each as an Assumption. It resolves decisions, **never evidence**: exit codes, the re-run `verify:`, browser evidence and the `verify/` artifacts are identical in both modes. The verification gate is **deferred, not skipped** — the PR stays draft. The `.next-call-count` gate is what bounds the loop. |
+| `--finish` | Run this spec to the end in this session: `flow finish on`, then every state back to back. The user's `--finish` IS their approval of the plan, every checkpoint and verification for THIS spec — never evidence. See §Finish. |
 | `--stealth` | Run `flow stealth` first (moves an untracked `.specs/` into a private store), then route as usual. Stealth is read from disk after that; the flag is never needed twice. |
 
 ## Ending the turn
@@ -108,17 +122,19 @@ Read `stealth` from `flow next --json`; when `active`:
 Next: /clear, then /flow:next
 ```
 
+Under `--finish` the `/clear` line is not printed between states; it appears only once, on the final report or a hard stop, as the router's own `Next:` line.
+
 The one exception: when `flow next` reported a hard gate for the user — `unapproved`, `checkpoint`, `unverified`, `blocked`, `disagreement`, `ambiguous`, `shipped` — the last line is **the router's own `Next:` line, verbatim**, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`. One `Next:` line, always last, always one runnable token or one literal instruction.
 
 ## NEVER
 
 - Never act on anything but the state `flow next --json` just returned. A plan you remember from before a `/clear` is a rumor; the disk is the state.
-- Never do two states in one turn, or "keep going" past the wave the router named. The count of turns is not the cost; a wrong second action is.
+- Never do two states in one turn, or "keep going" past the wave the router named — unless `--finish` is armed (§Finish), where looping back to `flow next --json` is the point. The count of turns is not the cost; a wrong second action is.
 - Never hand a subagent anything but its brief path. Never paste `design.md`, and never paste anything from it but that task's own `## Contract` block.
 - Never accept an agent's "verify passed". Re-run the command yourself; the exit code is the only ground truth. A test that did not run is missing, not passing.
 - Never type `[x]` or a `done:` sha by hand. `flow tick` measures it, in the same turn as the commit.
 - Never start wave N+1 before wave N has reported, or dispatch two `[P]` tasks that share a file — `flow lint` already proved they do not, and a hand-added task can break that.
-- Never write `Approved:` yourself unless `autoApprove` is `true` in `.claude/flow.config.json` — then, and only at the `unapproved` gate, write `Approved: <YYYY-MM-DD> by model (autoApprove)`. Never write `Verified:` yourself, in any mode: that fact is always a human's word, autoApprove included.
+- Never write `Approved:` yourself unless `autoApprove` is `true` in `.claude/flow.config.json` — then, and only at the `unapproved` gate, write `Approved: <YYYY-MM-DD> by model (autoApprove)`. Never write `Verified:` yourself, in any mode: that fact is always a human's word, autoApprove included — except the `--finish` form, written only after `flow finish on` recorded the user's pre-approval, always with the `(pre-approved: /flow:next --finish)` suffix and never plain `by user`, and only once `verify/acceptance.md` has every row met. The same suffix rule covers `Approved:` under `--finish`.
 - Never skip a phase's `Independent test:` at the boundary, and never merely quote it. Execute it.
 - Never edit, skip, xfail or weaken a test to clear a finding or a gate. The Stop hook blocks the turn and the tamper notice records it anyway.
 - Never let a reviewer verify or fix its own finding. Scanner ≠ fixer ≠ verifier.

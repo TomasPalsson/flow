@@ -12,6 +12,7 @@ Two slash commands, and the CLI they lean on. There is no third door.
 |---|---|
 | **`/flow:spec <idea>`** | The only door. Computes the route (`bounded｜oneshot｜dispatch`) from intent gaps × irreversibles × footprint, runs ONE batched discovery turn, writes only what that route needs, points `.specs/.current` at it, lints it. Flags: `--amend "<change>"`, `--interview`, `--unattended`. |
 | **`/flow:next`** | The only build verb. Reads `flow next --json`, does exactly that one state's action, and ends with `Next: /clear, then /flow:next`. Flags: `--force`, `--escalate`, `--qa`, `--unattended`. |
+| `flow finish <on\|off\|status>` | Backs `/flow:next --finish`: the user pre-approves every gate of ONE spec (plan approval, `CHK` checkpoints, `Verified:`, a draft PR) and the session runs it to the end. `on` writes `.specs/<NNN-slug>/FINISH.md`; a Stop hook (`finish-gate.sh`) keeps the turn going until the spec is done, a hard stop is hit, or three identical blocks show the model is stuck. Evidence — exit codes, re-run `verify:`, `PASS-*` files, phase `Independent test:` — is never pre-approved. |
 | `flow next [--json]` | The router. A pure query of disk → `{state, command, why, gates}`. |
 | `flow lint [--waves] [--json]` | Parses `TASKS.md`: ERROR/WARN/INFO, each ERROR with its own `fix:` string, `[P]` disjointness proved per wave. |
 | `flow tick <ID>` | The only writer of `[x]`. Measures the sha itself. |
