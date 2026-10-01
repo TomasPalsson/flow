@@ -112,3 +112,24 @@ test('an h1 with no value-proposition line near it fails headline-on-fold; no h1
   assert.match(fold('no-h1', '<!doctype html><body style="margin:0"><p>Fjalar Bar, open daily to all.</p></body>').stdout, /\[FAIL\] headline-on-fold: no visible h1/);
   assert.match(fold('with-line', scene).stdout, /\[PASS\] headline-on-fold: h1 "Fjalar Bar" with line "Cocktails/);
 });
+
+test('text that never reveals fails hidden-content; a reveal that fires passes', { skip: noPw && 'Playwright absent' }, () => {
+  const bad = fold('hid', sceneWith('<p id="tag" style="position:relative;margin:0 40px;opacity:0">Open daily 17-23</p>'));
+  assert.match(bad.stdout, /\[FAIL\] hidden-content-desktop: <p#tag> opacity 0 "Open daily 17-23"/);
+  const ok = fold('rev', sceneWith('<style>@keyframes up{from{opacity:0}to{opacity:1}}</style><p style="position:relative;margin:0 40px;animation:up .3s forwards">Open daily 17-23</p>'));
+  assert.match(ok.stdout, /\[PASS\] hidden-content-desktop/);
+});
+test('a dark semi-opaque full-viewport layer fails stray-overlay, in html and inside the svg', { skip: noPw && 'Playwright absent' }, () => {
+  const html = fold('ovl', sceneWith('<div id="veil" style="position:fixed;inset:0;background:rgba(0,0,0,.5)"></div>'));
+  assert.match(html.stdout, /\[FAIL\] stray-overlay-desktop: <div#veil> covers the viewport with a dark fill at alpha 0\.50/);
+  const inSvg = fold('ovl-svg', scene.replace('</svg>', '<rect width="1440" height="900" opacity="0.5"/></svg>'));
+  assert.match(inSvg.stdout, /\[FAIL\] stray-overlay-desktop: <rect> in svg/);
+  assert.match(fold('ovl-ok', scene).stdout, /\[PASS\] stray-overlay-desktop/);
+});
+test('text clipped by overflow hidden or by its svg viewport fails clipped-text', { skip: noPw && 'Playwright absent' }, () => {
+  const html = fold('clip', sceneWith('<div style="position:relative;margin:0 40px;width:80px;overflow:hidden;white-space:nowrap">Open daily seventeen to twenty-three</div>'));
+  assert.match(html.stdout, /\[FAIL\] clipped-text-desktop: "Open daily seventeen/);
+  const svg = fold('clip-svg', sceneWith('<svg viewBox="0 0 200 60" width="200" height="60" style="position:relative;margin:0 40px"><text x="150" y="30" font-size="20">UKAS ACCREDITED</text></svg>'));
+  assert.match(svg.stdout, /\[FAIL\] clipped-text-desktop: "UKAS ACCREDITED" \(svg text crosses/);
+  assert.match(fold('clip-ok', scene).stdout, /\[PASS\] clipped-text-desktop/);
+});

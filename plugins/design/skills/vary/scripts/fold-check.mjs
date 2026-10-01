@@ -26,6 +26,11 @@
  *             steps; FAIL when fewer than 50% of the plates pass. Thresholds calibrated on ara-bar/1, hitataekni/1,/4 (all pass).
  *   duplicate-content (all modes, full page, footer excluded; fold-content.browser.js) text blocks >= 40 chars appearing twice, and price
  *             lists (>= 3 amounts in one block, HTML or svg text) sharing >= 3 amounts with another non-nested block; FAIL prints them
+ *   hidden-content (all modes, both viewports, after a scroll through the page; fold-craft.browser.js) text whose effective opacity is 0 / visibility
+ *             hidden, or a hero art box (>= 8% of the viewport) fully transparent; display:none, [hidden], menus, dialogs, sr-only are exempt
+ *   stray-overlay (all modes, both viewports) a fixed/absolute element, ::before/::after, or last-painted svg shape covering >= 80% of the viewport
+ *             with a semi-opaque (alpha 0.2-0.98; a lighter grain rect is allowed) dark (luminance < 0.35) fill
+ *   clipped-text (all modes, both viewports) text with overflow hidden and scrollWidth > clientWidth (not ellipsis), or svg <text> whose bbox crosses its svg viewBox
  *   headline-on-fold (persuade/experience, desktop) a visible h1 (or role=heading level 1) in the first viewport plus another visible
  *             text line (>= 10 chars, outside nav/buttons) within 200px of it
  * Thresholds: coverage >= 0.55 desktop / 0.45 phone (persuade, experience only; informational for
@@ -44,6 +49,8 @@ const FOLD_TEXT = fileURLToPath(new URL('./fold-text.browser.js', import.meta.ur
 const FOLD_DEPTH = fileURLToPath(new URL('./fold-depth.browser.js', import.meta.url));
 // duplicate-content and headline-on-fold measures (F6, F7 of round 6) live in their own browser file too
 const FOLD_CONTENT = fileURLToPath(new URL('./fold-content.browser.js', import.meta.url));
+// craft-bug measures (hidden content, stray overlay, clipped text; round 7) live in their own browser file too
+const FOLD_CRAFT = fileURLToPath(new URL('./fold-craft.browser.js', import.meta.url));
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
@@ -268,9 +275,11 @@ for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
   const depth = await measureDepth(page, shot, name);
   await page.addScriptTag({ path: FOLD_CONTENT });
   const content = name === 'desktop' ? { head: await page.evaluate(() => window.__foldContent.headline()), dup: await page.evaluate(() => window.__foldContent.duplicates()) } : null;
+  await page.addScriptTag({ path: FOLD_CRAFT });
+  const craft = { hidden: await page.evaluate(() => window.__foldCraft.hidden()), overlay: await page.evaluate(() => window.__foldCraft.overlay()), clipped: await page.evaluate(() => window.__foldCraft.clipped()) };
   let dead = null;
   if (name === 'desktop') dead = deadZone(await page.evaluate(cellStats, shot.toString('base64')));
-  res[name] = { ...m, text, cards, sections, dead, depth, content, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
+  res[name] = { ...m, craft, text, cards, sections, dead, depth, content, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
   await page.close();
 }
 await browser.close();
@@ -318,6 +327,12 @@ const dups = [...d.content.dup.text.map(t => `"${t.text}" appears ${t.n}x`), ...
 row(dups.length === 0, 'duplicate-content', dups.length ? dups.slice(0, 4).join('; ') : 'no text block >= 40 chars or price list repeated outside the footer');
 const hd = d.content.head;
 row(scene ? !!hd.h1 && !!hd.line : null, 'headline-on-fold', !hd.h1 ? 'no visible h1 in the first desktop viewport' : !hd.line ? `h1 "${hd.h1}" has no other text line within 200px (no value proposition)` : `h1 "${hd.h1}" with line "${hd.line}"` + (scene ? '' : ` (informational in ${mode} mode)`));
+for (const [name, v] of [['desktop', d], ['phone', p]]) {
+  const h = v.craft.hidden, o = v.craft.overlay, c = v.craft.clipped;
+  row(h.length === 0, `hidden-content-${name}`, h.length ? h.slice(0, 4).map(x => `${x.el} ${x.why}${x.text ? ` "${x.text}"` : ''}`).join('; ') : 'no text or hero art left at opacity 0 / visibility hidden after scrolling');
+  row(o.length === 0, `stray-overlay-${name}`, o.length ? o.slice(0, 3).map(x => `${x.el} covers the viewport with a dark fill at alpha ${x.alpha.toFixed ? x.alpha.toFixed(2) : x.alpha}`).join('; ') : 'no viewport-sized semi-opaque dark layer');
+  row(c.length === 0, `clipped-text-${name}`, c.length ? c.slice(0, 4).map(x => `"${x.text}" (${x.why})`).join('; ') : 'no text clipped by its box or svg viewport');
+}
 console.log(`fold-check ${url} mode=${mode}`);
 for (const l of lines) console.log('  ' + l.text);
 console.log(`  screenshots: ${join(outDir, 'fold-desktop.png')}, ${join(outDir, 'fold-phone.png')}`);
