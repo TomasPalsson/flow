@@ -18,6 +18,12 @@
  *             over a hero art box
  *   art-down-page (persuade/experience) sections (>= 300px tall children of main/body) below the fold holding a drawn plate
  *             >= 40% of the section width and >= 120px tall; FAIL when under 60% do (contact/footer excluded)
+ *   card-over-art also fails on a SOLID text container covering > 6% of the hero art area (fold-depth.browser.js; a full-width nav bar is exempt)
+ *   full-bleed  (persuade/experience, both viewports) hero art union box (boxes >= 8% of the viewport) spans >= 95% of the width, margins <= 3% each
+ *   rendering-depth  (persuade/experience) desktop hero art area: luminance p95-p5 >= 90 and >= 5 of 16 bins holding >= 2% of pixels;
+ *             flat-block texture (mean sd of the flattest 30% of 8x8 blocks) is printed, not gated (smooth gradient skies are flat)
+ *   plates-size (persuade/experience) largest drawn element per below-fold section: >= 35% of the section width, >= 280px tall, >= 3 value
+ *             steps; FAIL when fewer than 50% of the plates pass. Thresholds calibrated on ara-bar/1, hitataekni/1,/4 (all pass).
  * Thresholds: coverage >= 0.55 desktop / 0.45 phone (persuade, experience only; informational for
  * operate/read), detail >= 50 desktop, plates >= 4, h1 overlaps art (persuade, experience).
  * Screenshots fold-desktop.png / fold-phone.png go to --out (default: next to a local file, else cwd).
@@ -30,6 +36,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 // the text-collision measure runs in the page; it lives in its own file (see its header)
 const FOLD_TEXT = fileURLToPath(new URL('./fold-text.browser.js', import.meta.url));
+// frame / solid-card / plate / rendering-depth measures (G1-G4 of round 5) live in their own browser file too
+const FOLD_DEPTH = fileURLToPath(new URL('./fold-depth.browser.js', import.meta.url));
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
@@ -159,7 +167,9 @@ const measureSections = () => {
       const b = el.getBoundingClientRect();
       if (b.width >= 0.4 * r.width && b.height >= 120) { plate = true; break; }
     }
-    out.push({ name, top: Math.round(top), h: Math.round(r.height), below: top >= vh * 0.5, excluded, plate });
+    const below = top >= vh * 0.5;
+    if (below && !excluded) { sec.setAttribute('data-fold-sec', String(out.length)); sec.setAttribute('data-fold-name', name); }
+    out.push({ name, top: Math.round(top), h: Math.round(r.height), below, excluded, plate });
   }
   return out;
 };
@@ -221,6 +231,20 @@ const union = rects => {
   return area;
 };
 
+// Rendering depth of the hero art box (desktop screenshot) and of every below-fold plate; solid cards and frame on both viewports.
+const measureDepth = async (page, shot, name) => {
+  const frame = await page.evaluate(() => window.__foldDepth.frame());
+  const solid = await page.evaluate(() => window.__foldDepth.cards());
+  if (name !== 'desktop') return { frame, solid };
+  const hero = frame.none ? { range: 0, steps: 0, texture: 0 } : await page.evaluate(([b, r]) => window.__foldDepth.stats(b, r), [shot.toString('base64'), frame.box]);
+  const plates = await page.evaluate(() => window.__foldDepth.plates());
+  for (const pl of plates) {
+    const png = await page.locator(`[data-fold-plate="${pl.id}"]`).first().screenshot().catch(() => null);
+    pl.stats = png ? await page.evaluate(([b]) => window.__foldDepth.stats(b, null), [png.toString('base64')]) : { range: 0, steps: 0, texture: 0 };
+  }
+  return { frame, solid, hero, plates };
+};
+
 mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
 const res = {};
@@ -234,9 +258,11 @@ for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
   const cards = await page.evaluate(measureCards);
   const sections = name === 'desktop' ? await page.evaluate(measureSections) : [];
   const shot = await page.screenshot({ path: join(outDir, `fold-${name}.png`) });
+  await page.addScriptTag({ path: FOLD_DEPTH });
+  const depth = await measureDepth(page, shot, name);
   let dead = null;
   if (name === 'desktop') dead = deadZone(await page.evaluate(cellStats, shot.toString('base64')));
-  res[name] = { ...m, text, cards, sections, dead, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
+  res[name] = { ...m, text, cards, sections, dead, depth, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
   await page.close();
 }
 await browser.close();
@@ -258,9 +284,23 @@ for (const [name, v] of [['desktop', d], ['phone', p]]) {
 }
 const dz = d.dead;
 row(scene ? dz.frac <= 0.2 : null, 'dead-zone', `largest near-uniform rectangle ${dz.w}x${dz.h}px at (${dz.x},${dz.y}) = ${(dz.frac * 100).toFixed(1)}% of the desktop fold (need <= 20%)` + (scene ? '' : ` informational in ${mode} mode`));
+// Calibrated on ara-bar/1, hitataekni/1,/4 (must pass) and the nine trial-3 builds; see vary/references notes in the evaluator prompts.
+const TH = { span: 0.95, edge: 0.03, range: 90, steps: 5, plateW: 0.35, plateH: 280, plateSteps: 3, plateShare: 0.5, solid: 0.06 };
 for (const [name, v] of [['desktop', d], ['phone', p]]) {
-  row(scene ? v.cards.length === 0 : null, `card-over-art-${name}`, v.cards.length ? v.cards.slice(0, 4).map(c => `"${c.text}" (${c.why}) over ${c.art}`).join('; ') : 'no translucent or blurred text element over hero art' + (scene ? '' : ` (informational in ${mode} mode)`));
+  const hits = [...v.cards.map(c => `"${c.text}" (${c.why}) over ${c.art}`), ...v.depth.solid.map(c => `"${c.text}" (solid card covering ${(c.share * 100).toFixed(0)}% of the hero art, need <= ${TH.solid * 100}%)`)];
+  row(scene ? hits.length === 0 : null, `card-over-art-${name}`, hits.length ? hits.slice(0, 4).join('; ') : 'no translucent, blurred or solid text card over hero art' + (scene ? '' : ` (informational in ${mode} mode)`));
 }
+for (const [name, v] of [['desktop', d], ['phone', p]]) {
+  const f = v.depth.frame, vw = name === 'desktop' ? 1440 : 390;
+  const ok = !f.none && f.span >= TH.span && f.left <= TH.edge * vw && f.right <= TH.edge * vw;
+  row(scene ? ok : null, `full-bleed-${name}`, f.none ? 'no hero art box' : `hero art box spans ${(f.span * 100).toFixed(0)}% of the viewport width, margins left ${f.left}px right ${f.right}px (need span >= ${TH.span * 100}% and margins <= ${TH.edge * 100}% of the width)${ok || !scene ? '' : '; a framed picture, not a full-bleed scene'}`);
+}
+const hs = d.depth.hero, depthOk = hs.range >= TH.range && hs.steps >= TH.steps;
+row(scene ? depthOk : null, 'rendering-depth', `desktop art area: value range ${hs.range} (need >= ${TH.range}), ${hs.steps} value steps (need >= ${TH.steps}), flat-block texture ${hs.texture.toFixed(2)} (reported, not gated: a smooth gradient sky is legitimately flat)`);
+const small = d.depth.plates.filter(pl => pl.w < TH.plateW * pl.secW || pl.h < TH.plateH || pl.stats.steps < TH.plateSteps);
+row(scene ? !d.depth.plates.length || small.length <= d.depth.plates.length * (1 - TH.plateShare) : null, 'plates-size', d.depth.plates.length
+  ? `${d.depth.plates.length - small.length}/${d.depth.plates.length} section plates >= ${TH.plateW * 100}% of the section width, >= ${TH.plateH}px tall, >= ${TH.plateSteps} value steps (need >= ${TH.plateShare * 100}% of them); failing: ${small.map(pl => `${pl.name} ${pl.w}x${pl.h} of ${pl.secW}px, ${pl.stats.steps} steps`).join(', ') || 'none'}`
+  : 'no section plates below the fold');
 const below = d.sections.filter(s => s.below && !s.excluded), withPlate = below.filter(s => s.plate);
 const share = below.length ? withPlate.length / below.length : 1;
 row(scene ? share >= 0.6 : null, 'art-down-page', below.length

@@ -323,6 +323,18 @@ export const finish = (S, W, H, id) => `
 
 Critique additions for this pass: name the light source, point at the brightest value and say whether it is the focal fact, count value steps on the two largest materials, and measure the largest empty region as a percentage of the hero.
 
+### Depth recipe (the numbers the fold gate measures)
+
+Measured on the desktop screenshot of the art area (hero, and each plate on its own box). Judges fail "flat fills with thin uniform strokes" as clip art; the benchmarks have glow, texture, gradient skies and hatch used as shading.
+
+| Measure | Target | How to hit it in SVG |
+|---|---|---|
+| Value range (luminance p95 minus p5, 0-255) | at least 90 | A real dark and a real light in the same frame: night sky or deep shade against a lit window, sign or lamp glow |
+| Value steps (of 16 luminance bins, bins holding at least 2% of pixels) | at least 5 (a plate: at least 3) | 3-5 value ramps per material (lit, mid, shade, edge, cast shadow); a gradient sky; a glow disc; a vignette |
+| Texture (mean local std-dev, 8x8 blocks, flattest 30% of blocks) | reported, not gated (a smooth gradient sky is legitimately flat); aim for 2 or more over flat fills | Grain from the finish pass, stretched so it reads; hatch used as SHADING on the shaded face, never as the fill; paper or halftone tooth |
+
+The targets are the gate's thresholds (`TH` in `fold-check.mjs`), and the gate prints the three numbers. Flat worlds (litho, flat) forbid gradients and opacity: use the §1d substitutes (offset lighter shape for the glow, border band for the vignette, hatch or halftone in an existing ink for the grain) and meet the same numbers with those. Recipe: (1) gradient sky or backdrop, never a flat rect; (2) 3-5 stops per material, light from the one key; (3) one glow with `mix-blend-mode:screen` on the focal fact; (4) grain over everything; (5) hatch lines follow the form and darken one face; (6) strokes vary in weight (heavier at the shaded edge), never one uniform hairline.
+
 ## 2. Technique catalog
 
 These ids match the roll's `TECHNIQUES`. Each entry: when it fits, a working pattern, the motif to take from the subject, and the performance and accessibility notes. Whatever the technique, ship a finished static state (no JS, no animation).
@@ -1282,7 +1294,7 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** Two rounds, then build. Items still open after round 2 go into NOTES.md as `art: open — <item>` and the page ships; never start a third round.
 6. No UI page code until round 2 passes.
 
-**Art all the way down (rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width, never thumbnail-only, drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section.
+**Art all the way down (rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, fully rendered with the §1d finish pass and at least 3 value steps (not a thin pale line diagram in a tinted box), drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section.
 
 **Collision rule (every critique round, both viewports).** Every label, callout and sign text must be fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering ('REPAI_RERS'); no callout hidden behind a prop; no grey smear at the scene edge. Check the 1440x900 and the 390x844 screenshots separately, zoomed on each text; list every collision as a "reads as the wrong thing" item and fix it before the round closes.
 

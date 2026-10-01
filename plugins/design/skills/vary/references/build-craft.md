@@ -96,8 +96,8 @@ Run these together in one inspection round on the real render (desktop and mobil
 8. Copy: outcome-named controls, product-specific claims, zero AI vocabulary.
 9. Every brief requirement present and findable within seconds.
 10. The signature device is visible at hero, divider and micro scale; the art gallery passed two critique rounds.
-11. Art down the page: every section below the fold (contact and footer excepted) has its own drawn plate at 40% of the section's width or more; every catalogue or menu item has its own drawing. A section of only cards, text or a form is a defect.
-12. Type in the art: no frosted, translucent or blurred card, chip row or SaaS button pair over the hero art; headline, phone, hours and the primary action sit on in-scene surfaces (a sign wrapped in an `<a>` with a focus ring and an accessible name) or on a solid band that belongs to the composition.
+11. Art down the page: every section below the fold (contact and footer excepted) has its own drawn plate at 50% of the section's width or more and 280px tall; every catalogue or menu item has its own drawing. A section of only cards, text or a form is a defect.
+12. Type in the art: no frosted, translucent or blurred card, chip row or SaaS button pair over the hero art; headline, phone, hours and the primary action sit on in-scene surfaces (a sign wrapped in an `<a>` with a focus ring and an accessible name) never on a solid card or band over the scene.
 13. Collisions and dead zones at 1440x900 and 390x844: every text (HTML and svg) is fully visible with no overlap with another text or a drawn object; no empty region over 20% of the hero; the finish pass (value plan, grain) is present.
 14. Time: the page ships. Inspect once, fix in one batch; do not reopen the art loop during the build.
 

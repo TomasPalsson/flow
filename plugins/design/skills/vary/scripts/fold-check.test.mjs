@@ -14,7 +14,8 @@ const fold = (name, html, extra = []) => {
   return spawnSync('node', [join(here, 'fold-check.mjs'), f, '--out', join(dir, name), ...extra], { encoding: 'utf8', cwd: tmpdir() });
 };
 const noPw = /fold-check SKIP/.test(fold('probe', '<p>x</p>').stdout);
-const shapes = n => Array.from({ length: n }, (_, i) => `<rect x="${(i * 37) % 1400}" y="${(i * 53) % 880}" width="40" height="30" fill="#${((i * 99991) % 0xffffff).toString(16).padStart(6, '0')}"/>`).join('');
+const sky = '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#001"/><stop offset="1" stop-color="#fed"/></linearGradient></defs><rect width="1440" height="900" fill="url(#g)"/>';
+const shapes = n => sky + Array.from({ length: n }, (_, i) => `<rect x="${(i * 37) % 1400}" y="${(i * 53) % 880}" width="40" height="30" fill="#${((i * 99991) % 0xffffff).toString(16).padStart(6, '0')}"/>`).join('');
 const plate = n => `<svg viewBox="0 0 1400 400" width="1400" height="400" aria-hidden="true">${shapes(n)}</svg>`;
 const scene = `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">${shapes(160)}</svg>
 <h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
@@ -69,4 +70,27 @@ test('sections below the fold without a wide plate fail art-down-page; contact i
   assert.match(r.stdout, /\[FAIL\] art-down-page: 0\/2 sections .*menu@\d+, team@\d+/);
   const ok = fold('sections-ok', `<!doctype html><body style="margin:0"><main>${hero}<section id="menu" style="height:400px">${plate(5)}</section>${contact}</main></body>`);
   assert.match(ok.stdout, /\[PASS\] art-down-page: 1\/1/);
+});
+
+const flatHero = `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true"><rect width="1440" height="900" fill="#456"/></svg><h1 style="position:relative;margin:120px 40px">Fjalar Bar</h1></body>`;
+test('a framed hero picture fails full-bleed and names its margins', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('framed', `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="display:block;width:900px;height:700px;margin:40px auto" aria-hidden="true">${shapes(160)}</svg><h1>Fjalar Bar</h1></body>`);
+  assert.match(r.stdout, /\[FAIL\] full-bleed-desktop: hero art box spans 63% .*margins left 270px right 270px/);
+  assert.match(fold('bleed', scene).stdout, /\[PASS\] full-bleed-desktop: hero art box spans 100%/);
+});
+test('a flat single-fill hero fails rendering-depth and prints the three numbers; a gradient scene passes', { skip: noPw && 'Playwright absent' }, () => {
+  assert.match(fold('flat', flatHero).stdout, /\[FAIL\] rendering-depth: desktop art area: value range \d+ \(need >= 90\), \d+ value steps \(need >= 5\), flat-block texture \d/);
+  assert.match(fold('depth-ok', scene).stdout, /\[PASS\] rendering-depth/);
+});
+test('a big solid headline card over the hero art fails card-over-art', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('bigcard', sceneWith('<div style="position:absolute;left:100px;top:100px;width:700px;height:400px;background:#123;color:#fff">Open daily 17-23</div>'));
+  assert.match(r.stdout, /\[FAIL\] card-over-art-desktop: "Open daily 17-23" \(solid card covering \d+% of the hero art/);
+});
+test('thin section plates fail plates-size; big rendered plates pass', { skip: noPw && 'Playwright absent' }, () => {
+  const hero = `<section style="height:900px"><svg viewBox="0 0 1440 900" style="width:100%;height:100%" aria-hidden="true">${shapes(160)}</svg></section>`;
+  const sec = (id, w, h) => `<section id="${id}" style="height:400px"><svg viewBox="0 0 1440 900" style="width:${w};height:${h}" aria-hidden="true">${shapes(5)}</svg></section>`;
+  const thin = fold('thin', `<!doctype html><body style="margin:0"><main>${hero}${sec('menu', '300px', '200px')}${sec('team', '300px', '200px')}</main></body>`);
+  assert.match(thin.stdout, /\[FAIL\] plates-size: 0\/2 .*menu 300x200 of 1440px/);
+  const big = fold('big', `<!doctype html><body style="margin:0"><main>${hero}${sec('menu', '900px', '320px')}</main></body>`);
+  assert.match(big.stdout, /\[PASS\] plates-size: 1\/1/);
 });
