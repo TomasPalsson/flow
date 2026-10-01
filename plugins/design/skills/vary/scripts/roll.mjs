@@ -17,13 +17,20 @@
  *                 [--lock strategy=<id>] [--lock seed=<id>] [--lock palette=#hex]
  *                 [--lock display=<font-id>] [--lock body=<font-id>]
  *                 [--from <key>] [--reroll <n>] [--register safer|bolder] [--canon]
- *                 [--grounded <candidates.json>] [--project <dir>] [--json] [--no-memory]
+ *                 [--dossier <file> --concepts <file>] [--sector <id>] [--concept-only]
+ *                 [--project <dir>] [--json] [--no-memory]
  *
  *   --from <key>    replay a roll exactly.   --reroll n   next hand under the same key
  *                   (excludes every world dealt in rounds 0..n-1).
- *   --grounded      JSON array [{"name":"…","p":0.3,"why":"…"}] of the model's own cultural
- *                   antecedents with self-estimated probabilities; the script picks from the
- *                   TAIL (drops the top third) and prints it as GROUNDED ANTECEDENT.
+ *   --dossier       .vary/dossier.json: the project's facts [{id,kind,text,source}]. Required with --concepts.
+ *   --concepts      .vary/concepts.json: 4-7 concepts the MODEL wrote, each tied to dossier facts; the script, not the
+ *                   model, picks one (uniform; a recently used angle is demoted), then picks the
+ *                   signature-device technique from that concept's devices (recent techniques demoted).
+ *   --sector <id>   the project's sector (enum below). Worlds whose avoid_sectors list it are removed;
+ *                   worlds whose sectors list it are weighted up. --lock world still wins.
+ *   --lock concept=<id>  world-only veto: keep the concept, --reroll n re-deals world and device. With a concept dealt the
+ *                   world pool is concept.world_hints + --sector-suited worlds; 15% of rounds print WILDCARD and widen it.
+ *   --concept-only  print only the CONCEPT / FACTS / FUNCTIONAL RESKIN / SIGNATURE DEVICE block (no world).
  *   --canon         the category standard, played straight and with craft (the user's exit).
  *
  * Exit codes: 0 ok · 2 bad arguments · 3 data missing/corrupt.
@@ -46,6 +53,20 @@ const DEMOTED_TICKETS = 1; // weight of a recently-used / decaying entry
 const DEFAULT_TICKETS = 0.5; // weight of a second-order-default face (Satoshi, Geist, Inter…): kept, rarely dealt
 const TAG_BONUS = 1;       // extra weight for a font the world card names; capped so over-tagged faces don't dominate
 const TAG_CAP = 6;         // fonts tagged with more worlds than this get no bonus
+const HINT_MULT = 3;       // world named in the dealt concept's world_hints
+const SUIT_MULT = 1.5;     // world.sectors includes --sector
+
+// controlled sector vocabulary (worlds.json `sectors` / `avoid_sectors` draw from this)
+const SECTORS = ['food-drink', 'hospitality-travel', 'retail-ecommerce', 'trades-construction', 'industrial-hardware',
+  'engineering-technical', 'healthcare-clinical', 'finance-insurance', 'legal-public', 'kids-education',
+  'culture-arts', 'music-events-nightlife', 'fashion-beauty-luxury', 'sports-fitness', 'media-publishing',
+  'dev-tools', 'enterprise-saas', 'nature-outdoor', 'maritime-logistics', 'nonprofit-activism', 'wellness', 'gaming'];
+// signature-device techniques (graphics.md section 2)
+const TECHNIQUES = ['seeded-illustration', 'procedural-subject', 'traced-line', 'mechanism-diagram',
+  'annotated-photo', 'scroll-scene', 'data-diagram', 'material-texture', 'print-process',
+  'typographic', 'generative-pattern', 'shader'];
+// techniques that cannot be the hero device on a surface of that mode (the device stays at plate/micro scale there)
+const HERO_FORBIDDEN = { operate: ['shader', 'scroll-scene'], read: ['shader'] };
 
 // mode → colour strategies bold enough to be allowed on that surface (the gate)
 const MODE_STRATEGIES = {
@@ -77,7 +98,10 @@ function parseArgs(argv) {
       case '--reroll': a.reroll = Number(take()); break;
       case '--register': a.register = take(); break;
       case '--canon': a.canon = true; break;
-      case '--grounded': a.grounded = take(); break;
+      case '--dossier': a.dossier = take(); break;
+      case '--concepts': a.concepts = take(); break;
+      case '--sector': a.sector = take(); if (!SECTORS.includes(a.sector)) die(2, `--sector ${a.sector} is not in the sector list: ${SECTORS.join(', ')}`); break;
+      case '--concept-only': a.conceptOnly = true; break;
       case '--project': a.project = take(); break;
       case '--json': a.json = true; break;
       case '--no-memory': a.memory = false; break;
@@ -158,6 +182,9 @@ if (!['web', 'ios', 'android'].includes(args.platform)) die(2, '--platform must 
 if (args.register && !['safer', 'bolder'].includes(args.register)) die(2, '--register must be safer | bolder');
 if (args.register && args.reroll < 1) die(2, '--register steers a re-roll; pass --reroll <n> with it');
 if (args.scene && !['light', 'dark'].includes(args.scene)) die(2, '--scene must be light | dark');
+if (args.concepts && !args.dossier) die(2, '--concepts needs --dossier (every cited fact id must resolve in it)');
+if (args.locks.concept && !args.concepts) die(2, '--lock concept=<id> needs --dossier and --concepts');
+if (args.conceptOnly && !args.concepts) die(2, '--concept-only needs --dossier and --concepts');
 
 const worlds = loadJSON('worlds.json');
 const archetypes = loadJSON('archetypes.json');
@@ -173,6 +200,100 @@ const recent = axis => new Set([...recentSet(recentGlobal, axis, GLOBAL_WINDOW),
 const notes = [];
 const coherence = [];
 
+// ---- 0. concept (the model wrote the options; the script deals) --------------------------------
+function readJSONArg(flag, path) {
+  try { return JSON.parse(readFileSync(path, 'utf8')); } catch (e) { die(2, `${flag}: cannot read ${path}: ${e.message}`); }
+}
+function validateConcepts(list, dossier) {
+  if (!Array.isArray(list)) die(2, '--concepts: file must be a JSON array of concepts');
+  if (list.length < 4 || list.length > 7) die(2, `--concepts: need 4-7 concepts, got ${list.length}`);
+  const factIds = new Set((dossier.facts || []).map(f => f.id));
+  const ids = new Set(), angles = new Set();
+  for (const [i, c] of list.entries()) {
+    const at = `--concepts[${i}]${c && c.id ? ` (${c.id})` : ''}`;
+    if (!c || typeof c.id !== 'string' || !c.id) die(2, `${at}: missing id`);
+    if (ids.has(c.id)) die(2, `${at}: duplicate id ${c.id}`);
+    ids.add(c.id);
+    if (typeof c.angle !== 'string' || !c.angle.trim()) die(2, `${at}: missing angle`);
+    const ang = c.angle.trim().toLowerCase();
+    if (angles.has(ang)) die(2, `${at}: duplicate angle "${c.angle}" (each concept needs a different angle on the business)`);
+    angles.add(ang);
+    if (!Array.isArray(c.facts) || c.facts.length < 3) die(2, `${at}: needs at least 3 facts, got ${Array.isArray(c.facts) ? c.facts.length : 0}`);
+    for (const f of c.facts) if (!factIds.has(f)) die(2, `${at}: fact id ${f} is not in the dossier`);
+    if (typeof c.functional_reskin !== 'string' || !c.functional_reskin.trim()) die(2, `${at}: functional_reskin is empty`);
+    if (!Array.isArray(c.devices) || c.devices.length < 2) die(2, `${at}: needs at least 2 devices`);
+    for (const d of c.devices) if (!d || !TECHNIQUES.includes(d.technique)) die(2, `${at}: unknown technique ${d && d.technique}; use one of ${TECHNIQUES.join(', ')}`);
+    const hints = c.world_hints ?? [];
+    if (!Array.isArray(hints) || hints.length < 2 || hints.length > 3) die(2, `${at}: world_hints must name 2-3 world ids (worlds whose grammar suits this concept), got ${Array.isArray(hints) ? hints.length : 'none'}`);
+    for (const h of hints) if (!worlds.some(w => w.id === h)) die(2, `${at}: world_hint ${h} is not a world id; valid ids: ${worlds.map(w => w.id).join(', ')}`);
+  }
+}
+function validateDossier(d) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) die(2, '--dossier: file must be a JSON object');
+  if (!Array.isArray(d.facts)) die(2, '--dossier: "facts" array is missing (schema in references/dossier.md: facts:[{id,kind,text,source}])');
+  if (d.facts.length < 12) die(2, `--dossier: need at least 12 facts, got ${d.facts.length}`);
+  for (const [i, f] of d.facts.entries()) {
+    if (!f || typeof f.id !== 'string' || !f.id) die(2, `--dossier: facts[${i}] has no id`);
+    if (typeof f.source !== 'string' || !f.source.trim()) die(2, `--dossier: fact ${f.id} has no source (every fact needs a URL, file path or "user brief")`);
+  }
+  const kinds = new Set(d.facts.map(f => f.kind).filter(k => typeof k === 'string' && k));
+  if (kinds.size < 4) die(2, `--dossier: need at least 4 distinct fact kinds, got ${kinds.size} (${[...kinds].join(', ') || 'none'})`);
+  if (d.sector && args.sector && d.sector !== args.sector) die(2, `--dossier: sector "${d.sector}" does not match --sector ${args.sector}`);
+}
+const dossierData = args.dossier ? readJSONArg('--dossier', args.dossier) : null;
+if (dossierData) validateDossier(dossierData);
+let concept = null, device = null, conceptFacts = [];
+if (args.concepts) {
+  const dossier = dossierData;
+  const list = readJSONArg('--concepts', args.concepts);
+  validateConcepts(list, dossier);
+  const factById = Object.fromEntries((dossier.facts || []).map(f => [f.id, f]));
+  const recentAngles = recentSet(recentLocal, 'angle', PROJECT_WINDOW);
+  // every concept is fact-backed, so none is dropped for being likely; only a recently used angle is demoted
+  const pickConcept = (cands, round) => weightedPick(cands, cands.map(c => (recentAngles.has(c.angle) ? DEMOTED_TICKETS : BASE_TICKETS)), key, `concept:${round}`);
+  if (args.locks.concept) {
+    // world-only veto: the concept stays, only the world and device re-roll
+    concept = list.find(c => c.id === args.locks.concept) || die(2, `--lock concept=${args.locks.concept} is not a concept id in --concepts (${list.map(c => c.id).join(', ')})`);
+    notes.push(`concept locked to ${concept.id}; --reroll changes only the world and device`);
+  } else {
+    const dealt = new Set();
+    for (let r = 0; r < args.reroll; r++) {
+      const left = list.filter(c => !dealt.has(c.id));
+      const prev = pickConcept(left.length ? left : list, r);
+      if (prev) dealt.add(prev.id);
+    }
+    let cPool = list.filter(c => !dealt.has(c.id));
+    if (!cPool.length) { cPool = list; notes.push('re-roll exhausted the concepts; reusing'); }
+    concept = pickConcept(cPool, args.reroll);
+  }
+  conceptFacts = concept.facts.map(id => factById[id]);
+  const forbidden = HERO_FORBIDDEN[args.mode] || [];
+  let devCands = concept.devices.filter(d => !forbidden.includes(d.technique));
+  if (!devCands.length) { devCands = concept.devices; notes.push(`every device of ${concept.id} is a poor hero for mode ${args.mode}; keep it at plate/micro scale, not hero`); }
+  const rt = recent('technique');
+  device = weightedPick(devCands, devCands.map(d => (rt.has(d.technique) ? DEMOTED_TICKETS : BASE_TICKETS)), key, `device:${args.reroll}`);
+  coherence.push({ check: 'concept facts resolve in dossier', ok: conceptFacts.every(Boolean) });
+  coherence.push({ check: 'device allowed as hero for mode', ok: !forbidden.includes(device.technique) });
+} else {
+  notes.push('no --concepts: subject-blind roll; for a new project vary requires Step 0-1 (dossier, then concepts)');
+}
+if (args.conceptOnly) {
+  const lines = [`SEED KEY: ${key}  (reroll ${args.reroll}) · mode ${args.mode} · concept only`, ...conceptLines(concept, device, conceptFacts)];
+  if (args.json) console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, concept: concept.id, angle: concept.angle, device, facts: conceptFacts, coherence, notes, contract: lines }, null, 1));
+  else {
+    console.log('<!--'); for (const l of lines) console.log(l); console.log('-->'); console.log('');
+    console.log('COHERENCE:'); for (const r of coherence) console.log(`  [${r.ok ? 'ok' : 'FAIL'}] ${r.check}`);
+    if (notes.length) { console.log('NOTES:'); for (const n of notes) console.log(`  - ${n}`); }
+    console.log(''); console.log(`RULE: commit to this concept and device; the model does not swap them. Replay: --from ${key}${args.reroll ? ` --reroll ${args.reroll}` : ''}. Next hand: --from ${key} --reroll ${args.reroll + 1}.`);
+  }
+  if (args.memory) {
+    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept.id, angle: concept.angle, technique: device.technique };
+    recordPick(files.global, pick, 64);
+    if (files.local) recordPick(files.local, pick, 32);
+  }
+  process.exit(0);
+}
+
 // ---- canon ---------------------------------------------------------------------------------
 if (args.canon) {
   const canonArch = { persuade: 'split-screen', operate: 'sidebar-tool', read: 'single-column', experience: 'poster' }[args.mode];
@@ -180,9 +301,14 @@ if (args.canon) {
   const out = contract({
     key, reroll: args.reroll, mode: args.mode, platform: args.platform,
     world: { id: 'canon', name: 'Category standard, played straight', grammar: ['Match the two or three products the user names as peers; their craft level is the bar.', 'No irony, no smuggled quirk: convention executed at full fidelity.', 'Distinctiveness lives in details: spacing rhythm, focus states, empty states, copy that only this product could say.'], refuse: ['half-committed novelty on top of the conventional skeleton'], motion: { moment: 'one state transition tuned to the product (e.g. the primary action\'s success), nothing else animates', easing: 'ease-out, 150-250ms', forbidden: ['uniform fade-up on every section'] } },
-    archetype: archById[canonArch], strategy: 'restrained', seed: null, display: body, body,
+    archetype: archById[canonArch], strategy: 'restrained', seed: null, display: body, body, concept, device, conceptFacts,
   });
   emit(out, { canon: true });
+  if (args.memory && concept) {
+    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept?.id, angle: concept?.angle, technique: device?.technique };
+    recordPick(files.global, pick, 64);
+    if (files.local) recordPick(files.local, pick, 32);
+  }
   process.exit(0);
 }
 
@@ -193,24 +319,44 @@ if (args.locks.world) {
   const w = worlds.find(x => x.id === args.locks.world);
   if (!w) die(2, `--lock world=${args.locks.world} is not a world id`);
   pool = [w];
+  if (args.sector && (w.avoid_sectors || []).includes(args.sector)) notes.push(`locked world ${w.id} lists ${args.sector} in avoid_sectors (user lock honoured)`);
 }
 if (args.register === 'safer') pool = pool.filter(w => w.decay === 'slow' && w.color_strategies.some(s => QUIET_STRATEGIES.has(s)));
 if (args.register === 'bolder') pool = pool.filter(w => w.modes.includes('experience') || w.decay !== 'slow');
-if (!pool.length) {
-  // relax: adjacent mode, then everything non-trap
-  const adjacent = { persuade: 'experience', experience: 'persuade', read: 'persuade', operate: 'read' }[args.mode];
-  pool = worlds.filter(w => !w.trap && w.modes?.includes(adjacent));
-  notes.push(`world pool empty for mode=${args.mode}; relaxed to adjacent mode ${adjacent}`);
-  if (!pool.length) { pool = worlds.filter(w => !w.trap); notes.push('relaxed to full catalog'); }
+// sector fit: a world that lists the project's sector in avoid_sectors is not dealt (a user lock still wins)
+const sectorOk = w => !args.sector || !(w.avoid_sectors || []).includes(args.sector);
+if (args.sector && !args.locks.world) {
+  const before = pool.length; pool = pool.filter(sectorOk);
+  if (pool.length < before) notes.push(`${before - pool.length} worlds removed: avoid_sectors includes ${args.sector}`);
 }
+if (!pool.length) {
+  // relax: adjacent mode, then everything non-trap (the sector filter still applies)
+  const adjacent = { persuade: 'experience', experience: 'persuade', read: 'persuade', operate: 'read' }[args.mode];
+  pool = worlds.filter(w => !w.trap && w.modes?.includes(adjacent) && sectorOk(w));
+  notes.push(`world pool empty for mode=${args.mode}; relaxed to adjacent mode ${adjacent}`);
+  if (!pool.length) { pool = worlds.filter(w => !w.trap && sectorOk(w)); notes.push('relaxed to full catalog'); }
+}
+// relevance: with a concept dealt, the pool is (concept.world_hints + worlds suited to --sector); WILDCARD_P of the rounds
+// widen to every sector-allowed world. An empty narrow pool also widens. Recency demotion stays inside whichever pool.
+const WILDCARD_P = 0.15;
+const narrowFor = (round, excluded) => {
+  const open = pool.filter(w => !excluded.has(w.id));
+  if (!concept || args.locks.world) return { list: open };
+  if (unit(key, `wild:${round}`) < WILDCARD_P) return { list: open, wild: true };
+  const hints = new Set(concept.world_hints || []);
+  const narrow = open.filter(w => hints.has(w.id) || (args.sector && (w.sectors || []).includes(args.sector)));
+  return narrow.length ? { list: narrow } : { list: open, empty: true };
+};
 // exclusion chain for re-rolls: recompute rounds 0..n-1 under this key and drop what they dealt
 const excludedWorlds = new Set();
 for (let r = 0; r < args.reroll; r++) {
-  const prev = pickWorld(pool.filter(w => !excludedWorlds.has(w.id)), r);
+  const prev = pickWorld(narrowFor(r, excludedWorlds).list, r);
   if (prev) excludedWorlds.add(prev.id);
 }
-let worldPool = pool.filter(w => !excludedWorlds.has(w.id));
+let { list: worldPool, wild, empty } = narrowFor(args.reroll, excludedWorlds);
 if (!worldPool.length) { worldPool = pool; notes.push('re-roll exhausted the pool; reusing'); }
+if (wild) notes.push('WILDCARD: this round (15% of rolls) widened the world pool beyond the concept hints and sector-suited worlds; make the world earn its place or re-roll');
+if (empty) notes.push('no world matches the concept hints or sector in this mode; pool widened to every sector-allowed world');
 const world = pickWorld(worldPool, args.reroll);
 if (!world) die(3, 'no world could be assigned');
 
@@ -222,6 +368,9 @@ function pickWorld(cands, round) {
     if (args.longevity === 'long' && w.decay === 'fast') t = Math.min(t, DEMOTED_TICKETS);
     if (w.confidence === 'medium') t = Math.max(1, t - 1);
     if (w.confidence === 'verify') t = Math.min(t, DEMOTED_TICKETS); // grammar not fully corroborated: dealt rarely
+    // multiplicative, so recency still bites: a recent but hinted world is dealt about as often as an untouched, unhinted one
+    if (concept?.world_hints?.includes(w.id)) t *= HINT_MULT;
+    if (args.sector && (w.sectors || []).includes(args.sector)) t *= SUIT_MULT;
     return t;
   });
   return weightedPick(cands, weights, key, `world:${round}`);
@@ -310,30 +459,19 @@ if (body && !body.variable && (body.weights || '').split(/[,;]/).length < 3 && b
   if (alt.length) { body = weightedPick(alt, alt.map(f => fontWeight(f, recent('body'))), key, `body-alt:${args.reroll}`); notes.push('body face swapped for one that ships ≥3 weights (no faux bold)'); }
 }
 
-// ---- 6. grounded antecedents (Verbalized Sampling tail pick) ---------------------------------------
-let grounded = null;
-if (args.grounded) {
-  let list; try { list = JSON.parse(readFileSync(args.grounded, 'utf8')); } catch (e) { die(2, `--grounded: cannot read ${args.grounded}: ${e.message}`); }
-  if (!Array.isArray(list) || list.length < 3) die(2, '--grounded needs an array of ≥3 {name,p,why}');
-  const ranked = [...list].sort((a, b) => (b.p ?? 0) - (a.p ?? 0));
-  const drop = Math.max(1, Math.floor(ranked.length / 3));
-  const tail = ranked.slice(drop);
-  grounded = weightedPick(tail, tail.map(() => 1), key, `grounded:${args.reroll}`);
-  grounded.rank = ranked.indexOf(grounded) + 1; grounded.of = ranked.length;
-}
-
-// ---- 7. coherence check (script-side rows) ----------------------------------------------------------
+// ---- 6. coherence check (script-side rows) ----------------------------------------------------------
 coherence.push({ check: 'strategy passes mode gate', ok: MODE_STRATEGIES[args.mode].includes(strategy) });
 coherence.push({ check: 'seed light/dark compatible with --scene', ok: !seed || !args.scene || seed.light_or_dark === 'either' || seed.light_or_dark === args.scene });
 coherence.push({ check: 'archetype allowed on platform', ok: !phone || !PHONE_EXCLUDED_ARCHETYPES.has(archetype.id) });
 coherence.push({ check: 'fonts cover required scripts', ok: [display, body].every(f => !f || fontOk(f)) });
 coherence.push({ check: 'body face ships ≥3 weights or is variable', ok: !body || body.id === 'system-ui' || body.variable || (body.weights || '').split(/[,;]/).length >= 3 });
+coherence.push({ check: 'world not in sector avoid list', ok: !args.sector || !(world.avoid_sectors || []).includes(args.sector) });
 
-// ---- 8. output --------------------------------------------------------------------------------------
-const result = contract({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world, archetype, strategy, seed, lockedHex, display, body, grounded });
+// ---- 7. output --------------------------------------------------------------------------------------
+const result = contract({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world, archetype, strategy, seed, lockedHex, display, body, concept, device, conceptFacts });
 emit(result, {});
 if (args.memory) {
-  const pick = { ts: new Date().toISOString(), key, mode: args.mode, world: world.id, archetype: archetype.id, strategy, seed: seed?.id, display: display?.id, body: body?.id };
+  const pick = { ts: new Date().toISOString(), key, mode: args.mode, world: world.id, archetype: archetype.id, strategy, seed: seed?.id, display: display?.id, body: body?.id, concept: concept?.id, angle: concept?.angle, technique: device?.technique };
   recordPick(files.global, pick, 64);
   if (files.local) recordPick(files.local, pick, 32);
 }
@@ -344,11 +482,20 @@ function fontLine(f) {
   const w = f.variable ? `variable ${f.weights}` : `weights ${f.weights}`;
   return `${f.name} (${f.class}; ${w}) · ${load}`;
 }
+function conceptLines(cn, dv, facts) {
+  if (!cn) return ['CONCEPT: none'];
+  const l = [`CONCEPT: ${cn.id} — ${cn.name || cn.id} — angle: ${cn.angle} — antecedent: ${cn.antecedent || 'n/a'}`, 'FACTS:'];
+  for (const f of facts) { const t = (f.text || '').replace(/\s+/g, ' '); l.push(`  - ${f.id} "${t.length > 100 ? t.slice(0, 99) + '…' : t}" (${f.source || 'no source'})`); }
+  l.push(`FUNCTIONAL RESKIN: ${cn.functional_reskin}`);
+  l.push(`SIGNATURE DEVICE: ${dv.technique} — ${dv.what || ''} · must appear at 3 scales: hero, section/divider, micro (icon/bullet/empty state)`);
+  return l;
+}
 function contract(c) {
   const lines = [];
   lines.push(`SEED KEY: ${c.key}  (reroll ${c.reroll}) · mode ${c.mode} · platform ${c.platform}`);
   lines.push(`WORLD: ${c.world.id} — ${c.world.name}${c.world.one_line ? ' — ' + c.world.one_line : ''}`);
-  if (c.grounded) lines.push(`GROUNDED ANTECEDENT: ${c.grounded.name} (your #${c.grounded.rank} of ${c.grounded.of} by self-estimated likelihood) — ${c.grounded.why || ''}`);
+  lines.push(...conceptLines(c.concept, c.device, c.conceptFacts));
+  if (c.world.suits) lines.push(`FIT: sector ${args.sector || 'unspecified'} · world suits: ${[].concat(c.world.suits).join(', ')} · world avoid_for: ${[].concat(c.world.avoid_for || []).join(', ')}`);
   lines.push(`ARCHETYPE: ${c.archetype.id} — ${c.archetype.structure}`);
   lines.push(`  first viewport: ${c.archetype.first_viewport}; primary action: ${c.archetype.primary_action}; scroll: ${c.archetype.scroll}`);
   lines.push(`  mobile: ${c.archetype.mobile_fallback}`);
@@ -369,12 +516,13 @@ function contract(c) {
   lines.push('SCENE: <model: one sentence — who uses this, where, under what light; this decides light or dark>');
   lines.push('FIRST VIEWPORT: <model: what is where, at what scale, where the primary action sits>');
   lines.push('THESIS: <model: the one idea this surface owns, and the category-default arrangement it refuses>');
+  lines.push('SIGNATURE GRAPHIC: <model: what is drawn, which FACTS it encodes, how it renders (engine/file), its three placements>');
   return { lines, c };
 }
 function emit(out, extra) {
   if (args.json) {
     const { c } = out;
-    console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world: c.world.id, archetype: c.archetype.id, strategy: c.strategy, seed: c.seed?.id || null, locked_hex: c.lockedHex || null, display: c.display?.id, body: c.body?.id, grounded: c.grounded || null, coherence, notes, contract: out.lines, ...extra }, null, 1));
+    console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world: c.world.id, archetype: c.archetype.id, strategy: c.strategy, seed: c.seed?.id || null, locked_hex: c.lockedHex || null, display: c.display?.id, body: c.body?.id, concept: c.concept ? { id: c.concept.id, angle: c.concept.angle } : null, device: c.device || null, facts: c.conceptFacts || [], coherence, notes, contract: out.lines, ...extra }, null, 1));
     return;
   }
   console.log('<!--');
@@ -384,5 +532,5 @@ function emit(out, extra) {
   if (coherence.length) { console.log('COHERENCE:'); for (const r of coherence) console.log(`  [${r.ok ? 'ok' : 'FAIL'}] ${r.check}`); }
   if (notes.length) { console.log('NOTES:'); for (const n of notes) console.log(`  - ${n}`); }
   console.log('');
-  console.log('RULE: paste the comment block above verbatim as the first child of <body> in the root layout, then fill SCENE, FIRST VIEWPORT and THESIS. Writing any UI code before that is a contract violation. Re-roll only on named factual grounds (a script the font lacks; an audience named in the world\'s avoid_for; a FAIL above). Replay: --from ' + key + (args.reroll ? ` --reroll ${args.reroll}` : '') + '. Next hand: --from ' + key + ` --reroll ${args.reroll + 1}.`);
+  console.log('RULE: paste the comment block above verbatim as the first child of <body> in the root layout. Fill SCENE, FIRST VIEWPORT, THESIS and SIGNATURE GRAPHIC. Write the art brief and pass the gallery critique before any UI page code. Re-roll only on named grounds: a FAIL above; a script the font lacks; the world cannot carry the SIGNATURE DEVICE; or the user vetoes the world for this trade. Replay: --from ' + key + (args.reroll ? ` --reroll ${args.reroll}` : '') + '. Next hand: --from ' + key + ` --reroll ${args.reroll + 1}.`);
 }

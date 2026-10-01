@@ -80,7 +80,7 @@ Load exactly what the contract names.
 - Touch targets ≥44px; colour is never the only signifier.
 - **Browser surfaces**: `::selection`, `caret-color`, scrollbar colours, underline offset/thickness, form control accent, the focus ring. These ship with browser defaults that belong to no design; theming them is the cheapest signal that the page was built rather than assembled.
 - Copy: buttons name their outcome ("Send invoice", not "Submit"); errors say what happened and what to do. Run the competitor-swap test on the headline: if it still reads true with a rival's name, it made no claim. No "seamless", "unlock", "revolutionise", "the future of", "trusted by 10,000+". Em dashes: fewer than 7 per 600 words.
-- Every `<img>` has `width` and `height` (or `aspect-ratio`); `loading="lazy"` below the fold; real product imagery over stock; no emoji as icons; one icon system, one stroke weight.
+- Every `<img>` has `width` and `height` (or `aspect-ratio`); `loading="lazy"` below the fold; real photos transformed into the world's material (multiplied onto paper, greyscaled, edge-traced, one-ink halftone), never pasted raw, and drawings from `graphics.md` where no photo exists; no emoji as icons; one icon system, one stroke weight.
 
 ## 6. Craft floor — verify on the built result
 
@@ -95,6 +95,7 @@ Run these together in one inspection round on the real render (desktop and mobil
 7. Browser surfaces themed.
 8. Copy: outcome-named controls, product-specific claims, zero AI vocabulary.
 9. Every brief requirement present and findable within seconds.
+10. The signature device is visible at hero, divider and micro scale; the art gallery passed two critique rounds.
 
 ## 7. Refuse — the category defaults this world did not choose
 
@@ -106,4 +107,5 @@ These are defaults, not bans: the contract's grammar can earn any of them back e
 - Gradient text; glass as decoration; a coloured left border thicker than 1px as a callout; hard offset block shadows outside a world that is actually neobrutalist.
 - Mono as costume; a system display face as the display voice of an own-world page; emoji or Unicode glyphs as icons.
 - Light or dark chosen by category instead of by the scene sentence.
+- Abstract decoration where a drawing of the subject belongs (gradient blob, mesh, noise-only hero, stock icon set).
 - The waterfall: hero → logo strip → three features → testimonial → pricing → FAQ → CTA.

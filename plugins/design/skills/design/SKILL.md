@@ -1,6 +1,6 @@
 ---
 name: design
-description: Five-phase design process that escapes AI-slop defaults (bg-indigo-500, Inter, centered hero + 3-column grid, rounded-2xl uniformly, shadow-lg uniformly, "Build the future of X" copy). Use whenever generating, building, mocking up, improving, refining, polishing, critiquing, or evaluating any UI, frontend, or visual design. Phases: aesthetic commitment → UX architecture (Nielsen's 10, priority-ordered) → craft execution (OKLCH palettes, ease-out-quart cubic-bezier, tiered radius/shadow, ≥5-weight typography) → polish sweep → external skepticism-tuned evaluator subagent. Keywords: design, UI, UX, frontend, landing page, dashboard, component, form, modal, navbar, card, marketing page, SaaS, admin, portfolio, mobile app, build this, make this look good, not generic, not AI slop, production quality, best design, Nielsen heuristics, UX audit, design review, critique.
+description: Five-phase design process that escapes AI-slop defaults (bg-indigo-500, Inter, centered hero + 3-column grid, rounded-2xl uniformly, shadow-lg uniformly, "Build the future of X" copy). Use whenever generating, building, mocking up, improving, refining, polishing, critiquing, or evaluating any UI, frontend, or visual design. Phases: aesthetic commitment → UX architecture (Nielsen's 10, priority-ordered) → craft execution (OKLCH palettes, ease-out-quart cubic-bezier, tiered radius/shadow, ≥5-weight typography) → polish sweep → external skepticism-tuned evaluator subagent. Keywords: design, UI, UX, frontend, landing page, dashboard, component, form, modal, navbar, card, marketing page, SaaS, admin, portfolio, mobile app, build this, make this look good, not generic, not AI slop, production quality, best design, Nielsen heuristics, UX audit, design review, critique. For a brand-new site or page where looks should differ between runs, prefer `vary` (it assigns the direction); use `design` for critique, audits, polish, or when the user invokes it by name. Both start from the project dossier and draw custom graphics.
 user-invocable: true
 argument-hint: "[target description]"
 ---
@@ -30,11 +30,12 @@ Phase 5: EVALUATE     → separate subagent grades the output
 Before writing any code, answer these in your head (or out loud if the scope is large):
 
 1. **Purpose.** What problem does this interface solve? Who uses it? What's the single thing they need to do most?
-2. **Tone.** Pick a specific aesthetic direction and commit. Not "modern and clean" — that's the AI slop default. Pick something opinionated: editorial magazine, brutalist raw, retro-futuristic, organic natural, luxury refined, playful toy-like, Swiss international style, neo-brutalism, terminal/monospace, art deco geometric, cyberpunk, RPG fantasy, hand-drawn zine.
-3. **Differentiation.** What is the ONE thing someone will remember about this? The memorable element is not decorative — it's the creative thesis.
-4. **Constraints.** Framework, performance budget, accessibility targets, device context, brand system if one exists.
+2. **Dossier.** Follow `../vary/references/dossier.md` and write `.vary/dossier.json`.
+3. **Concept.** Write 4-7 concepts per `../vary/references/concepts.md`, then run `node <vary-skill-dir>/scripts/roll.mjs --mode <m> --dossier .vary/dossier.json --concepts .vary/concepts.json --sector <s> --concept-only --project <repo-root>` (`<vary-skill-dir>` is the sibling `vary` skill directory, resolvable from the repo root; `--project` is required) and commit to the concept and device it prints. This keeps variety in `design` without a world roll. Choose the mode of the surface built first (home or landing page: usually `persuade`; app, dashboard, checkout: `operate`; docs and articles: `read`; portfolio or gallery: `experience`); later surfaces reuse the contract. Choose the sector a customer would file the business under; when torn between two, take the one whose worlds list fits the concept hints better and note it. Here no world is dealt, so a `--lock concept=<id> --reroll n` only re-deals the device.
+4. **Signature graphic.** Name the device, the facts it encodes and its three placements.
+5. **Constraints.** Framework, performance budget, accessibility targets, device context, brand system if one exists.
 
-**Gate:** You can state the aesthetic direction in one sentence and name one memorable element. If you cannot, you will default to AI slop.
+**Gate:** You can state the concept in one sentence, cite the three facts it rests on, and name the signature graphic and where it appears. If you cannot, you will default to AI slop.
 
 **Critical move — motivate the constraint, don't just state it.** Tell yourself: "the user will feel this is AI-generated slop if it has purple gradients and Inter — they want this to feel crafted." Motivated constraints outperform bare prohibitions.
 
@@ -74,9 +75,9 @@ This is where craft numbers matter more than principles. The difference between 
 
 | Default | What Claude does | What you do instead |
 |---------|------------------|---------------------|
-| Font | Inter, Roboto, Arial, system-ui, Space Grotesk | Examples of higher-craft choices MATCHED to the Phase 1 aesthetic: Geist, Mona Sans, Satoshi, Neue Montreal, Fraunces, DM Sans, Instrument Serif, Bricolage Grotesque, JetBrains Mono, Redaction, or anything you have not used recently. Avoid converging on these same names across generations — see Closing Directive. |
+| Font | Inter, Roboto, Arial, system-ui, Space Grotesk | A face chosen for the concept's trade, era or lettering heritage, with at least 5 weights, verified to render the content language's glyphs. Do not reuse the face from your last project. |
 | Primary color | `bg-indigo-500`, purple, `from-indigo-500 to-purple-600` | Any hue EXCEPT indigo/purple, unless the brand legitimately requires it. Use OKLCH for definition. |
-| Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR an atmospheric treatment (gradient mesh, noise texture, layered translucency) |
+| Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR a material texture that the concept's artefact actually has (paper fibre, wood grain, brushed metal, blueprint grid). See graphics.md §2h. |
 | Layout | Centered everything, 3-column feature grid, Hero→Features→CTA invariant | Asymmetric composition with intentional tension. Start from content, not template. |
 | Radius | `rounded-2xl` on everything uniformly | Tiered scale: inputs 4px, buttons 6-8px, cards 10-12px, `rounded-full` reserved for avatars/pills |
 | Shadow | `shadow-lg` on every card | Tiered elevation. Multi-layer shadows with doubling formula. Match shadow hue to background hue (never pure black). |
@@ -126,6 +127,12 @@ For the complete craft reference with additional rules and CSS patterns, **load 
 
 ---
 
+## Phase 3b — Author the graphics
+
+Read `../vary/references/graphics.md` and run its §7 art-brief → gallery → screenshot critique loop (at least 2 rounds) before building pages. **Gate:** the signature device renders at hero, divider and micro scale, and every critique item from round 2 is closed.
+
+---
+
 ## Phase 4 — Polish
 
 Polish is the last step, not the first. Do not polish work that is not functionally complete. An expert polishing a design does not walk through a labeled checklist — they scan with a trained eye for specific failure modes that an untrained eye misses. Transfer that trained-eye by interrogating the design with these questions, not by marching through a sequence.
@@ -164,16 +171,17 @@ For the complete anti-pattern catalog with additional classical/accessibility/pe
 
 1. **Collect the design output.** If it is a file you created, note the absolute file path. If it is a rendered component in a conversation, save it to a temp file first so you can pass a path rather than a massive string.
 2. **Read [`evaluator-prompt.md`](evaluator-prompt.md)** — this is the complete prompt template for the subagent. Do not paraphrase it; you will copy it verbatim.
-3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. For short designs (<200 lines), you may inline the source instead of passing a path.
-4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Composition, Color+Type, Interaction, Accessibility, Microcopy), a weighted composite, specific violations with severity, and prioritized fixes.
+3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. Also pass `.vary/dossier.json`, `.vary/art-brief.md`, `.vary/critique-r2.json` and the gallery and page screenshots. For short designs (<200 lines), you may inline the source instead of passing a path.
+4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Composition, Color+Type, Interaction, Accessibility, Microcopy, Project specificity), a weighted composite, specific violations with severity, and prioritized fixes.
 5. **Iterate based on score:**
    - Composite ≥ 4.0 (B grade or better) → SHIP.
    - Composite 3.0-3.9 (C) → apply the top 3 fixes and re-spawn a NEW evaluator (fresh context, no memory of prior iteration).
    - Composite < 3.0 (D/F) → return to Phase 2 or Phase 3 depending on which dimensions scored lowest. Usability/Interaction failures point back to Phase 2. Composition/Color/Typography failures point back to Phase 3.
+   - Project specificity dimension score ≤2 (whatever the composite) → return to Phase 1.
 
 **Iterate until the score converges or ≥ 4.0.** Anthropic's harness research shows creative leaps happen in iteration 7-9, not iteration 1. The evaluator loop is where quality compounds — single-pass design peaks at "competent," iterated design peaks at "memorable."
 
-**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the six dimensions in `evaluator-prompt.md` (Usability 25%, Composition 20%, Color+Type 20%, Interaction 20%, Accessibility 10%, Microcopy 5%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
+**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 20%, Composition 15%, Color+Type 15%, Interaction 15%, Accessibility 10%, Microcopy 5%, Project specificity 20%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
 
 ---
 
@@ -211,9 +219,9 @@ There is no fixed "non-default" list that fixes this — any fixed list creates 
 
 **Before picking a font, color, or layout direction, ask yourself:**
 1. **What would the typical AI-generated version of this look like?** Name it specifically — the font, the primary color, the layout structure, the easing curve, the copy tone. Write it down in your head.
-2. **What is materially different from that version that would still serve the brief?** Not "slightly modified" — materially different. Different typographic classification (serif when sans is expected), different compositional logic (asymmetric when centered is expected), different density (dense when airy is expected), different aesthetic lineage (Swiss international / editorial / brutalist / terminal / zine / RPG / art deco / cyberpunk / organic natural / maximalist chaos — whichever is farthest from the default AND serves the context).
+2. **What is materially different from that version that would still serve the brief?** Not "slightly modified" — materially different. Different typographic classification (serif when sans is expected), different compositional logic (asymmetric when centered is expected), different density (dense when airy is expected), different aesthetic lineage drawn from the subject's own artefacts (its documents, hardware, signage, printed matter, place), whichever is farthest from the default AND true to this project.
 3. **Commit to that choice and execute it with precision.** Half-committing to a distinctive direction produces worse results than fully committing to a generic one. A perfectly executed Inter landing page beats a half-executed Fraunces one. If you are going to pick a distinctive font, use all its weights and optical sizes. If you are going to pick a distinctive color, let it dominate.
 
-**Vary the AXIS of distinctiveness, not just the values on one axis.** If the last design you produced was distinctive through typography, make this one distinctive through composition or color instead. If the last was distinctive through motion, make this one distinctive through density or atmosphere. The goal is not a rotation through a fixed "distinctive" list — it is picking a different dimension to express character each time.
+**Vary the AXIS of distinctiveness, not just the values on one axis.** If the last design you produced was distinctive through typography, make this one distinctive through composition or color instead. If the last was distinctive through motion, make this one distinctive through density or atmosphere. The goal is not a rotation through a fixed "distinctive" list — it is picking a different dimension to express character each time. Also vary the graphic technique: if the last project's signature was a seeded illustration, this one is traced line, a diagram or a pattern. roll.mjs `--concept-only` tracks this for you.
 
 **One more calibration.** When the Phase 1 aesthetic direction genuinely requires breaking a Phase 3 rule — a terminal/monospace aesthetic requires a mono font even though the Phase 3 font list is mostly sans-serif; a zine/brutalist aesthetic wants jagged asymmetric shadows even though Phase 3 prescribes tiered multi-layer depth — break the rule deliberately and execute the break with craft. Phase 3 rules are defaults to escape, not laws to worship. The worst outcome is a half-committed distinctive direction constrained by Phase 3 rules that were meant for a different aesthetic. Commit fully.

@@ -8,6 +8,11 @@
  * values, banned marketing phrases and em-dash density. What needs eyes (silhouette, memorable
  * thing, promise-vs-execution) is NOT here — see evaluator-prompt.md.
  *
+ * Project-specificity checks (read the printed contract, then the code): concept-contract (CONCEPT /
+ * FACTS / SIGNATURE DEVICE / SIGNATURE GRAPHIC filled), facts-in-build (cited facts reach the source),
+ * bespoke-graphics (a drawing source exists: inline SVG, SVG-from-code, canvas/webgl, SVG filters, generated
+ * masks), seeded-art (art code must not use Math.random), svg-a11y (large SVGs hidden or labelled).
+ *
  * Usage:  node check.mjs <file-or-dir> [more paths…] [--json] [--strict]
  * Exit:   0 = no FAIL · 1 = at least one FAIL (with --strict, WARN also fails) · 2 = usage
  */
@@ -20,10 +25,11 @@ const json = args.includes('--json'); const strict = args.includes('--strict');
 const paths = args.filter(a => !a.startsWith('--'));
 if (!paths.length) { console.error('usage: node check.mjs <file-or-dir> [...] [--json] [--strict]'); process.exit(2); }
 
-function walk(p, out = []) {
+const SKIP_DIRS = ['node_modules', '.git', 'dist', '.next', 'build'];
+function walk(p, out = [], exts = EXT, skip = SKIP_DIRS) {
   const st = statSync(p);
-  if (st.isDirectory()) { for (const f of readdirSync(p)) { if (['node_modules', '.git', 'dist', '.next', 'build'].includes(f)) continue; walk(join(p, f), out); } }
-  else if (EXT.has(extname(p).toLowerCase())) out.push(p);
+  if (st.isDirectory()) { for (const f of readdirSync(p)) { if (skip.includes(f)) continue; walk(join(p, f), out, exts, skip); } }
+  else if (exts.has(extname(p).toLowerCase())) out.push(p);
   return out;
 }
 const files = paths.flatMap(p => walk(p)).map(f => ({ file: f, text: readFileSync(f, 'utf8') }));
@@ -144,6 +150,89 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
   if (/tracking-(wide|widest)[^"']*uppercase|uppercase[^"']*tracking-(wide|widest)/.test(all) && /text-(xs|sm)/.test(all)) tells.push('possible eyebrow/kicker labels (small tracked uppercase above headings) — confirm they carry information');
   const shadowLg = (all.match(/shadow-lg\b/g) || []).length; if (shadowLg >= 4) tells.push(`${shadowLg}× shadow-lg (uniform elevation)`);
   checks.push({ id: 'template-tells', status: tells.length >= 3 ? 'FAIL' : tells.length ? 'WARN' : 'PASS', evidence: tells.map(t => ({ tell: t })), detail: tells.length ? tells.join('; ') : 'none of the common template tells detected' });
+}
+
+// ---- project-specificity checks: contract parsing -----------------------------------------------------------
+function contractOf(text) {
+  const i = text.indexOf('SEED KEY:'); if (i < 0) return null;
+  const s = Math.max(text.lastIndexOf('<!--', i), text.lastIndexOf('/*', i)); const ends = ['-->', '*/'].map(e => text.indexOf(e, i)).filter(x => x >= 0);
+  const e = ends.length ? Math.min(...ends) : -1;
+  return s >= 0 && e >= 0 && e - s < 8000 ? text.slice(s, e + 3) : text.slice(Math.max(0, i - 200), i + 3000);
+}
+const contractFile = files.find(f => f.text.includes('SEED KEY:'));
+const contract = contractFile ? contractOf(contractFile.text) : null;
+const modeM = contract && contract.match(/SEED KEY:[^\n]*?mode\s+(\w+)/);
+const mode = modeM ? modeM[1].toLowerCase() : null;
+const line = key => { const m = contract && contract.match(new RegExp(`^[ \\t]*${key}:[ \\t]*(.*)$`, 'm')); return m ? m[1].trim() : null; };
+const factLines = (() => { if (!contract) return []; const ls = contract.split('\n'); const i = ls.findIndex(l => /^\s*FACTS:/.test(l)); if (i < 0) return []; const out = []; for (const l of ls.slice(i + 1)) { if (/^\s*[-*]\s+/.test(l)) out.push(l.replace(/^\s*[-*]\s+/, '')); else if (l.trim()) break; } return out; })();
+const unfilled = v => v === null || v === '' || /<model\b|<what\b|<fill/i.test(v);
+const CODE_EXT = new Set(['.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.astro', '.mdx']);
+const worldLine = line('WORLD'); const isCanon = !!worldLine && /^canon\b/i.test(worldLine);
+
+// ---- 11. concept contract ---------------------------------------------------------------------------------------
+{
+  if (!contract) checks.push({ id: 'concept-contract', status: 'UNKNOWN', evidence: [], detail: 'no contract block to read (see seed-key-present)' });
+  else {
+    const concept = line('CONCEPT');
+    if (concept === null || /^none\b/i.test(concept)) {
+      checks.push({ id: 'concept-contract', status: isCanon ? 'PASS' : 'WARN', evidence: [], detail: isCanon ? 'CONCEPT: none under WORLD: canon (exempt from the subject-blind warning)' : 'subject-blind roll: CONCEPT is none; a new project needs a dossier and concepts before the roll' });
+    } else {
+      const missing = [];
+      if (!factLines.length || factLines.some(l => /<model\b/i.test(l))) missing.push('FACTS (no cited fact lines)');
+      if (unfilled(line('SIGNATURE DEVICE'))) missing.push('SIGNATURE DEVICE');
+      if (unfilled(line('SIGNATURE GRAPHIC'))) missing.push('SIGNATURE GRAPHIC (still the <model: ...> placeholder or absent)');
+      checks.push({ id: 'concept-contract', status: missing.length ? 'FAIL' : 'PASS', evidence: missing.map(m => ({ snippet: m })), detail: missing.length ? `CONCEPT ${concept.slice(0, 40)} is set but unfilled: ${missing.join('; ')}` : `CONCEPT, ${factLines.length} FACTS, SIGNATURE DEVICE and SIGNATURE GRAPHIC are filled` });
+    }
+  }
+}
+// ---- 12. cited facts reach the build ------------------------------------------------------------------------------
+{
+  const norm = s => s.toLowerCase().replace(/\s+/g, ' ');
+  const dataFiles = paths.flatMap(p => walk(p, [], new Set([...EXT, '.json']), [...SKIP_DIRS, '.vary']))
+    .filter(f => !/(^|\/)(dossier|concepts|package-lock|package)\.json$/.test(f)).map(f => ({ file: f, text: readFileSync(f, 'utf8') }));
+  const corpus = norm(dataFiles.map(f => f.text.replace(contractOf(f.text) || '\u0000', ' ')).join('\n'));
+  const tests = [];
+  for (const l of factLines) {
+    const q = l.match(/"([^"]+)"/); const text = (q ? q[1] : l).trim(); if (!text) continue;
+    const segs = text.split(/\s[—–·|-]\s|[—–·|;()[\]…"“”]|[.,:](?=\s|$)/).map(s => s.trim()).filter(s => s.split(/\s+/).filter(w => /[\p{L}]/u.test(w)).length >= 3);
+    const seg = segs.sort((a, b) => b.split(/\s+/).length - a.split(/\s+/).length)[0];
+    const nums = (text.match(/\d[\d.,:]*\d/g) || []).filter(n => n.length >= 3);
+    const hitSeg = seg ? (() => { const w = norm(seg).split(' '); const n = Math.min(4, w.length); for (let i = 0; i + n <= w.length; i++) if (corpus.includes(w.slice(i, i + n).join(' '))) return true; return false; })() : false;
+    const hitNum = nums.some(n => corpus.includes(n));
+    if (!seg && !nums.length) continue;
+    tests.push({ fact: text.slice(0, 70), found: hitSeg || hitNum });
+  }
+  const found = tests.filter(t => t.found).length; const need = Math.min(2, tests.length);
+  checks.push({ id: 'facts-in-build', status: !contract || !tests.length ? 'UNKNOWN' : found >= need ? 'PASS' : 'FAIL', evidence: tests.filter(t => !t.found).slice(0, 6).map(t => ({ snippet: `not found in source: ${t.fact}` })), detail: !tests.length ? 'no testable FACTS lines in the contract' : found >= need ? `${found}/${tests.length} cited facts found in source or data files (contract comment excluded)` : `${found}/${tests.length} cited facts found: cited facts never reach the build (need ${need})` });
+}
+// ---- 13. bespoke graphics ------------------------------------------------------------------------------------------
+const svgBlocks = []; // large inline SVGs, shared with svg-a11y
+find(/<svg\b([^>]*)>([\s\S]*?)<\/svg>/i, (f, m) => { const vb = m[1].match(/viewBox\s*=\s*["']?\{?["']?\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)/); const big = !!vb && Math.max(+vb[3], +vb[4]) > 32; svgBlocks.push({ f, m, big, shapes: (m[2].match(/<(path|circle|rect|polygon|line|ellipse)\b/gi) || []).length }); });
+{
+  const inline = svgBlocks.filter(b => b.big && b.shapes >= 8);
+  const fromCode = files.filter(f => CODE_EXT.has(extname(f.file).toLowerCase()) && (/`[^`]*<(svg|path)\b/.test(f.text) || /["']<(svg|path)\b/.test(f.text) || /\bd=\$\{|\bd=\{`/.test(f.text)));
+  const canvas = files.filter(f => /getContext\(\s*['"`](2d|webgl2?|experimental-webgl)['"`]/.test(f.text));
+  const filters = files.filter(f => /feTurbulence|feDisplacementMap/.test(f.text));
+  const masks = files.filter(f => /(mask-image|clip-path\s*:\s*polygon)\s*:?[^;}\n]*(\$\{|var\(|url\()|\.(maskImage|clipPath)\s*=/.test(f.text));
+  const total = inline.length + fromCode.length + canvas.length + filters.length + masks.length;
+  const strict = mode === 'persuade' || mode === 'experience';
+  const ev0 = [...inline.slice(0, 2).map(b => ev(b.f.file, b.m.index, b.f.text)), ...[...fromCode, ...canvas, ...filters, ...masks].slice(0, 3).map(f => ({ file: f.file, line: 1, snippet: 'drawing source' }))];
+  checks.push({ id: 'bespoke-graphics', status: total ? 'PASS' : strict ? 'FAIL' : 'WARN', evidence: ev0, detail: `drawing sources: ${inline.length} inline SVG (>=8 shapes, viewBox>32), ${fromCode.length} file(s) returning SVG from code, ${canvas.length} canvas/webgl, ${filters.length} SVG-filter file(s), ${masks.length} generated mask file(s)${total ? '' : `; nothing drawn of the subject (mode ${mode || 'unknown'}${strict ? ', FAIL' : ', WARN'})`}` });
+}
+// ---- 14. seeded art ------------------------------------------------------------------------------------------------
+{
+  const bad = files.filter(f => /Math\.random\s*\(/.test(f.text) && (/getContext\(\s*['"`](2d|webgl)/.test(f.text) || (CODE_EXT.has(extname(f.file).toLowerCase()) && (/`[^`]*<(svg|path)\b/.test(f.text) || /["']<(svg|path)\b/.test(f.text) || /\bd=\$\{|\bd=\{`/.test(f.text)))));
+  checks.push({ id: 'seeded-art', status: bad.length ? 'WARN' : 'PASS', evidence: bad.slice(0, 4).map(f => ({ file: f.file, line: f.text.slice(0, f.text.search(/Math\.random\s*\(/)).split('\n').length, snippet: 'Math.random in a file that emits SVG or canvas' })), detail: bad.length ? `${bad.length} art file(s) use Math.random: unseeded art re-renders differently each load; use a seeded PRNG keyed per item` : 'no art file uses Math.random' });
+}
+// ---- 15. svg a11y --------------------------------------------------------------------------------------------------
+{
+  const big = svgBlocks.filter(b => b.big); const bad = [];
+  for (const b of big) {
+    const a = b.m[1]; const hidden = /aria-hidden(?!\s*=\s*["'{]\s*false)/.test(a);
+    const labelled = /role\s*=\s*["']img["']/.test(a) && (/aria-label(ledby)?\s*=/.test(a) || /<title\b/i.test(b.m[2]));
+    if (!hidden && !labelled) bad.push(ev(b.f.file, b.m.index, b.f.text));
+  }
+  checks.push({ id: 'svg-a11y', status: !big.length ? 'UNKNOWN' : bad.length ? 'WARN' : 'PASS', evidence: bad.slice(0, 5), detail: !big.length ? 'no inline SVG with viewBox > 32' : `${big.length} large inline SVG(s), ${bad.length} neither aria-hidden="true" nor role="img" with <title>/aria-label` });
 }
 
 const worst = checks.some(c => c.status === 'FAIL') ? 'FAIL' : checks.some(c => c.status === 'WARN') ? 'WARN' : 'PASS';

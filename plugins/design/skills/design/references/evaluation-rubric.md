@@ -1,6 +1,6 @@
 ---
 name: evaluation-rubric
-description: The complete scoring rubric for the design evaluator subagent. 6 weighted dimensions with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
+description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
 ---
 
 # Evaluation Rubric — For the Evaluator Subagent
@@ -94,7 +94,7 @@ Severity is a function of three factors:
 
 ---
 
-## The 6-Dimension Composite Rubric
+## The 7-Dimension Composite Rubric
 
 ### Scoring Scale (all dimensions)
 
@@ -110,7 +110,7 @@ Half-scores permitted (1.5, 2.5, 3.5, 4.5). Every score must be accompanied by a
 
 ---
 
-### Dimension 1: Usability — Weight 25%
+### Dimension 1: Usability — Weight 20%
 
 Grade via Nielsen's 10 heuristics with severity logging.
 
@@ -134,7 +134,7 @@ Usability score: X/5 — [rationale]
 
 ---
 
-### Dimension 2: Composition and Visual Hierarchy — Weight 20%
+### Dimension 2: Composition and Visual Hierarchy — Weight 15%
 
 **Sub-dimensions (score each 1-5):**
 
@@ -150,7 +150,7 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 3: Color and Typography — Weight 20%
+### Dimension 3: Color and Typography — Weight 15%
 
 **Color sub-criteria (each = 1 point):**
 - [ ] Palette limited to ≤5 hues
@@ -180,7 +180,7 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 4: Interaction and Flow — Weight 20%
+### Dimension 4: Interaction and Flow — Weight 15%
 
 **States to check (9 possible):**
 1. Default
@@ -257,15 +257,41 @@ Triage into three buckets:
 
 ---
 
+### Dimension 7: Project Specificity and Signature Graphics — Weight 20%
+
+Asks whether this design could only belong to this project. Inputs: the build, screenshots, and (if supplied) the project dossier (`dossier.json`), which is evidence about the client and may be used. Observations first, score second.
+
+**Observe before scoring:**
+- Name the signature graphic (the drawn thing the design is recognised by). Cite its source file and which dossier facts it encodes. No such graphic: say so.
+- Subject swap: name a same-category business in another town. List every graphic, headline, label and control that would become false for it. Count them.
+- Does the graphic carry real data (a topping list, a size range, hours, an address), or is it a picture of the category?
+- Are controls (nav, buttons, chips, cart, confirmation) made in the design's own material, or default underline nav and flat pills?
+- Would the paying customer in the dossier's audience find the look credible for this trade? Name the specific element if not.
+- Art craft from screenshots: no faces, mascots or emoji-blobs; subjects distinguishable at thumbnail size; style consistent. No screenshots: "Cannot determine from source alone", do not guess.
+
+**Scoring table:**
+| Score | Anchor |
+|-------|--------|
+| 1 | No custom graphics (stock icons or none); copy and visuals survive a competitor swap whole. |
+| 2 | Decorative effects only (gradient mesh, noise, blobs); one or two real facts in copy. |
+| 3 | One custom graphic of the subject, but generic (could be any pizzeria or any HVAC firm) or appearing once only. |
+| 4 | A signature device drawn from cited facts, at 2 or more scales, with controls in the design's material; the subject swap lists 3 or more false items. |
+| 5 | As 4, plus the graphic carries real data, the first viewport announces the concept, and the art is clean at thumbnail size. |
+
+Score 2 or below is a critical issue and returns the work to Phase 1 (purpose, dossier, concept).
+
+---
+
 ## Composite Score Calculation
 
 ```
-Composite = (Usability × 0.25)
-          + (Composition × 0.20)
-          + (Color+Type × 0.20)
-          + (Interaction × 0.20)
+Composite = (Usability × 0.20)
+          + (Composition × 0.15)
+          + (Color+Type × 0.15)
+          + (Interaction × 0.15)
           + (Accessibility × 0.10)
           + (Microcopy × 0.05)
+          + (Specificity × 0.20)
 ```
 
 | Composite | Grade | Meaning |

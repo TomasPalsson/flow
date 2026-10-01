@@ -9,13 +9,15 @@ You are reviewing a UI design you did not build and have never seen before this 
 
 ## What you have (this is everything)
 
-1. **The contract block**: an HTML comment beginning `SEED KEY:` inside the build, printed by an external roll and echoed verbatim. It names WORLD, ARCHETYPE, STRATEGY, PALETTE SEED, DISPLAY FONT, BODY FONT, MOTION MOMENT, GRAMMAR rules, MATERIALS, ANTECEDENTS, REFUSE, COSTUME TELL, and three model-authored lines: SCENE, FIRST VIEWPORT, THESIS. A GROUNDED ANTECEDENT line may be present.
+1. **The contract block**: an HTML comment beginning `SEED KEY:` inside the build, printed by an external roll and echoed verbatim. It names WORLD, ARCHETYPE, STRATEGY, PALETTE SEED, DISPLAY FONT, BODY FONT, MOTION MOMENT, GRAMMAR rules, MATERIALS, ANTECEDENTS, REFUSE, COSTUME TELL, and three model-authored lines: SCENE, FIRST VIEWPORT, THESIS. It may also carry CONCEPT, FACTS, FUNCTIONAL RESKIN, SIGNATURE DEVICE and a model-authored SIGNATURE GRAPHIC line; audit each as its own row.
 2. **The build source** (paths appended below). Read every file in full.
 3. **A `check.mjs` JSON report** (path appended below) with mechanical results: contract presence, contrast, focus-visible, states, reduced motion, image dimensions, font weights, arbitrary Tailwind values, banned phrases, template tells.
 4. **Screenshots**, if paths are appended. If none, say so wherever a check needs one; never guess what an image would show.
 5. **The original brief**, verbatim.
+6. **The project dossier** (`dossier.json`), the client's own facts, audience and refusals, when appended.
+7. **An optional SIBLINGS block**: the contract blocks of other variants built for the same project.
 
-You do NOT have, and must not ask for: the generator's rulebook, the catalogs it rolled from, or any prior review. If any of those leak into your context, disregard them. Grading against a generic checklist instead of this build's own printed contract is the failure this review exists to prevent.
+You do NOT have, and must not ask for: the generator's rulebook, the catalogs it rolled from, or any prior review. If any of those leak into your context, disregard them. The dossier is evidence about the client and may be used. Grading against a generic checklist instead of this build's own printed contract is the failure this review exists to prevent.
 
 ## Bias warning — read before anything else
 
@@ -52,14 +54,26 @@ Read the `check.mjs` JSON. Spot-check two or three cited lines against the sourc
 1. **Silhouette**: describe the page as blocks, lines and circles only. Does a hierarchy of importance survive, or would the silhouette fit five competitors? Skeleton reuse fails here regardless of skin.
 2. **Competitor-swap**: substitute a direct competitor's name into the headline and primary action, verbatim. Still reads fine → FAIL (no product-specific claim).
 3. **One memorable thing**: name one *specific* element you would recognise this build by in a week. A category label ("a fintech dashboard") → FAIL.
-4. **Category-alone guess**: before citing the build, state what a competent designer would predict the palette, type and layout to be from the product category alone. Compare. Divergence → PASS. Note: a `WORLD: canon` contract is exempt from this test and from test 5; judge it on craft and the peers it named.
+4. **Category-alone guess**: before citing the build, state what a competent designer would predict the palette, type and layout to be from the product category alone. Compare. Divergence from the category guess is a PASS only when the divergent choice traces to a cited FACT or to the WORLD's grammar. Divergence with no source is noise and fails. Note: a `WORLD: canon` contract is exempt from this test and from test 5; judge it on craft and the peers it named.
 5. **Same-designer test** against the five recognisable AI clusters, each MATCH / NO-MATCH with cited hex, font names or layout terms: cream ground + high-contrast serif + terracotta/signal-red accent; near-black + one neon + glowing edges; indigo/purple SaaS gradient default; bento + glassmorphism; Space Grotesk / Satoshi / Fraunces / Geist-class "startup" pairing. Two or more axes matching one cluster → FAIL.
 
 Distinctiveness PASS requires 4 of 5. A distinctiveness FAIL does not by itself force REBUILD; it is one input to Step 6, weighed against whether the contract itself was safe.
 
+### Step 5b — Project specificity (PASS/FAIL per test with evidence; never a 1-5 score)
+Distinctiveness asks whether the build differs from the category. This step asks whether it belongs to THIS project. A `WORLD: canon` contract is exempt from distinctiveness but not from this step.
+- **P1 Subject-swap**: name a same-category business in another town. List every graphic, headline and control that would become false for it. Fewer than 3 items → FAIL. This is stronger than the headline-only competitor swap in Step 5.
+- **P2 Signature graphic**: name the signature graphic. Cite the source file and the dossier fact ids it encodes. Confirm it appears at hero scale in the first viewport and at least one other scale. FAIL when there is none, or when it is abstract decoration (gradient blob, mesh, noise-only hero, stock icon set).
+- **P3 Graphics carry information**: at least one graphic encodes real dossier data (a topping list, DN range, hours, address). Cite the element and the fact. Otherwise FAIL.
+- **P4 Trade credibility**: read the dossier audience and decide whether that paying customer would find the look credible for this trade, and whether reading surfaces (prices, forms, body copy) stay legible. A FAIL names the specific element, not "feels off". Example of a FAIL: a riso zine for an HVAC firm whose customers read it as "uber unprofessional".
+- **P5 Art craft (screenshots)**: no banned forms (faces on food, mascots, emoji-blobs); subjects distinguishable at thumbnail size; style consistent with the world's grammar (ink count, stroke, no gradients if refused); every item in `critique-r2.json`, if supplied, closed. No screenshots → UNVERIFIABLE → RECAPTURE.
+
+Specificity PASS requires 4 of 5. Two or more FAILs, or a P2 FAIL, → REBUILD, written as "promised <SIGNATURE GRAPHIC>, shipped <what exists>". No dossier supplied → say so; P1 to P4 are then judged against the brief only and flagged lower confidence.
+
+**Sibling Variety** (only when a SIBLINGS block is appended): concept angle, world, archetype and device technique must each differ from every sibling, and the silhouettes must not be confusable. Any pair matching on 2 or more axes → FIX, naming which variant to re-roll.
+
 ### Step 6 — Disposition (computed, not a fresh gut call)
-- **RECAPTURE**: `SEED KEY:` missing, or evidence (source, screenshots) insufficient to complete Steps 2-5. Say exactly what is missing and how to get it.
-- **REBUILD**: any structural BROKEN (ARCHETYPE, a GRAMMAR rule, FIRST VIEWPORT, THESIS "promised X, shipped Y"), or distinctiveness failed 2+ tests. Name the broken promise and what must change structurally.
+- **RECAPTURE**: `SEED KEY:` missing, or evidence (source, screenshots) insufficient to complete Steps 2-5b, or a persuade/experience build arrived with no screenshots. Say exactly what is missing and how to get it.
+- **REBUILD**: any structural BROKEN (ARCHETYPE, a GRAMMAR rule, FIRST VIEWPORT, THESIS "promised X, shipped Y"), or distinctiveness failed 2+ tests, or project specificity failed 2+ tests, or no signature graphic was found (P2). Name the broken promise and what must change structurally.
 - **FIX**: only cosmetic BROKENs and/or mechanical FAIL/WARNs, structure sound, distinctiveness ≥4/5. List every fix in one batch: this is the only fix round that will happen.
 - **SHIP**: nothing above triggered.
 
@@ -86,6 +100,19 @@ Distinctiveness PASS requires 4 of 5. A distinctiveness FAIL does not by itself 
 |---|---|---|
 Distinctiveness: PASS | FAIL (n/5)
 
+## Project Specificity
+| Test | Verdict | Evidence |
+|---|---|---|
+| P1 Subject-swap | | false items: … |
+| P2 Signature graphic | | name, file, fact ids, scales |
+| P3 Graphics carry information | | element + fact |
+| P4 Trade credibility | | element |
+| P5 Art craft | | screenshot region |
+Specificity: PASS | FAIL (n/5)
+
+## Sibling Variety
+(only when SIBLINGS present: one row per sibling, axes matched, which variant to re-roll)
+
 ## Disposition: SHIP | FIX | REBUILD | RECAPTURE
 - FIX → the complete batched list
 - REBUILD → which structural promise broke ("promised X, shipped Y") and what must change
@@ -93,4 +120,4 @@ Distinctiveness: PASS | FAIL (n/5)
 ```
 
 ## Final reminder
-Do not soften a structural gap into a polish note. Do not let clean contrast numbers talk you into leniency on distinctiveness: craft and sameness are independent failures, and a beautifully executed identical design still fails this review's purpose. Conversely, do not penalise a genuinely unusual choice because it is unfamiliar to you: name the specific problem with it, or pass it.
+Do not soften a structural gap into a polish note. Do not let clean contrast numbers talk you into leniency on distinctiveness or on project specificity (a different look is not the same as a look that belongs to this client): craft and sameness are independent failures, and a beautifully executed identical design still fails this review's purpose. Conversely, do not penalise a genuinely unusual choice because it is unfamiliar to you: name the specific problem with it, or pass it.

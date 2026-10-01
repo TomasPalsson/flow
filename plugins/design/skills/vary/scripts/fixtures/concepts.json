@@ -1,0 +1,62 @@
+[
+  {
+    "id": "kvold",
+    "name": "The room on a dark evening",
+    "angle": "the room on a dark evening",
+    "antecedent": "paper menu on a wooden table; waiter's guest check",
+    "facts": ["F1", "F8", "F10"],
+    "functional_reskin": "cart = guest-check pad; confirmation = kitchen ticket on a rail",
+    "devices": [
+      { "technique": "procedural-subject", "what": "every pizza drawn from its menu topping list" },
+      { "technique": "material-texture", "what": "deckled paper, wood grain, ruled check" }
+    ],
+    "world_hints": ["letterpress-wood-type", "vintage-analog"],
+    "memorable": "the menu lying on the table",
+    "p": 0.35
+  },
+  {
+    "id": "taka",
+    "name": "Friday take-away",
+    "angle": "the family collecting dinner on Friday",
+    "antecedent": "pizza box with a printed lid; paper bag with a rubber stamp",
+    "facts": ["F3", "F6", "F7"],
+    "functional_reskin": "cart = the box lid tally; confirmation = a stamped pickup slip",
+    "devices": [
+      { "technique": "print-process", "what": "two-ink stamp and box-lid print with misregistration" },
+      { "technique": "typographic", "what": "oversized 48-hour dough numeral" }
+    ],
+    "world_hints": ["risograph-zine", "childrens-book"],
+    "memorable": "the stamped pickup slip",
+    "p": 0.25
+  },
+  {
+    "id": "matchday",
+    "name": "Match night",
+    "angle": "the match-night crowd",
+    "antecedent": "league fixture list; broadcast lower-third",
+    "facts": ["F12", "F13", "F14"],
+    "functional_reskin": "menu = fixture list; confirmation = a booked-table scoreboard card",
+    "devices": [
+      { "technique": "data-diagram", "what": "fixture table with kick-off times beside platter stock" },
+      { "technique": "scroll-scene", "what": "the wall of eight screens lighting up in turn" }
+    ],
+    "world_hints": ["sports-broadcast", "newsprint-tabloid"],
+    "memorable": "eight screens on the wall",
+    "p": 0.2
+  },
+  {
+    "id": "street",
+    "name": "The corner under the sign",
+    "angle": "the street-corner landmark",
+    "antecedent": "mid-century travel poster of the corner; shopfront sign",
+    "facts": ["F4", "F5", "F7"],
+    "functional_reskin": "nav = signboard panels; opening hours = a door-hanger card",
+    "devices": [
+      { "technique": "seeded-illustration", "what": "the real storefront drawn flat with its gold serif sign" },
+      { "technique": "generative-pattern", "what": "cladding panel pattern as section divider" }
+    ],
+    "world_hints": ["mid-century-travel-poster", "cartographic"],
+    "memorable": "the lit shopfront at dusk",
+    "p": 0.2
+  }
+]

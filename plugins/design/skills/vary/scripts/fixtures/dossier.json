@@ -1,0 +1,27 @@
+{
+  "project": "FIXTURE-PIZZERIA",
+  "subject": "neighbourhood pizzeria and sports bar (test fixture, not a real business)",
+  "sector": "food-drink",
+  "audience": ["families ordering take-away on Friday", "match-night regulars"],
+  "place": { "city": "Testville", "climate": "dark winters", "light": "Edison bulbs, oven glow", "landmarks": ["the ridge"] },
+  "language": { "code": "en", "glyphs": "" },
+  "facts": [
+    { "id": "F1", "kind": "product", "text": "Formaggi: four cheeses, tomato base, basil", "source": "fixture/menu" },
+    { "id": "F2", "kind": "product", "text": "Diavola: spicy salami, chilli oil, red onion", "source": "fixture/menu" },
+    { "id": "F3", "kind": "price", "text": "Margherita 2190 kr", "source": "fixture/menu", "demo": true },
+    { "id": "F4", "kind": "hours", "text": "Open 11:30 to 22:00 daily, kitchen closes 21:30", "source": "fixture/hours" },
+    { "id": "F5", "kind": "place", "text": "Corner unit under the navy cladding with a gold serif sign", "source": "fixture/photos" },
+    { "id": "F6", "kind": "process", "text": "Dough rests 48 hours; baked 90 seconds in a wood-fired oven", "source": "fixture/about" },
+    { "id": "F7", "kind": "history", "text": "Family run since 2009", "source": "fixture/about" },
+    { "id": "F8", "kind": "artefact", "text": "Paper menu on a clipboard, one page, prices in the right margin", "source": "fixture/photos" },
+    { "id": "F9", "kind": "artefact", "text": "Kitchen ticket rail above the pass", "source": "fixture/photos" },
+    { "id": "F10", "kind": "material", "text": "Turquoise vinyl booths and dark wooden tables", "source": "fixture/photos" },
+    { "id": "F11", "kind": "quote", "text": "Best take-away pizza in the district", "source": "fixture/review-1" },
+    { "id": "F12", "kind": "product", "text": "Match-night platter: 12 wings, fries, two pitchers", "source": "fixture/menu" },
+    { "id": "F13", "kind": "place", "text": "Eight screens, every league on the wall", "source": "fixture/photos" },
+    { "id": "F14", "kind": "artefact", "text": "Match-night handbill pinned in the window", "source": "fixture/photos" }
+  ],
+  "assets": [],
+  "artefacts": ["paper menu", "guest-check pad", "kitchen ticket rail", "match-night handbill"],
+  "refuse": ["no staff portraits"]
+}

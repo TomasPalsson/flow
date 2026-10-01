@@ -79,6 +79,16 @@
    "kids",
    "luxury fashion"
   ],
+  "sectors": [
+   "enterprise-saas",
+   "maritime-logistics",
+   "culture-arts",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "kids-education",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "medium",
   "sources": [
    "https://en.wikipedia.org/wiki/International_Typographic_Style",
@@ -163,6 +173,17 @@
    "luxury fashion",
    "finance/trading"
   ],
+  "sectors": [
+   "kids-education",
+   "retail-ecommerce",
+   "culture-arts",
+   "hospitality-travel",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "finance-insurance"
+  ],
   "confidence": "high",
   "sources": [
    "https://eyeondesign.aiga.org/5-examples-of-bauhaus-graphic-design-that-shaped-the-movement/",
@@ -245,6 +266,10 @@
    "dense data dashboards",
    "long-form editorial"
   ],
+  "sectors": [
+   "culture-arts"
+  ],
+  "avoid_sectors": [],
   "confidence": "high",
   "sources": [
    "https://www.theartstory.org/movement/de-stijl/",
@@ -329,6 +354,16 @@
    "children's products",
    "enterprise B2B"
   ],
+  "sectors": [
+   "nonprofit-activism",
+   "music-events-nightlife",
+   "dev-tools"
+  ],
+  "avoid_sectors": [
+   "healthcare-clinical",
+   "kids-education",
+   "enterprise-saas"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Alexander_Rodchenko",
@@ -407,6 +442,14 @@
   "avoid_for": [
    "consumer e-commerce",
    "playful youth brands"
+  ],
+  "sectors": [
+   "culture-arts",
+   "media-publishing"
+  ],
+  "avoid_sectors": [
+   "retail-ecommerce",
+   "kids-education"
   ],
   "confidence": "high",
   "sources": [
@@ -493,6 +536,18 @@
    "healthcare",
    "enterprise operate-mode tools"
   ],
+  "sectors": [
+   "kids-education",
+   "culture-arts",
+   "music-events-nightlife",
+   "retail-ecommerce",
+   "food-drink"
+  ],
+  "avoid_sectors": [
+   "finance-insurance",
+   "healthcare-clinical",
+   "enterprise-saas"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Memphis_Group",
@@ -578,6 +633,16 @@
    "healthcare",
    "B2B tools"
   ],
+  "sectors": [
+   "retail-ecommerce",
+   "music-events-nightlife",
+   "dev-tools",
+   "gaming"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "healthcare-clinical"
+  ],
   "confidence": "medium",
   "sources": [
    "https://frutiger-aero.org/frutiger-aero",
@@ -658,6 +723,15 @@
   "avoid_for": [
    "e-commerce checkout flows",
    "healthcare"
+  ],
+  "sectors": [
+   "culture-arts",
+   "music-events-nightlife",
+   "nonprofit-activism"
+  ],
+  "avoid_sectors": [
+   "retail-ecommerce",
+   "healthcare-clinical"
   ],
   "confidence": "high",
   "sources": [
@@ -744,6 +818,15 @@
    "luxury fashion",
    "healthcare"
   ],
+  "sectors": [
+   "dev-tools",
+   "enterprise-saas",
+   "finance-insurance"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "healthcare-clinical"
+  ],
   "confidence": "medium",
   "sources": [
    "https://www.nngroup.com/articles/neobrutalism",
@@ -824,6 +907,17 @@
   "avoid_for": [
    "dense operate-mode dashboards",
    "youth/playful consumer apps"
+  ],
+  "sectors": [
+   "retail-ecommerce",
+   "wellness",
+   "culture-arts",
+   "food-drink",
+   "hospitality-travel",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "kids-education"
   ],
   "confidence": "verify",
   "sources": [
@@ -907,6 +1001,19 @@
    "nightlife/music",
    "high-energy sports products"
   ],
+  "sectors": [
+   "retail-ecommerce",
+   "kids-education",
+   "nature-outdoor",
+   "food-drink",
+   "hospitality-travel",
+   "trades-construction",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "music-events-nightlife",
+   "sports-fitness"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Scandinavian_design",
@@ -987,6 +1094,15 @@
   "avoid_for": [
    "consumer e-commerce",
    "kids products"
+  ],
+  "sectors": [
+   "culture-arts",
+   "media-publishing",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "retail-ecommerce",
+   "kids-education"
   ],
   "confidence": "verify",
   "sources": [
@@ -1071,6 +1187,13 @@
    "cutting-edge tech startups wanting to feel new",
    "gaming"
   ],
+  "sectors": [
+   "finance-insurance"
+  ],
+  "avoid_sectors": [
+   "dev-tools",
+   "gaming"
+  ],
   "confidence": "high",
   "sources": [
    "https://www.designyourway.net/blog/paul-rand/",
@@ -1147,6 +1270,14 @@
    "accessibility-sensitive audiences",
    "long-session operate tools",
    "healthcare"
+  ],
+  "sectors": [
+   "culture-arts",
+   "music-events-nightlife",
+   "fashion-beauty-luxury"
+  ],
+  "avoid_sectors": [
+   "healthcare-clinical"
   ],
   "confidence": "medium",
   "sources": [
@@ -1233,6 +1364,15 @@
    "healthcare",
    "finance"
   ],
+  "sectors": [
+   "music-events-nightlife",
+   "culture-arts"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "healthcare-clinical",
+   "finance-insurance"
+  ],
   "confidence": "medium",
   "sources": [
    "https://www.smithsonianmag.com/arts-culture/psychedelic-concert-poster-rocked-world-180958780/",
@@ -1318,6 +1458,17 @@
    "finance",
    "luxury fashion"
   ],
+  "sectors": [
+   "music-events-nightlife",
+   "nonprofit-activism",
+   "culture-arts"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "healthcare-clinical",
+   "finance-insurance",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "high",
   "sources": [
    "https://www.theartnewspaper.com/2023/08/10/jamie-reid-graphic-designer-who-defined-the-visual-character-of-the-punk-movement-has-died-aged-76",
@@ -1399,6 +1550,16 @@
    "consumer e-commerce",
    "wellness/lifestyle brands",
    "kids products"
+  ],
+  "sectors": [
+   "dev-tools",
+   "engineering-technical"
+  ],
+  "avoid_sectors": [
+   "retail-ecommerce",
+   "wellness",
+   "kids-education",
+   "food-drink"
   ],
   "confidence": "high",
   "sources": [
@@ -1485,6 +1646,16 @@
    "luxury fashion",
    "kids products"
   ],
+  "sectors": [
+   "industrial-hardware",
+   "engineering-technical",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "kids-education",
+   "retail-ecommerce"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Datasheet",
@@ -1568,6 +1739,17 @@
    "warm/consumer lifestyle brands",
    "kids products",
    "wellness"
+  ],
+  "sectors": [
+   "engineering-technical",
+   "finance-insurance",
+   "gaming",
+   "dev-tools"
+  ],
+  "avoid_sectors": [
+   "wellness",
+   "kids-education",
+   "food-drink"
   ],
   "confidence": "medium",
   "sources": [
@@ -1654,6 +1836,17 @@
    "enterprise operate dashboards",
    "minimal utilitarian apps"
   ],
+  "sectors": [
+   "hospitality-travel",
+   "music-events-nightlife",
+   "fashion-beauty-luxury",
+   "food-drink",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "dev-tools",
+   "enterprise-saas"
+  ],
   "confidence": "medium",
   "sources": [
    "https://www.britannica.com/art/Art-Deco",
@@ -1737,6 +1930,17 @@
    "playful youth brands",
    "maximalist fashion",
    "entertainment"
+  ],
+  "sectors": [
+   "industrial-hardware",
+   "retail-ecommerce",
+   "engineering-technical",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "kids-education",
+   "fashion-beauty-luxury",
+   "culture-arts"
   ],
   "confidence": "medium",
   "sources": [
@@ -1823,6 +2027,19 @@
    "fintech",
    "healthcare"
   ],
+  "sectors": [
+   "music-events-nightlife",
+   "food-drink",
+   "retail-ecommerce",
+   "hospitality-travel",
+   "trades-construction",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "finance-insurance",
+   "healthcare-clinical"
+  ],
   "confidence": "high",
   "sources": [
    "https://hatchshowprint.com/about",
@@ -1904,6 +2121,12 @@
    "consumer marketing pages",
    "playful youth brands"
   ],
+  "sectors": [
+   "engineering-technical",
+   "media-publishing",
+   "kids-education"
+  ],
+  "avoid_sectors": [],
   "confidence": "high",
   "sources": [
    "https://www.nature.com/nature/for-authors/final-submission",
@@ -1988,6 +2211,18 @@
    "enterprise SaaS",
    "fintech",
    "dev tools"
+  ],
+  "sectors": [
+   "hospitality-travel",
+   "legal-public",
+   "maritime-logistics",
+   "food-drink",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "finance-insurance",
+   "dev-tools"
   ],
   "confidence": "high",
   "sources": [
@@ -2082,6 +2317,17 @@
    "checkout/transaction flows",
    "kids' products"
   ],
+  "sectors": [
+   "maritime-logistics",
+   "hospitality-travel",
+   "retail-ecommerce",
+   "trades-construction",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "kids-education",
+   "media-publishing"
+  ],
   "confidence": "medium",
   "sources": [
    "https://docs.os.uk/more-than-maps/geographic-data-visualisation/guide-to-cartography/map-legends"
@@ -2171,6 +2417,17 @@
    "gaming",
    "enterprise SaaS"
   ],
+  "sectors": [
+   "wellness",
+   "food-drink",
+   "fashion-beauty-luxury",
+   "hospitality-travel",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "gaming",
+   "enterprise-saas"
+  ],
   "confidence": "verify",
   "sources": [
    "https://creativemarket.com/blog/design-trend-apothecary-style"
@@ -2254,6 +2511,16 @@
    "e-commerce with high SKU counts",
    "dense SaaS dashboards",
    "urgency-driven campaigns"
+  ],
+  "sectors": [
+   "culture-arts",
+   "retail-ecommerce",
+   "hospitality-travel",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "dev-tools",
+   "enterprise-saas"
   ],
   "confidence": "verify",
   "sources": [
@@ -2339,6 +2606,16 @@
    "meditative/wellness apps",
    "enterprise B2B tools"
   ],
+  "sectors": [
+   "sports-fitness",
+   "gaming",
+   "media-publishing"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "wellness",
+   "enterprise-saas"
+  ],
   "confidence": "verify",
   "sources": [
    "https://www.newscaststudio.com/setstudio/sportscenter/"
@@ -2420,6 +2697,16 @@
    "luxury/editorial brands",
    "narrative storytelling sites",
    "children's products"
+  ],
+  "sectors": [
+   "maritime-logistics",
+   "legal-public",
+   "engineering-technical",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "kids-education"
   ],
   "confidence": "high",
   "sources": [
@@ -2504,6 +2791,17 @@
    "dense SaaS dashboards",
    "budget/discount retail",
    "kids' products"
+  ],
+  "sectors": [
+   "retail-ecommerce",
+   "hospitality-travel",
+   "fashion-beauty-luxury",
+   "food-drink",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "kids-education"
   ],
   "confidence": "high",
   "sources": [
@@ -2594,6 +2892,17 @@
    "enterprise SaaS",
    "finance/trading tools",
    "luxury fashion"
+  ],
+  "sectors": [
+   "kids-education",
+   "retail-ecommerce",
+   "food-drink",
+   "nature-outdoor"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "finance-insurance",
+   "fashion-beauty-luxury"
   ],
   "confidence": "high",
   "sources": [
@@ -2687,6 +2996,21 @@
    "finance/trading tools",
    "medical/clinical products"
   ],
+  "sectors": [
+   "media-publishing",
+   "music-events-nightlife",
+   "culture-arts",
+   "retail-ecommerce",
+   "food-drink",
+   "hospitality-travel",
+   "nature-outdoor",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "finance-insurance",
+   "healthcare-clinical"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Risograph"
@@ -2769,6 +3093,13 @@
    "gaming",
    "children's products"
   ],
+  "sectors": [
+   "media-publishing"
+  ],
+  "avoid_sectors": [
+   "gaming",
+   "kids-education"
+  ],
   "confidence": "verify",
   "sources": [
    "https://en.wikipedia.org/wiki/Broadsheet"
@@ -2829,6 +3160,8 @@
   "avoid_for": [
    "every context — catalog only to help the model recognize and reject it on sight"
   ],
+  "sectors": [],
+  "avoid_sectors": [],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Corporate_Memphis",
@@ -2917,6 +3250,16 @@
    "healthcare",
    "financial services",
    "accessibility-first products"
+  ],
+  "sectors": [
+   "music-events-nightlife",
+   "fashion-beauty-luxury",
+   "media-publishing"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "healthcare-clinical",
+   "finance-insurance"
   ],
   "confidence": "high",
   "sources": [
@@ -3008,6 +3351,15 @@
    "fast-scrolling social apps",
    "poster-style landing pages"
   ],
+  "sectors": [
+   "engineering-technical",
+   "legal-public",
+   "kids-education",
+   "gaming"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury"
+  ],
   "confidence": "high",
   "sources": [
    "https://www.onpressbookprinting.com/resources/designing-a-board-game-manual-guide",
@@ -3090,6 +3442,16 @@
    "luxury fashion",
    "narrative storytelling sites",
    "children's illustrated products"
+  ],
+  "sectors": [
+   "maritime-logistics",
+   "healthcare-clinical",
+   "retail-ecommerce",
+   "kids-education",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury"
   ],
   "confidence": "high",
   "sources": [
@@ -3177,6 +3539,15 @@
    "children's products",
    "warm/lifestyle brands"
   ],
+  "sectors": [
+   "engineering-technical",
+   "industrial-hardware",
+   "trades-construction"
+  ],
+  "avoid_sectors": [
+   "fashion-beauty-luxury",
+   "kids-education"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Blueprint"
@@ -3262,6 +3633,17 @@
    "healthcare/clinical products",
    "enterprise SaaS",
    "luxury brands"
+  ],
+  "sectors": [
+   "media-publishing",
+   "music-events-nightlife",
+   "nonprofit-activism",
+   "food-drink"
+  ],
+  "avoid_sectors": [
+   "healthcare-clinical",
+   "enterprise-saas",
+   "fashion-beauty-luxury"
   ],
   "confidence": "high",
   "sources": [
@@ -3349,6 +3731,16 @@
    "children's products",
    "luxury editorial brands"
   ],
+  "sectors": [
+   "finance-insurance",
+   "dev-tools",
+   "enterprise-saas"
+  ],
+  "avoid_sectors": [
+   "wellness",
+   "kids-education",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Bloomberg_Terminal"
@@ -3434,6 +3826,19 @@
    "fintech/trading tools",
    "dev tools",
    "clinical/medical products"
+  ],
+  "sectors": [
+   "hospitality-travel",
+   "culture-arts",
+   "media-publishing",
+   "food-drink",
+   "nature-outdoor",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "finance-insurance",
+   "dev-tools",
+   "healthcare-clinical"
   ],
   "confidence": "high",
   "sources": [
@@ -3524,6 +3929,15 @@
    "gaming",
    "luxury/fashion brands"
   ],
+  "sectors": [
+   "healthcare-clinical",
+   "finance-insurance",
+   "engineering-technical"
+  ],
+  "avoid_sectors": [
+   "gaming",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "high",
   "sources": [
    "https://en.wikipedia.org/wiki/Package_insert"
@@ -3611,6 +4025,18 @@
   "avoid_for": [
    "fintech/trading tools",
    "luxury fashion",
+   "gaming"
+  ],
+  "sectors": [
+   "nature-outdoor",
+   "kids-education",
+   "engineering-technical",
+   "hospitality-travel",
+   "wellness"
+  ],
+  "avoid_sectors": [
+   "finance-insurance",
+   "fashion-beauty-luxury",
    "gaming"
   ],
   "confidence": "high",
@@ -3703,6 +4129,15 @@
    "children's products",
    "luxury fashion"
   ],
+  "sectors": [
+   "maritime-logistics",
+   "nature-outdoor",
+   "sports-fitness"
+  ],
+  "avoid_sectors": [
+   "kids-education",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "medium",
   "sources": [
    "https://www.admiralty.co.uk/charts",
@@ -3792,6 +4227,17 @@
    "wellness/organic brands",
    "children's products",
    "luxury fashion"
+  ],
+  "sectors": [
+   "industrial-hardware",
+   "retail-ecommerce",
+   "music-events-nightlife"
+  ],
+  "avoid_sectors": [
+   "wellness",
+   "kids-education",
+   "fashion-beauty-luxury",
+   "food-drink"
   ],
   "confidence": "verify",
   "sources": [
@@ -3884,6 +4330,16 @@
    "healthcare/clinical products",
    "luxury editorial brands"
   ],
+  "sectors": [
+   "gaming",
+   "music-events-nightlife",
+   "sports-fitness"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "healthcare-clinical",
+   "fashion-beauty-luxury"
+  ],
   "confidence": "medium",
   "sources": [
    "https://ousiadroid.medium.com/what-you-can-learn-from-persona-5s-ui-design-4a4a646245b1",
@@ -3974,6 +4430,16 @@
    "dense SaaS dashboards",
    "gaming",
    "fast consumer apps"
+  ],
+  "sectors": [
+   "culture-arts",
+   "media-publishing",
+   "legal-public",
+   "fashion-beauty-luxury"
+  ],
+  "avoid_sectors": [
+   "enterprise-saas",
+   "gaming"
   ],
   "confidence": "high",
   "sources": [
