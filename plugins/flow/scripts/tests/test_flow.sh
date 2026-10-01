@@ -454,6 +454,33 @@ t_flow_review_package_two_commits_writes_diff_no_stdout_leak() {
 	cd "$prevdir" || true
 }
 
+t_flow_review_package_accepts_a_dotdot_range() {
+	local repo prevdir base out content
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: review-package dotdot setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	base=$(git rev-parse HEAD)
+	printf 'one\n' >feature.txt
+	git add feature.txt
+	git commit -q -m "add feature.txt"
+	out="$repo/range-out.diff"
+	run_cmd "$SCAN_DIR/review-package" "$base..HEAD" --out "$out"
+	assert_rc 0 "flow: review-package A..B rc0"
+	content=$(cat "$out" 2>/dev/null)
+	assert_contains "$content" "add feature.txt" "flow: review-package A..B reviews the range (commit log)"
+	assert_contains "$content" "diff --git" "flow: review-package A..B reviews the range (diff body)"
+	run_cmd "$SCAN_DIR/review-package" "$base.." --out "$out"
+	assert_rc 0 "flow: review-package A.. defaults the head to HEAD"
+	run_cmd "$SCAN_DIR/review-package" "$base...HEAD" --out "$out"
+	assert_rc 1 "flow: review-package A...B is refused, not turned into a bad ref"
+	assert_contains "$ERR$OUT" "three-dot" "flow: review-package A...B says why"
+	cd "$prevdir" || true
+}
+
 t_flow_review_package_bad_ref_exit1() {
 	local repo prevdir
 	prevdir=$(pwd)

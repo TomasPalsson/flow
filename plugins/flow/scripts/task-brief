@@ -17,8 +17,10 @@ Writes a one-task brief containing:
   Base: <short sha of HEAD, measured now — before the task is dispatched>
   the task's phase heading with its Goal: and Independent test: lines
   the task's own line, verbatim
+  "## Tests": the RED rule, one assertion per boundary / negative case
   "## Before you write" plus the no-slop developer block's fenced
-  instructions (verbatim, from skills/no-slop/references/developer-block.md)
+  instructions (verbatim, from skills/no-slop/references/developer-block.md),
+  then the slop-check command with this plugin's absolute path
   any "## Contract" block in --design whose heading names <ID>
 
 Default --out is <dir-of-TASKS.md>/review/<ID>-brief.md (review/ is
@@ -128,6 +130,7 @@ BODY=$(awk -v id="$ID" '
 
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 DEV_BLOCK="$HERE/../skills/no-slop/references/developer-block.md"
+SLOP_CHECK="$(cd "$HERE/.." && pwd -P)/skills/no-slop/scripts/slop-check"
 DEV_BLOCK_TEXT=""
 if [ -f "$DEV_BLOCK" ]; then
   DEV_BLOCK_TEXT=$(awk '
@@ -158,8 +161,18 @@ fi
   [ -n "$HEADER" ] && printf '%s\n' "$HEADER"
   printf '\n'
   printf '%s\n' "$BODY"
+  printf '\n\n## Tests\n'
+  printf 'verify: names one test; the spec states more. List every boundary and negative case it\n'
+  printf 'states for this task (exactly-at and just-past each limit, empty, missing, sibling/prefix,\n'
+  printf 'error path) and write ONE assertion per item in RED, even when verify: runs a single test.\n'
+  printf 'A guard delegated to a shared helper still needs tests at the call site that fail for the\n'
+  printf "helper's plausible wrong versions. Beside each assertion name the wrong implementation it\n"
+  printf 'catches (swallow the error, startswith with no separator, > for >=, a running total from\n'
+  printf 'zero); an assertion that would still pass against that version is not a RED test.\n'
   if [ -n "$DEV_BLOCK_TEXT" ]; then
     printf '\n\n## Before you write\n%s\n' "$DEV_BLOCK_TEXT"
+    printf '\nThe slop-check command above lives at an absolute path; run it as:\n'
+    printf '%s --base %s\n' "$SLOP_CHECK" "$BASE"
   fi
   if [ -n "$CONTRACT" ]; then
     printf '\n'

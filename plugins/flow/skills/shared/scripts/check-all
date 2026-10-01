@@ -525,9 +525,13 @@ function buildPythonGates(root) {
 
   const black = resolvePyTool(root, 'black');
   if (black) {
-    gates.push(scopable('format', FLAG_FIX ? [...black] : [...black, '--check'], ['.py', '.pyi'], blackForceExclude(root)));
+    const fmt = scopable('format', FLAG_FIX ? [...black] : [...black, '--check'], ['.py', '.pyi'], blackForceExclude(root));
+    fmt.scopable.checkBase = [...black, '--check', ...blackForceExclude(root)];
+    gates.push(fmt);
   } else if (ruff) {
-    gates.push(scopable('format', FLAG_FIX ? [...ruff, 'format'] : [...ruff, 'format', '--check'], ['.py', '.pyi'], FORCE_EXCLUDE));
+    const fmt = scopable('format', FLAG_FIX ? [...ruff, 'format'] : [...ruff, 'format', '--check'], ['.py', '.pyi'], FORCE_EXCLUDE);
+    fmt.scopable.checkBase = [...ruff, 'format', '--check', ...FORCE_EXCLUDE];
+    gates.push(fmt);
   }
 
   const pytest = resolvePyTool(root, 'pytest');
@@ -802,7 +806,8 @@ function scopeGate(g, changed) {
     return { kind: g.kind, suffix: g.suffix, cmd: null, scope: 'changed', files: 0, message: 'skipped (no changed files)' };
   }
   const ratchet = g.scopable.ratchet ? { ratchet: { tool: g.scopable.ratchet, base: g.scopable.base, files } } : {};
-  return { ...g, cmd: [...g.scopable.base, '--', ...files], scope: 'changed', files: files.length, ...ratchet };
+  const fmtRatchet = g.scopable.checkBase ? { fmtRatchet: { checkBase: g.scopable.checkBase, base: g.scopable.base, files } } : {};
+  return { ...g, cmd: [...g.scopable.base, '--', ...files], scope: 'changed', files: files.length, ...ratchet, ...fmtRatchet };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -909,6 +914,34 @@ function ratchetSplit(current, baseline) {
     if (left > 0) { budget.set(v.key, left - 1); old.push(v); } else fresh.push(v);
   }
   return { fresh, old };
+}
+
+/**
+ * File-level format ratchet: a changed file is format-checked (and, under --fix,
+ * rewritten) only when it was format-clean at <ref> or is new. A file already
+ * unformatted at <ref> is exempt, so the gate never rewrites lines the feature
+ * did not touch. Returns the gate to run (cmd null when every file is exempt)
+ * and the exempt files, or null when <ref>'s copies could not be checked.
+ */
+function applyFormatRatchet(g) {
+  const { checkBase, base, files } = g.fmtRatchet;
+  const baseline = materialiseBaseline(files);
+  try {
+    const unformatted = new Set();
+    for (const f of baseline.present) {
+      let argv = [...checkBase, '--', f];
+      if (argv[0] === 'uv' && argv[1] === 'run') argv = [argv[0], argv[1], '--project', ROOT, ...argv.slice(2)];
+      const r = spawnSync(argv[0], argv.slice(1), { cwd: baseline.dir, env: { ...process.env }, encoding: 'utf8', timeout: GATE_TIMEOUT_MS });
+      if (r.status === 1) unformatted.add(f);
+    }
+    const keep = files.filter(f => !unformatted.has(f));
+    return {
+      gate: { ...g, cmd: keep.length ? [...base, '--', ...keep] : null, files: keep.length },
+      ignored: [...unformatted],
+    };
+  } finally {
+    try { fs.rmSync(baseline.dir, { recursive: true, force: true }); } catch { /* leave it to TMPDIR */ }
+  }
 }
 
 /** The ratcheted lint gate record, or null to fall back to the plain gate run. */
@@ -1115,7 +1148,7 @@ function main() {
   let anyFailed = false;
   let stopped = false;
 
-  for (const g of ordered) {
+  for (let g of ordered) {
     if (stopped || !g.cmd) {
       const rec = {
         kind: g.kind,
@@ -1134,6 +1167,25 @@ function main() {
 
     if (!FLAG_JSON) stderr.write(`  ${C.muted}⋯ ${gateName(g)}...${C.reset}\r`);
 
+    let fmtIgnored = [];
+    if (g.fmtRatchet) {
+      const fr = applyFormatRatchet(g);
+      g = fr.gate;
+      fmtIgnored = fr.ignored;
+    }
+    const fmtMsg = fmtIgnored.length
+      ? `${fmtIgnored.length} pre-existing unformatted file(s) in touched files ignored (present at ${SINCE}): ${fmtIgnored.join(', ')}`
+      : '';
+    if (!g.cmd) {
+      const rec = {
+        kind: g.kind, name: gateName(g), status: 'skipped', time_ms: 0, output: '',
+        message: fmtMsg, scope: 'changed', files: 0, preexisting: fmtIgnored.length,
+      };
+      results.push(rec);
+      if (!FLAG_JSON) printGateResult(rec);
+      continue;
+    }
+
     const ratcheted = g.ratchet ? runRatchet(g) : null;
     const rec = ratcheted || runGate(g);
     if (g.scope) {
@@ -1142,6 +1194,10 @@ function main() {
       if (g.scope === 'unscoped') rec.message = g.message;
     }
     if (rec._extra) { Object.assign(rec, rec._extra); delete rec._extra; }
+    if (fmtMsg) {
+      rec.message = fmtMsg;
+      rec.preexisting = fmtIgnored.length;
+    }
     results.push(rec);
     if (!FLAG_JSON) printGateResult(rec);
 

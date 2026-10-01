@@ -1393,3 +1393,61 @@ t_shared_check_all_since_scopes_eslint_script() {
 	assert_eq "$(cat "$d/eslint-argv")" "--ext .js --fix -- new.js" "t_shared_check_all_since_scopes_eslint_script argv"
 	rm -rf "$d"
 }
+
+# O6 — file-level format ratchet: a file unformatted at <ref> is exempt from check and --fix.
+_ss_fmt_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	printf "x = 'a'\n" >"$d/sq.py"
+	printf 'y = "a"\n' >"$d/clean.py"
+	mkdir -p "$d/.venv/bin"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_format_ratchet_exempts_file_unformatted_at_ref() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf 'z = 1\n' >>"$d/sq.py"
+	cp "$d/sq.py" "$d/before.txt"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/sq.py")" "$(cat "$d/before.txt")" "format ratchet: --fix leaves a pre-existing unformatted file byte-identical"
+	assert_contains "$(_ss_gate "$OUT" format)" '1 pre-existing unformatted file(s) in touched files ignored (present at HEAD)' "format ratchet: says what it ignored"
+	assert_not_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: the gate is not red for old debt"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_format_ratchet_check_mode_is_not_red_for_old_debt() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf 'z = 1\n' >>"$d/sq.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_not_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: check mode ignores a file unformatted at ref"
+	assert_contains "$(_ss_gate "$OUT" format)" 'pre-existing unformatted file(s)' "format ratchet: check mode reports it"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_format_ratchet_still_formats_files_clean_at_ref_and_new_files() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf "y = 'b'\n" >"$d/clean.py"
+	printf "n = 'c'\n" >"$d/fresh.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: a file clean at ref that was unformatted since is red"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/clean.py")" 'y = "b"' "format ratchet: --fix still formats a file that was clean at ref"
+	assert_eq "$(cat "$d/fresh.py")" 'n = "c"' "format ratchet: --fix still formats a new file"
+	rm -rf "$d"
+}
