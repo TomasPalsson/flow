@@ -105,7 +105,7 @@ $FLOW pass >/dev/null 2>&1 || die "no PASS-<sha>.md covers HEAD"
 grep -qi 'exit' "$FEAT"/PASS-*.md || die "PASS file names no exit codes"
 [ ! -e "$FEAT/FINISH.md" ] || die "FINISH.md still armed: 'flow finish off' never ran"
 [ ! -e "$FEAT/.finish-blocks" ] || die ".finish-blocks left behind"
-grep -Ei '^Discovered: no PR opened' "$FEAT/NOTES.md" >/dev/null 2>&1 || die "NOTES.md has no 'Discovered: no PR opened' line (the repo has no remote)"
+grep -Ei '(no PR (was )?opened|PR (was )?not opened|(did not|didn.t|not) open(ed)? (a|any) (PR|pull request)|no pull request)' "$FEAT/NOTES.md" 2>/dev/null | grep -Eqi 'remote|origin|upstream|push|forge|host|gh|cannot|configured' || die "NOTES.md has no line recording that no PR was opened and why (the repo has no remote)"
 STATE=$($FLOW next --peek --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')
 case "$STATE" in shippable | shipped) ;; *) die "final router state is '$STATE', expected shippable (verified, no PR)" ;; esac
 if git status --porcelain | grep -v -E '__pycache__| \.specs/| \.claude/' | grep . >/dev/null; then

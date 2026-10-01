@@ -42,7 +42,7 @@ STATE=$(node "$EVAL_PLUGIN_ROOT/bin/flow" next --json --peek 2>/dev/null | pytho
 # the footprint: T001's two files and the feature dir, nothing else
 BASE=$(git -C "$PRISTINE" rev-parse HEAD)
 git cat-file -e "$BASE^{commit}" 2>/dev/null || fail "the scaffold commit is missing from this history"
-CHANGED=$( (git diff --name-only "$BASE"; git ls-files -o --exclude-standard) | sort -u | grep -v -e '__pycache__' -e '^\.specs/' )
+CHANGED=$( (git diff --name-only "$BASE"; git ls-files -o --exclude-standard) | sort -u | grep -v -e '__pycache__' -e '^\.specs/' -e '^\.claude/' )
 for f in $CHANGED; do
 	case "$f" in
 	src/invoices.py | tests/*.py) ;;

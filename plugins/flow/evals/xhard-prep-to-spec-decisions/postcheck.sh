@@ -48,11 +48,11 @@ for n, line in enumerate(open(spec, encoding="utf-8"), 1):
     if line.lstrip().startswith("#"):
         heading = line
         continue
-    if re.search(r"stream|chunk", line, re.I) and not head_ok.search(heading) and not rejects.search(line) and not lead.match(re.sub(r"^[\s>*|-]*(?:(?:FR|NFR|D|AC)-\d+\s*\|[^|]*\|)?[\s>*|-]*", "", line)):
+    if re.search(r"(?<![A-Za-z])(?:stream|chunk)", line, re.I) and not head_ok.search(heading) and not rejects.search(line) and not lead.match(re.sub(r"^[\s>*|-]*(?:(?:FR|NFR|D|AC)-\d+\s*\|[^|]*\|)?[\s>*|-]*", "", line)):
         print("spec.md:%d treats streaming/chunking as something to build: %s" % (n, line.strip()[:100]))
         sys.exit(1)
 for n, line in enumerate(open(tasks, encoding="utf-8"), 1):
-    if re.search(r"stream|chunk", line, re.I):
+    if re.search(r"(?<![A-Za-z])(?:stream|chunk)", line, re.I):
         print("TASKS.md:%d plans streaming/chunking, which the prep put out of scope" % n)
         sys.exit(1)
 PY

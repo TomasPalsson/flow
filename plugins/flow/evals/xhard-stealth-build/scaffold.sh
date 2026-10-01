@@ -165,6 +165,9 @@ BASE=$(git rev-parse --short HEAD)
 # the link, the local exclude, and the two marked git hooks.
 STORE="${HOME:?}/.flow/stealth/pantry-3f9a1c"
 FEAT="$STORE/.specs/001-expiry-alerts"
+# A reused HOME already holds this store from an earlier scaffold: start it clean, or the
+# final store commit has nothing to commit and set -e aborts the scaffold.
+rm -rf "$STORE"
 mkdir -p "$FEAT"
 chmod 700 "$HOME/.flow" "$HOME/.flow/stealth" "$STORE" 2>/dev/null || true
 git init -q -b main "$STORE"
