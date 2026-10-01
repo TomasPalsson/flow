@@ -99,7 +99,7 @@ PY
 # ---- the find is logged, not fixed ------------------------------------------------
 [ -f "$NOTES" ] || die "NOTES.md is gone"
 head -1 "$NOTES" | grep -q '^- Assumption: names match exactly' || die "NOTES.md's existing lines were rewritten"
-grep -Eq '^Discovered:.*searchOrdersLegacy.*(defer|fold into T[0-9]{3})' "$NOTES" ||
+grep -Eq '^(- )?Discovered:.*searchOrdersLegacy.*(defer|fold into T[0-9]{3})' "$NOTES" ||
 	die "NOTES.md has no 'Discovered: ... searchOrdersLegacy ... — defer' line for the injectable legacy function"
 
 # ---- suite green, hidden behaviour ------------------------------------------------

@@ -74,15 +74,32 @@ if not re.search(r"^- \[ \] CHK\d+ ", text, re.M):
     print("no CHK### checkpoint for the criterion that needs a human's eyes")
     sys.exit(1)
 
-# every acceptance criterion needs its own Behaviors row: five rows minimum,
-# each naming a task or checkpoint that exists
-beh = [l for l in text.splitlines() if re.match(r"^\|\s*B\d+", l)]
-if len(beh) < 5:
-    print("Behaviors table has %d rows, the spec has 5 acceptance criteria" % len(beh))
+# every acceptance criterion needs a Behaviors row (the row may open with B1 or with
+# the spec's own AC id), and every row's Task column names a task or checkpoint that exists
+spec_text = open(tasks_path.replace("TASKS.md", "spec.md"), encoding="utf-8").read()
+acs = sorted(set(re.findall(r"\bAC-\d+\b", spec_text)))
+beh = []
+in_beh = False
+for l in text.splitlines():
+    if re.match(r"^##\s+Behaviors\b", l):
+        in_beh = True
+        continue
+    if in_beh and l.startswith("#"):
+        break
+    if in_beh and l.strip().startswith("|"):
+        cells = [c.strip() for c in l.strip().strip("|").split("|")]
+        if all(re.fullmatch(r":?-+:?", c) for c in cells if c) or cells[0].lower() == "id":
+            continue
+        beh.append((l, cells))
+if len(beh) < len(acs):
+    print("Behaviors table has %d rows, the spec has %d acceptance criteria" % (len(beh), len(acs)))
     sys.exit(1)
+for ac in acs:
+    if not any(re.search(r"\b%s\b" % re.escape(ac), row) for row, _ in beh):
+        print("%s from spec.md has no Behaviors row" % ac)
+        sys.exit(1)
 ids = set(re.findall(r"^- \[[ x~]\] ((?:T|CHK)\d+)\b", text, re.M))
-for row in beh:
-    cols = [c.strip() for c in row.strip().strip("|").split("|")]
+for row, cols in beh:
     if len(cols) < 3 or cols[2] not in ids:
         print("Behaviors row names no existing task: %s" % row[:80])
         sys.exit(1)
@@ -96,8 +113,7 @@ for tid, body in tasks_only:
     if not words or words[0] in ("true", "echo", ":", "exit") or "tests" not in cmd.group(1):
         print("%s verify does not run a tests/ module: %s" % (tid, cmd.group(1) if cmd else body[-60:]))
         sys.exit(1)
-spec_text = open(tasks_path.replace("TASKS.md", "spec.md"), encoding="utf-8").read()
-for ac in sorted(set(re.findall(r"\bAC-\d+\b", spec_text))):
+for ac in acs:
     if ac not in text:
         print("%s from spec.md appears nowhere in TASKS.md" % ac)
         sys.exit(1)

@@ -146,6 +146,7 @@ python3 -m unittest discover -s tests >/tmp/xhard-hidden.$$ 2>&1
 rc=$?
 rm -f tests/test_zz_hidden_summary.py
 if [ "$rc" -ne 0 ]; then
+	grep -E '^(FAIL|ERROR)' /tmp/xhard-hidden.$$
 	tail -n 14 /tmp/xhard-hidden.$$
 	rm -f /tmp/xhard-hidden.$$
 	die "hidden behaviour tests failed"

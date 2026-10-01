@@ -27,10 +27,12 @@ graders:
     pattern: "python3 -m unittest"
     match: contains
   - name: gates-not-started
-    type: regex
-    target: trace
-    pattern: "flow tick[^\"]*G00"
-    match: not_contains
+    type: tool_used
+    tool: Bash
+    input_match: "flow tick(?:(?!\\\\n)[^\\n;&|])*\\bG00\\d"
+    min: 0
+    max: 0
+    arm: with-only
   - name: report-written
     type: file_exists
     path: "services/worker/worker/report.py"

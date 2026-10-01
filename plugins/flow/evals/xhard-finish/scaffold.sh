@@ -273,7 +273,7 @@ The ledger holds hundreds of rows. The reviewer adds them up by hand per categor
 |----|----------|-------------|------------|
 | AC-01 | MUST | The reviewer MUST get one row per category with its expense count and its total, formatted like `tally list` formats money | test on `sample/expenses.csv` |
 | AC-02 | MUST | Rows MUST be sorted by total descending, ties by category name ascending, followed by one `TOTAL` row with the overall count and total | test with a tie |
-| AC-03 | MUST | `--month YYYY-MM` MUST keep only that month's expenses. A malformed month MUST print `invalid month: <text>` on stderr, print nothing on stdout, and exit 2 | test both paths |
+| AC-03 | MUST | `--month YYYY-MM` MUST keep only that month's expenses. A month that is not exactly `YYYY-MM` with a month between 01 and 12 (for example `2026-13`, `August`, `2026-8` or `2026-08-01`) MUST print `invalid month: <text>` on stderr, print nothing on stdout, and exit 2 | test both paths |
 | AC-04 | MUST | With no expenses to summarise (empty file, or a month with none), the command MUST print `No expenses.` and exit 0 | test both cases |
 | AC-05 | MUST | The reviewer MUST see the summary table's columns line up in a terminal | a human looks at the rendered table |
 

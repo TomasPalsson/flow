@@ -60,6 +60,6 @@ node --test test/orders.test.js >/dev/null 2>&1
 git add src/orders.js test/orders.test.js
 git commit -q -m "orders: find a customer's orders by name"
 node "$FLOW" tick T001
-printf 'Discovered: searchOrdersLegacy in src/orders.js builds its SQL by string interpolation, so a search term can inject SQL — defer\n' >>.specs/001-orders-by-customer/NOTES.md
+printf -- '- Discovered: searchOrdersLegacy in src/orders.js builds its SQL by string interpolation, so a search term can inject SQL — defer\n' >>.specs/001-orders-by-customer/NOTES.md
 git add .specs
 git commit -q -m "chore: tick T001, log discovery"
