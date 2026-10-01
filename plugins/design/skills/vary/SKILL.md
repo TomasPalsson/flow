@@ -45,13 +45,13 @@ Read [`references/concepts.md`](references/concepts.md) and write 4-7 concepts t
 ## Step 1 — Roll
 
 ```bash
-node <skill-dir>/scripts/roll.mjs --mode <mode> --platform <platform> [--scene light|dark] \
+node <VARY>/scripts/roll.mjs --mode <mode> --platform <platform> [--scene light|dark] \
   --dossier .vary/dossier.json --concepts .vary/concepts.json --sector <id> \
   [--scripts latin,cyrillic] [--lock palette=#hex] [--lock world=<id>] [--no-webfonts] \
   [--longevity long|campaign] --project <repo-root>
 ```
 
-`<skill-dir>` is this skill's directory. `--project` is required. It points the anti-repeat memory at the repo (last 3 picks per axis demoted there, angles included; last 8 globally), so the same font or world does not come back next session.
+`<VARY>` is this skill's own directory: the absolute path on the "Base directory for this skill" line Claude Code printed when this skill loaded (or `${CLAUDE_PLUGIN_ROOT}/skills/vary` when that variable is set). Substitute it literally in every command. **Never search the filesystem (`find`, `ls ~`) for the scripts, and never run a copy under `~/.claude/plugins` or `~/.claude/skills` unless that path IS the base directory.** If `<VARY>/scripts/roll.mjs` is not there, stop and say so. `--project` is required. It points the anti-repeat memory at the repo (last 3 picks per axis demoted there, angles included; last 8 globally), so the same font or world does not come back next session.
 
 **The assignment is unrefusable.** Writing any UI markup, styling or component code before the roll has run and its comment block is pasted into the artifact is a contract violation. Apart from the `world_hints` read in Step 0b, do not read the catalog files to pick something yourself: that is the exact failure this skill exists to remove.
 
@@ -72,7 +72,13 @@ CONCEPT supplies thesis, materials, the memorable element and the functional res
 
 ## Step 3a — Art first
 
-Read [`references/graphics.md`](references/graphics.md) in full. Write `.vary/art-brief.md` from its template. The brief must list every subject from the dossier that gets drawn, the engine, the style object, the banned forms, and the sizes (hero and thumb). Build the art module and an `art-gallery.html` that renders every subject at both sizes. Screenshot it and read the screenshots. Write concrete critique (what reads wrong, not "could be better"). Fix it. Do at least two rounds. Write a style-rule test for the world's constraint (for example "litho: no opacity, no gradients"). No UI page code until round 2 passes.
+Read [`references/graphics.md`](references/graphics.md) in full (§0b is the benchmark, §1b "Composing a scene" is the method). Write `.vary/art-brief.md` from its template. The brief must list every subject from the dossier that gets drawn, the engine, the style object, the banned forms, and the sizes (hero and thumb). The art meets this **scene bar**, which the brief must plan for and the critique must check:
+
+- **S1 Hero scene.** For `persuade` and `experience` modes the first viewport is a full-bleed illustrated scene (or sheet): the drawing covers at least 55% of the first viewport at 1440x900 and 45% at 390x844, made of at least 5 distinct subject objects from the dossier across at least 3 depth layers (background/environment, main subject, foreground detail or people). The brand or headline is set INTO the scene (a sign, label, title block, painted lettering), not floated beside a boxed picture. At least 2 real dossier facts are rendered inside the art itself (a phone number on the sign, the founding year in a title block, opening hours on a door card). `operate` and `read` modes: the device may sit at plate scale, but with at least one full-width plate.
+- **S2 Richness floor** for every scene and plate: filled shapes (not hairlines on an empty field), one consistent light source (lit and shaded faces, cast shadows), texture (grain, hatching, halftone, paper), people or traces of use where the business has them, a palette of 4-7 inks. A single icon, a bare grid, a lone diagram in a framed box or a decorative blob FAILS the hero.
+- **S3 Page graphic budget.** Besides the hero, at least 3 more drawn plates or scenes down the page, each tied to a different fact group (place, product or menu, process, people or history), plus the micro scale (icons, bullets, dividers drawn in the same hand).
+
+Build the art module and an `art-gallery.html` that renders every subject at both sizes, plus the hero scene composed whole at 1440x900 and 390x844. Screenshot it and read the screenshots. Write concrete critique (what reads wrong, not "could be better"). **Each critique round compares the gallery screenshot against S1-S3 explicitly and against the §0b benchmark descriptions in `graphics.md`, and lists what is missing: objects (count vs 5), layers (vs 3), light, texture, facts-in-art, coverage.** Fix it. Do at least two rounds. Write a style-rule test for the world's constraint (for example "litho: no opacity, no gradients"). No UI page code until round 2 passes.
 
 ## Step 3 — Build, fully committed
 
@@ -95,7 +101,7 @@ Build the whole thing, then inspect once in a batched round (desktop and mobile 
 ## Step 4 — Mechanical check
 
 ```bash
-node <skill-dir>/scripts/check.mjs <built files or dir> --json
+node <VARY>/scripts/check.mjs <built files or dir> --json
 ```
 
 Fix every `FAIL` in one batch (contract present, contrast, focus-visible, 9 states, reduced motion, image dimensions, font weights, arbitrary Tailwind values, AI vocabulary and em-dash density, template tells, and the project checks: concept-contract, facts-in-build, bespoke-graphics, seeded-art, svg-a11y). Never satisfy a check by loosening it. Keep the JSON: the evaluator reads it.
@@ -136,6 +142,8 @@ Report to the user: the SEED KEY (so the roll is reproducible), the concept name
 
 - **Choosing among options.** Presenting three directions and picking one, or "picking the boldest", reinstates the argmax. The roll assigns; the user may steer. Writing several concepts is required. Choosing among them is not yours.
 - **Subject-blind direction**: rolling without concepts on a new project.
+- **A thin hero.** One icon, one diagram in a framed box, a bare grid or a text-only first screen on a persuade surface. The benchmark heroes are whole scenes or sheets (S1-S3).
+- **Hunting for scripts.** Searching the filesystem for `roll.mjs` or running the installed plugin's copy instead of the base directory.
 - **Decoration instead of drawing**: blobs, gradient meshes or noise-only heroes where a drawing of the subject belongs.
 - **Invented facts**: a number, quote or customer not in the dossier.
 - **Guardrails inside the brief.** Loading `build-craft.md` before the contract, or writing "be bold but not too bold", produces the hedged 65% page.

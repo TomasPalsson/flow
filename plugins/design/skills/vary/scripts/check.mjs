@@ -13,17 +13,22 @@
  * bespoke-graphics (a drawing source exists: inline SVG, SVG-from-code, canvas/webgl, SVG filters, generated
  * masks), seeded-art (art code must not use Math.random), svg-a11y (large SVGs hidden or labelled).
  *
- * Usage:  node check.mjs <file-or-dir> [more paths…] [--json] [--strict]
+ * fold: with --fold=<url-or-built-html> runs fold-check.mjs (Playwright) on the built page; otherwise UNKNOWN.
+ *
+ * Usage:  node check.mjs <file-or-dir> [more paths…] [--json] [--strict] [--fold=<url-or-built-html>]
  * Exit:   0 = no FAIL · 1 = at least one FAIL (with --strict, WARN also fails) · 2 = usage
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join, extname, dirname } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const EXT = new Set(['.html', '.htm', '.css', '.scss', '.jsx', '.tsx', '.js', '.ts', '.vue', '.svelte', '.astro', '.mdx']);
 const args = process.argv.slice(2);
 const json = args.includes('--json'); const strict = args.includes('--strict');
+const foldArg = (args.find(a => a.startsWith('--fold=')) || '').slice(7);
 const paths = args.filter(a => !a.startsWith('--'));
-if (!paths.length) { console.error('usage: node check.mjs <file-or-dir> [...] [--json] [--strict]'); process.exit(2); }
+if (!paths.length) { console.error('usage: node check.mjs <file-or-dir> [...] [--json] [--strict] [--fold=<url-or-built-html>]'); process.exit(2); }
 
 const SKIP_DIRS = ['node_modules', '.git', 'dist', '.next', 'build'];
 function walk(p, out = [], exts = EXT, skip = SKIP_DIRS) {
@@ -233,6 +238,20 @@ find(/<svg\b([^>]*)>([\s\S]*?)<\/svg>/i, (f, m) => { const vb = m[1].match(/view
     if (!hidden && !labelled) bad.push(ev(b.f.file, b.m.index, b.f.text));
   }
   checks.push({ id: 'svg-a11y', status: !big.length ? 'UNKNOWN' : bad.length ? 'WARN' : 'PASS', evidence: bad.slice(0, 5), detail: !big.length ? 'no inline SVG with viewBox > 32' : `${big.length} large inline SVG(s), ${bad.length} neither aria-hidden="true" nor role="img" with <title>/aria-label` });
+}
+
+// ---- fold: first-viewport scene measurement (browser; delegated to fold-check.mjs) ---------------------
+{
+  const how = 'run: node fold-check.mjs <url-or-built-html> [--mode persuade|experience|operate|read], or pass --fold=<url-or-built-html> here';
+  if (!foldArg) checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: `no built page given; ${how}` });
+  else {
+    const r = spawnSync('node', [join(dirname(fileURLToPath(import.meta.url)), 'fold-check.mjs'), foldArg, ...(mode ? ['--mode', mode] : [])], { encoding: 'utf8' });
+    const out = (r.stdout || '').trim();
+    const lines = out.split('\n').filter(l => /\[(PASS|FAIL|INFO)\]/.test(l)).map(l => ({ snippet: l.trim() }));
+    if (/fold-check SKIP/.test(out)) checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: out });
+    else if (r.status === 0 || r.status === 1) checks.push({ id: 'fold', status: r.status ? 'FAIL' : 'PASS', evidence: lines.filter(l => /\[FAIL\]/.test(l.snippet)), detail: `first viewport ${r.status ? 'is not an illustrated scene' : 'meets the scene thresholds'} (${lines.length} metrics, mode ${mode || 'persuade'})` });
+    else checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: `fold-check could not run: ${(r.stderr || out).trim().split('\n')[0]}; ${how}` });
+  }
 }
 
 const worst = checks.some(c => c.status === 'FAIL') ? 'FAIL' : checks.some(c => c.status === 'WARN') ? 'WARN' : 'PASS';

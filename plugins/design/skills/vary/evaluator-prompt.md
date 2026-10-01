@@ -66,8 +66,9 @@ Distinctiveness asks whether the build differs from the category. This step asks
 - **P3 Graphics carry information**: at least one graphic encodes real dossier data (a topping list, DN range, hours, address). Cite the element and the fact. Otherwise FAIL.
 - **P4 Trade credibility**: read the dossier audience and decide whether that paying customer would find the look credible for this trade, and whether reading surfaces (prices, forms, body copy) stay legible. A FAIL names the specific element, not "feels off". Example of a FAIL: a riso zine for an HVAC firm whose customers read it as "uber unprofessional".
 - **P5 Art craft (screenshots)**: no banned forms (faces on food, mascots, emoji-blobs); subjects distinguishable at thumbnail size; style consistent with the world's grammar (ink count, stroke, no gradients if refused); every item in `critique-r2.json`, if supplied, closed. No screenshots → UNVERIFIABLE → RECAPTURE.
+- **P6 Richness against the benchmark** (persuade/experience; operate/read judge plates only): compare the first-viewport screenshot to the benchmark descriptions (ara-bar: the restaurant at night, 10+ drawn objects, 3+ depth layers, a light source, brand painted on the sign, real phone number in the art; hitataekni: a full blueprint sheet with grid, coordinates, traced unit, dimension lines, callouts, a title block holding the real name, year, address and phone). Score: (a) the hero is a scene or sheet, not a boxed diagram, single icon, empty grid or text-only (drawing covers >=55% of the viewport at 1440x900, >=45% at 390x844; >=5 distinct subject objects across >=3 depth layers; headline set into the art; >=2 dossier facts rendered inside the art); (b) richness floor: filled shapes, one consistent light source, texture, people or traces of use, 4 to 7 inks; (c) page graphic budget: >=3 more drawn plates down the page, each tied to a different fact group, plus micro-scale marks in the same hand. Run `node scripts/fold-check.mjs <built page> --mode <mode>` (or `check.mjs --fold=<page>`) and cite its metric lines; its FAILs are evidence, the eye decides what counts as a distinct object. A text-only or boxed-diagram hero in persuade is a FAIL. List what is missing (objects, layers, light, texture, facts-in-art).
 
-Specificity PASS requires 4 of 5. Two or more FAILs, or a P2 FAIL, → REBUILD, written as "promised <SIGNATURE GRAPHIC>, shipped <what exists>". No dossier supplied → say so; P1 to P4 are then judged against the brief only and flagged lower confidence.
+Specificity PASS requires 5 of 6. Two or more FAILs, a P2 FAIL, or a P6 FAIL in persuade mode → REBUILD, written as "promised <SIGNATURE GRAPHIC>, shipped <what exists>". No dossier supplied → say so; P1 to P4 and P6 are then judged against the brief only and flagged lower confidence.
 
 **Sibling Variety** (only when a SIBLINGS block is appended): concept angle, world, archetype and device technique must each differ from every sibling, and the silhouettes must not be confusable. Any pair matching on 2 or more axes → FIX, naming which variant to re-roll.
 
@@ -108,7 +109,8 @@ Distinctiveness: PASS | FAIL (n/5)
 | P3 Graphics carry information | | element + fact |
 | P4 Trade credibility | | element |
 | P5 Art craft | | screenshot region |
-Specificity: PASS | FAIL (n/5)
+| P6 Richness vs benchmark | | fold-check lines; missing objects/layers/light/texture/facts-in-art |
+Specificity: PASS | FAIL (n/6)
 
 ## Sibling Variety
 (only when SIBLINGS present: one row per sibling, axes matched, which variant to re-roll)

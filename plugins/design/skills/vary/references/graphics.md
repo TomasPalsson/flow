@@ -50,6 +50,8 @@ What these have in common, and what a review should check:
 5. **Objects with a job**: the cart is a guest check or a ticket, the callout opens the product page, the gauge is the explanation of what the company sells.
 6. **Craft the template skips**: a mask for the badge baked into the photo, hand-patched glyphs for the content language, a finished state for narrow and reduced-motion, a text equivalent.
 
+The hero must pass the scene bar (S1-S3 in the vary Step 3a, composed per §1b): a full-bleed scene or sheet, 5+ subject objects, 3+ depth layers, one light, headline set into it, 2+ facts drawn in it. A single icon, a bare grid, a lone diagram in a framed box or a text-only hero is a FAIL for persuade.
+
 If your hero could be mistaken for a stock illustration or a gradient blob with a gold shape on it, it is below the bar: redraw it from a fact.
 
 ## 1. Art-engine architecture
@@ -168,6 +170,93 @@ export const inPoly = p => (x, y) => { let c = false;
 ```
 
 The torn edge: set `clip-path: var(--torn)` from `torn(seed)`, with a lighter back plate behind it and a `drop-shadow` filter on the wrapper.
+
+## 1b. Composing a scene
+
+The hero of a persuade or experience page is a **scene**, not an object: ara-bar's is the restaurant at night, hitataekni's is a whole blueprint sheet. Both are 10+ drawn objects, 3+ depth layers and one light source, with the brand set into the picture. Generalise the method to this dossier's place, never the motifs.
+
+**Layer order** (paint back to front; each layer is a function returning SVG, all seeded):
+
+1. **Sky / backdrop**: gradient bands or flat strips, stars or paper tone, a horizon. (Sheet: grid, border, zone markers.)
+2. **Architecture / landscape**: ridge, skyline, building facade, wall, cladding with rib hatching. (Sheet: the traced or drafted subject.)
+3. **Subject**: the thing the business is, drawn large and lit: the oven, the unit, the shopfront, the workbench.
+4. **People and props**: faceless silhouettes at tables, tools in use, a match on the screen, steam, a street lamp, parts on a shelf; traces of use where people are not allowed.
+5. **Lighting overlay**: warm window glow, a halo round the lamp, a cast shadow under every object, a darkened edge vignette. One light source; lit faces and shaded faces share one direction.
+6. **Lettering**: sign, ribbon, painted wall text, title block. Real dossier strings only.
+
+**Headline into the scene.** The brand or headline is the scene's own lettering (the sign over the door, painted wall type, a title block). When the page headline must be live text, set it over a quiet zone of the scene (sky, wall, empty sheet area) and keep that zone flat. **Readable over art**: put a plate behind copy (a darker band, a card of the scene's own material) or put the copy on the scene's own board or sign; measure contrast over the darkest and lightest pixel under the text, not the average. Body copy and prices never sit directly on detail.
+
+**Facts in the art.** Draw at least two dossier strings inside the picture: the phone number painted on the sign, the founding year and address in the title block, hours on a door card, the real product names on shelf labels.
+
+**Skeleton**: seeded layers, a style object, objects at three depths, a light. Adapt the nouns to the dossier; this one is deliberately generic. It is the **minimum**, not the target: add the dossier's own props (the TV, the shelf, the product) until the checklist below passes. Swatches it uses (`ground`, `cladding`, `rib`, `glass`, `wallDark`, `gold`, `glow`, `ink`, sky tones) must exist in the style's palette.
+
+```js
+// art/scene.js: compose a hero scene. Every layer is a pure function of (S, r, W, H); S is a style object from core.js.
+import { rng, rr, blob, hatchIn, inPoly, scatter, shape, strokeSw, svg, f } from './core.js';
+
+const sky = (S, r, W, H) => {                         // layer 1: first element is always the sky (composition marker)
+  const bands = [0, .25, .5, .72].map((t, i) => `<rect x="-10" y="${f(H * t)}" width="${W + 20}" height="${f(H * .3)}" fill="${S.palette[['skyDark', 'sky', 'skyLow', 'sun'][i]]}" data-sw="sky"/>`).join('');
+  const stars = scatter(r, 40, (x, y) => y < H * .3, W / 60, [0, 0, W, H * .3]).map(([x, y]) => `<circle cx="${f(x)}" cy="${f(y)}" r="${f(rr(r, W / 1200, W / 500))}" fill="${S.palette.glow}"/>`).join('');
+  return bands + stars;
+};
+const ridge = (S, r, W, H) => {                       // layer 2: far landscape, lit side + hatched shade side
+  const pts = Array.from({ length: 14 }, (_, i) => [i / 13 * W, H * (.34 + rr(r, -.07, .07) - Math.sin(i / 13 * Math.PI) * .08)]);
+  const outline = [[0, H * .5], ...pts, [W, H * .5]];
+  return shape(S, `M${outline.map(p => p.map(f).join(' ')).join('L')}Z`, 'ridge')
+    + strokeSw(S, hatchIn(inPoly(outline), [0, 0, W, H * .5], 60, W / 120, 3), 'ink', W / 700);
+};
+const facade = (S, r, W, H) => {                      // layers 2-3: the building the business lives in, with lit windows, a sign plate and a ground band
+  const y0 = H * .5, y1 = H * .88; let out = shape(S, `M0 ${f(y1)}H${W}V${H}H0Z`, 'ground');   // ground band with its own tone
+  out += shape(S, `M0 ${f(y0)}H${W}V${f(y1)}H0Z`, 'cladding');
+  for (let x = 0; x < W; x += W / 90) out += `<path d="M${f(x)} ${f(y0)}V${f(y1)}" stroke="${S.palette.rib}" stroke-width="${f(W / 700)}"/>`;   // corrugation
+  out += shape(S, `M0 ${f(y1)}H${W}v${f(H * .02)}H0Z`, 'wallDark', { line: false });   // cast shadow of the building on the ground
+  const n = 5, ww = W / n;
+  for (let i = 0; i < n; i++) {
+    const x = i * ww + 12, w = ww - 24;
+    out += shape(S, `M${f(x)} ${f(H * .66)}h${f(w)}v${f(H * .2)}h${f(-w)}Z`, 'glass');   // lit windows
+    out += shape(S, `M${f(x)} ${f(H * .66)}h${f(w)}v${f(H * .015)}h${f(-w)}Z`, 'wallDark', { line: false });   // lintel shadow
+    out += `<circle cx="${f(x + w / 2)}" cy="${f(H * .69)}" r="${f(W / 200)}" fill="${S.palette.gold}" data-sw="gold"/>`;   // pendant bulb
+  }
+  return out;
+};
+const sign = (S, W, H) => shape(S, `M${f(W * .22)} ${f(H * .4)}H${f(W * .78)}V${f(H * .56)}H${f(W * .22)}Z`, 'wallDark', { shadow: 'ink' });   // plate behind the lettering, so copy never sits on detail
+const lamp = (S, W, H) => {                            // prop at the foreground depth: street lamp with its own light pool
+  const x = W * .93, y = H * .88;
+  return shape(S, `M${f(x - 3)} ${f(y)}V${f(H * .5)}h6V${f(y)}Z`, 'wallDark')
+    + shape(S, `M${f(x - W / 60)} ${f(H * .5)}h${f(W / 30)}l${f(-W / 200)} ${f(-H * .03)}h${f(-W / 40 + W / 100)}Z`, 'wallDark')
+    + `<circle cx="${f(x)}" cy="${f(H * .5 - 4)}" r="${f(W / 160)}" fill="${S.palette.glow}" data-sw="glow"/>`
+    + `<ellipse cx="${f(x)}" cy="${f(y + H * .02)}" rx="${f(W / 20)}" ry="${f(H * .012)}" fill="${S.palette.glow}" opacity=".35"/>`;
+};
+const people = (S, r, W, H) => Array.from({ length: 4 }, (_, i) => {   // layer 4: faceless silhouettes at depth, each with a cast shadow
+  const x = W * (.12 + i * .24 + rr(r, -.02, .02)), y = H * .88, s = W / 40;
+  return `<ellipse cx="${f(x + s)}" cy="${f(y + 4)}" rx="${f(s * 1.6)}" ry="${f(s * .3)}" fill="${S.palette.ink}" opacity=".4"/>`   // cast shadow, offset away from the light
+    + shape(S, `M${f(x - s * .9)} ${f(y)}L${f(x - s * .6)} ${f(y - s * 2.6)}Q${f(x)} ${f(y - s * 3.1)} ${f(x + s * .6)} ${f(y - s * 2.6)}L${f(x + s * .9)} ${f(y)}Z`, 'wallDark')   // torso
+    + shape(S, blob(x, y - s * 3.5, s * .55, s * .65, r, .05), 'wallDark');   // head
+}).join('');
+const glow = (S, W, H) => S.shade === 'flat' ? '' :   // layer 5: light overlay (flat/litho worlds forbid gradients: use offset shadow shapes instead)
+  `<radialGradient id="glow-${S.name}" cx=".5" cy=".75" r=".6"><stop offset="0" stop-color="${S.palette.glow}" stop-opacity=".45"/><stop offset="1" stop-color="${S.palette.glow}" stop-opacity="0"/></radialGradient><rect width="${W}" height="${H}" fill="url(#glow-${S.name})"/>`;
+const lettering = (S, W, H, facts) =>                  // layer 6: real strings from the dossier, pinned with textLength
+  `<text x="${W / 2}" y="${f(H * .5)}" text-anchor="middle" font-size="${f(W / 9)}" textLength="${f(W / 4)}" fill="${S.palette.gold}" data-sw="gold">${facts.name}</text>`
+  + `<text x="${W / 2}" y="${f(H * .54)}" text-anchor="middle" font-size="${f(W / 36)}" fill="${S.palette.gold}">${facts.phone}</text>`;
+
+export function heroScene(S, facts, { W = 1440, H = 900 } = {}) {
+  const r = rng('scene:' + facts.id);                  // one seed; layers draw from it in a fixed order
+  return svg(`0 0 ${W} ${H}`, [sky(S, r, W, H), ridge(S, r, W, H), facade(S, r, W, H), sign(S, W, H), lamp(S, W, H), people(S, r, W, H), glow(S, W, H), lettering(S, W, H, facts)].join(''), facts.alt);
+}
+// Mobile: call heroScene(S, facts, { W: 780, H: 900 }) with the same seed and fewer, larger objects, not a scaled-down desktop.
+```
+
+**Checklist for the gallery's whole-scene render**: at least 5 distinct objects counted aloud; at least 3 depth layers; one visible light source with cast shadows; texture on at least two surfaces (hatching, grain, halftone, paper); people or traces of use; at least 2 dossier facts legible inside the art; covers at least 55% of the 1440x900 first viewport (45% at 390x844). Fail any and the round is not closed.
+
+## 1c. Scale up
+
+A scene is drawn at 1000-1500 units wide, so line weights, hatch gaps, label sizes and stipple dots scale with the canvas. Never a 1px hairline on a 1400px canvas.
+
+- Derive every stroke from the width: outline `W / 450` to `W / 300`, hatch lines `W / 700`, hatch gap `W / 120`, dimension lines `W / 600`, label text `W / 90` minimum for small print and `W / 9` to `W / 6` for painted lettering.
+- Prefer filled shapes to strokes for large objects; strokes are for edges, hatching and dimension lines.
+- Mobile gets its own composition at its own proportions (fewer, larger objects), not the desktop SVG scaled down.
+- Use `vector-effect: non-scaling-stroke` only for deliberate hairlines (a grid), never for the subject.
+- Plates that resize use the `--k` pattern in "Scaling line weight with the plate" below.
 
 ## 2. Technique catalog
 

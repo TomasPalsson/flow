@@ -172,6 +172,7 @@ Could this design only belong to this project? Observations first.
 - **Controls in the design's material**: nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
 - **Trade credibility**: would the dossier's paying audience find this look credible for the trade, and do reading surfaces stay legible? A FAIL names the specific element, not "feels off".
 - **Art craft (screenshots only)**: no faces, mascots or emoji-blobs; subjects distinguishable at thumbnail size; style consistent. No screenshots → "Cannot determine from source alone".
+- **Richness against the benchmark** (persuade/experience): compare the first viewport to the benchmark descriptions (ara-bar: restaurant at night, 10+ drawn objects, 3+ depth layers, a light source, brand on the painted sign, real phone number in the art; hitataekni: full blueprint sheet with grid, coordinates, traced unit, dimension lines, callouts, title block with the real name, year, address, phone). Check: hero is a scene or sheet covering >=55% of the 1440x900 viewport (>=45% at 390x844), >=5 distinct subject objects over >=3 depth layers, headline set into the art, >=2 dossier facts inside the art; richness floor (filled shapes, one light source, texture, people or traces of use, 4 to 7 inks); page budget of >=3 more drawn plates tied to different fact groups. Run `fold-check.mjs <built page>` from the vary skill directory (the sibling of this skill; never search the filesystem for it) when a built page exists and cite the metric lines. A text-only or boxed-diagram hero is a FAIL for persuade and caps Specificity at 2. List what is missing (objects, layers, light, texture, facts-in-art).
 
 Score:
 - 1: no custom graphics; survives a competitor swap whole
@@ -244,6 +245,7 @@ Rationale: [one sentence]
 
 ### Project Specificity and Signature Graphics — X/5 (20% weight)
 Signature graphic: [name, source file, fact ids — or "none"]
+Richness vs benchmark: [hero scene yes/no, coverage, objects, layers, light, texture, facts-in-art, plates; fold-check lines]
 Subject-swap false items: [list; count]
 Graphic carries real data: [element and fact, or no]
 Controls in the design's material: [observation]
