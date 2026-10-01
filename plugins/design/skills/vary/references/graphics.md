@@ -246,7 +246,30 @@ export function heroScene(S, facts, { W = 1440, H = 900 } = {}) {
 // Mobile: call heroScene(S, facts, { W: 780, H: 900 }) with the same seed and fewer, larger objects, not a scaled-down desktop.
 ```
 
-**Checklist for the gallery's whole-scene render**: at least 5 distinct objects counted aloud; at least 3 depth layers; one visible light source with cast shadows; texture on at least two surfaces (hatching, grain, halftone, paper); people or traces of use; at least 2 dossier facts legible inside the art; covers at least 55% of the 1440x900 first viewport (45% at 390x844). Fail any and the round is not closed.
+**Checklist for the gallery's whole-scene render**: at least 5 distinct objects counted aloud; at least 3 depth layers; one visible light source with cast shadows; texture on at least two surfaces (hatching, grain, halftone, paper); people or traces of use; at least 2 dossier facts legible inside the art; covers at least 55% of the 1440x900 first viewport (45% at 390x844); the §1d finish pass is applied (value plan, 3 value steps per material, grain, no empty region over 20% of the hero); every label, callout and sign text is fully visible (collision rule in §7). Fail any and the round is not closed.
+
+**Lettering on a scene surface that stays legible and clickable (worked example).** The headline, phone, hours and primary action live ON a drawn surface (sign, ticket, chalkboard, title block, label), never on a frosted card, chip row or button pair laid over the art. Wrap the drawn sign in the real control, so the picture is the button:
+
+```html
+<a class="sign" href="tel:+3545550123" aria-label="Call Hitataekni: 555 0123">
+  <svg viewBox="0 0 640 220" role="img" aria-labelledby="sign-t" width="640" height="220">
+    <title id="sign-t">Hitataekni, repairs. Phone 555 0123</title>
+    <rect x="4" y="4" width="632" height="212" rx="10" fill="#1d1a16"/>              <!-- sign board: solid, so contrast is measured on a known ground -->
+    <rect x="4" y="4" width="632" height="38" rx="10" fill="#2c2720"/>               <!-- lit top plane: value step 2 -->
+    <text x="320" y="130" text-anchor="middle" font-size="84" textLength="560" lengthAdjust="spacingAndGlyphs" fill="#f2c14e">HITATAEKNI</text>
+    <text x="320" y="186" text-anchor="middle" font-size="34" fill="#f6e7c1">555 0123</text>
+  </svg>
+</a>
+<style>
+  .sign { display: block; width: min(46vw, 640px); }                 /* sits at a fixed place in the scene layout */
+  @media (max-width: 600px) { .sign { width: min(88vw, 640px); } }  /* phones: the smallest painted letter must render >= 14px */
+  .sign:hover svg rect:first-child { filter: brightness(1.12); }
+  .sign:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; border-radius: 12px; }
+  .sign svg { display: block; width: 100%; height: auto; }
+</style>
+```
+
+Rules: lettering against its board is at least 4.5:1 (7:1 for the primary action); the `<a>` carries an accessible name that repeats the lettering; nothing drawn (pipe, lamp, person, steam) overlaps a glyph, so keep a clear margin of one letter-height around the text in the art; the sign is at least 44px tall on a phone; if the scene is a background `<svg>`, place the `<a>` as a sibling positioned over the sign with percentages that match the sign's rectangle, and keep the lettering in live text so it scales and is selectable.
 
 ## 1c. Scale up
 
@@ -257,6 +280,48 @@ A scene is drawn at 1000-1500 units wide, so line weights, hatch gaps, label siz
 - Mobile gets its own composition at its own proportions (fewer, larger objects), not the desktop SVG scaled down.
 - Use `vector-effect: non-scaling-stroke` only for deliberate hairlines (a grid), never for the subject.
 - Plates that resize use the `--k` pattern in "Scaling line weight with the plate" below.
+
+## 1d. Finish pass (applied in the art loop, after the objects are drawn)
+
+Flat single-tone vectors read as clip-art. The benchmarks win on value structure: lit windows against a night sky, a gold sign, grain, a blueprint grid with a title block. Run this pass on the hero and on every plate before the critique screenshot.
+
+1. **Value plan.** Decide the light before shading: time of day, ONE key light (direction), ONE glow source (window, lamp, oven mouth, screen). Lit planes face the key light, shaded planes the other way, cast shadows fall away from it. The brightest value on the plate goes to the focal fact (the sign, the product, the price tag); everything else sits at least two steps darker. Squint test: blur the screenshot, the focal fact must still be the brightest spot.
+2. **No flat muddy fills.** Every material (wall, roof, cloth, wood, metal, figure) has at least 3 value steps from the palette: lit, mid, shade, plus an edge or cast shadow. Hatching on one brown is not three steps. Never fill a large area with a single mid-value brown or grey.
+3. **Grain / texture overlay** over the whole plate (feTurbulence with its contrast stretched, or a tiled noise pattern), so flat fills carry paper or film tooth. Check it, do not assume it: on a flat fill in the screenshot the pixel standard deviation must be at least 3/255 (a 6% unstretched turbulence measures under 1 — invisible).
+4. **No dead zone.** No empty region larger than 20% of the hero area (an empty floor, an empty right third, a blank sky): fill it with environment (more street, a counter, shelves, people, reflections) or move and rescale the subject until it fills the frame.
+
+```js
+// art/finish.js: value plan + glow + grain, appended after the drawing and BEFORE the lettering layer (sign text, phone,
+// title block): the finish must not lift or tint the letters — draw them last, on their own solid plate.
+// Centre the glow on the focal fact (the sign, the product), never on an empty floor.
+export const plan = { key: { x: .72, y: .18 }, glow: { x: .5, y: .62, r: .55 } };   // light direction + glow centre (move it onto the focal fact), fractions of W/H
+
+export const finish = (S, W, H, id) => `
+  <defs>
+    <radialGradient id="glow-${id}" cx="${plan.glow.x}" cy="${plan.glow.y}" r="${plan.glow.r}">
+      <stop offset="0" stop-color="${S.palette.glow}" stop-opacity=".5"/>
+      <stop offset="1" stop-color="${S.palette.glow}" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="vig-${id}" x1="0" y1="0" x2="0" y2="1">               <!-- darken the edges so the focal fact is the brightest value -->
+      <stop offset="0" stop-color="${S.palette.ink}" stop-opacity=".35"/>
+      <stop offset=".35" stop-color="${S.palette.ink}" stop-opacity="0"/>
+      <stop offset=".7" stop-color="${S.palette.ink}" stop-opacity="0"/>
+      <stop offset="1" stop-color="${S.palette.ink}" stop-opacity=".45"/>
+    </linearGradient>
+    <filter id="grain-${id}" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+      <feComponentTransfer in="g"><feFuncR type="linear" slope="2.4" intercept="-.7"/><feFuncG type="linear" slope="2.4" intercept="-.7"/><feFuncB type="linear" slope="2.4" intercept="-.7"/></feComponentTransfer>   <!-- stretch the noise so it reads -->
+    </filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#glow-${id})" style="mix-blend-mode:screen"/>
+  <rect width="${W}" height="${H}" fill="url(#vig-${id})"/>
+  <rect width="${W}" height="${H}" filter="url(#grain-${id})" opacity=".14" style="mix-blend-mode:soft-light"/>`;
+// Worlds that forbid gradients or opacity (litho, flat): replace the glow with an offset lighter shape, the vignette with a darker
+// border band, and the grain with a hatch or halftone pattern in an existing ink. Still three value steps per material.
+```
+
+Critique additions for this pass: name the light source, point at the brightest value and say whether it is the focal fact, count value steps on the two largest materials, and measure the largest empty region as a percentage of the hero.
 
 ## 2. Technique catalog
 
@@ -1214,8 +1279,14 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 2. **Build the art module** and `art-gallery.html` rendering every subject at both sizes. Write the style-rule test and run it.
 3. **Screenshot the gallery** with Playwright, `npx agent-browser` or the browser MCP, and **Read the PNGs**. Look; do not assume.
 4. **Write `.vary/critique-r1.json`** as `[{"subject","problem","fix"}]` plus a 1-10 score per group. Problems are concrete ("pepperoni reads as a smiling face", "the heat wheel is indistinguishable from the fan at 96px"), never "could be better".
-5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** At least two rounds. Stop when round n has no item at the severity "reads as the wrong thing" and every r2 item is closed.
+5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** Two rounds, then build. Items still open after round 2 go into NOTES.md as `art: open — <item>` and the page ships; never start a third round.
 6. No UI page code until round 2 passes.
+
+**Art all the way down (rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width, never thumbnail-only, drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section.
+
+**Collision rule (every critique round, both viewports).** Every label, callout and sign text must be fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering ('REPAI_RERS'); no callout hidden behind a prop; no grey smear at the scene edge. Check the 1440x900 and the 390x844 screenshots separately, zoomed on each text; list every collision as a "reads as the wrong thing" item and fix it before the round closes.
+
+**Time budget.** The art loop is capped: two critique rounds, then build. Order: hero first, plates second (one pass each, reusing the engine and the finish pass), micro icons last. If the gallery has been rendered 6 times, stop critiquing and build the page with the art you have; a shipped page with good art beats a perfect gallery and no page. Never start a third round to polish a plate.
 
 ## 8. Generated raster images
 
