@@ -1163,6 +1163,99 @@ t_shared_check_all_since_no_changed_files_skips_lint_and_format() {
 	rm -rf "$d"
 }
 
+# _ss_ratchet_fixture <dir> — committed repo: old.py carries pre-existing ruff UP031 debt.
+_ss_ratchet_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n[tool.ruff.lint]\nselect=["F","UP"]\n' >"$d/pyproject.toml"
+	printf 'a = "%%s" %% 1\n' >"$d/old.py"
+	mkdir -p "$d/.venv/bin"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    return 2\n' >>"$d/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt rc"
+	assert_contains "$OUT" '1 pre-existing violation(s) in touched files ignored (present at HEAD)' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt message"
+	assert_contains "$OUT" '"preexisting": 1' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt json-preexisting"
+	assert_contains "$OUT" '"new": 0' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt json-new"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_new_violation_is_red_alone() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    import sys\n    return 2\n' >>"$d/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_ratchet_new_violation_is_red_alone rc"
+	assert_contains "$OUT" 'F401' "t_shared_check_all_since_ratchet_new_violation_is_red_alone new-printed"
+	assert_not_contains "$OUT" 'UP031' "t_shared_check_all_since_ratchet_new_violation_is_red_alone old-not-printed"
+	assert_contains "$OUT" '"new": 1' "t_shared_check_all_since_ratchet_new_violation_is_red_alone json-new"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    import sys\n\n    return 2\n' >>"$d/old.py"
+	cp "$d/old.py" "$d/before.txt"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/old.py")" "$(cat "$d/before.txt")" "t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical byte-identical"
+	assert_contains "$OUT" '--fix not run on 1 file(s) with pre-existing violations' "t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical says-so"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_new_file_violations_all_count() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf 'b = "%%s" %% 2\n' >"$d/fresh.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_ratchet_new_file_violations_all_count rc"
+	assert_contains "$OUT" 'fresh.py:1: UP031' "t_shared_check_all_since_ratchet_new_file_violations_all_count new-file"
+	assert_contains "$OUT" '"preexisting": 0' "t_shared_check_all_since_ratchet_new_file_violations_all_count none-ignored"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_respects_nested_package_config() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	mkdir -p "$d/pkg" "$d/.venv/bin"
+	printf '[lint]\nextend-select=["T20"]\n' >"$d/pkg/ruff.toml"
+	printf 'print(1)\n' >"$d/pkg/old.py"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf '\n\ndef added():\n    return 2\n' >>"$d/pkg/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ratchet_respects_nested_package_config rc"
+	assert_contains "$OUT" '"preexisting": 1' "t_shared_check_all_since_ratchet_respects_nested_package_config json-preexisting"
+	assert_contains "$OUT" '"new": 0' "t_shared_check_all_since_ratchet_respects_nested_package_config json-new"
+	rm -rf "$d"
+}
+
 t_shared_check_all_since_script_gate_is_flagged_unscoped() {
 	local d
 	d=$(tmp_dir)
