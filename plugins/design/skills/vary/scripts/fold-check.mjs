@@ -2,7 +2,9 @@
 /**
  * fold-check.mjs — measures whether the first viewport is an illustrated scene (vary SKILL S1-S3).
  *
- * Usage:  node fold-check.mjs <url-or-html> [--mode persuade|experience|operate|read] [--out <dir>]
+ * Usage:  node fold-check.mjs <url-or-html> [--mode persuade|experience|operate|read] [--treatment scene|pattern|photography|product-ui|typography|data-visual|utility] [--out <dir>]
+ * Treatment (default scene for persuade/experience, utility for operate/read) decides which rows are gated; the rest print INFO
+ * ("informational for treatment <t>"). The gate table lives in fold-gates.mjs, the row text in fold-rows.mjs.
  * Loads the page at 1440x900 and 390x844, waits 1.5 s, and measures in the first viewport:
  *   coverage  union area of visible svg/canvas/img/video/background-image(url) boxes / viewport area
  *   detail    visible svg shape elements (path circle rect polygon ellipse line polyline); a canvas/img/video/svg-image/
@@ -35,10 +37,10 @@
  *             text line (>= 10 chars, outside nav/buttons) within 200px of it, plus an action (a link or button with visible text,
  *             outside nav) in the first viewport. An h1 laid over an art box is the intended pattern and passes; svg <text> alone
  *             (no h1) fails.
+ *   title-on-fold (operate/read) a visible h1 or [role=heading][aria-level=1] in the first desktop viewport
  *   BLOCKING  final line listing the FAIL rows that must be fixed before shipping: collisions, clipped-text, hidden-content,
- *             stray-overlay, duplicate-content, headline-on-fold, headline-in-scene
- * Thresholds: coverage >= 0.55 desktop / 0.45 phone (persuade, experience only; informational for
- * operate/read), detail >= 50 desktop, plates >= 4, h1 overlaps art (persuade, experience).
+ *             stray-overlay, duplicate-content, headline-on-fold, title-on-fold, and headline-in-scene when the treatment gates it
+ * Scene thresholds: coverage >= 0.55 desktop / 0.45 phone, detail >= 50 desktop, plates >= 4, h1 overlaps art.
  * Screenshots fold-desktop.png / fold-phone.png go to --out (default: next to a local file, else cwd).
  * Playwright is resolved from cwd, /tmp, $FOLD_CHECK_PW (a dir holding node_modules), or this script's dir; absent -> prints SKIP and exits 0.
  * Exit: 0 = all PASS (or SKIP) · 1 = any FAIL · 2 = usage
@@ -47,6 +49,8 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { GATES, MODES, TREATMENTS, defaultTreatment } from './fold-gates.mjs';
+import { buildRows, blockingRegex } from './fold-rows.mjs';
 // the text-collision measure runs in the page; it lives in its own file (see its header)
 const FOLD_TEXT = fileURLToPath(new URL('./fold-text.browser.js', import.meta.url));
 // frame / solid-card / plate / rendering-depth measures (G1-G4 of round 5) live in their own browser file too
@@ -59,9 +63,11 @@ const FOLD_CRAFT = fileURLToPath(new URL('./fold-craft.browser.js', import.meta.
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
 const mode = opt('--mode') || 'persuade';
-const target = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--mode' && args[i - 1] !== '--out');
-if (!target || !['persuade', 'experience', 'operate', 'read'].includes(mode)) {
-  console.error('usage: node fold-check.mjs <url-or-html> [--mode persuade|experience|operate|read] [--out <dir>]'); process.exit(2);
+const treatment = opt('--treatment') || defaultTreatment(mode);
+const G = GATES[treatment];
+const target = args.find((a, i) => !a.startsWith('--') && !['--mode', '--out', '--treatment'].includes(args[i - 1]));
+if (!target || !MODES.includes(mode) || !G) {
+  console.error(`usage: node fold-check.mjs <url-or-html> [--mode ${MODES.join('|')}] [--treatment ${TREATMENTS.join('|')}] [--out <dir>]`); process.exit(2);
 }
 const isUrl = /^https?:\/\/|^file:\/\//.test(target);
 const url = isUrl ? target : pathToFileURL(resolve(target)).href;
@@ -290,60 +296,12 @@ for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
 }
 await browser.close();
 
-const scene = mode === 'persuade' || mode === 'experience';
-const lines = [];
-const row = (ok, id, text) => lines.push({ ok, text: `[${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}] ${id}: ${text}` });
-const d = res.desktop, p = res.phone;
-const cov = (v, min) => `${v.toFixed(2)} (need >= ${min})`;
-row(scene ? d.coverage >= 0.55 : null, 'coverage-desktop', cov(d.coverage, 0.55) + (scene ? '' : ` informational in ${mode} mode`));
-row(scene ? p.coverage >= 0.45 : null, 'coverage-phone', cov(p.coverage, 0.45) + (scene ? '' : ` informational in ${mode} mode`));
-const rasterOk = d.rasterCoverage >= 0.15;
-row(d.detail >= 50 || rasterOk, 'detail', `${d.detail} shape elements in the desktop hero (need >= 50); phone ${p.detail}` + (d.detail < 50 && rasterOk ? `; passes on raster art covering ${d.rasterCoverage.toFixed(2)} of the viewport (canvas/img/video detail is not countable, judge it by eye)` : ''));
-row(scene ? d.hasH1 && d.overlap : null, 'headline-in-scene', !d.hasH1 ? 'no h1 found' : d.overlap ? 'h1 box overlaps an art box' : 'h1 sits clear of every art box (floated beside the picture)');
-row(d.plates >= 4, 'plates', `${d.plates} svg/canvas plates >= 400px wide down the page, hero included (need >= 4)`);
-for (const [name, v] of [['desktop', d], ['phone', p]]) {
-  const hits = v.text.hits;
-  row(hits.length === 0, `collisions-${name}`, hits.length ? hits.slice(0, 6).map(h => `"${h.a}" vs "${h.b}" (${h.why})`).join('; ') : `${v.text.texts} text boxes, none overlapping or covered`);
-}
-const dz = d.dead;
-row(scene ? dz.frac <= 0.2 : null, 'dead-zone', `largest near-uniform rectangle ${dz.w}x${dz.h}px at (${dz.x},${dz.y}) = ${(dz.frac * 100).toFixed(1)}% of the desktop fold (need <= 20%)` + (scene ? '' : ` informational in ${mode} mode`));
-// Calibrated on ara-bar/1, hitataekni/1,/4 (must pass) and the nine trial-3 builds; see vary/references notes in the evaluator prompts.
-const TH = { span: 0.95, edge: 0.03, range: 90, steps: 5, plateW: 0.35, plateH: 280, plateSteps: 3, plateShare: 0.5, solid: 0.06 };
-for (const [name, v] of [['desktop', d], ['phone', p]]) {
-  const hits = [...v.cards.map(c => `"${c.text}" (${c.why}) over ${c.art}`), ...v.depth.solid.map(c => `"${c.text}" (solid card covering ${(c.share * 100).toFixed(0)}% of the hero art, need <= ${TH.solid * 100}%)`)];
-  row(scene ? hits.length === 0 : null, `card-over-art-${name}`, hits.length ? hits.slice(0, 4).join('; ') : 'no translucent, blurred or solid text card over hero art' + (scene ? '' : ` (informational in ${mode} mode)`));
-}
-for (const [name, v] of [['desktop', d], ['phone', p]]) {
-  const f = v.depth.frame, vw = name === 'desktop' ? 1440 : 390;
-  const ok = !f.none && f.span >= TH.span && f.left <= TH.edge * vw && f.right <= TH.edge * vw;
-  row(scene ? ok : null, `full-bleed-${name}`, f.none ? 'no hero art box' : `hero art box spans ${(f.span * 100).toFixed(0)}% of the viewport width, margins left ${f.left}px right ${f.right}px (need span >= ${TH.span * 100}% and margins <= ${TH.edge * 100}% of the width)${ok || !scene ? '' : '; a framed picture, not a full-bleed scene'}`);
-}
-const hs = d.depth.hero, depthOk = hs.range >= TH.range && hs.steps >= TH.steps;
-row(scene ? depthOk : null, 'rendering-depth', `desktop art area: value range ${hs.range} (need >= ${TH.range}), ${hs.steps} value steps (need >= ${TH.steps}), flat-block texture ${hs.texture.toFixed(2)} (reported, not gated: a smooth gradient sky is legitimately flat)`);
-const small = d.depth.plates.filter(pl => pl.w < TH.plateW * pl.secW || pl.h < TH.plateH || pl.stats.steps < TH.plateSteps);
-row(scene ? !d.depth.plates.length || small.length <= d.depth.plates.length * (1 - TH.plateShare) : null, 'plates-size', d.depth.plates.length
-  ? `${d.depth.plates.length - small.length}/${d.depth.plates.length} section plates >= ${TH.plateW * 100}% of the section width, >= ${TH.plateH}px tall, >= ${TH.plateSteps} value steps (need >= ${TH.plateShare * 100}% of them); failing: ${small.map(pl => `${pl.name} ${pl.w}x${pl.h} of ${pl.secW}px, ${pl.stats.steps} steps`).join(', ') || 'none'}`
-  : 'no section plates below the fold');
-const below = d.sections.filter(s => s.below && !s.excluded), withPlate = below.filter(s => s.plate);
-const share = below.length ? withPlate.length / below.length : 1;
-row(scene ? share >= 0.6 : null, 'art-down-page', below.length
-  ? `${withPlate.length}/${below.length} sections below the fold carry a plate >= 40% of their width (need >= 60%); without: ${below.filter(s => !s.plate).map(s => `${s.name}@${s.top}`).join(', ') || 'none'}`
-  : 'no sections >= 300px below the fold');
-const dups = [...d.content.dup.text.map(t => `"${t.text}" appears ${t.n}x`), ...d.content.dup.prices.map(t => `price list ${t.amounts.join('/')} repeats in <${t.a}> and <${t.b}>`)];
-row(dups.length === 0, 'duplicate-content', dups.length ? dups.slice(0, 4).join('; ') : 'no text block >= 40 chars or price list repeated outside the footer');
-const hd = d.content.head;
-row(scene ? !!hd.h1 && !!hd.line && !!hd.action : null, 'headline-on-fold', !hd.h1 ? 'no visible h1 in the first desktop viewport (paint the lettering as a real HTML h1 positioned over the sign/board area; svg text alone does not count)' : !hd.line ? `h1 "${hd.h1}" has no other text line within 200px (no value proposition)` : !hd.action ? `h1 "${hd.h1}" has no link or button with visible text in the first desktop viewport (no primary action)` : `h1 "${hd.h1}" with line "${hd.line}" and action "${hd.action}"` + (scene ? '' : ` (informational in ${mode} mode)`));
-for (const [name, v] of [['desktop', d], ['phone', p]]) {
-  const h = v.craft.hidden, o = v.craft.overlay, c = v.craft.clipped;
-  row(h.length === 0, `hidden-content-${name}`, h.length ? h.slice(0, 4).map(x => `${x.el} ${x.why}${x.text ? ` "${x.text}"` : ''}`).join('; ') : 'no text or hero art left at opacity 0 / visibility hidden after scrolling');
-  row(o.length === 0, `stray-overlay-${name}`, o.length ? o.slice(0, 3).map(x => `${x.el} covers the viewport with a dark fill at alpha ${x.alpha.toFixed ? x.alpha.toFixed(2) : x.alpha}`).join('; ') : 'no viewport-sized semi-opaque dark layer');
-  row(c.length === 0, `clipped-text-${name}`, c.length ? c.slice(0, 4).map(x => `"${x.text}" (${x.why})`).join('; ') : 'no text clipped by its box or svg viewport');
-}
-console.log(`fold-check ${url} mode=${mode}`);
+const lines = buildRows(res, mode, treatment, G);
+console.log(`fold-check ${url} mode=${mode} treatment=${treatment}`);
 for (const l of lines) console.log('  ' + l.text);
 console.log(`  screenshots: ${join(outDir, 'fold-desktop.png')}, ${join(outDir, 'fold-phone.png')}`);
 const fail = lines.some(l => l.ok === false);
-const BLOCKING = /^(collisions|clipped-text|hidden-content|stray-overlay|duplicate-content|headline-on-fold|headline-in-scene)/;
+const BLOCKING = blockingRegex(G);
 const blocking = lines.filter(l => l.ok === false && BLOCKING.test(l.text.slice(7)));
 console.log(`BLOCKING: ${blocking.length ? blocking.map(l => l.text.slice(7).split(':')[0]).join(', ') : 'none'}`);
 console.log(`fold-check ${fail ? 'FAIL' : 'PASS'}`);

@@ -258,3 +258,113 @@ test('avant-garde worlds are never dealt to a non-avant-garde concept on any pat
   }
   assert.ok(wild > 3, `only ${wild} wildcard rounds`);
 });
+
+// ---- hero treatment (generality spec D) ----
+function withDossier(name, mutate) {
+  const d = JSON.parse(readFileSync(DOSSIER, 'utf8')); mutate(d);
+  const p = join(tmp, name); writeFileSync(p, JSON.stringify(d)); return p;
+}
+const PHONE_EXCLUDED = ['dense-console', 'spec-sheet', 'split-screen', 'sidebar-tool', 'cardless-table', 'asymmetric-offset', 'scroll-narrative', 'zine-collage'];
+const withTypographyDirective = d => { d.directives = [{ text: 'plain, black and white, no illustrations, Swiss style', source: 'user brief', locks: ['treatment=typography', 'world=swiss-international', 'strategy=ink-on-paper'] }]; };
+
+test('treatment: a photography concept with no usable photo asset exits 2', () => {
+  const p = withConcepts('photo-nogrounds.json', c => { c[0].treatment = 'photography'; c[0].devices.push({ technique: 'annotated-photo', what: 'the shopfront photographed' }); });
+  const r = run(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', 'k1']);
+  assert.equal(r.status, 2, r.stdout);
+  assert.match(r.stderr, /photography needs at least one dossier\.assets/);
+  const ok = withDossier('photo-assets.json', d => { d.assets = [{ path: 'assets/front.jpg', kind: 'photo', usable: true }]; });
+  assert.equal(run(['--mode', 'persuade', '--dossier', ok, '--concepts', p, '--no-memory', '--from', 'k1']).status, 0);
+});
+
+test('treatment: an unknown treatment, or one with no device that maps to it, exits 2', () => {
+  assert.equal(run(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', withConcepts('t-bad.json', c => { c[0].treatment = 'wobble'; }), '--no-memory']).status, 2);
+  const r = run(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', withConcepts('t-nomap.json', c => { c[0].treatment = 'data-visual'; }), '--no-memory']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /needs at least one device whose technique maps to it/);
+});
+
+test('treatment: a dossier directive treatment=typography makes every reroll 0..5 print HERO TREATMENT: typography', () => {
+  const dp = withDossier('d-typo.json', withTypographyDirective);
+  for (let n = 0; n <= 5; n++) {
+    const r = run(['--mode', 'persuade', '--dossier', dp, '--concepts', CONCEPTS, '--no-memory', '--from', 'dir1', '--reroll', String(n)]);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /^HERO TREATMENT: typography — /m, `reroll ${n}`);
+    assert.match(r.stdout, /^DIRECTIVES: "plain, black and white, no illustrations, Swiss style"/m);
+    assert.match(r.stdout, /^WORLD: swiss-international/m, `reroll ${n}`);
+    assert.match(r.stdout, /^STRATEGY: ink-on-paper/m);
+  }
+});
+
+test('treatment: a CLI lock that conflicts with a directive lock exits 2', () => {
+  const dp = withDossier('d-typo2.json', withTypographyDirective);
+  const r = run(['--mode', 'persuade', '--dossier', dp, '--concepts', CONCEPTS, '--no-memory', '--from', 'k1', '--lock', 'treatment=scene']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /directive "plain, black and white, no illustrations, Swiss style" locks treatment=typography; the CLI asked scene/);
+  assert.equal(run(['--mode', 'persuade', '--dossier', dp, '--concepts', CONCEPTS, '--no-memory', '--from', 'k1', '--lock', 'treatment=typography']).status, 0);
+});
+
+test('canon: --platform ios --mode persuade never prints a phone-excluded archetype (and web persuade stays split-screen)', () => {
+  for (const mode of ['persuade', 'operate', 'read', 'experience']) {
+    for (const k of ['c1', 'c2']) {
+      const r = runJSON(['--mode', mode, '--platform', 'ios', '--canon', '--no-memory', '--from', k]);
+      assert.ok(!PHONE_EXCLUDED.includes(r.archetype), `${mode}: ${r.archetype}`);
+      assert.match(r.contract.join('\n'), /^HERO TREATMENT: (typography|utility) — /m);
+    }
+  }
+  assert.match(run(['--mode', 'persuade', '--platform', 'ios', '--canon', '--no-memory', '--from', 'c1']).stdout, /^ARCHETYPE: poster/m);
+  assert.equal(runJSON(['--mode', 'persuade', '--canon', '--no-memory', '--from', 'c1']).archetype, 'split-screen');
+});
+
+test('treatment: --mode operate with scene-only concepts falls back to utility and says so', () => {
+  const p = withConcepts('scene-only.json', c => { for (const x of c) x.treatment = 'scene'; });
+  const rolls = [0, 1, 2].map(n => runJSON(['--mode', 'operate', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', 'op1', '--reroll', String(n)]));
+  for (const r of rolls) {
+    assert.equal(r.treatment, 'utility');
+    assert.ok(r.notes.some(n => /treatment scene is not allowed for mode operate; fell back to utility/.test(n)), r.notes.join('|'));
+    assert.match(r.contract.join('\n'), /^HERO TREATMENT: utility — /m);
+    assert.match(r.contract.join('\n'), /details: icons, numerals, empty states/);
+  }
+});
+
+test('treatment: the RULE line mentions the art brief only for scene and pattern', () => {
+  const rule = args => run(args).stdout.split('\n').find(l => l.startsWith('RULE:'));
+  const lock = t => rule([...base, '--from', 'rl1', '--lock', `treatment=${t}`]);
+  assert.match(lock('scene'), /art brief/);
+  assert.match(lock('pattern'), /art brief/);
+  for (const t of ['photography', 'product-ui', 'typography', 'data-visual', 'utility']) assert.doesNotMatch(lock(t), /art brief/, t);
+  assert.doesNotMatch(rule(['--mode', 'operate', '--canon', '--no-memory', '--from', 'rl2']), /art brief/);
+});
+
+test('treatment: a concept with no treatment follows the dealt device technique (scene for a drawing technique)', () => {
+  const p = withConcepts('drawn.json', c => { for (const x of c) { x.devices = [{ technique: 'seeded-illustration', what: 'x' }, { technique: 'procedural-subject', what: 'y' }]; delete x.treatment; } });
+  for (const k of ['a', 'b', 'c']) assert.equal(runJSON(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', k]).treatment, 'scene');
+});
+
+test('treatment: --lock device wins over the weighted device pick', () => {
+  const r = runJSON([...base, '--from', 'dv1', '--lock', 'concept=kvold', '--lock', 'device=material-texture']);
+  assert.equal(r.device.technique, 'material-texture');
+  assert.equal(run([...base, '--lock', 'device=wobble']).status, 2);
+});
+
+test('canon with --concepts never pairs a drawn treatment with split-screen', () => {
+  for (let n = 0; n <= 5; n++) {
+    const r = runJSON(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', CONCEPTS, '--no-memory', '--from', 'b', '--canon', '--reroll', String(n)]);
+    assert.equal(r.archetype, 'split-screen');
+    assert.doesNotMatch(r.treatment, /^(scene|pattern)$/, `reroll ${n}: ${r.treatment}`);
+  }
+});
+
+test('typography lock deals only a typographic device, and black-and-white drops the accent and seed tint', () => {
+  const dp = withDossier('d-typo3.json', withTypographyDirective);
+  for (let n = 0; n <= 5; n++) {
+    for (const extra of [[], ['--lock', 'concept=street']]) {
+      const r = runJSON(['--mode', 'persuade', '--dossier', dp, '--concepts', CONCEPTS, '--no-memory', '--from', 'b', '--reroll', String(n), ...extra]);
+      assert.equal(r.treatment, 'typography');
+      assert.equal(r.device.technique, 'typographic', `reroll ${n}: ${r.device.technique}`);
+      const c = r.contract.join('\n');
+      assert.doesNotMatch(c, /ONE saturated accent/);
+      assert.match(c, /^PALETTE SEED: none — black and white by directive/m);
+      assert.equal(r.seed, null);
+    }
+  }
+});

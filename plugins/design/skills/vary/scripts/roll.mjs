@@ -16,6 +16,7 @@
  *                 [--longevity long|campaign] [--lock world=<id>] [--lock archetype=<id>]
  *                 [--lock strategy=<id>] [--lock seed=<id>] [--lock palette=#hex]
  *                 [--lock display=<font-id>] [--lock body=<font-id>]
+ *                 [--lock treatment=<scene|pattern|photography|product-ui|typography|data-visual|utility>] [--lock device=<technique>]
  *                 [--from <key>] [--reroll <n>] [--register safer|bolder] [--canon]
  *                 [--dossier <file> --concepts <file>] [--sector <id>] [--concept-only]
  *                 [--project <dir>] [--json] [--no-memory]
@@ -34,6 +35,9 @@
  *                   playful-bright, natural-raw, nocturnal-social, avant-garde); worlds not listing it are removed first.
  *   --concept-only  print only the CONCEPT / FACTS / FUNCTIONAL RESKIN / SIGNATURE DEVICE block (no world).
  *   --canon         the category standard, played straight and with craft (the user's exit).
+ *   treatment       every concept may name a hero `treatment` (roll-treatment.mjs); otherwise it follows the dealt device's technique.
+ *                   dossier.directives[].locks ("key=value", from the user's own words) are merged into --lock and outrank it:
+ *                   a conflicting CLI lock exits 2.
  *
  * Exit codes: 0 ok · 2 bad arguments · 3 data missing/corrupt.
  * No dependencies. Node ≥ 18.
@@ -43,6 +47,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } fr
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
+import { TECHNIQUES, TREATMENTS, TECH_TREATMENT, allowedFor, fallbackTreatment, mergeDirectiveLocks, resolveTreatment, fitDevice, noAccent, drawn, treatmentProblem, directiveLines, OBLIGATION, scaleLine, ruleSentence } from './roll-treatment.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DATA = resolve(here, '..', 'data');
@@ -66,10 +71,6 @@ const SECTORS = ['food-drink', 'hospitality-travel', 'retail-ecommerce', 'trades
 // the business's own register (concept.temperament); every world lists the 2-4 it can serve (worlds.json `temperaments`)
 const TEMPERAMENTS = ['heritage-craft', 'warm-domestic', 'civic-calm', 'technical-precise', 'playful-bright',
   'natural-raw', 'nocturnal-social', 'avant-garde'];
-// signature-device techniques (graphics.md section 2)
-const TECHNIQUES = ['seeded-illustration', 'procedural-subject', 'traced-line', 'mechanism-diagram',
-  'annotated-photo', 'scroll-scene', 'data-diagram', 'material-texture', 'print-process',
-  'typographic', 'generative-pattern', 'shader'];
 // techniques that cannot be the hero device on a surface of that mode (the device stays at plate/micro scale there)
 const HERO_FORBIDDEN = { operate: ['shader', 'scroll-scene'], read: ['shader'] };
 
@@ -226,8 +227,9 @@ function validateConcepts(list, dossier) {
     if (!Array.isArray(c.facts) || c.facts.length < 3) die(2, `${at}: needs at least 3 facts, got ${Array.isArray(c.facts) ? c.facts.length : 0}`);
     for (const f of c.facts) if (!factIds.has(f)) die(2, `${at}: fact id ${f} is not in the dossier`);
     if (typeof c.functional_reskin !== 'string' || !c.functional_reskin.trim()) die(2, `${at}: functional_reskin is empty`);
-    if (!Array.isArray(c.devices) || c.devices.length < 2) die(2, `${at}: needs at least 2 devices`);
+    if (!Array.isArray(c.devices)) die(2, `${at}: devices must be an array`);
     for (const d of c.devices) if (!d || !TECHNIQUES.includes(d.technique)) die(2, `${at}: unknown technique ${d && d.technique}; use one of ${TECHNIQUES.join(', ')}`);
+    const problem = treatmentProblem(c, dossier); if (problem) die(2, `${at}: ${problem}`);
     if (!TEMPERAMENTS.includes(c.temperament)) die(2, `${at}: temperament must be one of ${TEMPERAMENTS.join(', ')} (the business's own register, from the dossier), got ${c.temperament ?? 'none'}`);
     const hints = c.world_hints ?? [];
     if (!Array.isArray(hints) || hints.length < 2 || hints.length > 3) die(2, `${at}: world_hints must name 2-3 world ids (worlds whose grammar suits this concept), got ${Array.isArray(hints) ? hints.length : 'none'}`);
@@ -249,6 +251,14 @@ function validateDossier(d) {
 }
 const dossierData = args.dossier ? readJSONArg('--dossier', args.dossier) : null;
 if (dossierData) validateDossier(dossierData);
+{
+  const conflict = mergeDirectiveLocks(args.locks, dossierData); if (conflict) die(2, conflict);
+  if (args.locks.treatment && !TREATMENTS.includes(args.locks.treatment)) die(2, `--lock treatment=${args.locks.treatment} is not a treatment (${TREATMENTS.join(', ')})`);
+  if (args.locks.device && !TECHNIQUES.includes(args.locks.device)) die(2, `--lock device=${args.locks.device} is not a technique (${TECHNIQUES.join(', ')})`);
+}
+let treatment = null;
+// with a treatment lock, prefer concepts whose treatment equals it or is unset; when none qualify the dealt concept stays and is overridden
+const eligible = list => { const l = args.locks.treatment ? list.filter(c => !c.treatment || c.treatment === args.locks.treatment) : list; return l.length ? l : list; };
 let concept = null, device = null, conceptFacts = [];
 if (args.concepts) {
   const dossier = dossierData;
@@ -265,28 +275,38 @@ if (args.concepts) {
   } else {
     const dealt = new Set();
     for (let r = 0; r < args.reroll; r++) {
-      const left = list.filter(c => !dealt.has(c.id));
+      const left = eligible(list).filter(c => !dealt.has(c.id));
       const prev = pickConcept(left.length ? left : list, r);
       if (prev) dealt.add(prev.id);
     }
-    let cPool = list.filter(c => !dealt.has(c.id));
-    if (!cPool.length) { cPool = list; notes.push('re-roll exhausted the concepts; reusing'); }
+    let cPool = eligible(list).filter(c => !dealt.has(c.id));
+    if (!cPool.length) { cPool = eligible(list); notes.push('re-roll exhausted the concepts; reusing'); }
     concept = pickConcept(cPool, args.reroll);
   }
   conceptFacts = concept.facts.map(id => factById[id]);
   const forbidden = HERO_FORBIDDEN[args.mode] || [];
   let devCands = concept.devices.filter(d => !forbidden.includes(d.technique));
-  if (!devCands.length) { devCands = concept.devices; notes.push(`every device of ${concept.id} is a poor hero for mode ${args.mode}; keep it at plate/micro scale, not hero`); }
+  if (!devCands.length && concept.devices.length) { devCands = concept.devices; notes.push(`every device of ${concept.id} is a poor hero for mode ${args.mode}; keep it at plate/micro scale, not hero`); }
   const rt = recent('technique');
-  device = weightedPick(devCands, devCands.map(d => (rt.has(d.technique) ? DEMOTED_TICKETS : BASE_TICKETS)), key, `device:${args.reroll}`);
+  const deal = (pool, maps) => weightedPick(pool, pool.map(d => (rt.has(d.technique) ? DEMOTED_TICKETS : BASE_TICKETS) * (maps && TECH_TREATMENT[d.technique] === maps ? 4 : 1)), key, `device:${args.reroll}`);
+  device = devCands.length ? deal(devCands) : null;
+  const rt2 = resolveTreatment({ concept, device, mode: args.mode, lock: args.locks.treatment });
+  treatment = rt2.treatment; notes.push(...rt2.notes);
+  if (args.locks.device) {
+    device = concept.devices.find(d => d.technique === args.locks.device) || { technique: args.locks.device, what: '(locked by the user or a directive; the concept names no device of this technique)' };
+    notes.push(`device locked to ${args.locks.device}`);
+  } else if (!rt2.fromDevice && devCands.length) device = deal(devCands, treatment);
+  if (!args.locks.device) { const fd = fitDevice(device, concept, treatment); device = fd.device; if (fd.note) notes.push(fd.note); }
   coherence.push({ check: 'concept facts resolve in dossier', ok: conceptFacts.every(Boolean) });
-  coherence.push({ check: 'device allowed as hero for mode', ok: !forbidden.includes(device.technique) });
+  coherence.push({ check: 'device allowed as hero for mode', ok: !device || !forbidden.includes(device.technique) });
+  coherence.push({ check: 'treatment allowed for mode', ok: rt2.locked || allowedFor(args.mode, treatment) });
 } else {
   notes.push('no --concepts: subject-blind roll; for a new project vary requires Step 0-1 (dossier, then concepts)');
+  if (args.locks.treatment) treatment = args.locks.treatment;
 }
 if (args.conceptOnly) {
-  const lines = [`SEED KEY: ${key}  (reroll ${args.reroll}) · mode ${args.mode} · concept only`, ...conceptLines(concept, device, conceptFacts)];
-  if (args.json) console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, concept: concept.id, angle: concept.angle, device, facts: conceptFacts, coherence, notes, contract: lines }, null, 1));
+  const lines = [`SEED KEY: ${key}  (reroll ${args.reroll}) · mode ${args.mode} · concept only`, ...conceptLines(concept, device, conceptFacts, treatment)];
+  if (args.json) console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, concept: concept.id, angle: concept.angle, treatment, device, facts: conceptFacts, coherence, notes, contract: lines }, null, 1));
   else {
     console.log('<!--'); for (const l of lines) console.log(l); console.log('-->'); console.log('');
     console.log('COHERENCE:'); for (const r of coherence) console.log(`  [${r.ok ? 'ok' : 'FAIL'}] ${r.check}`);
@@ -294,7 +314,7 @@ if (args.conceptOnly) {
     console.log(''); console.log(`RULE: commit to this concept and device; the model does not swap them. Replay: --from ${key}${args.reroll ? ` --reroll ${args.reroll}` : ''}. Next hand: --from ${key} --reroll ${args.reroll + 1}.`);
   }
   if (args.memory) {
-    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept.id, angle: concept.angle, technique: device.technique };
+    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept.id, angle: concept.angle, technique: device?.technique, treatment };
     recordPick(files.global, pick, 64);
     if (files.local) recordPick(files.local, pick, 32);
   }
@@ -303,16 +323,22 @@ if (args.conceptOnly) {
 
 // ---- canon ---------------------------------------------------------------------------------
 if (args.canon) {
-  const canonArch = { persuade: 'split-screen', operate: 'sidebar-tool', read: 'single-column', experience: 'poster' }[args.mode];
+  const canonArch = { persuade: phone ? 'poster' : 'split-screen', operate: phone ? 'index-list' : 'sidebar-tool', read: 'single-column', experience: 'poster' }[args.mode];
+  if (!concept) { treatment = args.locks.treatment || fallbackTreatment(args.mode); notes.push(`canon with no concept: treatment ${treatment}`); }
+  else if (drawn(treatment) && !args.locks.treatment) {
+    // split-screen cannot carry a drawn scene (headline-in-scene, full-bleed rows), so canon never takes a drawn treatment
+    treatment = fallbackTreatment(args.mode); notes.push(`canon: concept ${concept.id} treatment is drawn; split-screen cannot carry it, using ${treatment}`);
+    if (!args.locks.device) { const fd = fitDevice(device, concept, treatment); device = fd.device; if (fd.note) notes.push(fd.note); }
+  }
   const body = fonts.find(f => f.id === 'system-ui') || fonts[0];
   const out = contract({
     key, reroll: args.reroll, mode: args.mode, platform: args.platform,
     world: { id: 'canon', name: 'Category standard, played straight', grammar: ['Match the two or three products the user names as peers; their craft level is the bar.', 'No irony, no smuggled quirk: convention executed at full fidelity.', 'Distinctiveness lives in details: spacing rhythm, focus states, empty states, copy that only this product could say.'], refuse: ['half-committed novelty on top of the conventional skeleton'], motion: { moment: 'one state transition tuned to the product (e.g. the primary action\'s success), nothing else animates', easing: 'ease-out, 150-250ms', forbidden: ['uniform fade-up on every section'] } },
-    archetype: archById[canonArch], strategy: 'restrained', seed: null, display: body, body, concept, device, conceptFacts,
+    archetype: archById[canonArch], strategy: 'restrained', seed: null, display: body, body, concept, device, conceptFacts, treatment,
   });
   emit(out, { canon: true });
   if (args.memory && concept) {
-    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept?.id, angle: concept?.angle, technique: device?.technique };
+    const pick = { ts: new Date().toISOString(), key, mode: args.mode, concept: concept?.id, angle: concept?.angle, technique: device?.technique, treatment };
     recordPick(files.global, pick, 64);
     if (files.local) recordPick(files.local, pick, 32);
   }
@@ -415,12 +441,16 @@ const strategy = weightedPick(stratCands, stratCands.map(s => (rs.has(s) ? DEMOT
 
 // ---- 4. palette seed ---------------------------------------------------------------------------
 let seed = null, lockedHex = null;
+const bw = noAccent(dossierData, strategy);
+if (bw) notes.push('directive asks for black and white with ink-on-paper: no accent colour, no tinted palette seed');
 if (args.locks.palette) {
   lockedHex = args.locks.palette.startsWith('#') ? args.locks.palette : `#${args.locks.palette}`;
   const ok = hexToOklch(lockedHex); const b = bucketOf(ok.h);
   const near = seeds.filter(s => s.bucket === b).map(s => ({ s, d: Math.hypot(s.oklch.l - ok.l, (s.oklch.c - ok.c) * 2) })).sort((x, y) => x.d - y.d)[0];
   if (near && near.d < 0.15) { seed = near.s; notes.push(`brand ${lockedHex} matched to ${seed.id} (bucket ${b}); the literal hex stays the anchor`); }
   else notes.push(`brand ${lockedHex} (bucket ${b}) has no close seed; carry the literal hex as PALETTE SEED`);
+} else if (bw) {
+  // no seed: true black and paper white only
 } else if (args.locks.seed) {
   seed = seeds.find(s => s.id === args.locks.seed) || die(2, `--lock seed=${args.locks.seed} is not a seed id`);
 } else {
@@ -488,10 +518,10 @@ coherence.push({ check: 'body face ships ≥3 weights or is variable', ok: !body
 coherence.push({ check: 'world not in sector avoid list', ok: !args.sector || !(world.avoid_sectors || []).includes(args.sector) });
 
 // ---- 7. output --------------------------------------------------------------------------------------
-const result = contract({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world, archetype, strategy, seed, lockedHex, display, body, concept, device, conceptFacts });
+const result = contract({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world, archetype, strategy, seed, lockedHex, display, body, concept, device, conceptFacts, treatment, bw });
 emit(result, {});
 if (args.memory) {
-  const pick = { ts: new Date().toISOString(), key, mode: args.mode, world: world.id, archetype: archetype.id, strategy, seed: seed?.id, display: display?.id, body: body?.id, concept: concept?.id, angle: concept?.angle, technique: device?.technique };
+  const pick = { ts: new Date().toISOString(), key, mode: args.mode, world: world.id, archetype: archetype.id, strategy, seed: seed?.id, display: display?.id, body: body?.id, concept: concept?.id, angle: concept?.angle, technique: device?.technique, treatment };
   recordPick(files.global, pick, 64);
   if (files.local) recordPick(files.local, pick, 32);
 }
@@ -502,26 +532,29 @@ function fontLine(f) {
   const w = f.variable ? `variable ${f.weights}` : `weights ${f.weights}`;
   return `${f.name} (${f.class}; ${w}) · ${load}`;
 }
-function conceptLines(cn, dv, facts) {
-  if (!cn) return ['CONCEPT: none'];
+function conceptLines(cn, dv, facts, tr) {
+  if (!cn) return ['CONCEPT: none', ...(tr ? [`HERO TREATMENT: ${tr} — ${OBLIGATION[tr]}`] : []), ...directiveLines(dossierData)];
   const l = [`CONCEPT: ${cn.id} — ${cn.name || cn.id} — angle: ${cn.angle} — antecedent: ${cn.antecedent || 'n/a'}`, 'FACTS:'];
   for (const f of facts) { const t = (f.text || '').replace(/\s+/g, ' '); l.push(`  - ${f.id} "${t.length > 100 ? t.slice(0, 99) + '…' : t}" (${f.source || 'no source'})`); }
   l.push(`FUNCTIONAL RESKIN: ${cn.functional_reskin}`);
-  l.push(`SIGNATURE DEVICE: ${dv.technique} — ${dv.what || ''} · must appear at 3 scales: hero, section/divider, micro (icon/bullet/empty state)`);
+  l.push(`SIGNATURE DEVICE: ${dv ? `${dv.technique} — ${dv.what || ''}` : 'none'} · ${scaleLine(tr)}`);
+  if (tr) l.push(`HERO TREATMENT: ${tr} — ${OBLIGATION[tr]}`);
+  l.push(...directiveLines(dossierData));
   return l;
 }
 function contract(c) {
   const lines = [];
   lines.push(`SEED KEY: ${c.key}  (reroll ${c.reroll}) · mode ${c.mode} · platform ${c.platform}`);
   lines.push(`WORLD: ${c.world.id} — ${c.world.name}${c.world.one_line ? ' — ' + c.world.one_line : ''}`);
-  lines.push(...conceptLines(c.concept, c.device, c.conceptFacts));
+  lines.push(...conceptLines(c.concept, c.device, c.conceptFacts, c.treatment));
   if (c.world.suits) lines.push(`FIT: sector ${args.sector || 'unspecified'} · world suits: ${[].concat(c.world.suits).join(', ')} · world avoid_for: ${[].concat(c.world.avoid_for || []).join(', ')}`);
   lines.push(`ARCHETYPE: ${c.archetype.id} — ${c.archetype.structure}`);
   lines.push(`  first viewport: ${c.archetype.first_viewport}; primary action: ${c.archetype.primary_action}; scroll: ${c.archetype.scroll}`);
   lines.push(`  mobile: ${c.archetype.mobile_fallback}`);
-  lines.push(`STRATEGY: ${c.strategy}${c.world.palette_hint ? ' — ' + c.world.palette_hint : ''}`);
+  lines.push(`STRATEGY: ${c.strategy}${c.bw ? ' — true black + paper white only; NO accent colour (the directive overrides the world palette hint)' : c.world.palette_hint ? ' — ' + c.world.palette_hint : ''}`);
   if (c.lockedHex && !c.seed) lines.push(`PALETTE SEED: brand ${c.lockedHex} (locked) · oklch(${Object.values(hexToOklch(c.lockedHex)).join(' ')})`);
   else if (c.seed) lines.push(`PALETTE SEED: ${c.seed.id} · oklch(${c.seed.oklch.l} ${c.seed.oklch.c} ${c.seed.oklch.h}) · ${c.seed.hex_srgb} · role ${c.seed.role_hint} · text on it: ${c.seed.text_on_it} · ${c.seed.mood} (${c.seed.material})${c.lockedHex ? ` · brand anchor ${c.lockedHex}` : ''}`);
+  else if (c.bw) lines.push('PALETTE SEED: none — black and white by directive; neutrals only, no tint');
   else lines.push('PALETTE SEED: none (canon) — use the brand colour or a tinted neutral');
   if (c.seed?.avoid_with?.length) lines.push(`  avoid: ${c.seed.avoid_with.join('; ')}`);
   lines.push(`DISPLAY FONT: ${fontLine(c.display)}`);
@@ -542,7 +575,7 @@ function contract(c) {
 function emit(out, extra) {
   if (args.json) {
     const { c } = out;
-    console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world: c.world.id, archetype: c.archetype.id, strategy: c.strategy, seed: c.seed?.id || null, locked_hex: c.lockedHex || null, display: c.display?.id, body: c.body?.id, concept: c.concept ? { id: c.concept.id, angle: c.concept.angle } : null, device: c.device || null, facts: c.conceptFacts || [], coherence, notes, contract: out.lines, ...extra }, null, 1));
+    console.log(JSON.stringify({ key, reroll: args.reroll, mode: args.mode, platform: args.platform, world: c.world.id, archetype: c.archetype.id, strategy: c.strategy, seed: c.seed?.id || null, locked_hex: c.lockedHex || null, display: c.display?.id, body: c.body?.id, concept: c.concept ? { id: c.concept.id, angle: c.concept.angle } : null, treatment: c.treatment || null, device: c.device || null, facts: c.conceptFacts || [], coherence, notes, contract: out.lines, ...extra }, null, 1));
     return;
   }
   console.log('<!--');
@@ -552,5 +585,5 @@ function emit(out, extra) {
   if (coherence.length) { console.log('COHERENCE:'); for (const r of coherence) console.log(`  [${r.ok ? 'ok' : 'FAIL'}] ${r.check}`); }
   if (notes.length) { console.log('NOTES:'); for (const n of notes) console.log(`  - ${n}`); }
   console.log('');
-  console.log('RULE: paste the comment block above verbatim as the first child of <body> in the root layout. Fill SCENE, FIRST VIEWPORT, THESIS and SIGNATURE GRAPHIC. Write the art brief and pass the gallery critique before any UI page code. Re-roll only on named grounds: a FAIL above; a script the font lacks; the world cannot carry the SIGNATURE DEVICE; or the user vetoes the world for this trade. Replay: --from ' + key + (args.reroll ? ` --reroll ${args.reroll}` : '') + '. Next hand: --from ' + key + ` --reroll ${args.reroll + 1}.`);
+  console.log('RULE: paste the comment block above verbatim as the first child of <body> in the root layout. Fill SCENE, FIRST VIEWPORT, THESIS and SIGNATURE GRAPHIC. ' + ruleSentence(out.c.treatment) + ' Re-roll only on named grounds: a FAIL above; a script the font lacks; the world cannot carry the SIGNATURE DEVICE; or the user vetoes the world for this trade. Replay: --from ' + key + (args.reroll ? ` --reroll ${args.reroll}` : '') + '. Next hand: --from ' + key + ` --reroll ${args.reroll + 1}.`);
 }

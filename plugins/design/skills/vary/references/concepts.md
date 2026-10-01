@@ -3,9 +3,9 @@ name: concepts
 description: Step 0b of vary and design. How to turn the dossier into 4-7 grounded concepts (each the site as a physical thing from this trade or place, each a different angle on the business), written to .vary/concepts.json for roll.mjs to pick from. Includes the physical-object method and worked examples from two client sites.
 ---
 
-# Concepts: the site as a thing from this trade
+# Concepts: the site as a thing from this trade, or the client's own pictures, product or numbers
 
-A concept is a one-sentence idea in which the site **is** a physical thing from this business's own world. The roll picks one of your concepts, so write every one as if it will win.
+A concept is the site as a thing from this trade, or this client's own pictures, product or numbers set with a point of view. It is a one-sentence idea in which the site **is** that thing. The roll picks one of your concepts, so write every one as if it will win.
 
 - ARA (pizzeria and sports bar): "the site IS that room at night, a paper menu on a dark wooden table."
 - Hitatækni (HVAC shop): the shop as a set of engineering drawing sheets.
@@ -24,7 +24,7 @@ A concept is a one-sentence idea in which the site **is** a physical thing from 
 
 **c) Prefer the trade's own documents and hardware**: datasheet, drawing sheet, guest check, kitchen ticket, price tag, route card, work order, handbill. The dossier's `artefacts` list is the pool.
 
-**d) Re-skin the functional objects.** Cart, confirmation, timetable, nav, buttons, empty and error states each become an object of the concept: ARA's cart is a guest-check pad and its confirmation a kitchen ticket on a rail; hitataekni D's buttons are corner-tick drafting symbols and its nav is bracketed. This is `functional_reskin`, and it is where a concept stops being a wallpaper.
+**d) Re-skin the functional objects.** Re-skin functional objects on persuade/experience surfaces; operate surfaces keep conventional controls. Cart, confirmation, timetable, nav, buttons, empty and error states each become an object of the concept: ARA's cart is a guest-check pad and its confirmation a kitchen ticket on a rail; hitataekni D's buttons are corner-tick drafting symbols and its nav is bracketed. This is `functional_reskin`, and it is where a concept stops being a wallpaper.
 
 **e) Pick devices and worlds.** Each concept offers 2-3 signature graphic devices from the technique list in `graphics.md` §2, naming what each would draw from which facts, and 2-3 `world_hints` whose grammar fits the artefact. The roll picks one; write all of them at full strength.
 
@@ -46,6 +46,7 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 ```json
 [{"id":"kvold","name":"Kvöld á ARA","angle":"the room on a dark evening",
   "antecedent":"paper menu on a wooden table; waiter's guest check",
+  "treatment":"scene",
   "facts":["F1","F7","F12"],
   "temperament":"nocturnal-social","audience_mood":"hungry, social, evening: warm, loud-ish, convivial",
   "functional_reskin":"cart = guest-check pad; confirmation = kitchen ticket on a rail",
@@ -65,7 +66,8 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 | `audience_mood` | the mood the audience needs from this page, read from the dossier (children's dentist: bright, safe, daytime; funeral home: calm, quiet, dignified; B2B lab: precise, trustworthy; fish auction: cold, brisk, practical). The `temperament` must serve it, and a world that breaks it is a re-roll (`--lock concept=<id>`) |
 | `facts` | at least 3 ids that exist in `dossier.facts[].id`; at least one is visible in the device |
 | `functional_reskin` | non-empty: cart, confirmation, nav, buttons in the concept's material |
-| `devices` | at least 2; `technique` is one of: seeded-illustration, procedural-subject, traced-line, mechanism-diagram, annotated-photo, scroll-scene, data-diagram, material-texture, print-process, typographic, generative-pattern, shader |
+| `treatment` | one of scene, pattern, photography, product-ui, typography, data-visual, utility; optional (otherwise derived from the dealt device); photography needs a usable photo asset, product-ui a screenshot or app path |
+| `devices` | at least 2 for scene/pattern, 1 for the other treatments, 0 for utility; `technique` is one of: seeded-illustration, procedural-subject, traced-line, mechanism-diagram, annotated-photo, photo-direction, product-capture, scroll-scene, data-diagram, material-texture, print-process, typographic, generative-pattern, shader. With a `treatment` other than typography or utility, at least one device maps to it (photo-direction/annotated-photo to photography, product-capture to product-ui) |
 | `world_hints` | required, 2-3 existing world ids (`roll.mjs` exits 2 with fewer than 2), never one whose `avoid_sectors` includes the dossier's sector. Take ids from `data/worlds.json` (the one permitted read of it: ids, names, sectors, `avoid_sectors` only) |
 | `memorable` | the one element someone will remember |
 | `p` | optional, 0-1; logged only, never used to drop a concept |
@@ -74,7 +76,7 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 
 - **4 to 7 concepts**, each with a distinct angle.
 - At least 3 facts each, and at least one fact must be visible in the device.
-- None may be the category's standard page or its predictable opposite.
+- None may be the category's standard page or its predictable opposite, unless a directive or `--canon` asks for it.
 - At most one concept may use the business's name as its metaphor.
 - Spread the devices: not every concept leads with an illustration engine. Mix drawn, traced, diagrammatic, textural and typographic devices so the roll has real range.
 - Every concept names 2-3 `world_hints`: worlds whose grammar suits the trade artefact. They define the pool the roll draws the world from (with worlds listing the sector) and are weighted 8x; at least one must list the concept's `temperament` or `roll.mjs` exits 2. Hints must fit the audience mood: no Bauhaus primaries for a calm clinic, no sunburst ticket for a quiet service. The roll still picks, you do not.
@@ -93,6 +95,10 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 | Hitatækni A "Loftið í húsinu" | picture book about where a building's air goes, each spread ending on the product that does the job | air handling in Icelandic apartment blocks; filter change monthly; hitaveita water through valves; sensors at 19-21 °C; since 1963 |
 | Hitatækni B "Tækniblað" | the shop as an HVAC datasheet binder: ruled grid, mono data, size ruler | Belimo ranges with DN sizes; sheet numbers from brand and position |
 | Hitatækni C "Spec-sheet" | 1980s Japanese component brochure, brushed aluminium, one signal colour, a model code as big as the name | Belimo actuators as machined units; brand blue; Swegon rooftop unit spec labels |
+| Release-notes SaaS "The release-notes ledger" | `product-ui`: the real changelog and the capture of the workflow it ships, set as a ledger | real app screens; the named workflow; version dates |
+| Fashion house, own campaign photography "The contact sheet" | `photography`: the client's frames shown unaltered as a contact sheet, crop and sequence as the signature | usable photo assets; collection names; season dates |
+| Developer docs "The maintenance manual" | `utility` or `typography`: numbered procedures, torque-table style parameters, no hero | real API entities; install steps; version facts |
+| Swiss black-and-white studio (directive: no illustrations) | `typography`: a grid of the studio's own lettering carrying its founding year | project list; directive `treatment=typography`; the studio's name and city |
 | Hitatækni D "Teikning" | the shop as engineering drawing sheets: blue plates, dimension lines, a title block, spec tables on vellum | air handling documented as drawings; a heat wheel, damper, coil, valve, filter; real DN and voltage spec rows |
 
 Same client, four angles: variants of one client use one dossier and one concepts file, and `--reroll 0..N-1` deals a different concept each round.

@@ -3,7 +3,8 @@
 //   headline    a visible level-1 heading in the first viewport (over art is fine) plus another visible text line within 200px of it
 //               and an action (link or button with text, outside nav) in the first viewport
 //   duplicates  (full page, footer excluded) text blocks >= 40 chars that appear twice, and price lists (>= 3 amounts in one
-//               block, HTML or svg text) that share >= 3 amounts with another non-nested block
+//               block, HTML or svg text) that share >= 3 amounts with another non-nested block. Exempt (and counted in
+//               `exempt`): pre/code/kbd text, anything inside [data-repeat-ok], and amount blocks inside a <form>
 (() => {
   const visible = el => {
     for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
@@ -54,12 +55,17 @@
   const sameTemplate = (a, b) => templated(a) && templated(b) && sig(a) === sig(b);
   const name = b => b.tagName.toLowerCase() + (b.id ? '#' + b.id : '') + (b.classList[0] ? '.' + b.classList[0] : '');
 
+  // exemptions the duplicate check applied (printed by fold-check so the evaluator can audit them)
+  const exempt = { code: 0, repeatOk: 0, form: 0 };
+
   const repeatedText = () => {
     const seen = new Map();
     for (const el of document.querySelectorAll('body *')) {
       if (el.closest(`${INERT},svg`) || inFooter(el) || !visible(el)) continue;
       const t = norm(el.textContent);
       if (t.length < 40 || [...el.children].some(c => norm(c.textContent).length >= 40)) continue;
+      if (el.closest('pre,code,kbd')) { exempt.code++; continue; }
+      if (el.closest('[data-repeat-ok]')) { exempt.repeatOk++; continue; }
       const k = t.toLowerCase(); seen.set(k, [...(seen.get(k) || []), el]);
     }
     return [...seen].filter(([, els]) => els.some((a, i) => els.slice(i + 1).some(b => !sameTemplate(a, b)))).map(([k, els]) => ({ text: k.slice(0, 60), n: els.length }));
@@ -71,6 +77,8 @@
       if (el.closest(INERT) || inFooter(el) || !visible(el)) continue;
       const isText = el.tagName.toLowerCase() === 'text';
       if (!count(isText ? norm(el.textContent) : el.closest('svg') ? '' : ownText(el))) continue;
+      if (el.closest('[data-repeat-ok]')) { exempt.repeatOk++; continue; }
+      if (el.closest('form')) { exempt.form++; continue; }
       let b = el;
       while (b && b !== document.body && count(b.textContent || '') < 3) b = b.parentElement;
       if (b && b !== document.body) blocks.add(b);
@@ -88,5 +96,5 @@
     return out;
   };
 
-  window.__foldContent = { headline, duplicates: () => ({ text: repeatedText(), prices: repeatedPrices() }) };
+  window.__foldContent = { headline, duplicates: () => ({ text: repeatedText(), prices: repeatedPrices(), exempt }) };
 })();

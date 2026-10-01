@@ -5,7 +5,7 @@ description: Step 3a of vary (Phase 3b of design). The playbook for custom, subj
 
 # Graphics: draw the subject
 
-The graphics are the identity. A palette and fonts over CSS blocks is not a design. Every build carries one **signature device** drawn from the subject, shown at three scales, built from dossier facts. The roll assigned the technique; this file says how to execute it. The two client sites that set the bar did it this way: ara-bar drew every dish and its own building as seeded SVG; hitataekni drew its air handling unit as a cutaway and traced its products into drafting-sheet line art. The patterns below are those engines' real methods, generalised: feed them the subject's own facts, because a pattern copied with placeholder data looks generic (a navy slab with a gold blob). Section 0b is the bar. The patterns teach techniques, not motifs: never draw a pizza, a carton, a storefront or an air-handling unit unless it is THIS client's subject — take the method (projection, char spots, zoned fills, tracing, dimension lines) and point it at the nouns in this dossier.
+When the treatment is scene or pattern, the graphics are the identity. A palette and fonts over CSS blocks is not a design. Every build carries one **signature device** drawn from the subject, shown at three scales, built from dossier facts. The roll assigned the technique; this file says how to execute it. The two client sites that set the bar did it this way: ara-bar drew every dish and its own building as seeded SVG; hitataekni drew its air handling unit as a cutaway and traced its products into drafting-sheet line art. The patterns below are those engines' real methods, generalised: feed them the subject's own facts, because a pattern copied with placeholder data looks generic (a navy slab with a gold blob). Section 0b is the bar. The patterns teach techniques, not motifs: never draw a pizza, a carton, a storefront or an air-handling unit unless it is THIS client's subject — take the method (projection, char spots, zoned fills, tracing, dimension lines) and point it at the nouns in this dossier.
 
 ## 0. Derive the device from the subject
 
@@ -50,7 +50,7 @@ What these have in common, and what a review should check:
 5. **Objects with a job**: the cart is a guest check or a ticket, the callout opens the product page, the gauge is the explanation of what the company sells.
 6. **Craft the template skips**: a mask for the badge baked into the photo, hand-patched glyphs for the content language, a finished state for narrow and reduced-motion, a text equivalent.
 
-The hero must pass the scene bar (S1-S3 in the vary Step 3a, composed per §1b): a full-bleed scene or sheet, 5+ subject objects, 3+ depth layers, one light, headline set into it, 2+ facts drawn in it. A single icon, a bare grid, a lone diagram in a framed box or a text-only hero is a FAIL for persuade.
+A scene-treatment hero must pass the scene bar (S1-S3 in the vary Step 3a, composed per §1b): a full-bleed scene or sheet, 5+ subject objects, 3+ depth layers, one light, headline set into it, 2+ facts drawn in it. A single icon, a bare grid, a lone diagram in a framed box or a text-only hero is a FAIL for a scene-treatment persuade page.
 
 If your hero could be mistaken for a stock illustration or a gradient blob with a gold shape on it, it is below the bar: redraw it from a fact.
 
@@ -180,7 +180,7 @@ The hero of a persuade or experience page is a **scene**, not an object: ara-bar
 1. **Sky / backdrop**: gradient bands or flat strips, stars or paper tone, a horizon. (Sheet: grid, border, zone markers.)
 2. **Architecture / landscape**: ridge, skyline, building facade, wall, cladding with rib hatching. (Sheet: the traced or drafted subject.)
 3. **Subject**: the thing the business is, drawn large and lit: the oven, the unit, the shopfront, the workbench.
-4. **People and props**: faceless silhouettes at tables, tools in use, a match on the screen, steam, a street lamp, parts on a shelf; traces of use where people are not allowed.
+4. **People and props**: faceless silhouettes (only for people not in the dossier's photos; never redraw an identifiable real person) at tables, tools in use, a match on the screen, steam, a street lamp, parts on a shelf; traces of use where people are not allowed.
 5. **Lighting overlay**: warm window glow, a halo round the lamp, a cast shadow under every object, a darkened edge vignette. One light source; lit faces and shaded faces share one direction.
 6. **Lettering**: sign, ribbon, painted wall text, title block. Real dossier strings only.
 
@@ -227,7 +227,7 @@ const lamp = (S, W, H) => {                            // prop at the foreground
     + `<circle cx="${f(x)}" cy="${f(H * .5 - 4)}" r="${f(W / 160)}" fill="${S.palette.glow}" data-sw="glow"/>`
     + `<ellipse cx="${f(x)}" cy="${f(y + H * .02)}" rx="${f(W / 20)}" ry="${f(H * .012)}" fill="${S.palette.glow}" opacity=".35"/>`;
 };
-const people = (S, r, W, H) => Array.from({ length: 4 }, (_, i) => {   // layer 4: faceless silhouettes at depth, each with a cast shadow
+const people = (S, r, W, H) => Array.from({ length: 4 }, (_, i) => {   // layer 4: faceless silhouettes at depth (never an identifiable real person from the dossier's photos), each with a cast shadow
   const x = W * (.12 + i * .24 + rr(r, -.02, .02)), y = H * .88, s = W / 40;
   return `<ellipse cx="${f(x + s)}" cy="${f(y + 4)}" rx="${f(s * 1.6)}" ry="${f(s * .3)}" fill="${S.palette.ink}" opacity=".4"/>`   // cast shadow, offset away from the light
     + shape(S, `M${f(x - s * .9)} ${f(y)}L${f(x - s * .6)} ${f(y - s * 2.6)}Q${f(x)} ${f(y - s * 3.1)} ${f(x + s * .6)} ${f(y - s * 2.6)}L${f(x + s * .9)} ${f(y)}Z`, 'wallDark')   // torso
@@ -1248,9 +1248,9 @@ The checks matter: `getShaderParameter(COMPILE_STATUS)` and `LINK_STATUS` turn a
 
 Render at 0.5-1x resolution, cap DPR at 2, pause off-screen, `aria-hidden="true"`, no text inside the canvas, give the section a static CSS fallback (`.field-wrap { background: <the still colours> }`), and check text contrast against the **brightest and darkest frames**. Use a library (OGL, Three.js) only if the device needs more than a quad. **Forbidden at hero scale in operate and read modes** (see section 3).
 
-### n. Custom icon set (always, at micro scale)
+### n. Custom icon set (at micro scale)
 
-Every project ships its own icons, not a library. 24-unit grid, one stroke width, `currentColor`, one quirk drawn from the subject (squared ends for engineering, brushed ends for craft, cut corners for stone), as a `<symbol>` sprite.
+Every project ships its own icons, not a library, unless the repo has an icon system (extend mode) or an operate surface uses one library consistently. 24-unit grid, one stroke width, `currentColor`, one quirk drawn from the subject (squared ends for engineering, brushed ends for craft, cut corners for stone), as a `<symbol>` sprite.
 
 ```html
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1264,7 +1264,7 @@ Icon-only buttons need a text label (`aria-label` or visually hidden text). Comp
 
 ### o. Photos transformed, not pasted
 
-Real photos are material. Never place a raw photo on the page.
+Photos as supporting material in a scene or pattern treatment are transformed into the world's material. Under photography or product-ui, and for identity assets (headshots, partner logos, product screens), the image ships faithfully: art direction by crop, sequence, size and grade only. The snippets below apply to the transformed case.
 
 ```css
 .cutout { mix-blend-mode: multiply }                                           /* white-ground cut-out onto painted paper */
@@ -1273,7 +1273,7 @@ Real photos are material. Never place a raw photo on the page.
 .pinned { padding: 8px 8px 22px; background: var(--paper); transform: rotate(var(--tilt, 1.2deg)) }   /* pinned print */
 ```
 
-Crop or clip baked-in badges and watermarks (`object-position`, a `clip-path`, or paint them out before tracing). Where there is no photo, draw it with a technique above; where a photo must stay, make it a one-ink halftone (`mix-blend-mode: multiply` over a `.halftone`), a greyscale plate or a traced line.
+Crop or clip baked-in badges and watermarks (`object-position`, a `clip-path`, or paint them out before tracing). Under photography or product-ui, only crop and clip badges; do not transform. In a scene or pattern treatment: where there is no photo, draw it with a technique above; where a photo must stay, make it a one-ink halftone (`mix-blend-mode: multiply` over a `.halftone`), a greyscale plate or a traced line.
 
 ## 3. Lead-device tables
 
@@ -1323,7 +1323,7 @@ The roll refuses these techniques as the **hero** device (they stay allowed at p
 | `read` | `shader` | long reading: a moving field fights the text |
 | `persuade`, `experience` | none | the hero may carry the full device |
 
-If every device a concept offers is forbidden for the mode, the roll keeps the concept and notes it: draw the device at plate and micro scale and open the page with a static drawing. When you hand-pick a device (a reroll or a veto), apply the same table.
+If every device a concept offers is forbidden for the mode, the roll keeps the concept and notes it: draw the device at plate and micro scale and (scene) open the page with a static drawing. When you hand-pick a device (a reroll or a veto), apply the same table.
 
 ## 4. Banned forms and the owner test
 
@@ -1350,7 +1350,7 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 - Contrast is measured over the texture and the worst frame. Decorative saturated fields stay on graphic plates; reading, prices and forms sit on a high-contrast field.
 - **Verify glyphs** for the content language: render the hero copy with the assigned face and look for fallback boxes or misleading shapes (þ ð Á Í Ö). Swap or patch a face that fails, and pin which weights ship.
 
-## 7. Art brief, gallery and critique loop (before any UI page code)
+## 7. Art brief, gallery and critique loop (scene treatment, before any UI page code)
 
 1. **Write `.vary/art-brief.md`** with these sections:
    1. Subjects: an exhaustive list from the dossier, each with its fact ids.
@@ -1370,7 +1370,7 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** Two rounds, then build. Items still open after round 2 go into NOTES.md as `art: open — <item>` and the page ships; never start a third round.
 6. No UI page code until round 2 passes.
 
-**Art all the way down (rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, fully rendered with the §1d finish pass and at least 3 value steps (not a thin pale line diagram in a tinted box), drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section.
+**Art all the way down (scene rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, fully rendered with the §1d finish pass and at least 3 value steps (not a thin pale line diagram in a tinted box), drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section. Identity assets (headshots, sponsor or partner logos, client photos of people, product screenshots) are shown unaltered and are exempt from "draw each item"; data sections (schedule, pricing table, comparison, code) are exempt from plates.
 
 **Section skeletons (assign one per section in the brief; no two consecutive sections share a skeleton).** Without this, every section falls back to copy left and a small boxed diagram right.
 
@@ -1381,7 +1381,7 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 5. **Big quote over art**: one real quote, set large, on a drawn surface inside a full-width scene (a wall, a window, a page), with its source.
 6. **Ticket, label or form drawn as an object**: the booking, price list or enquiry presented as a ticket, shop label, order slip or ledger page that is itself the container, in the world's material.
 
-Every section plate is a drawing of that section's subject, never a labelled box with words in it. Each fact (price list, hours, address) is placed once in the body; the footer may repeat contact details only.
+(scene) Every section plate is a drawing of that section's subject, never a labelled box with words in it. Each fact (price list, hours, address) is placed once in the body; the footer may repeat contact details only. A primary action may repeat (amounts inside a `<form>`, anything marked `data-repeat-ok`); code blocks are exempt. Identity assets and data sections are exempt as above.
 
 **Collision rule (every critique round, both viewports).** Every label, callout and sign text must be fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering ('REPAI_RERS'); no callout hidden behind a prop; no grey smear at the scene edge. Check the 1440x900 and the 390x844 screenshots separately, zoomed on each text; list every collision as a "reads as the wrong thing" item and fix it before the round closes.
 
@@ -1392,3 +1392,40 @@ Every section plate is a drawing of that section's subject, never a labelled box
 ## 8. Generated raster images
 
 Only for photographic material code cannot draw, and only when `impeccable/scripts/generate-image.mjs` has a key. Label it synthetic in the dossier and transform it per §2o. Code-drawn art is preferred; a generated image is never the signature device.
+
+## 9. Bar: photography treatment
+
+The hero and sections are the client's own photos (dossier assets), art-directed, never redrawn or filtered.
+
+- The signature is the direction: a crop rule, a sequence and a consistent grade, with the asset paths cited in `.vary/visual-brief.md`.
+- No `filter`, blend mode, overlay or grain on work images; identifiable people are never redrawn.
+- Natural resolution at least 1.5x the rendered size; `width` and `height` set.
+- Text over a photo is measured on the darkest and lightest pixel under it; no glass card.
+- Critique checklist: focal subject not cropped by the nav; grade consistent across frames; every cited asset is used where the brief says; no stretched or upscaled frame; h1, value line and action in the fold.
+
+## 10. Bar: product-ui treatment
+
+The hero is a real capture or live UI of the product, shown faithfully.
+
+- The signature is a named workflow from the dossier visible in the capture, with real data and states; callouts allowed, a framed device allowed, the h1 may sit beside the capture.
+- Captures at DPR 2, no blur, no halftone, no invented screens or numbers.
+- Skeletons available: capture with callouts, comparison or pricing table, code sample.
+- Critique checklist: the workflow is nameable from the capture; text in it is legible at the rendered size; data matches the dossier; callout leaders end on their element; at least one more section shows a second state.
+
+## 11. Bar: typography treatment
+
+Type is the picture.
+
+- The signature is a typographic system or lettering idea that encodes one dossier fact (a founding year as the grid, a route code as the display).
+- A specimen at hero size, rendered with the content language's glyphs; at most two faces from the roll; hierarchy by size, weight and position.
+- Under a black and white directive: two inks, no tints, no accent; rules, scale and spacing carry the design.
+- Critique checklist: the fact the lettering carries is readable; glyphs are present; scale contrast is at least 3:1 between display and body; whitespace is intentional, not leftover.
+
+## 12. Bar: utility treatment
+
+No hero: the tool or document is the first screen.
+
+- Distinctiveness lives in details: numerals (tabular, aligned), empty states, error states, icons from one consistent library, copy only this product could say.
+- Conventional navigation, forms and error handling; the world is applied through tokens.
+- A visible h1 or page title in the first viewport.
+- Critique checklist: the primary task is reachable in one action; tables align on the numerals; every empty and error state is designed; focus and keyboard paths complete; no decorative plate.

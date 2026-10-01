@@ -30,14 +30,18 @@ Look at the place too: signage, the building, the room, the climate, the light. 
           {"id":"F2","kind":"price","text":"Pizza Margarita 2.790 kr.","source":"ararestaurant.is/matsedill","demo":false}],
  "assets":[{"path":"shared/img/basar.webp","kind":"photo","usable":true,"notes":"turquoise booths"}],
  "artefacts":["paper menu","guest-check pad","kitchen ticket rail","match-night handbill"],
- "refuse":["no status strip","no staff portraits"]}
+ "refuse":["no status strip","no staff portraits"],
+ "directives":[{"text":"plain, black and white, no illustrations, Swiss style","source":"user brief","locks":["treatment=typography","world=swiss-international","strategy=ink-on-paper"]}],
+ "product":{"app_path":"apps/web"}}
 ```
 
 - `sector` is exactly one id from the SECTORS enum that `roll.mjs` accepts: food-drink, hospitality-travel, retail-ecommerce, trades-construction, industrial-hardware, engineering-technical, healthcare-clinical, finance-insurance, legal-public, kids-education, culture-arts, music-events-nightlife, fashion-beauty-luxury, sports-fitness, media-publishing, dev-tools, enterprise-saas, nature-outdoor, maritime-logistics, nonprofit-activism, wellness, gaming.
 - `facts[].id` is `F1`, `F2`, ... and unique. These ids are what `concepts.json` cites and what `roll.mjs` resolves.
-- `facts[].kind` is one of: `product`, `price`, `hours`, `place`, `process`, `history`, `quote`, `material`, `artefact`, `person`.
+- `facts[].kind` is one of: `product`, `price`, `hours`, `place`, `process`, `history`, `quote`, `material`, `artefact`, `person`, `feature`, `metric`, `entity`, `workflow`, `spec`, `event`. The roll counts distinct kinds, not this enum, so the list is guidance.
 - `facts[].source` is a URL, file path or "user brief". `demo: true` marks a value that is placeholder, not the client's.
 - `language.glyphs` lists the non-ASCII letters the content needs; Step 3 verifies the font against it.
+- `assets[].kind` is `photo`, `screenshot`, `logo` or `headshot` (plus others as needed). `notes` records consent for identifiable people and "show unaltered" for identity assets (headshots, logos, product screens).
+- `directives[]` holds what the user said about the look, verbatim (`text`), its `source` and the `locks` it implies as `key=value` strings; `roll.mjs` merges them into its locks and they outrank skill defaults. `product.app_path` points at the runnable app when product UI is a hero candidate.
 - `refuse` collects user vetoes and standing rules, and grows when the user rejects a world for the trade.
 
 ## 3. Minimums

@@ -93,12 +93,12 @@ Color checks:
 - OKLCH or systematic palette (not ad hoc hex codes)?
 - Semantic color assignments consistent (red = danger, not decoration)?
 - NO indigo/purple as primary unless brand-justified?
-- NO pure black, NO pure white?
+- NO pure black, NO pure white (unless a dossier directive, the brand system or the platform specifies it)?
 - NO gray text on colored backgrounds?
 - WCAG AA contrast (4.5:1 body, 3:1 large/UI)?
 
 Typography checks:
-- NOT Inter/Roboto/Arial/system-ui/Space Grotesk (unless aesthetically intentional)?
+- NOT Inter/Roboto/Arial/system-ui/Space Grotesk (unless aesthetically intentional, or a dossier directive, the brand system or the platform specifies it)?
 - Fonts with ≥5 weights?
 - Body line-height 1.4-1.6?
 - Display line-height 1.0-1.2?
@@ -162,25 +162,26 @@ Check each (1 point each, max 7):
 
 Scale to 1-5: 7/7=5, 5-6=4, 3-4=3, 1-2=2, 0=1.
 
-### Dimension 7 — Project Specificity and Signature Graphics (weight 20%)
+### Dimension 7 — Project Specificity and Signature Element (weight 20%)
 
 Could this design only belong to this project? Observations first.
 
-- **Signature graphic**: name it, cite the source file and the dossier fact ids it encodes. None, or only abstract decoration (gradient blob, mesh, noise hero, stock icon set) → say so.
+- **Signature element**: read the contract's `HERO TREATMENT` and `DIRECTIVES` lines when present and name the element per treatment, citing source file and dossier fact ids: `scene`/`pattern` = the drawn or generated device at hero scale and one other scale; `photography` = the named dossier assets plus the art-direction rule (crop, sequence, grade); `product-ui` = the real capture and the workflow it shows; `typography` = the lettering idea and the fact it carries; `data-visual` = the chart and the data it encodes; `utility` = judged at detail scale (numerals, empty states, icons, copy), where a FAIL is a fix item, never a rebuild. None, or only abstract decoration (gradient blob, mesh, noise hero, stock icon set) → say so.
 - **Subject swap**: name a same-category business in another town. List every graphic, headline and control that would become false for it. Fewer than 3 items means the design is generic.
-- **Data**: does at least one graphic encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact.
-- **Controls in the design's material**: nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
+- **Data**: does at least one visual encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact. Also PASS when the hero visual is the client's own dossier asset.
+- **Controls in the design's material** (persuade/experience; operate surfaces keep platform conventions and are judged on tokens): nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
 - **Trade credibility**: would the dossier's paying audience find this look credible for the trade, and do reading surfaces stay legible? A FAIL names the specific element, not "feels off".
-- **Art craft (screenshots only)**: no faces, mascots or emoji-blobs; subjects distinguishable at thumbnail size; style consistent. No screenshots → "Cannot determine from source alone".
-- **Richness against the benchmark** (persuade/experience): compare the first viewport to the benchmark descriptions (ara-bar: restaurant at night, 10+ drawn objects, 3+ depth layers, a light source, brand on the painted sign, real phone number in the art; hitataekni: full blueprint sheet with grid, coordinates, traced unit, dimension lines, callouts, title block with the real name, year, address, phone). Check: hero is a scene or sheet covering >=55% of the 1440x900 viewport (>=45% at 390x844), >=5 distinct subject objects over >=3 depth layers, headline set into the art, >=2 dossier facts inside the art; richness floor (filled shapes, one light source, texture, people or traces of use, 4 to 7 inks); page budget of >=3 more drawn plates tied to different fact groups. Run `fold-check.mjs <built page>` from the vary skill directory (the sibling of this skill; never search the filesystem for it) when a built page exists and cite the metric lines. A text-only or boxed-diagram hero is a FAIL for persuade and caps Specificity at 2. List what is missing (objects, layers, light, texture, facts-in-art).
-- **Named fold checks** — The evaluator must report each PASS/FAIL with the `fold-check.mjs` line quoted (a missing line is a RECAPTURE for a persuade/experience build with a built page): (1) **Text collisions** (`collisions-desktop`, `collisions-phone`): no visible text box, HTML or svg `<text>`, overlaps another or is more than 30% covered by an opaque later-painted element; name the two texts on a FAIL. (2) **Dead zone** (`dead-zone`): no near-uniform-colour rectangle larger than 20% of the desktop fold; cite its size and position. (3) **Card over art** (`card-over-art-desktop`, `card-over-art-phone`): no translucent (alpha < 0.95), backdrop-filter or solid-background element with text covering more than 6% of the hero art area; headline, phone, hours and the primary action live on drawn surfaces inside the art (a sign, plate or title block in the svg is fine), never on a card floating over it. (4) **Art down the page** (`art-down-page`): at least 60% of the sections below the fold (contact/footer excluded) carry a drawn plate at least 40% of their width. (5) **Full bleed** (`full-bleed-desktop`, `full-bleed-phone`): the hero art box spans at least 95% of the viewport width with margins of at most 3% each side; a framed picture, card or polaroid with page margins fails; name the art box and its margins. (6) **Rendering depth** (`rendering-depth`): in the desktop hero art area the luminance range p95 - p5 is at least 90 and at least 5 of 16 luminance bins hold at least 2% of the pixels; flat fills with thin uniform strokes read as clip art. The flat-block texture number is printed for the report but not gated. (7) **Plate size** (`plates-size`): at least 50% of the below-fold section plates are at least 35% of the section width, at least 280px tall and carry at least 3 value steps; name the thin, small or pale ones. In persuade/experience any of these seven FAILing is a Specificity FAIL under P6 and is listed in the fix batch; in operate/read only the collisions check gates and the others are informational.
+- **Art craft (screenshots only)**: no faces drawn on objects (food, products), mascots or emoji-blobs; real photographed faces are fine; subjects distinguishable at thumbnail size; style consistent. Photography and product-ui add fidelity (no filter, blend or overlay on client images), natural resolution at least 1.5x rendered, and crop (focal subject not cut by the nav). No screenshots → "Cannot determine from source alone".
+- **Richness against the benchmark** (When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment)): compare the first viewport to the benchmark descriptions (ara-bar: restaurant at night, 10+ drawn objects, 3+ depth layers, a light source, brand on the painted sign, real phone number in the art; hitataekni: full blueprint sheet with grid, coordinates, traced unit, dimension lines, callouts, title block with the real name, year, address, phone). Check: hero is a scene or sheet covering >=55% of the 1440x900 viewport (>=45% at 390x844), >=5 distinct subject objects over >=3 depth layers, headline set into the art, >=2 dossier facts inside the art; richness floor (filled shapes, one light source, texture, people or traces of use, 4 to 7 inks); page budget of >=3 more drawn plates tied to different fact groups. Run `fold-check.mjs <built page> --mode <mode> --treatment <HERO TREATMENT from the contract>` from the vary skill directory (the sibling of this skill; never search the filesystem for it) when a built page exists and cite the metric lines. Under the scene treatment a text-only or boxed-diagram hero is a FAIL for persuade and caps Specificity at 2. List what is missing (objects, layers, light, texture, facts-in-art).
+- **Named fold checks** — When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment): the evaluator must report each PASS/FAIL with the `fold-check.mjs` line quoted (a missing line is a RECAPTURE for a persuade/experience build with a built page): (1) **Text collisions** (`collisions-desktop`, `collisions-phone`): no visible text box, HTML or svg `<text>`, overlaps another or is more than 30% covered by an opaque later-painted element; name the two texts on a FAIL. (2) **Dead zone** (`dead-zone`): no near-uniform-colour rectangle larger than 20% of the desktop fold; cite its size and position. (3) **Card over art** (`card-over-art-desktop`, `card-over-art-phone`): no translucent (alpha < 0.95), backdrop-filter or solid-background element with text covering more than 6% of the hero art area; headline, phone, hours and the primary action live on drawn surfaces inside the art (a sign, plate or title block in the svg is fine), never on a card floating over it. (4) **Art down the page** (`art-down-page`): at least 60% of the sections below the fold (contact/footer excluded) carry a drawn plate at least 40% of their width. (5) **Full bleed** (`full-bleed-desktop`, `full-bleed-phone`): the hero art box spans at least 95% of the viewport width with margins of at most 3% each side; a framed picture, card or polaroid with page margins fails; name the art box and its margins. (6) **Rendering depth** (`rendering-depth`): in the desktop hero art area the luminance range p95 - p5 is at least 90 and at least 5 of 16 luminance bins hold at least 2% of the pixels; flat fills with thin uniform strokes read as clip art. The flat-block texture number is printed for the report but not gated. (7) **Plate size** (`plates-size`): at least 50% of the below-fold section plates are at least 35% of the section width, at least 280px tall and carry at least 3 value steps; name the thin, small or pale ones. In persuade/experience any of these seven FAILing is a Specificity FAIL under P6 and is listed in the fix batch; in operate/read only the collisions check gates and the others are informational. For any other treatment, quote only the fold rows `fold-check.mjs` marks as gated for that treatment (rows printed `[INFO]` are not gated); a missing line is a RECAPTURE only if its row is gated. Native platforms (ios/android): device screenshots, fold rows N/A.
+- **Directive compliance**: list each `DIRECTIVES` line (the user's own words, e.g. "no illustrations", "black and white", "use our photos") and mark it kept or broken with evidence. A broken directive caps this dimension at 2 and is a critical issue. Directives outrank this skill's bars; a build that obeys a directive is not marked down for the bar it suspends.
 
 Score:
-- 1: no custom graphics; survives a competitor swap whole
+- 1: no project-specific visual (no drawn, photographed, captured, typographic or data element from this project); survives a competitor swap whole
 - 2: decorative effects only; one or two real facts in copy
-- 3: one custom graphic of the subject, but generic or appearing once
-- 4: signature device drawn from cited facts at 2+ scales, controls in the design's material, 3+ false items in the subject swap
-- 5: as 4, plus the graphic carries real data, the first viewport announces the concept, clean at thumbnail size
+- 3: one project-specific element (graphic, capture, lettering or chart), but generic or appearing once
+- 4: signature element per treatment (drawn device, cited client assets with a direction rule, the real capture and workflow, a lettering idea tied to a fact, or the chart and its data) from cited facts at 2+ scales, controls in the design's material, 3+ false items in the subject swap
+- 5: as 4, plus the visual carries real data, the first viewport announces the concept, clean at thumbnail size
 
 ## Composite Score Calculation
 
@@ -244,9 +245,11 @@ Probable passes: [list]
 Cannot determine without manual verification: [list]
 Rationale: [one sentence]
 
-### Project Specificity and Signature Graphics — X/5 (20% weight)
-Signature graphic: [name, source file, fact ids — or "none"]
-Richness vs benchmark: [hero scene yes/no, coverage, objects, layers, light, texture, facts-in-art, plates; fold-check lines]
+### Project Specificity and Signature Element — X/5 (20% weight)
+Hero treatment: [scene | pattern | photography | product-ui | typography | data-visual | utility, from the contract or "not stated"]
+Directives: [each DIRECTIVES line kept/broken, or "none"]
+Signature element: [name, source file, fact ids — or "none"]
+Richness vs benchmark: [scene only: hero scene yes/no, coverage, objects, layers, light, texture, facts-in-art, plates; fold-check lines]
 Subject-swap false items: [list; count]
 Graphic carries real data: [element and fact, or no]
 Controls in the design's material: [observation]
@@ -258,7 +261,7 @@ AI vocabulary detected: [yes with examples / no]
 CTA quality: [observation]
 Rationale: [one sentence]
 
-## Critical Issues (severity 3-4 violations or any dimension ≤ 2; Specificity ≤ 2 returns the work to Phase 1)
+## Critical Issues (severity 3-4 violations or any dimension ≤ 2; Specificity ≤ 2 returns the work to Phase 1, except under utility or when Phase 1 was skipped, and a broken directive: those go to Phase 3 fix items)
 1. [issue with location and specific fix]
 2. ...
 
@@ -275,7 +278,7 @@ Rationale: [one sentence]
 ## Iteration Recommendation
 - If score ≥ 4.0: SHIP
 - If score 3.0-3.9: Apply top 3 fixes and re-evaluate
-- If score < 3.0: Return to Phase 2 (UX Architecture) or Phase 3 (Execute) of the design-excellence skill, specifically fixing [which dimensions scored lowest]. If Specificity ≤ 2: return to Phase 1 (dossier and concept) regardless of composite
+- If score < 3.0: Return to Phase 2 (UX Architecture) or Phase 3 (Execute) of the design-excellence skill, specifically fixing [which dimensions scored lowest]. If Specificity ≤ 2: return to Phase 1 (dossier and concept) regardless of composite, except under utility, when Phase 1 was skipped, or for a broken directive, which go to Phase 3 fix items
 ```
 
 ## Final Reminder

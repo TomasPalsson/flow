@@ -13,6 +13,11 @@
  * bespoke-graphics (a drawing source exists: inline SVG, SVG-from-code, canvas/webgl, SVG filters, generated
  * masks), seeded-art (art code must not use Math.random), svg-a11y (large SVGs hidden or labelled).
  *
+ * HERO TREATMENT (contract line, first word; default scene for persuade/experience, utility otherwise) changes bespoke-graphics:
+ * scene/pattern/data-visual need a drawing source; photography/product-ui need an <img>/<picture>/<video> (hero visual source)
+ * and get a photo-fidelity WARN for filters/blend modes/grayscale/halftone; typography/utility report INFO. WORLD: system: and
+ * WORLD: canon are exempt from the subject-blind warning. Platform ios/android adds .swift .kt .dart and reports fold as N/A.
+ *
  * fold: with --fold=<url-or-built-html> runs fold-check.mjs (Playwright) on the built page; otherwise UNKNOWN.
  *
  * Usage:  node check.mjs <file-or-dir> [more paths…] [--json] [--strict] [--fold=<url-or-built-html>]
@@ -37,8 +42,9 @@ function walk(p, out = [], exts = EXT, skip = SKIP_DIRS) {
   else if (exts.has(extname(p).toLowerCase())) out.push(p);
   return out;
 }
-const files = paths.flatMap(p => walk(p)).map(f => ({ file: f, text: readFileSync(f, 'utf8') }));
-const all = files.map(f => f.text).join('\n');
+const load = exts => paths.flatMap(p => walk(p, [], exts)).map(f => ({ file: f, text: readFileSync(f, 'utf8') }));
+let files = load(EXT);
+let all = files.map(f => f.text).join('\n');
 const checks = [];
 const ev = (file, idx, text) => ({ file, line: text.slice(0, idx).split('\n').length, snippet: text.slice(Math.max(0, idx - 40), idx + 80).replace(/\s+/g, ' ').trim() });
 function find(re, fn) { for (const f of files) { let m; const r = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'); while ((m = r.exec(f.text))) fn(f, m); } }
@@ -172,7 +178,14 @@ const line = key => { const m = contract && contract.match(new RegExp(`^[ \\t]*$
 const factLines = (() => { if (!contract) return []; const ls = contract.split('\n'); const i = ls.findIndex(l => /^\s*FACTS:/.test(l)); if (i < 0) return []; const out = []; for (const l of ls.slice(i + 1)) { if (/^\s*[-*]\s+/.test(l)) out.push(l.replace(/^\s*[-*]\s+/, '')); else if (l.trim()) break; } return out; })();
 const unfilled = v => v === null || v === '' || /<model\b|<what\b|<fill/i.test(v);
 const CODE_EXT = new Set(['.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.astro', '.mdx']);
-const worldLine = line('WORLD'); const isCanon = !!worldLine && /^canon\b/i.test(worldLine);
+const worldLine = line('WORLD'); const isCanon = !!worldLine && /^(canon\b|system:)/i.test(worldLine);
+const platformM = contract && contract.match(/SEED KEY:[^\n]*?platform\s+(\w+)/);
+const native = !!platformM && /^(ios|android)$/i.test(platformM[1]);
+if (native) { files = load(new Set([...EXT, '.swift', '.kt', '.dart'])); all = files.map(f => f.text).join('\n'); }
+// HERO TREATMENT: first word of the contract line; default scene for persuade/experience, utility otherwise (roll.mjs / SKILL Step 3a)
+const TREATMENTS = ['scene', 'pattern', 'photography', 'product-ui', 'typography', 'data-visual', 'utility'];
+const treatmentWord = (line('HERO TREATMENT') || '').split(/\s/)[0].toLowerCase();
+const treatment = TREATMENTS.includes(treatmentWord) ? treatmentWord : (mode === 'persuade' || mode === 'experience' || !mode ? 'scene' : 'utility');
 
 // ---- 11. concept contract ---------------------------------------------------------------------------------------
 {
@@ -222,7 +235,22 @@ find(/<svg\b([^>]*)>([\s\S]*?)<\/svg>/i, (f, m) => { const vb = m[1].match(/view
   const total = inline.length + fromCode.length + canvas.length + filters.length + masks.length;
   const strict = mode === 'persuade' || mode === 'experience';
   const ev0 = [...inline.slice(0, 2).map(b => ev(b.f.file, b.m.index, b.f.text)), ...[...fromCode, ...canvas, ...filters, ...masks].slice(0, 3).map(f => ({ file: f.file, line: 1, snippet: 'drawing source' }))];
-  checks.push({ id: 'bespoke-graphics', status: total ? 'PASS' : strict ? 'FAIL' : 'WARN', evidence: ev0, detail: `drawing sources: ${inline.length} inline SVG (>=8 shapes, viewBox>32), ${fromCode.length} file(s) returning SVG from code, ${canvas.length} canvas/webgl, ${filters.length} SVG-filter file(s), ${masks.length} generated mask file(s)${total ? '' : `; nothing drawn of the subject (mode ${mode || 'unknown'}${strict ? ', FAIL' : ', WARN'})`}` });
+  const imgSrc = files.filter(f => /<(img|picture|video)\b/i.test(f.text) || /<(Image|NextImage|Picture)\b|\bAsyncImage\(|\bImage\(/.test(f.text));
+  if (treatment === 'typography' || treatment === 'utility') {
+    checks.push({ id: 'bespoke-graphics', status: 'INFO', evidence: ev0, detail: `treatment ${treatment}: no drawn hero is required (${total} drawing source(s) found); judged by the evaluator's signature-element row` });
+  } else if (treatment === 'photography' || treatment === 'product-ui') {
+    checks.push({ id: 'bespoke-graphics', status: imgSrc.length ? 'PASS' : 'FAIL', evidence: imgSrc.slice(0, 3).map(f => ({ file: f.file, line: 1, snippet: 'image source' })), detail: `hero visual source (treatment ${treatment}): ${imgSrc.length} file(s) with <img>/<picture>/<video> or an image component${imgSrc.length ? '' : '; no hero image or video found'}` });
+  } else {
+    checks.push({ id: 'bespoke-graphics', status: total ? 'PASS' : strict ? 'FAIL' : 'WARN', evidence: ev0, detail: `drawing sources: ${inline.length} inline SVG (>=8 shapes, viewBox>32), ${fromCode.length} file(s) returning SVG from code, ${canvas.length} canvas/webgl, ${filters.length} SVG-filter file(s), ${masks.length} generated mask file(s)${total ? '' : `; nothing drawn of the subject (mode ${mode || 'unknown'}${strict ? ', FAIL' : ', WARN'})`}` });
+  }
+}
+// ---- 13b. photo fidelity (photography / product-ui): the client's images ship unaltered ----------------------------------
+if (treatment === 'photography' || treatment === 'product-ui') {
+  const hits = [];
+  const directive = /DIRECTIVES?:[^\n]*(grayscale|greyscale|black and white|halftone|duotone|filter)/i.test(contract || '');
+  const bad = /(?<![-\w])filter\s*:\s*(?!none)(?!drop-shadow)[^;}]*|mix-blend-mode\s*:\s*(?!normal)[^;}]*|\bgrayscale\b|\bsepia\b|\bhalftone\b/gi;
+  find(bad, (f, m) => hits.push(ev(f.file, m.index, f.text)));
+  checks.push({ id: 'photo-fidelity', status: hits.length && !directive ? 'WARN' : 'PASS', evidence: hits.slice(0, 4), detail: hits.length ? (directive ? `${hits.length} filter/blend/grayscale/halftone use(s), allowed by a DIRECTIVES line` : `${hits.length} filter/blend/grayscale/sepia/halftone use(s): confirm none touches the hero or a gallery image (treatment ${treatment} ships client images unaltered)`) : 'no filter, blend mode, grayscale, sepia or halftone found' });
 }
 // ---- 14. seeded art ------------------------------------------------------------------------------------------------
 {
@@ -243,13 +271,14 @@ find(/<svg\b([^>]*)>([\s\S]*?)<\/svg>/i, (f, m) => { const vb = m[1].match(/view
 // ---- fold: first-viewport scene measurement (browser; delegated to fold-check.mjs) ---------------------
 {
   const how = 'run: node fold-check.mjs <url-or-built-html> [--mode persuade|experience|operate|read], or pass --fold=<url-or-built-html> here';
-  if (!foldArg) checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: `no built page given; ${how}` });
+  if (native) checks.push({ id: 'fold', status: 'N/A', evidence: [], detail: 'N/A (native platform: use device screenshots)' });
+  else if (!foldArg) checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: `no built page given; ${how}` });
   else {
-    const r = spawnSync('node', [join(dirname(fileURLToPath(import.meta.url)), 'fold-check.mjs'), foldArg, ...(mode ? ['--mode', mode] : [])], { encoding: 'utf8' });
+    const r = spawnSync('node', [join(dirname(fileURLToPath(import.meta.url)), 'fold-check.mjs'), foldArg, ...(mode ? ['--mode', mode] : []), '--treatment', treatment], { encoding: 'utf8' });
     const out = (r.stdout || '').trim();
     const lines = out.split('\n').filter(l => /\[(PASS|FAIL|INFO)\]/.test(l)).map(l => ({ snippet: l.trim() }));
     if (/fold-check SKIP/.test(out)) checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: out });
-    else if (r.status === 0 || r.status === 1) checks.push({ id: 'fold', status: r.status ? 'FAIL' : 'PASS', evidence: lines.filter(l => /\[FAIL\]/.test(l.snippet)), detail: `first viewport ${r.status ? 'is not an illustrated scene' : 'meets the scene thresholds'} (${lines.length} metrics, mode ${mode || 'persuade'})` });
+    else if (r.status === 0 || r.status === 1) checks.push({ id: 'fold', status: r.status ? 'FAIL' : 'PASS', evidence: lines.filter(l => /\[FAIL\]/.test(l.snippet)), detail: `first viewport ${r.status ? 'fails' : 'meets'} the ${treatment} gates (${lines.length} metrics, mode ${mode || 'persuade'})` });
     else checks.push({ id: 'fold', status: 'UNKNOWN', evidence: [], detail: `fold-check could not run: ${(r.stderr || out).trim().split('\n')[0]}; ${how}` });
   }
 }

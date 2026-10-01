@@ -150,3 +150,47 @@ test('text clipped by overflow hidden or by its svg viewport fails clipped-text'
   assert.match(svg.stdout, /\[FAIL\] clipped-text-desktop: "UKAS ACCREDITED" \(svg text crosses/);
   assert.match(fold('clip-ok', scene).stdout, /\[PASS\] clipped-text-desktop/);
 });
+
+// ---- treatment gates (generality spec B) ----
+test('typography treatment: a text-only page with a title, line and action passes', { skip: noPw && 'Playwright absent' }, () => {
+  const page = '<!doctype html><body style="margin:0"><h1 style="margin:120px 40px">Fjalar Bar</h1><p>Open daily.</p><a href="#b">Book a table</a></body>';
+  const r = fold('typo', page, ['--treatment', 'typography']);
+  assert.equal(r.status, 0, r.stdout);
+  assert.match(r.stdout, /treatment=typography/);
+  assert.match(r.stdout, /\[INFO\] headline-in-scene: .*informational for treatment typography/);
+  assert.match(r.stdout, /BLOCKING: none/);
+});
+test('operate mode with no svg reports plates and detail as INFO (B1 regression)', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('op-info', '<!doctype html><body style="margin:0"><h1>Orders</h1><table><tr><td>A-1</td></tr></table></body>', ['--mode', 'operate']);
+  assert.match(r.stdout, /\[INFO\] plates:/);
+  assert.match(r.stdout, /\[INFO\] detail:/);
+  assert.match(r.stdout, /treatment=utility/);
+  assert.match(r.stdout, /\[PASS\] title-on-fold/);
+  assert.equal(r.status, 0, r.stdout);
+});
+test('operate mode without any h1 fails title-on-fold and blocks', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('op-notitle', '<!doctype html><body style="margin:0"><p>Orders list</p></body>', ['--mode', 'operate']);
+  assert.match(r.stdout, /\[FAIL\] title-on-fold/);
+  assert.match(r.stdout, /BLOCKING: title-on-fold/);
+});
+test('photography treatment: a framed img hero exits 0 and full-bleed is INFO', { skip: noPw && 'Playwright absent' }, () => {
+  const png = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700"><rect width="900" height="700" fill="#789"/></svg>');
+  const page = `<!doctype html><body style="margin:0"><img src="${png}" alt="" style="display:block;width:900px;height:700px;margin:40px auto"><h1 style="margin:10px 40px">Maison Orel</h1><p>Campaign, autumn collection.</p><a href="#s">See the collection</a></body>`;
+  const r = fold('photo', page, ['--treatment', 'photography']);
+  assert.match(r.stdout, /\[INFO\] full-bleed-desktop: .*informational for treatment photography/);
+  assert.equal(r.status, 0, r.stdout);
+});
+test('a donation form repeating the hero amounts passes duplicate-content; two plain lists still fail', { skip: noPw && 'Playwright absent' }, () => {
+  const tiers = ['Give £25', 'Give £50', 'Give £100'];
+  const ok = fold('dup-form', sceneWith(`<section>${prices('a', tiers)}</section><section><form>${prices('b', tiers)}</form></section>`));
+  assert.match(ok.stdout, /\[PASS\] duplicate-content: .*exemptions applied: .*<form>/);
+  const bad = fold('dup-ul', sceneWith(`<section>${prices('a', tiers)}</section><section>${prices('b', tiers)}</section>`));
+  assert.match(bad.stdout, /\[FAIL\] duplicate-content: .*price list/);
+  const mark = fold('dup-ok', sceneWith(`<section>${prices('a', tiers)}</section><section data-repeat-ok>${prices('b', tiers)}</section>`));
+  assert.match(mark.stdout, /\[PASS\] duplicate-content: .*\[data-repeat-ok\]/);
+});
+test('repeated code snippets do not trip duplicate-content', { skip: noPw && 'Playwright absent' }, () => {
+  const cmd = '<pre>npm install --save-dev some-long-package-name@latest</pre>';
+  assert.match(fold('dup-code', sceneWith(`<section>${cmd}</section><section>${cmd}</section>`)).stdout, /\[PASS\] duplicate-content: .*pre\/code\/kbd/);
+});
+test('an unknown treatment is a usage error', () => assert.equal(spawnSync('node', [join(here, 'fold-check.mjs'), 'x.html', '--treatment', 'wobble']).status, 2));

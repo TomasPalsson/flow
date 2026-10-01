@@ -4,7 +4,7 @@ One session that plans, draws every plate, builds and polishes produces thin art
 
 ## 1. Dispatch (Step 3a, after the art brief)
 
-Use the Agent tool (`subagent_type: general-purpose`, `model: sonnet`, `mode: bypassPermissions`), all illustrators in ONE message so they run in parallel: one for the hero scene, one per section plate, capped at 6 (merge the smallest plates into one illustrator beyond that). Each illustrator is handed ONLY:
+Dispatch only for treatment = scene (pattern: the lead draws, no crew). Use the Agent tool (`subagent_type: general-purpose`, `model: sonnet`, `mode: bypassPermissions`), all illustrators in ONE message so they run in parallel: one for the hero scene, one per section plate, capped at 6 (merge the smallest plates into one illustrator beyond that). Each illustrator is handed ONLY:
 
 - the absolute path of `.vary/art-brief.md`;
 - its plate's row from the brief (subject, fact ids and facts, skeleton, size at desktop and phone, objects-table rows);
@@ -46,20 +46,20 @@ Return: the module path, the final PNG path(s), the checklist with pass/fail per
 
 ## 5. Critic (Step 4b)
 
-A FRESH subagent (Agent tool, `general-purpose`, `model: sonnet`), never the builder, never one that saw the generating conversation. Give it the audience mood need line from the art brief (fills {MOOD_NEED}), plus: desktop and phone fold screenshots, desktop and phone full-page screenshots (absolute paths), the `.vary/dossier.json` facts, and the prompt below. Withhold SKILL.md and the other references.
+A FRESH subagent (Agent tool, `general-purpose`, `model: sonnet`), never the builder, never one that saw the generating conversation. Give it the audience mood need line from the art brief (fills {MOOD_NEED}) and the contract's hero treatment (fills {TREATMENT}), plus: desktop and phone fold screenshots, desktop and phone full-page screenshots (absolute paths), the `.vary/dossier.json` facts, and the prompt below. Withhold SKILL.md and the other references.
 
 ```
 You are a hard design judge. Read the screenshots at {PATHS} and the facts at {DOSSIER}. Score each 1-10:
 - specificity: is every picture a function of this client's own facts, or could it be any client's?
-- graphics: richness and finish of the drawings.
+- graphics: the signature visual, judged against the {TREATMENT} bar (scene: richness and finish of the drawings; otherwise the matching `graphics.md` §9-§12 checklist).
 - craft: collisions, clipping, overlays, hidden content, scales, callouts.
 - mood: does the concept, world and palette fit the audience's mood need ({MOOD_NEED} from the art brief, e.g. children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy)? A world that breaks it scores mood 1-3 and is a FAIL regardless of the other scores.
-- headline: is there a real headline, value line and action on a drawn surface in the fold?
+- headline: is there a real headline, value line and action in the fold (scene: on a drawn surface)?
 - wow: would a stranger remember it?
-Anchors show the richness level, not the subject matter: a client from a different domain is judged against the same level of detail, not against pizza or air handlers. 9-10: {PASTE the "What was drawn" text of graphics.md §0b rows 1, 2, 5 and 7}. 4-5: pill figures; boxes standing for objects; template sections (card left, table right, pill CTA, divider, repeated); text clipped by the nav, viewport or svg edge; dead space; a dark overlay left over the hero; a hero missing in the full-page shot.
+Anchors show the quality level, not the subject matter: a client from a different domain is judged against the same level of detail, not against pizza or air handlers. 9-10: for scene, {PASTE the "What was drawn" text of graphics.md §0b rows 1, 2, 5 and 7}; for other treatments, {PASTE the matching graphics.md §9-§12 bar and checklist}. 4-5: pill figures; boxes standing for objects; template sections (scene only: card left, table right, pill CTA, divider, repeated); text clipped by the nav, viewport or svg edge; dead space; a dark overlay left over the hero; a hero missing in the full-page shot.
 Judge only what the screenshots show; quote what you see. "mean" is the arithmetic mean of the four scores specificity, graphics, craft, wow (mood is reported separately) to one decimal. If an image is unreadable, return {"error":"unreadable: <path>"} instead of guessing. Return JSON: {"specificity":n,"graphics":n,"craft":n,"wow":n,"mood":n,"mood_fail":bool,"mean":n,"fixes":[5 items, highest impact first, each naming the element and the concrete change]}.
 ```
 
-Mood FAIL: if `mood_fail` is true the lead stops building on this world, re-rolls with `--lock concept=<id>` (a concept that serves the mood) and rebuilds before any other fix. Blocking craft fails (fold-check rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, headline-on-fold, headline-in-scene) must be PASS before shipping; the time budget never excuses them.
+Mood FAIL: if `mood_fail` is true the lead stops building on this world, re-rolls with `--lock concept=<id>` (a concept that serves the mood) and rebuilds before any other fix. Blocking craft fails (fold-check rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, headline-on-fold (title-on-fold for operate/read), plus headline-in-scene for scene only) must be PASS before shipping; the time budget never excuses them.
 
 Loop: the lead applies the 5 fixes (plates go back to their illustrator), rebuilds, re-shoots, and spawns a NEW critic. Stop when the mean is 7.5 or more, or after 2 critic rounds. Open items go into NOTES.md as `critic: open — <item>`; the page ships. If no subagent tool exists, the lead scores itself against the same rubric, caps the outcome at FIX, and says the independent critic did not run.
