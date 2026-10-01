@@ -29,7 +29,7 @@ If the brief carries a `## Contract` block, it is **binding for RED**, where stu
 ## 3. Execute
 
 ### RED
-Write stubs with correct signatures that throw the language's not-implemented error. Write tests that import from those stubs or existing modules, carry meaningful assertions (never `toBeDefined()` / `toBeTruthy()` / `not.toThrow()`), name their behavior ID, and include at least one error/edge case. Run `${CLAUDE_PLUGIN_ROOT}/skills/shared/scripts/test-changed` (falls back to the brief's `Test:` command).
+Write stubs with correct signatures that throw the language's not-implemented error. Before writing any test, list the spec's boundaries and negative cases for this task (empty, missing, exactly-at-limit, just-past-limit, sibling/prefix, error path) and write one assertion per item. A test that would still pass if the implementation were replaced by the obvious wrong version (name it: swallow the error, `startswith` with no separator, `>` for `>=`, running total from zero) is not a RED test. Write tests that import from those stubs or existing modules, carry meaningful assertions (never `toBeDefined()` / `toBeTruthy()` / `not.toThrow()`), name their behavior ID, and include at least one error/edge case. Run `${CLAUDE_PLUGIN_ROOT}/skills/shared/scripts/test-changed` (falls back to the brief's `Test:` command).
 **HARD GATE**: exit non-zero → proceed. Exit zero → **STOP**; the tests are green-bar, testing pre-existing behavior, or the implementation already exists. Rewrite them; do not proceed to GREEN.
 Commit `test(<scope>): add failing tests for <ID> [RED]` — tests and stubs only; verify with `git diff --name-only HEAD~1..HEAD`.
 
@@ -63,4 +63,4 @@ For browser work: `${CLAUDE_PLUGIN_ROOT}/skills/shared/claude-in-chrome-referenc
 
 ## 5. Report
 
-Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. The report ALWAYS ends with a `Seen:` section: one line per defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`, or the literal `Seen: none`. Do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.
+Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. Before reporting, re-read every file you edited end to end and each function next to your change. The report ALWAYS ends with a `Seen:` section, separate from the `searched:` receipt (which is not a `Seen:`): one line per defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`, or the literal `Seen: none`. Do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.

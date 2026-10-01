@@ -165,6 +165,11 @@ fi
     printf '\n'
     printf '%s\n' "$CONTRACT"
   fi
+  printf '\n## Report\n'
+  printf 'End your report with a Seen: section, apart from the searched: receipt: one line per\n'
+  printf 'defect you noticed in any file you read (re-read each file you edited end to end),\n'
+  printf 'even outside your task, as Seen: <file>:<line> — <what>, or the literal Seen: none.\n'
+  printf 'Do not fix them.\n'
   printf '\n## Rules\n'
   printf 'Touch only the paths in files:. Failing test first, verify it fails, minimal\n'
   printf 'implementation, verify it passes, commit. Do not tick the box — the\n'
