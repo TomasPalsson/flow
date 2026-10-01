@@ -30,6 +30,8 @@
  *                   worlds whose sectors list it are weighted up. --lock world still wins.
  *   --lock concept=<id>  world-only veto: keep the concept, --reroll n re-deals world and device. With a concept dealt the
  *                   world pool is concept.world_hints + --sector-suited worlds; 15% of rounds print WILDCARD and widen it.
+ *                   Each concept needs a `temperament` (heritage-craft, warm-domestic, civic-calm, technical-precise,
+ *                   playful-bright, natural-raw, nocturnal-social, avant-garde); worlds not listing it are removed first.
  *   --concept-only  print only the CONCEPT / FACTS / FUNCTIONAL RESKIN / SIGNATURE DEVICE block (no world).
  *   --canon         the category standard, played straight and with craft (the user's exit).
  *
@@ -61,6 +63,9 @@ const SECTORS = ['food-drink', 'hospitality-travel', 'retail-ecommerce', 'trades
   'engineering-technical', 'healthcare-clinical', 'finance-insurance', 'legal-public', 'kids-education',
   'culture-arts', 'music-events-nightlife', 'fashion-beauty-luxury', 'sports-fitness', 'media-publishing',
   'dev-tools', 'enterprise-saas', 'nature-outdoor', 'maritime-logistics', 'nonprofit-activism', 'wellness', 'gaming'];
+// the business's own register (concept.temperament); every world lists the 2-4 it can serve (worlds.json `temperaments`)
+const TEMPERAMENTS = ['heritage-craft', 'warm-domestic', 'civic-calm', 'technical-precise', 'playful-bright',
+  'natural-raw', 'nocturnal-social', 'avant-garde'];
 // signature-device techniques (graphics.md section 2)
 const TECHNIQUES = ['seeded-illustration', 'procedural-subject', 'traced-line', 'mechanism-diagram',
   'annotated-photo', 'scroll-scene', 'data-diagram', 'material-texture', 'print-process',
@@ -223,6 +228,7 @@ function validateConcepts(list, dossier) {
     if (typeof c.functional_reskin !== 'string' || !c.functional_reskin.trim()) die(2, `${at}: functional_reskin is empty`);
     if (!Array.isArray(c.devices) || c.devices.length < 2) die(2, `${at}: needs at least 2 devices`);
     for (const d of c.devices) if (!d || !TECHNIQUES.includes(d.technique)) die(2, `${at}: unknown technique ${d && d.technique}; use one of ${TECHNIQUES.join(', ')}`);
+    if (!TEMPERAMENTS.includes(c.temperament)) die(2, `${at}: temperament must be one of ${TEMPERAMENTS.join(', ')} (the business's own register, from the dossier), got ${c.temperament ?? 'none'}`);
     const hints = c.world_hints ?? [];
     if (!Array.isArray(hints) || hints.length < 2 || hints.length > 3) die(2, `${at}: world_hints must name 2-3 world ids (worlds whose grammar suits this concept), got ${Array.isArray(hints) ? hints.length : 'none'}`);
     for (const h of hints) if (!worlds.some(w => w.id === h)) die(2, `${at}: world_hint ${h} is not a world id; valid ids: ${worlds.map(w => w.id).join(', ')}`);
@@ -324,7 +330,14 @@ if (args.locks.world) {
 if (args.register === 'safer') pool = pool.filter(w => w.decay === 'slow' && w.color_strategies.some(s => QUIET_STRATEGIES.has(s)));
 if (args.register === 'bolder') pool = pool.filter(w => w.modes.includes('experience') || w.decay !== 'slow');
 // sector fit: a world that lists the project's sector in avoid_sectors is not dealt (a user lock still wins)
+// temperament fit: with a concept dealt, a world whose temperaments exclude the concept's is never dealt (the wildcard
+// widens sector, never temperament)
+const tempOk = w => !concept || !!args.locks.world || (w.temperaments || []).includes(concept.temperament);
 const sectorOk = w => !args.sector || !(w.avoid_sectors || []).includes(args.sector);
+if (concept && !args.locks.world) {
+  const before = pool.length; pool = pool.filter(tempOk);
+  if (pool.length < before) notes.push(`${before - pool.length} worlds removed: temperaments exclude ${concept.temperament}`);
+}
 if (args.sector && !args.locks.world) {
   const before = pool.length; pool = pool.filter(sectorOk);
   if (pool.length < before) notes.push(`${before - pool.length} worlds removed: avoid_sectors includes ${args.sector}`);
@@ -332,9 +345,9 @@ if (args.sector && !args.locks.world) {
 if (!pool.length) {
   // relax: adjacent mode, then everything non-trap (the sector filter still applies)
   const adjacent = { persuade: 'experience', experience: 'persuade', read: 'persuade', operate: 'read' }[args.mode];
-  pool = worlds.filter(w => !w.trap && w.modes?.includes(adjacent) && sectorOk(w));
+  pool = worlds.filter(w => !w.trap && w.modes?.includes(adjacent) && sectorOk(w) && tempOk(w));
   notes.push(`world pool empty for mode=${args.mode}; relaxed to adjacent mode ${adjacent}`);
-  if (!pool.length) { pool = worlds.filter(w => !w.trap && sectorOk(w)); notes.push('relaxed to full catalog'); }
+  if (!pool.length) { pool = worlds.filter(w => !w.trap && sectorOk(w) && tempOk(w)); notes.push('relaxed to full catalog'); }
 }
 // relevance: with a concept dealt, the pool is (concept.world_hints + worlds suited to --sector); WILDCARD_P of the rounds
 // widen to every sector-allowed world. An empty narrow pool also widens. Recency demotion stays inside whichever pool.

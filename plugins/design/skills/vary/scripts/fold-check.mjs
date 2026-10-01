@@ -24,6 +24,10 @@
  *             flat-block texture (mean sd of the flattest 30% of 8x8 blocks) is printed, not gated (smooth gradient skies are flat)
  *   plates-size (persuade/experience) largest drawn element per below-fold section: >= 35% of the section width, >= 280px tall, >= 3 value
  *             steps; FAIL when fewer than 50% of the plates pass. Thresholds calibrated on ara-bar/1, hitataekni/1,/4 (all pass).
+ *   duplicate-content (all modes, full page, footer excluded; fold-content.browser.js) text blocks >= 40 chars appearing twice, and price
+ *             lists (>= 3 amounts in one block, HTML or svg text) sharing >= 3 amounts with another non-nested block; FAIL prints them
+ *   headline-on-fold (persuade/experience, desktop) a visible h1 (or role=heading level 1) in the first viewport plus another visible
+ *             text line (>= 10 chars, outside nav/buttons) within 200px of it
  * Thresholds: coverage >= 0.55 desktop / 0.45 phone (persuade, experience only; informational for
  * operate/read), detail >= 50 desktop, plates >= 4, h1 overlaps art (persuade, experience).
  * Screenshots fold-desktop.png / fold-phone.png go to --out (default: next to a local file, else cwd).
@@ -38,6 +42,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const FOLD_TEXT = fileURLToPath(new URL('./fold-text.browser.js', import.meta.url));
 // frame / solid-card / plate / rendering-depth measures (G1-G4 of round 5) live in their own browser file too
 const FOLD_DEPTH = fileURLToPath(new URL('./fold-depth.browser.js', import.meta.url));
+// duplicate-content and headline-on-fold measures (F6, F7 of round 6) live in their own browser file too
+const FOLD_CONTENT = fileURLToPath(new URL('./fold-content.browser.js', import.meta.url));
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
@@ -260,9 +266,11 @@ for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
   const shot = await page.screenshot({ path: join(outDir, `fold-${name}.png`) });
   await page.addScriptTag({ path: FOLD_DEPTH });
   const depth = await measureDepth(page, shot, name);
+  await page.addScriptTag({ path: FOLD_CONTENT });
+  const content = name === 'desktop' ? { head: await page.evaluate(() => window.__foldContent.headline()), dup: await page.evaluate(() => window.__foldContent.duplicates()) } : null;
   let dead = null;
   if (name === 'desktop') dead = deadZone(await page.evaluate(cellStats, shot.toString('base64')));
-  res[name] = { ...m, text, cards, sections, dead, depth, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
+  res[name] = { ...m, text, cards, sections, dead, depth, content, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
   await page.close();
 }
 await browser.close();
@@ -306,6 +314,10 @@ const share = below.length ? withPlate.length / below.length : 1;
 row(scene ? share >= 0.6 : null, 'art-down-page', below.length
   ? `${withPlate.length}/${below.length} sections below the fold carry a plate >= 40% of their width (need >= 60%); without: ${below.filter(s => !s.plate).map(s => `${s.name}@${s.top}`).join(', ') || 'none'}`
   : 'no sections >= 300px below the fold');
+const dups = [...d.content.dup.text.map(t => `"${t.text}" appears ${t.n}x`), ...d.content.dup.prices.map(t => `price list ${t.amounts.join('/')} repeats in <${t.a}> and <${t.b}>`)];
+row(dups.length === 0, 'duplicate-content', dups.length ? dups.slice(0, 4).join('; ') : 'no text block >= 40 chars or price list repeated outside the footer');
+const hd = d.content.head;
+row(scene ? !!hd.h1 && !!hd.line : null, 'headline-on-fold', !hd.h1 ? 'no visible h1 in the first desktop viewport' : !hd.line ? `h1 "${hd.h1}" has no other text line within 200px (no value proposition)` : `h1 "${hd.h1}" with line "${hd.line}"` + (scene ? '' : ` (informational in ${mode} mode)`));
 console.log(`fold-check ${url} mode=${mode}`);
 for (const l of lines) console.log('  ' + l.text);
 console.log(`  screenshots: ${join(outDir, 'fold-desktop.png')}, ${join(outDir, 'fold-phone.png')}`);

@@ -18,7 +18,7 @@ const sky = '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offs
 const shapes = n => sky + Array.from({ length: n }, (_, i) => `<rect x="${(i * 37) % 1400}" y="${(i * 53) % 880}" width="40" height="30" fill="#${((i * 99991) % 0xffffff).toString(16).padStart(6, '0')}"/>`).join('');
 const plate = n => `<svg viewBox="0 0 1400 400" width="1400" height="400" aria-hidden="true">${shapes(n)}</svg>`;
 const scene = `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">${shapes(160)}</svg>
-<h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
+<h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><p style="position:relative;margin:-100px 40px 0;font-size:24px;width:max-content;background:#123;color:#fff">Cocktails and small plates, open daily.</p><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
 const textOnly = '<!doctype html><body style="margin:0"><h1 style="margin:120px 40px">Fjalar Bar</h1><p>Open daily.</p></body>';
 
 test('text-only hero fails every scene metric', { skip: noPw && 'Playwright absent' }, () => {
@@ -93,4 +93,22 @@ test('thin section plates fail plates-size; big rendered plates pass', { skip: n
   assert.match(thin.stdout, /\[FAIL\] plates-size: 0\/2 .*menu 300x200 of 1440px/);
   const big = fold('big', `<!doctype html><body style="margin:0"><main>${hero}${sec('menu', '900px', '320px')}</main></body>`);
   assert.match(big.stdout, /\[PASS\] plates-size: 1\/1/);
+});
+
+const prices = (id, rows) => `<ul id="${id}">${rows.map(r => `<li>${r}</li>`).join('')}</ul>`;
+const ladder = ['Rebacking £180', 'Full rebind £420', 'Clamshell box £150'];
+test('a price list shown twice fails duplicate-content and names the amounts; once passes', { skip: noPw && 'Playwright absent' }, () => {
+  const twice = fold('dup-price', sceneWith(`<section>${prices('a', ladder)}</section><section>${prices('b', ladder)}</section>`));
+  assert.match(twice.stdout, /\[FAIL\] duplicate-content: .*price list 180\/420\/150 repeats in <ul#a> and <ul#b>/);
+  assert.match(fold('once-price', sceneWith(`<section>${prices('a', ladder)}</section>`)).stdout, /\[PASS\] duplicate-content/);
+});
+test('a repeated paragraph outside the footer fails; the same text in the footer passes', { skip: noPw && 'Playwright absent' }, () => {
+  const para = '<p>We rebind and repair books by hand in the old print works.</p>';
+  assert.match(fold('dup-text', sceneWith(`<section>${para}</section><section>${para}</section>`)).stdout, /\[FAIL\] duplicate-content: "we rebind and repair books by hand/);
+  assert.match(fold('foot-text', sceneWith(`<section>${para}</section><footer>${para}</footer>`)).stdout, /\[PASS\] duplicate-content/);
+});
+test('an h1 with no value-proposition line near it fails headline-on-fold; no h1 fails too', { skip: noPw && 'Playwright absent' }, () => {
+  assert.match(fold('lone-h1', sceneWith('<h1 style="position:relative;margin:120px 40px">Fjalar Bar</h1>')).stdout, /\[FAIL\] headline-on-fold: h1 "Fjalar Bar" has no other text line/);
+  assert.match(fold('no-h1', '<!doctype html><body style="margin:0"><p>Fjalar Bar, open daily to all.</p></body>').stdout, /\[FAIL\] headline-on-fold: no visible h1/);
+  assert.match(fold('with-line', scene).stdout, /\[PASS\] headline-on-fold: h1 "Fjalar Bar" with line "Cocktails/);
 });

@@ -1,6 +1,7 @@
 [
  {
   "id": "swiss-international",
+  "temperaments": ["civic-calm", "technical-precise", "avant-garde"],
   "name": "Swiss / International Style",
   "origin": "Basel/Zürich, late 1940s-1950s — Müller-Brockmann, Hofmann, Ruder",
   "one_line": "Fixed baseline grid; hierarchy by weight/size/position, never color.",
@@ -98,6 +99,7 @@
  },
  {
   "id": "bauhaus",
+  "temperaments": ["avant-garde", "technical-precise", "civic-calm"],
   "name": "Bauhaus",
   "origin": "Weimar/Dessau, 1919-1933 — Herbert Bayer, László Moholy-Nagy",
   "one_line": "Primary-color geometric primitives as literal structural units — form states its function.",
@@ -192,6 +194,7 @@
  },
  {
   "id": "de-stijl",
+  "temperaments": ["avant-garde", "playful-bright"],
   "name": "De Stijl",
   "origin": "Netherlands, 1917-1931 — Mondrian, Rietveld, van Doesburg",
   "one_line": "The orthogonal grid itself is the artwork, in flat red/yellow/blue on black-and-white.",
@@ -278,6 +281,7 @@
  },
  {
   "id": "constructivist",
+  "temperaments": ["avant-garde", "nocturnal-social"],
   "name": "Constructivist / Soviet avant-garde",
   "origin": "USSR, 1919-1930s — Rodchenko, Lissitzky",
   "one_line": "Diagonal photomontage and red-on-cream type running as a graphic shape, not just text.",
@@ -372,6 +376,7 @@
  },
  {
   "id": "dutch-structuralism",
+  "temperaments": ["avant-garde", "civic-calm"],
   "name": "Dutch Structuralism (Total Design / Experimental Jetset)",
   "origin": "Amsterdam, 1963-present — Total Design; Experimental Jetset (1997-)",
   "one_line": "The grid made visible; deadpan Helvetica captions describe the system itself.",
@@ -459,6 +464,7 @@
  },
  {
   "id": "memphis",
+  "temperaments": ["playful-bright", "avant-garde", "nocturnal-social"],
   "name": "Memphis",
   "origin": "Milan, 1980-1987 — Ettore Sottsass and the Memphis Group",
   "one_line": "Clashing neon-and-pastel geometry, deliberately off-grid, refusing a single safe accent.",
@@ -556,6 +562,7 @@
  },
  {
   "id": "y2k-frutiger-aero",
+  "temperaments": ["playful-bright", "technical-precise", "nocturnal-social"],
   "name": "Y2K / Frutiger Aero",
   "origin": "Global consumer tech, 2004-2013 — Windows XP/Mac OS X-era skeuomorphism",
   "one_line": "Glossy aqua gradients and bokeh nature-tech collage — 2004-era optimism, never flat.",
@@ -651,6 +658,7 @@
  },
  {
   "id": "brutalist-web",
+  "temperaments": ["avant-garde", "natural-raw", "technical-precise"],
   "name": "Brutalist web",
   "origin": "Web, ~2014-present — Pascal Deville's brutalistwebsites.com",
   "one_line": "Raw, unstyled browser defaults left exactly as the browser draws them.",
@@ -741,6 +749,7 @@
  },
  {
   "id": "neo-brutalism",
+  "temperaments": ["playful-bright", "avant-garde", "technical-precise"],
   "name": "Neo-brutalism (product UI)",
   "origin": "Web/product UI, ~2020-present — popularized by Michał Malewicz's March 2022 essay (no single originator is universally credited)",
   "one_line": "Thick black borders and flat offset shadows — a rubber stamp pressed into pixels.",
@@ -835,6 +844,7 @@
  },
  {
   "id": "japanese-editorial",
+  "temperaments": ["civic-calm", "natural-raw", "warm-domestic"],
   "name": "Japanese editorial (Idea magazine / MUJI)",
   "origin": "Tokyo, 1980-present — MUJI's product and print design language. (Idea magazine, the namesake 1953 typography journal, in fact runs a more colorful, maximalist editorial register per its own citation below; this card follows the MUJI/negative-space lineage specifically, not Idea's editorial pages.)",
   "one_line": "Negative space as an active element; hand-tuned kerning carries the hierarchy.",
@@ -927,6 +937,7 @@
  },
  {
   "id": "scandinavian-functionalism",
+  "temperaments": ["warm-domestic", "civic-calm", "natural-raw"],
   "name": "Scandinavian functionalism",
   "origin": "Nordic countries, 1930s-present — Stockholm Exhibition 1930; Aalto, Jacobsen",
   "one_line": "Light birch and pale grey, generous margins, ornament only where it states a function.",
@@ -1022,6 +1033,7 @@
  },
  {
   "id": "italian-rationalist",
+  "temperaments": ["civic-calm", "avant-garde", "technical-precise"],
   "name": "Italian Rationalist / Radical design",
   "origin": "Italy, 1930s (rationalism) and 1966-1978 (radical) — Terragni; Superstudio (1966-1978), Archizoom (1966-1974)",
   "one_line": "An infinite black-on-white grid receding to a vanishing point, punctured by one red intrusion.",
@@ -1112,6 +1124,7 @@
  },
  {
   "id": "mid-century-corporate",
+  "temperaments": ["civic-calm", "technical-precise"],
   "name": "Mid-century American corporate",
   "origin": "USA, 1950s-60s — Paul Rand, Saul Bass",
   "one_line": "One geometric motif repeated at every scale, anchored by a confident flat logotype.",
@@ -1202,6 +1215,7 @@
  },
  {
   "id": "op-art",
+  "temperaments": ["avant-garde", "playful-bright", "nocturnal-social"],
   "name": "Op-art",
   "origin": "1960s — Bridget Riley, Victor Vasarely; MoMA's 'The Responsive Eye' 1965",
   "one_line": "A single mathematical pattern engineered to vibrate — the pattern is the entire content.",
@@ -1287,6 +1301,7 @@
  },
  {
   "id": "psychedelic",
+  "temperaments": ["nocturnal-social", "avant-garde", "playful-bright"],
   "name": "Psychedelic (Fillmore poster)",
   "origin": "San Francisco, 1965-1971 — Wes Wilson, Victor Moscoso, the Fillmore Auditorium",
   "one_line": "Melting hand-lettered type fused into Art-Nouveau illustration at full complementary saturation.",
@@ -1381,6 +1396,7 @@
  },
  {
   "id": "punk-zine",
+  "temperaments": ["nocturnal-social", "avant-garde", "natural-raw"],
   "name": "Punk / zine (Jamie Reid)",
   "origin": "UK, 1976-1980s — Jamie Reid, Sex Pistols",
   "one_line": "Ransom-note cut-and-paste lettering on photocopier-degraded black and white.",
@@ -1477,6 +1493,7 @@
  },
  {
   "id": "terminal-hacker",
+  "temperaments": ["technical-precise", "nocturnal-social"],
   "name": "Terminal / hacker",
   "origin": "1970s-80s green-phosphor terminals (VT100, IBM 3270), revived 2015-present",
   "one_line": "Monospace-only, phosphor-on-black, a blinking cursor as the literal interface metaphor.",
@@ -1569,6 +1586,7 @@
  },
  {
   "id": "industrial-datasheet",
+  "temperaments": ["technical-precise", "civic-calm"],
   "name": "Industrial / datasheet",
   "origin": "Engineering/electronics documentation, 1950s-present",
   "one_line": "Hairline-ruled tables, decimal-aligned tabular figures, labeled technical diagrams instead of photos.",
@@ -1664,6 +1682,7 @@
  },
  {
   "id": "aviation-hud",
+  "temperaments": ["technical-precise", "nocturnal-social"],
   "name": "Aviation / cockpit (HUD)",
   "origin": "Military avionics from WWII, standardized 1960s-70s; commercial glass cockpits from early 1980s (Boeing 757/767, Airbus A310)",
   "one_line": "Thin glowing outline gauges on near-black, framed by corner brackets, signal colors only.",
@@ -1759,6 +1778,7 @@
  },
  {
   "id": "art-deco-geometric",
+  "temperaments": ["heritage-craft", "nocturnal-social", "avant-garde"],
   "name": "Art Deco geometric",
   "origin": "France, early-to-mid 1920s, crystallized at the 1925 Paris Exposition; peaked in the US through the 1930s",
   "one_line": "Stepped, sunburst geometry in gold and jewel tone, with a confident vertical axis.",
@@ -1855,6 +1875,7 @@
  },
  {
   "id": "dieter-rams-braun",
+  "temperaments": ["technical-precise", "civic-calm", "warm-domestic"],
   "name": "Dieter Rams / Braun",
   "origin": "Frankfurt/Kronberg, Germany, 1955-1995 — Dieter Rams at Braun; Otl Aicher's Ulm-school graphic system",
   "one_line": "A strict modular grid, one signal color, and nothing that doesn't serve a stated function.",
@@ -1950,6 +1971,7 @@
  },
  {
   "id": "letterpress-wood-type",
+  "temperaments": ["heritage-craft", "warm-domestic", "nocturnal-social"],
   "name": "Letterpress / wood type (Hatch Show Print)",
   "origin": "Nashville, since 1879 — Hatch Show Print",
   "one_line": "Mismatched wood-type sizes and uneven hand-inking on a carved-illustration handbill.",
@@ -2048,6 +2070,7 @@
  },
  {
   "id": "scientific-journal",
+  "temperaments": ["technical-precise", "civic-calm", "natural-raw"],
   "name": "Scientific journal (Nature / LaTeX two-column)",
   "origin": "Scientific publishing, 19th century-present — Nature, LaTeX two-column convention",
   "one_line": "A strict two-column grid where every citation and figure number is a real cross-reference.",
@@ -2135,6 +2158,7 @@
  },
  {
   "id": "mid-century-travel-poster",
+  "temperaments": ["warm-domestic", "heritage-craft", "playful-bright", "civic-calm"],
   "name": "Mid-century travel poster",
   "origin": "1920s-1960s — Golden Age of railway/ocean-liner travel through the Jet Age; David Klein for TWA",
   "one_line": "A flat-litho destination image, one confident wordmark, one signature geometric motif.",
@@ -2232,6 +2256,7 @@
  },
  {
   "id": "cartographic",
+  "temperaments": ["heritage-craft", "natural-raw", "technical-precise", "civic-calm"],
   "name": "Cartographic",
   "origin": "Ordnance Survey / USGS map conventions, 19th c.-present",
   "one_line": "The page reads as a surveyed map: legend as first-class UI, content organized by location, not narrative order.",
@@ -2335,6 +2360,7 @@
  },
  {
   "id": "apothecary-label",
+  "temperaments": ["heritage-craft", "warm-domestic", "natural-raw"],
   "name": "Apothecary / Label",
   "origin": "Victorian pharmacy labels, 1800s-1930s",
   "one_line": "A single centered, symmetrical label in small-caps serif and one rule — trust through restraint, not romance.",
@@ -2435,6 +2461,7 @@
  },
  {
   "id": "museum-gallery",
+  "temperaments": ["civic-calm", "avant-garde", "heritage-craft"],
   "name": "Museum / Gallery",
   "origin": "Institutional wall-text conventions, 1970s-present",
   "one_line": "Extreme whitespace treats content like an exhibited object; quiet caption type never competes with the work.",
@@ -2529,6 +2556,7 @@
  },
  {
   "id": "sports-broadcast",
+  "temperaments": ["nocturnal-social", "playful-bright", "technical-precise"],
   "name": "Sports Broadcast",
   "origin": "ESPN/Sky Sports lower-thirds, 1990s-present",
   "one_line": "Angular sheared panels and broadcast-style data call-outs make static content feel live.",
@@ -2623,6 +2651,7 @@
  },
  {
   "id": "transit-signage",
+  "temperaments": ["civic-calm", "technical-precise"],
   "name": "Transit Signage",
   "origin": "NYC Subway (Vignelli), London Underground (Johnston/Kinneir Calvert), 1930s-1970s",
   "one_line": "One geometric sans at every scale, a strict route-color system, and pictograms standing in for words.",
@@ -2716,6 +2745,7 @@
  },
  {
   "id": "luxury-fashion-editorial",
+  "temperaments": ["avant-garde", "heritage-craft", "nocturnal-social"],
   "name": "Luxury Fashion Editorial",
   "origin": "Vogue/haute-couture lookbooks, 1960s-present",
   "one_line": "Extreme whitespace and one oversized didone headline make the interface nearly disappear.",
@@ -2810,6 +2840,7 @@
  },
  {
   "id": "childrens-book",
+  "temperaments": ["playful-bright", "warm-domestic", "natural-raw"],
   "name": "Children's Book Illustration",
   "origin": "Golden Book / Eric Carle tradition, 1940s-present",
   "one_line": "Flat, hand-textured shapes and a rounded, friendly type carry one warm subject per screen.",
@@ -2912,6 +2943,7 @@
  },
  {
   "id": "risograph-zine",
+  "temperaments": ["playful-bright", "warm-domestic", "avant-garde", "natural-raw"],
   "name": "Risograph Print / Zine",
   "origin": "Riso Kagaku duplicators (Japan, 1986), adopted by indie publishers, 2000s-present",
   "one_line": "2-3 fluorescent spot colors misregister by a few pixels, echoing a duplicator print run.",
@@ -3018,6 +3050,7 @@
  },
  {
   "id": "editorial-newspaper",
+  "temperaments": ["heritage-craft", "civic-calm"],
   "name": "Editorial Newspaper (Broadsheet)",
   "origin": "19th-c. newspaper layout, still visible in NYT/WSJ digital",
   "one_line": "Rule-lined multi-column serif text with a huge headline jump and byline convention, borrowed straight from print.",
@@ -3107,6 +3140,7 @@
  },
  {
   "id": "corporate-memphis",
+  "temperaments": ["playful-bright", "civic-calm"],
   "name": "Corporate Memphis / Flat Illustration",
   "trap": true,
   "origin": "Facebook/Slack/Mailchimp-era SaaS illustration boom, ~2015-2021 (now itself a cliché, coined by Mike Merrill as 'Corporate Memphis')",
@@ -3170,6 +3204,7 @@
  },
  {
   "id": "grunge-carson",
+  "temperaments": ["nocturnal-social", "avant-garde", "natural-raw"],
   "name": "Grunge / David Carson Editorial",
   "origin": "Ray Gun magazine, 1992-1996",
   "one_line": "Deliberately illegible, overlapping type and torn-paper texture treat photography as texture, not image.",
@@ -3269,6 +3304,7 @@
  },
  {
   "id": "board-game-rulebook",
+  "temperaments": ["playful-bright", "technical-precise", "warm-domestic"],
   "name": "Board Game / Tabletop Rulebook",
   "origin": "Modern hobby board-game manuals, 1990s-present",
   "one_line": "Numbered callouts cross-reference diagrams; an iconography glossary is a first-class section, not a footnote.",
@@ -3368,6 +3404,7 @@
  },
  {
   "id": "wayfinding-aicher",
+  "temperaments": ["civic-calm", "technical-precise", "playful-bright"],
   "name": "Wayfinding / Signage Systems (Otl Aicher)",
   "origin": "Munich Olympics 1972, airport signage lineage",
   "one_line": "A modular pictogram grid and one accent color per zone make legibility-at-a-glance the entire design system.",
@@ -3460,6 +3497,7 @@
  },
  {
   "id": "blueprint",
+  "temperaments": ["technical-precise", "heritage-craft"],
   "name": "Blueprint / Technical Drawing",
   "origin": "Architectural/engineering blueprints, 1900s-present",
   "one_line": "White line-work on deep blue — everything is stroke, dimensioned with arrowheads and a drafting title block.",
@@ -3555,6 +3593,7 @@
  },
  {
   "id": "newsprint-tabloid",
+  "temperaments": ["heritage-craft", "nocturnal-social", "civic-calm"],
   "name": "Newsprint Tabloid",
   "origin": "NY Post / Bild-style front pages",
   "one_line": "One enormous shock headline and halftone-dot photography dominate the page like a front page on a newsstand rack.",
@@ -3652,6 +3691,7 @@
  },
  {
   "id": "trading-floor",
+  "temperaments": ["technical-precise", "nocturnal-social"],
   "name": "Trading Floor / Financial Terminal",
   "origin": "Bloomberg Terminal, 1980s-present",
   "one_line": "Black-background dense multi-panel layout where color means only one thing: red or green delta.",
@@ -3748,6 +3788,7 @@
  },
  {
   "id": "vintage-analog",
+  "temperaments": ["heritage-craft", "warm-domestic", "nocturnal-social", "natural-raw"],
   "name": "Vintage Analog / Retro Film",
   "origin": "Kodachrome-era print and 8mm film, 1960s-70s photography",
   "one_line": "A warm, lifted-black color grade and physical print-border framing evoke Kodachrome-era photography.",
@@ -3847,6 +3888,7 @@
  },
  {
   "id": "pharmaceutical-clinical",
+  "temperaments": ["technical-precise", "civic-calm"],
   "name": "Pharmaceutical / Clinical",
   "origin": "Medical device and clinical-trial documentation",
   "one_line": "Cool desaturated blue-grey and literal iconography make regulatory fine print a visible, respected element.",
@@ -3945,6 +3987,7 @@
  },
  {
   "id": "field-guide-naturalist",
+  "temperaments": ["natural-raw", "heritage-craft", "warm-domestic", "technical-precise"],
   "name": "Field Guide Naturalist",
   "origin": "Roger Tory Peterson's field guide system (1934-present) and Audubon's ornithological plate tradition (1827-1838)",
   "one_line": "Audubon/Peterson plates with arrow-pointed field marks and a specimen-label system replace hero photography with observed diagrams.",
@@ -4047,6 +4090,7 @@
  },
  {
   "id": "nautical-chart",
+  "temperaments": ["heritage-craft", "natural-raw", "technical-precise"],
   "name": "Nautical Chart",
   "origin": "Admiralty chart conventions (UK Hydrographic Office, 19th c.-present) and NOAA nautical chart standards",
   "one_line": "Admiralty-chart soundings, a compass rose, and a title block turn a page into a navigational document.",
@@ -4146,6 +4190,7 @@
  },
  {
   "id": "japanese-consumer-electronics-80s",
+  "temperaments": ["technical-precise", "nocturnal-social", "playful-bright"],
   "name": "Japanese Consumer Electronics (1980s)",
   "origin": "Japanese consumer electronics industrial design and print catalogs — Sony, Casio, Yamaha, Technics, 1979-1989",
   "one_line": "Sony/Casio/Yamaha spec-sheet graphics: metallic grey bodies with exactly one signal color calling out the one feature that matters.",
@@ -4247,6 +4292,7 @@
  },
  {
   "id": "video-game-menu",
+  "temperaments": ["playful-bright", "nocturnal-social", "technical-precise"],
   "name": "Video Game Menu (PS2 / Persona / Splatoon era)",
   "origin": "Late-PS2-through-PS4-era Japanese console game UI design — Persona series (Atlus) and Splatoon (Nintendo), 2006-2020s",
   "one_line": "Diagonal panels and kinetic type stack into a UI that moves like it's alive.",
@@ -4348,6 +4394,7 @@
  },
  {
   "id": "illuminated-manuscript",
+  "temperaments": ["heritage-craft", "avant-garde"],
   "name": "Illuminated Manuscript",
   "origin": "European illuminated manuscript tradition, monastic scriptoria, c. 500-1500 CE",
   "one_line": "Rubricated headings, versal initials, and marginalia turn the page edge into an active decorative field.",

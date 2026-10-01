@@ -335,6 +335,61 @@ Measured on the desktop screenshot of the art area (hero, and each plate on its 
 
 The targets are the gate's thresholds (`TH` in `fold-check.mjs`), and the gate prints the three numbers. Flat worlds (litho, flat) forbid gradients and opacity: use the §1d substitutes (offset lighter shape for the glow, border band for the vignette, hatch or halftone in an existing ink for the grain) and meet the same numbers with those. Recipe: (1) gradient sky or backdrop, never a flat rect; (2) 3-5 stops per material, light from the one key; (3) one glow with `mix-blend-mode:screen` on the focal fact; (4) grain over everything; (5) hatch lines follow the form and darken one face; (6) strokes vary in weight (heavier at the shaded edge), never one uniform hairline.
 
+## 1e. Objects, not boxes
+
+A rectangle with a word in it is a label, not a drawing. Every drawn object needs: (1) a **real silhouette** of the thing (a train carriage has a roof line with a curve, bogies with wheels, windows, a door, couplers; a bound book has a spine with raised bands, boards that stand proud of the pages, a headband, a visible page block; a drawer has a face, a handle, a gap and a shadow line), (2) **at least 3 value steps** (lit, mid, shade) plus a cast shadow, and (3) for **people**, a posture or gesture (leaning on a counter, reaching, carrying, bending over work), a head and hands or arms placed in it, and a cast shadow on the ground. A lone upright blob with a round head is a placeholder and fails the critique. Both examples use only the §1 kit and swatches that exist in `STYLES` (`cladding`, `rib`, `glass`, `glow`, `wallDark`, `gold`, `ink`, `sauce`, `paper`, `wood`, `woodDark`).
+
+```js
+// art/objects.js: a train carriage (side view). Roof curve, body panel, window band, door, skirt, two bogies, couplers, cast shadow.
+import { shape, strokeSw, hatchIn, inPoly, f } from './core.js';
+
+export function carriage(S, x, y, w, h) {              // (x, y) = top-left of the body; w x h is the body, bogies hang below
+  const P = S.palette, rail = y + h + h * .22;
+  const roof = `M${f(x)} ${f(y + h * .16)}Q${f(x + w / 2)} ${f(y - h * .12)} ${f(x + w)} ${f(y + h * .16)}V${f(y + h * .3)}H${f(x)}Z`;   // curved roof, one lit plane
+  const body = `M${f(x)} ${f(y + h * .3)}H${f(x + w)}V${f(y + h)}H${f(x)}Z`;
+  const lower = `M${f(x)} ${f(y + h * .72)}H${f(x + w)}V${f(y + h)}H${f(x)}Z`;          // shaded lower panel: value step 2
+  let out = `<ellipse cx="${f(x + w * .53)}" cy="${f(rail + 3)}" rx="${f(w * .56)}" ry="${f(h * .05)}" fill="${P.ink}" opacity=".4"/>`;   // cast shadow, offset away from the key light
+  out += shape(S, body, 'cladding') + shape(S, lower, 'rib', { line: false }) + shape(S, roof, 'wallDark');
+  out += strokeSw(S, `M${f(x)} ${f(y + h * .3)}H${f(x + w)}`, 'gold', h * .035);        // livery stripe
+  const n = 2 * Math.max(2, Math.round(w / (h * 1.1))), ww = w / n;   // even count: the door sits in the centre gap
+  for (let i = 0; i < n; i++) {                        // window band: glass, a lit top edge, a shaded sill
+    const wx = x + ww * i + ww * .2, wwid = ww * .6;
+    out += shape(S, `M${f(wx)} ${f(y + h * .38)}h${f(wwid)}v${f(h * .26)}h${f(-wwid)}Z`, 'glass');
+    out += shape(S, `M${f(wx)} ${f(y + h * .38)}h${f(wwid)}v${f(h * .04)}h${f(-wwid)}Z`, 'glow', { line: false });
+    out += shape(S, `M${f(wx)} ${f(y + h * .6)}h${f(wwid)}v${f(h * .04)}h${f(-wwid)}Z`, 'wallDark', { line: false });
+  }
+  out += shape(S, `M${f(x + w / 2 - h * .07)} ${f(y + h * .3)}h${f(h * .14)}V${f(y + h * .94)}h${f(-h * .14)}Z`, 'rib');   // door
+  out += strokeSw(S, hatchIn(inPoly([[x, y + h * .72], [x + w, y + h * .72], [x + w, y + h], [x, y + h]]), [x, y + h * .72, x + w, y + h], 60, 5), 'ink', h * .012);   // hatch shades the skirt only
+  for (const bx of [x + w * .14, x + w * .86]) {       // bogies: frame, two wheels with hubs, axle line
+    out += shape(S, `M${f(bx - h * .32)} ${f(y + h)}h${f(h * .64)}v${f(h * .1)}h${f(-h * .64)}Z`, 'wallDark');
+    for (const dx of [-h * .17, h * .17]) out += `<circle cx="${f(bx + dx)}" cy="${f(rail - h * .06)}" r="${f(h * .13)}" fill="${P.ink}" data-sw="ink"/><circle cx="${f(bx + dx)}" cy="${f(rail - h * .06)}" r="${f(h * .05)}" fill="${P.gold}" data-sw="gold"/>`;
+  }
+  return out + shape(S, `M${f(x - h * .1)} ${f(y + h * .84)}h${f(h * .1)}v${f(h * .06)}h${f(-h * .1)}ZM${f(x + w)} ${f(y + h * .84)}h${f(h * .1)}v${f(h * .06)}h${f(-h * .1)}Z`, 'wallDark');   // couplers
+}
+```
+
+```js
+// A bound book, three-quarter view. Cover board, spine with raised bands, page block with edge lines, headband, tooled title, cast shadow.
+export function boundBook(S, x, y, w, h, title, tilt = -4) {   // (x, y) = top-left of the front cover
+  const P = S.palette, t = h * .12, g = `rotate(${tilt} ${f(x + w / 2)} ${f(y + h)})`;
+  let out = `<ellipse cx="${f(x + w * .55)}" cy="${f(y + h + 4)}" rx="${f(w * .7)}" ry="${f(h * .035)}" fill="${P.ink}" opacity=".4"/>`;
+  out += `<g transform="${g}">`;
+  out += shape(S, `M${f(x + w)} ${f(y)}l${f(t)} ${f(-t * .6)}V${f(y + h - t * .6)}l${f(-t)} ${f(t * .6)}Z`, 'paper');   // page block (right edge), lit
+  for (let i = 1; i < 7; i++) out += strokeSw(S, `M${f(x + w + t * .1)} ${f(y + h * i / 7 - t * .05)}l${f(t * .8)} ${f(-t * .5)}`, 'shadow', .8);   // leaf edges
+  out += shape(S, `M${f(x)} ${f(y)}h${f(w)}V${f(y + h)}H${f(x)}Z`, 'sauce');                                  // front board: mid
+  out += shape(S, `M${f(x)} ${f(y)}h${f(t * .9)}V${f(y + h)}h${f(-t * .9)}Z`, 'woodDark', { line: false });      // spine shade: dark step
+  out += shape(S, `M${f(x + t * .9)} ${f(y)}h${f(t * .25)}V${f(y + h)}h${f(-t * .25)}Z`, 'wood', { line: false });   // hinge groove, lit step
+  for (const k of [.18, .4, .62, .84]) out += strokeSw(S, `M${f(x)} ${f(y + h * k)}h${f(t * .9)}`, 'gold', h * .018);   // raised bands
+  out += shape(S, `M${f(x)} ${f(y - t * .3)}h${f(w + t * .2)}l${f(t * .6)} ${f(-t * .3)}H${f(x + t * .4)}Z`, 'gold', { line: false });   // headband and head edge
+  out += shape(S, `M${f(x + w * .28)} ${f(y + h * .2)}h${f(w * .56)}v${f(h * .2)}h${f(-w * .56)}Z`, 'paper');   // title label
+  out += `<text x="${f(x + w * .56)}" y="${f(y + h * .33)}" text-anchor="middle" font-size="${f(h * .08)}" fill="${P.ink}" data-sw="ink">${title}</text>`;
+  out += strokeSw(S, `M${f(x + w * .2)} ${f(y + h * .12)}H${f(x + w * .9)}V${f(y + h * .88)}H${f(x + w * .2)}Z`, 'gold', h * .012);   // blind-tooled border
+  return out + '</g>';
+}
+```
+
+Check both at 96px and at plate size in the gallery. A train that reads as a long box, or a book that reads as a red rectangle, has failed: add the missing parts until each object is recognisable from its silhouette alone (fill it black and look).
+
 ## 2. Technique catalog
 
 These ids match the roll's `TECHNIQUES`. Each entry: when it fits, a working pattern, the motif to take from the subject, and the performance and accessibility notes. Whatever the technique, ship a finished static state (no JS, no animation).
@@ -1288,13 +1343,27 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
    5. Sizes: hero, and thumb at 96px.
    6. The style-rule test to write (for litho: "no opacity, no gradients, only the six inks").
    7. The 3 placements of the device: hero, divider, micro.
+   8. **Objects table**: every drawn object (§1e) with its silhouette parts (a train: roof line, bogies, windows, door, couplers; a book: spine, boards, headband, page block), the three value steps it uses, and for each person the posture or gesture and the cast shadow. A box standing for a thing is not an entry.
+   9. **Section skeleton table**: one row per section below the fold, assigning one of the six skeletons below to it and naming the plate's subject. No two consecutive rows may share a skeleton.
+   10. **Headline surface**: the drawn surface in the hero scene that carries the business name AND a one-line value proposition (sign, board, title block, ticket), with both strings.
 2. **Build the art module** and `art-gallery.html` rendering every subject at both sizes. Write the style-rule test and run it.
 3. **Screenshot the gallery** with Playwright, `npx agent-browser` or the browser MCP, and **Read the PNGs**. Look; do not assume.
-4. **Write `.vary/critique-r1.json`** as `[{"subject","problem","fix"}]` plus a 1-10 score per group. Problems are concrete ("pepperoni reads as a smiling face", "the heat wheel is indistinguishable from the fan at 96px"), never "could be better".
+4. **Write `.vary/critique-r1.json`** (the critique list also checks, per drawn object, the §1e rules: real silhouette not a box, at least 3 value steps, posture and cast shadow for people; and per section: no two consecutive sections share a skeleton, no plate is a labelled box, no fact is shown twice, the hero carries name and value proposition on a drawn surface) as `[{"subject","problem","fix"}]` plus a 1-10 score per group. Problems are concrete ("pepperoni reads as a smiling face", "the heat wheel is indistinguishable from the fan at 96px"), never "could be better".
 5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** Two rounds, then build. Items still open after round 2 go into NOTES.md as `art: open — <item>` and the page ships; never start a third round.
 6. No UI page code until round 2 passes.
 
 **Art all the way down (rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, fully rendered with the §1d finish pass and at least 3 value steps (not a thin pale line diagram in a tinted box), drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section.
+
+**Section skeletons (assign one per section in the brief; no two consecutive sections share a skeleton).** Without this, every section falls back to copy left and a small boxed diagram right.
+
+1. **Full-bleed plate with caption**: the drawing spans the section's full width; a short caption sits on a drawn surface in it or in a band under it.
+2. **Catalogue of drawn items**: a row or grid where each item (product, dish, service, room) is its own drawing from its own record, with name and price beneath.
+3. **Process strip**: 3-5 drawn steps left to right (or down on a phone), each step a drawing of the work at that stage, joined by a drawn path or line.
+4. **Map or plan**: the place drawn from above (street plan, floor plan, site plan), with the real address and route marked in it.
+5. **Big quote over art**: one real quote, set large, on a drawn surface inside a full-width scene (a wall, a window, a page), with its source.
+6. **Ticket, label or form drawn as an object**: the booking, price list or enquiry presented as a ticket, shop label, order slip or ledger page that is itself the container, in the world's material.
+
+Every section plate is a drawing of that section's subject, never a labelled box with words in it. Each fact (price list, hours, address) is placed once in the body; the footer may repeat contact details only.
 
 **Collision rule (every critique round, both viewports).** Every label, callout and sign text must be fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering ('REPAI_RERS'); no callout hidden behind a prop; no grey smear at the scene edge. Check the 1440x900 and the 390x844 screenshots separately, zoomed on each text; list every collision as a "reads as the wrong thing" item and fix it before the round closes.
 

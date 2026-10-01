@@ -198,3 +198,33 @@ test('12. dossier validation: facts missing, <12 facts, <4 kinds, missing source
   assert.match(mism.stderr, /does not match --sector legal-public/);
   assert.equal(run([...base, '--sector', 'food-drink', '--from', 'k1']).status, 0);
 });
+
+const TEMPERAMENTS = ['heritage-craft', 'warm-domestic', 'civic-calm', 'technical-precise', 'playful-bright', 'natural-raw', 'nocturnal-social', 'avant-garde'];
+test('temperaments: every world lists 2-4 valid ones, every temperament has at least 6 non-trap worlds', () => {
+  for (const w of worlds) {
+    assert.ok(Array.isArray(w.temperaments) && w.temperaments.length >= 2 && w.temperaments.length <= 4, `${w.id}: 2-4 temperaments`);
+    for (const t of w.temperaments) assert.ok(TEMPERAMENTS.includes(t), `${w.id}: ${t} not in enum`);
+  }
+  for (const t of TEMPERAMENTS) assert.ok(worlds.filter(w => !w.trap && w.temperaments.includes(t)).length >= 6, `${t}: fewer than 6 worlds`);
+});
+
+test('temperaments: a concept without a valid temperament exits 2', () => {
+  for (const [name, mutate] of Object.entries({ 'no-temp.json': c => { delete c[0].temperament; }, 'bad-temp.json': c => { c[1].temperament = 'grumpy'; } })) {
+    const r = run(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', withConcepts(name, mutate), '--no-memory', '--from', 'k1']);
+    assert.equal(r.status, 2, name);
+    assert.match(r.stderr, /temperament must be one of/, name);
+  }
+});
+
+test('temperaments: heritage-craft concepts never deal bauhaus, de-stijl, memphis or y2k worlds (300 keys, wildcards included)', async () => {
+  const p = withConcepts('heritage.json', c => { c.forEach(x => { x.temperament = 'heritage-craft'; }); });
+  const rolls = await many(300, i => runAsync(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', `h${i}`, ...(i % 2 ? ['--sector', 'food-drink'] : [])]));
+  let wild = 0;
+  for (const r of rolls) {
+    if (r.notes.some(n => /^WILDCARD/.test(n))) wild++;
+    const w = worlds.find(x => x.id === r.world);
+    assert.ok(w.temperaments.includes('heritage-craft'), `${r.world} dealt to a heritage-craft concept`);
+    assert.ok(!/^(bauhaus|de-stijl|memphis|y2k)/.test(r.world), r.world);
+  }
+  assert.ok(wild > 0, 'the wildcard path was exercised');
+});
