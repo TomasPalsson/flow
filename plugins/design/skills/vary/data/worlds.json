@@ -99,7 +99,7 @@
  },
  {
   "id": "bauhaus",
-  "temperaments": ["avant-garde", "technical-precise", "civic-calm"],
+  "temperaments": ["avant-garde", "technical-precise"],
   "name": "Bauhaus",
   "origin": "Weimar/Dessau, 1919-1933 — Herbert Bayer, László Moholy-Nagy",
   "one_line": "Primary-color geometric primitives as literal structural units — form states its function.",
@@ -2158,7 +2158,7 @@
  },
  {
   "id": "mid-century-travel-poster",
-  "temperaments": ["warm-domestic", "heritage-craft", "playful-bright", "civic-calm"],
+  "temperaments": ["heritage-craft", "playful-bright"],
   "name": "Mid-century travel poster",
   "origin": "1920s-1960s — Golden Age of railway/ocean-liner travel through the Jet Age; David Klein for TWA",
   "one_line": "A flat-litho destination image, one confident wordmark, one signature geometric motif.",
@@ -2943,7 +2943,7 @@
  },
  {
   "id": "risograph-zine",
-  "temperaments": ["playful-bright", "warm-domestic", "avant-garde", "natural-raw"],
+  "temperaments": ["playful-bright", "avant-garde", "natural-raw"],
   "name": "Risograph Print / Zine",
   "origin": "Riso Kagaku duplicators (Japan, 1986), adopted by indie publishers, 2000s-present",
   "one_line": "2-3 fluorescent spot colors misregister by a few pixels, echoing a duplicator print run.",

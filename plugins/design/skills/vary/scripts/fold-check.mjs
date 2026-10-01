@@ -32,7 +32,11 @@
  *             with a semi-opaque (alpha 0.2-0.98; a lighter grain rect is allowed) dark (luminance < 0.35) fill
  *   clipped-text (all modes, both viewports) text with overflow hidden and scrollWidth > clientWidth (not ellipsis), or svg <text> whose bbox crosses its svg viewBox
  *   headline-on-fold (persuade/experience, desktop) a visible h1 (or role=heading level 1) in the first viewport plus another visible
- *             text line (>= 10 chars, outside nav/buttons) within 200px of it
+ *             text line (>= 10 chars, outside nav/buttons) within 200px of it, plus an action (a link or button with visible text,
+ *             outside nav) in the first viewport. An h1 laid over an art box is the intended pattern and passes; svg <text> alone
+ *             (no h1) fails.
+ *   BLOCKING  final line listing the FAIL rows that must be fixed before shipping: collisions, clipped-text, hidden-content,
+ *             stray-overlay, duplicate-content, headline-on-fold, headline-in-scene
  * Thresholds: coverage >= 0.55 desktop / 0.45 phone (persuade, experience only; informational for
  * operate/read), detail >= 50 desktop, plates >= 4, h1 overlaps art (persuade, experience).
  * Screenshots fold-desktop.png / fold-phone.png go to --out (default: next to a local file, else cwd).
@@ -102,7 +106,9 @@ const measure = () => {
     if (inert(el) || !visible(el)) continue;
     const c = clip(box(el)); if (c) raster.push(c);
   }
-  const h1 = document.querySelector('h1'); const hb = h1 ? clip(box(h1)) : null;
+  // the first h1 that is actually seen: a visually hidden duplicate must not hide the real one set over the art
+  const h1s = [...document.querySelectorAll('h1,[role="heading"][aria-level="1"]')];
+  const h1 = h1s.find(e => visible(e) && clip(box(e))) || h1s[0]; const hb = h1 ? clip(box(h1)) : null;
   const overlap = !!hb && art.some(a => Math.min(a.x2, hb.x2) > Math.max(a.x1, hb.x1) && Math.min(a.y2, hb.y2) > Math.max(a.y1, hb.y1))
     || !!(h1 && h1.closest('svg'));
   let plates = 0;
@@ -326,7 +332,7 @@ row(scene ? share >= 0.6 : null, 'art-down-page', below.length
 const dups = [...d.content.dup.text.map(t => `"${t.text}" appears ${t.n}x`), ...d.content.dup.prices.map(t => `price list ${t.amounts.join('/')} repeats in <${t.a}> and <${t.b}>`)];
 row(dups.length === 0, 'duplicate-content', dups.length ? dups.slice(0, 4).join('; ') : 'no text block >= 40 chars or price list repeated outside the footer');
 const hd = d.content.head;
-row(scene ? !!hd.h1 && !!hd.line : null, 'headline-on-fold', !hd.h1 ? 'no visible h1 in the first desktop viewport' : !hd.line ? `h1 "${hd.h1}" has no other text line within 200px (no value proposition)` : `h1 "${hd.h1}" with line "${hd.line}"` + (scene ? '' : ` (informational in ${mode} mode)`));
+row(scene ? !!hd.h1 && !!hd.line && !!hd.action : null, 'headline-on-fold', !hd.h1 ? 'no visible h1 in the first desktop viewport (paint the lettering as a real HTML h1 positioned over the sign/board area; svg text alone does not count)' : !hd.line ? `h1 "${hd.h1}" has no other text line within 200px (no value proposition)` : !hd.action ? `h1 "${hd.h1}" has no link or button with visible text in the first desktop viewport (no primary action)` : `h1 "${hd.h1}" with line "${hd.line}" and action "${hd.action}"` + (scene ? '' : ` (informational in ${mode} mode)`));
 for (const [name, v] of [['desktop', d], ['phone', p]]) {
   const h = v.craft.hidden, o = v.craft.overlay, c = v.craft.clipped;
   row(h.length === 0, `hidden-content-${name}`, h.length ? h.slice(0, 4).map(x => `${x.el} ${x.why}${x.text ? ` "${x.text}"` : ''}`).join('; ') : 'no text or hero art left at opacity 0 / visibility hidden after scrolling');
@@ -337,5 +343,8 @@ console.log(`fold-check ${url} mode=${mode}`);
 for (const l of lines) console.log('  ' + l.text);
 console.log(`  screenshots: ${join(outDir, 'fold-desktop.png')}, ${join(outDir, 'fold-phone.png')}`);
 const fail = lines.some(l => l.ok === false);
+const BLOCKING = /^(collisions|clipped-text|hidden-content|stray-overlay|duplicate-content|headline-on-fold|headline-in-scene)/;
+const blocking = lines.filter(l => l.ok === false && BLOCKING.test(l.text.slice(7)));
+console.log(`BLOCKING: ${blocking.length ? blocking.map(l => l.text.slice(7).split(':')[0]).join(', ') : 'none'}`);
 console.log(`fold-check ${fail ? 'FAIL' : 'PASS'}`);
 process.exit(fail ? 1 : 0);

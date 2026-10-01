@@ -47,7 +47,7 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 [{"id":"kvold","name":"Kvöld á ARA","angle":"the room on a dark evening",
   "antecedent":"paper menu on a wooden table; waiter's guest check",
   "facts":["F1","F7","F12"],
-  "temperament":"nocturnal-social",
+  "temperament":"nocturnal-social","audience_mood":"hungry, social, evening: warm, loud-ish, convivial",
   "functional_reskin":"cart = guest-check pad; confirmation = kitchen ticket on a rail",
   "devices":[{"technique":"procedural-subject","what":"every pizza drawn from its menu topping list"},
              {"technique":"material-texture","what":"deckled paper, wood grain, ruled check"}],
@@ -62,6 +62,7 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 | `angle` | a distinct audience moment, half of the trade, time of day or artefact; unique across the file (case-insensitive) |
 | `antecedent` | the trade artefact it borrows |
 | `temperament` | required, one of: heritage-craft, warm-domestic, civic-calm, technical-precise, playful-bright, natural-raw, nocturnal-social, avant-garde. The business's own register as the dossier shows it (a Victorian bindery is heritage-craft, a remote geothermal pool natural-raw), not the style you would like to use. `roll.mjs` removes every world whose `temperaments` exclude it, before the sector and hint narrowing; the wildcard never widens temperament |
+| `audience_mood` | the mood the audience needs from this page, read from the dossier (children's dentist: bright, safe, daytime; funeral home: calm, quiet, dignified; B2B lab: precise, trustworthy; fish auction: cold, brisk, practical). The `temperament` must serve it, and a world that breaks it is a re-roll (`--lock concept=<id>`) |
 | `facts` | at least 3 ids that exist in `dossier.facts[].id`; at least one is visible in the device |
 | `functional_reskin` | non-empty: cart, confirmation, nav, buttons in the concept's material |
 | `devices` | at least 2; `technique` is one of: seeded-illustration, procedural-subject, traced-line, mechanism-diagram, annotated-photo, scroll-scene, data-diagram, material-texture, print-process, typographic, generative-pattern, shader |
@@ -76,7 +77,7 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 - None may be the category's standard page or its predictable opposite.
 - At most one concept may use the business's name as its metaphor.
 - Spread the devices: not every concept leads with an illustration engine. Mix drawn, traced, diagrammatic, textural and typographic devices so the roll has real range.
-- Every concept names 2-3 `world_hints`: worlds whose grammar suits the trade artefact. They define the pool the roll draws the world from (with worlds listing the sector); the roll still picks, you do not.
+- Every concept names 2-3 `world_hints`: worlds whose grammar suits the trade artefact. They define the pool the roll draws the world from (with worlds listing the sector) and are weighted 8x; at least one must list the concept's `temperament` or `roll.mjs` exits 2. Hints must fit the audience mood: no Bauhaus primaries for a calm clinic, no sunburst ticket for a quiet service. The roll still picks, you do not.
 - Write every concept as if it will win. Never leave a weak "safe" concept as a decoy.
 - **Test for each:** "Would this concept still be true for the competitor down the street?" If yes, rewrite it around a fact only this client has.
 - A concept must not require anything the dossier refuses (`refuse`), or content it lacks.

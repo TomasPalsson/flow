@@ -184,7 +184,7 @@ The hero of a persuade or experience page is a **scene**, not an object: ara-bar
 5. **Lighting overlay**: warm window glow, a halo round the lamp, a cast shadow under every object, a darkened edge vignette. One light source; lit faces and shaded faces share one direction.
 6. **Lettering**: sign, ribbon, painted wall text, title block. Real dossier strings only.
 
-**Headline into the scene.** The brand or headline is the scene's own lettering (the sign over the door, painted wall type, a title block). When the page headline must be live text, set it over a quiet zone of the scene (sky, wall, empty sheet area) and keep that zone flat. **Readable over art**: put a plate behind copy (a darker band, a card of the scene's own material) or put the copy on the scene's own board or sign; measure contrast over the darkest and lightest pixel under the text, not the average. Body copy and prices never sit directly on detail.
+**Headline into the scene.** The brand or headline is the scene's own lettering (the sign over the door, painted wall type, a title block). The page headline is always live text (a real `<h1>`) positioned over that drawn surface (pattern in §1b). Set it over a quiet zone of the scene (sky, wall, empty sheet area) and keep that zone flat. **Readable over art**: put a plate behind copy (a darker band, a card of the scene's own material) or put the copy on the scene's own board or sign; measure contrast over the darkest and lightest pixel under the text, not the average. Body copy and prices never sit directly on detail.
 
 **Facts in the art.** Draw at least two dossier strings inside the picture: the phone number painted on the sign, the founding year and address in the title block, hours on a door card, the real product names on shelf labels.
 
@@ -248,7 +248,24 @@ export function heroScene(S, facts, { W = 1440, H = 900 } = {}) {
 
 **Checklist for the gallery's whole-scene render**: at least 5 distinct objects counted aloud; at least 3 depth layers; one visible light source with cast shadows; texture on at least two surfaces (hatching, grain, halftone, paper); people or traces of use; at least 2 dossier facts legible inside the art; covers at least 55% of the 1440x900 first viewport (45% at 390x844); the §1d finish pass is applied (value plan, 3 value steps per material, grain, no empty region over 20% of the hero); every label, callout and sign text is fully visible (collision rule in §7). Fail any and the round is not closed.
 
-**Lettering on a scene surface that stays legible and clickable (worked example).** The headline, phone, hours and primary action live ON a drawn surface (sign, ticket, chalkboard, title block, label), never on a frosted card, chip row or button pair laid over the art. Wrap the drawn sign in the real control, so the picture is the button:
+**Real `<h1>` over a drawn surface (the fold pattern).** The art leaves a flat sign/board/title-block area; the `<h1>`, value line and action are absolutely positioned over exactly that rectangle and styled as its lettering (the surface's own font, colour and ink). Never svg-only text, never a card:
+
+```html
+<header class="hero" style="position:relative; aspect-ratio:1440/900; width:100%; max-height:100svh">
+  <svg class="scene" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%">
+    <rect x="470" y="130" width="500" height="250" rx="10" fill="#1d1a16"/>  <!-- the drawn sign board, left empty of text -->
+  </svg>
+  <div class="board" style="position:absolute; left:32.6%; top:14.4%; width:34.7%; height:27.8%; display:grid; place-content:center; text-align:center">
+    <h1 style="font:700 clamp(28px,4.4vw,64px)/1 var(--display); color:#f2c14e; margin:0">Hitataekni</h1>
+    <p style="color:#f6e7c1; margin:.4em 0">Heating repairs for Reykjavik homes.</p>
+    <a href="tel:+3545550123" style="color:#1d1a16; background:#f2c14e; padding:.5em 1em; border-radius:6px">Call 555 0123</a>
+  </div>
+</header>
+```
+
+The percentages are the board rectangle over the viewBox (x/1440, y/900, w/1440, h/900) and are only correct when the wrapper has exactly the viewBox's aspect ratio and the svg uses `meet` (never `slice`, which crops and shifts the board): give the wrapper `aspect-ratio` equal to the viewBox, and fill any leftover viewport with the wrapper's background, not by cropping. On phones swap in the phone scene (its own viewBox, aspect-ratio and board rectangle) at a breakpoint. The wrapper has no fill of its own, so it reads as lettering, not a card; the board is drawn in the svg.
+
+**Lettering on a scene surface that stays legible and clickable (worked example).** The phone, hours and a painted action may live ON a drawn surface (sign, ticket, chalkboard, title block, label), never on a frosted card, chip row or button pair laid over the art. A painted sign can be wrapped in a real control, so the picture is the button; the page `<h1>` still exists as live text (above). Do not repeat the business name in both: when the `<h1>` carries the name, the sign's svg text is the phone only (or the whole sign is `aria-hidden` decoration with the `<a>` named by the phone), so the name appears in the DOM once:
 
 ```html
 <a class="sign" href="tel:+3545550123" aria-label="Call Hitataekni: 555 0123">
@@ -1346,7 +1363,7 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
    8. **Objects table**: every drawn object (§1e) with its silhouette parts (a train: roof line, bogies, windows, door, couplers; a book: spine, boards, headband, page block), the three value steps it uses, and for each person the posture or gesture and the cast shadow. A box standing for a thing is not an entry.
    9. **Section skeleton table**: one row per section below the fold, assigning one of the six skeletons below to it and naming the plate's subject. No two consecutive rows may share a skeleton.
    10. **Shared plate frame**: the shared ground line (% of plate height), key-light direction, glow source and grain level, one value for all plates; and **per-plate rows**: subject, fact ids, skeleton, size at desktop and phone. The lead fills the illustrator template's placeholders ({GROUND_Y}, {LIGHT_DIR}, sizes) from these; illustrators never choose them.
-   11. **Headline surface**: the drawn surface in the hero scene that carries the business name AND a one-line value proposition (sign, board, title block, ticket), with both strings.
+   11. **Headline surface**: the drawn surface in the hero scene that carries the business name AND a one-line value proposition (sign, board, title block, ticket), with both strings, rendered as a real `<h1>` plus value line plus action over that surface (§1b pattern), and the **audience mood need** in one line (children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy) that the concept and world must serve.
 2. **Build the art module** (plates are drawn by parallel illustrator subagents per `art-crew.md`; the lead integrates) and `art-gallery.html` rendering every subject at both sizes. Write the style-rule test and run it.
 3. **Screenshot the gallery** with Playwright, `npx agent-browser` or the browser MCP, and **Read the PNGs**. Look; do not assume.
 4. **Write `.vary/critique-r1.json`** (the critique list also checks, per drawn object, the §1e rules: real silhouette not a box, at least 3 value steps, posture and cast shadow for people; and per section: no two consecutive sections share a skeleton, no plate is a labelled box, no fact is shown twice, the hero carries name and value proposition on a drawn surface) as `[{"subject","problem","fix"}]` plus a 1-10 score per group. Problems are concrete ("pepperoni reads as a smiling face", "the heat wheel is indistinguishable from the fan at 96px"), never "could be better".

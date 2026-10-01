@@ -91,9 +91,9 @@ test('4. --sector food-drink never deals a world whose avoid_sectors includes it
 
 test('5. a hinted world is dealt more often than unhinted peers (500 keys, ratio > 1.8)', async () => {
   const hinted = 'bauhaus';
-  const p = withConcepts('hint.json', c => { for (const x of c) x.world_hints = [hinted, 'de-stijl']; });
-  const peers = worlds.filter(w => !w.trap && w.id !== hinted && w.id !== 'de-stijl' &&w.modes.includes('persuade') && w.decay === 'slow' && w.confidence === 'high').map(w => w.id);
-  assert.ok(peers.length >= 5);
+  const p = withConcepts('hint.json', c => { for (const x of c) { x.temperament = 'avant-garde'; x.world_hints = [hinted, 'de-stijl']; } });
+  const peers = worlds.filter(w => !w.trap && w.id !== hinted && w.id !== 'de-stijl' && w.temperaments.includes('avant-garde') && w.modes.includes('persuade') && w.decay === 'slow' && w.confidence === 'high').map(w => w.id);
+  assert.ok(peers.length >= 3);
   const rolls = await many(500, i => runAsync(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', `h${i}`]));
   const count = id => rolls.filter(r => r.world === id).length;
   const hintedN = count(hinted);
@@ -144,7 +144,7 @@ test('common sectors list at least 8 suited worlds; food-drink has 8 in persuade
   assert.ok(worlds.filter(w => !w.trap && w.modes.includes('persuade') && w.sectors.includes('food-drink')).length >= 8);
 });
 
-test('9. hinted or sector-suited worlds only, except ~15% WILDCARD rounds (300 keys)', async () => {
+test('9. hinted or sector-suited worlds only, except ~5% WILDCARD rounds (300 keys)', async () => {
   const rolls = await many(300, i => runAsync([...base, '--sector', 'food-drink', '--from', `p${i}`]));
   let wild = 0;
   for (const r of rolls) {
@@ -155,7 +155,7 @@ test('9. hinted or sector-suited worlds only, except ~15% WILDCARD rounds (300 k
     assert.ok(!w.avoid_sectors.includes('food-drink'), `${w.id} avoids food-drink`);
   }
   const share = wild / 300;
-  assert.ok(share >= 0.09 && share <= 0.21, `WILDCARD share ${(share * 100).toFixed(1)}%`);
+  assert.ok(share >= 0.02 && share <= 0.10, `WILDCARD share ${(share * 100).toFixed(1)}%`);
 });
 
 test('10. world_hints with fewer than 2 entries exits 2', () => {
@@ -217,7 +217,7 @@ test('temperaments: a concept without a valid temperament exits 2', () => {
 });
 
 test('temperaments: heritage-craft concepts never deal bauhaus, de-stijl, memphis or y2k worlds (300 keys, wildcards included)', async () => {
-  const p = withConcepts('heritage.json', c => { c.forEach(x => { x.temperament = 'heritage-craft'; }); });
+  const p = withConcepts('heritage.json', c => { c.forEach(x => { x.temperament = 'heritage-craft'; x.world_hints = ['letterpress-wood-type', 'vintage-analog']; }); });
   const rolls = await many(300, i => runAsync(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', `h${i}`, ...(i % 2 ? ['--sector', 'food-drink'] : [])]));
   let wild = 0;
   for (const r of rolls) {
@@ -227,4 +227,34 @@ test('temperaments: heritage-craft concepts never deal bauhaus, de-stijl, memphi
     assert.ok(!/^(bauhaus|de-stijl|memphis|y2k)/.test(r.world), r.world);
   }
   assert.ok(wild > 0, 'the wildcard path was exercised');
+});
+
+test('hints: a concept whose world_hints fit none of its temperament exits 2', () => {
+  const p = withConcepts('nofit.json', c => { c[0].temperament = 'heritage-craft'; c[0].world_hints = ['bauhaus', 'de-stijl']; });
+  const r = run(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--from', 'k1']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /no world_hint fits temperament heritage-craft/);
+});
+
+test('temperaments: bauhaus, de-stijl, constructivist, memphis, risograph and travel-poster worlds never serve civic-calm or warm-domestic loudly', () => {
+  const loud = ['bauhaus', 'de-stijl', 'constructivist', 'memphis', 'risograph-zine', 'mid-century-travel-poster'];
+  for (const id of loud) {
+    const t = worlds.find(w => w.id === id).temperaments;
+    assert.ok(!t.includes('civic-calm') && !t.includes('warm-domestic'), `${id}: ${t}`);
+  }
+});
+
+test('avant-garde worlds are never dealt to a non-avant-garde concept on any path: hints, sector fit or wildcard (sectors x 150 keys)', async () => {
+  const p = withConcepts('wild.json', c => { c.forEach(x => { x.temperament = 'playful-bright'; x.world_hints = ['childrens-book', 'corporate-memphis']; }); });
+  let wild = 0;
+  for (const sector of [null, 'kids-education', 'maritime-logistics', 'wellness', 'food-drink']) {
+    const dj = JSON.parse(readFileSync(DOSSIER, 'utf8')); if (sector) dj.sector = sector;
+    const dp = join(tmp, `d-${sector}.json`); writeFileSync(dp, JSON.stringify(dj));
+    const rolls = await many(150, i => runAsync(['--mode', 'persuade', '--dossier', dp, '--concepts', p, '--no-memory', '--from', `w${sector}${i}`, ...(sector ? ['--sector', sector] : [])]));
+    for (const r of rolls) {
+      if (r.notes.some(n => /^WILDCARD/.test(n))) wild++;
+      assert.ok(!worlds.find(w => w.id === r.world).temperaments.includes('avant-garde'), `${r.world} dealt (sector ${sector})`);
+    }
+  }
+  assert.ok(wild > 3, `only ${wild} wildcard rounds`);
 });

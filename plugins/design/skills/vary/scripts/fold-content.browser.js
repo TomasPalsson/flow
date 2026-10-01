@@ -1,6 +1,7 @@
 // fold-content.browser.js — the content measures fold-check.mjs injects into the page (page.addScriptTag), then calls as
 // window.__foldContent.headline() and window.__foldContent.duplicates(). Browser-side only: no imports.
-//   headline    a visible level-1 heading in the first viewport plus another visible text line within 200px of it
+//   headline    a visible level-1 heading in the first viewport (over art is fine) plus another visible text line within 200px of it
+//               and an action (link or button with text, outside nav) in the first viewport
 //   duplicates  (full page, footer excluded) text blocks >= 40 chars that appear twice, and price lists (>= 3 amounts in one
 //               block, HTML or svg text) that share >= 3 amounts with another non-nested block
 (() => {
@@ -21,7 +22,7 @@
     const vw = innerWidth, vh = innerHeight;
     const inView = r => r.width >= 20 && r.height >= 10 && r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
     const h1 = [...document.querySelectorAll('h1,[role="heading"][aria-level="1"]')].find(e => visible(e) && norm(e.textContent) && inView(e.getBoundingClientRect()));
-    if (!h1) return { h1: null, line: null };
+    if (!h1) return { h1: null, line: null, action: null };
     const hr = h1.getBoundingClientRect();
     let line = null;
     for (const el of document.querySelectorAll('body *')) {
@@ -33,7 +34,8 @@
       const gap = Math.max(0, r.top - hr.bottom, hr.top - r.bottom);
       if (gap <= 200) { line = t.slice(0, 60); break; }
     }
-    return { h1: norm(h1.textContent).slice(0, 40), line };
+    const act = [...document.querySelectorAll('a[href],button,[role="button"]')].find(e => !e.closest(`nav,${INERT}`) && visible(e) && norm(e.textContent || e.getAttribute('aria-label')) && inView(e.getBoundingClientRect()));
+    return { h1: norm(h1.textContent).slice(0, 40), line, action: act ? norm(act.textContent || act.getAttribute('aria-label')).slice(0, 30) : null };
   };
 
   const AMOUNT = /(?:[£$€]\s?\d[\d.,]*|\d[\d.,]*\s?(?:kr\.?|isk|dkk|nok|sek|eur|usd|gbp|[£$€]))/gi;

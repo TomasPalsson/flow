@@ -29,7 +29,7 @@
  *   --sector <id>   the project's sector (enum below). Worlds whose avoid_sectors list it are removed;
  *                   worlds whose sectors list it are weighted up. --lock world still wins.
  *   --lock concept=<id>  world-only veto: keep the concept, --reroll n re-deals world and device. With a concept dealt the
- *                   world pool is concept.world_hints + --sector-suited worlds; 15% of rounds print WILDCARD and widen it.
+ *                   world pool is concept.world_hints + --sector-suited worlds; 5% of rounds print WILDCARD and widen it.
  *                   Each concept needs a `temperament` (heritage-craft, warm-domestic, civic-calm, technical-precise,
  *                   playful-bright, natural-raw, nocturnal-social, avant-garde); worlds not listing it are removed first.
  *   --concept-only  print only the CONCEPT / FACTS / FUNCTIONAL RESKIN / SIGNATURE DEVICE block (no world).
@@ -55,7 +55,7 @@ const DEMOTED_TICKETS = 1; // weight of a recently-used / decaying entry
 const DEFAULT_TICKETS = 0.5; // weight of a second-order-default face (Satoshi, Geist, Inter…): kept, rarely dealt
 const TAG_BONUS = 1;       // extra weight for a font the world card names; capped so over-tagged faces don't dominate
 const TAG_CAP = 6;         // fonts tagged with more worlds than this get no bonus
-const HINT_MULT = 3;       // world named in the dealt concept's world_hints
+const HINT_MULT = 8;       // world named in the dealt concept's world_hints
 const SUIT_MULT = 1.5;     // world.sectors includes --sector
 
 // controlled sector vocabulary (worlds.json `sectors` / `avoid_sectors` draw from this)
@@ -232,6 +232,7 @@ function validateConcepts(list, dossier) {
     const hints = c.world_hints ?? [];
     if (!Array.isArray(hints) || hints.length < 2 || hints.length > 3) die(2, `${at}: world_hints must name 2-3 world ids (worlds whose grammar suits this concept), got ${Array.isArray(hints) ? hints.length : 'none'}`);
     for (const h of hints) if (!worlds.some(w => w.id === h)) die(2, `${at}: world_hint ${h} is not a world id; valid ids: ${worlds.map(w => w.id).join(', ')}`);
+    if (!hints.some(h => worlds.find(w => w.id === h).temperaments?.includes(c.temperament))) die(2, `${at}: no world_hint fits temperament ${c.temperament}; name at least one world whose temperaments list it`);
   }
 }
 function validateDossier(d) {
@@ -332,7 +333,9 @@ if (args.register === 'bolder') pool = pool.filter(w => w.modes.includes('experi
 // sector fit: a world that lists the project's sector in avoid_sectors is not dealt (a user lock still wins)
 // temperament fit: with a concept dealt, a world whose temperaments exclude the concept's is never dealt (the wildcard
 // widens sector, never temperament)
-const tempOk = w => !concept || !!args.locks.world || (w.temperaments || []).includes(concept.temperament);
+// avant-garde worlds are dealt only to avant-garde concepts, by any path (hint, sector fit or wildcard)
+const tempOk = w => !concept || !!args.locks.world || ((w.temperaments || []).includes(concept.temperament)
+  && (concept.temperament === 'avant-garde' || !(w.temperaments || []).includes('avant-garde')));
 const sectorOk = w => !args.sector || !(w.avoid_sectors || []).includes(args.sector);
 if (concept && !args.locks.world) {
   const before = pool.length; pool = pool.filter(tempOk);
@@ -351,11 +354,15 @@ if (!pool.length) {
 }
 // relevance: with a concept dealt, the pool is (concept.world_hints + worlds suited to --sector); WILDCARD_P of the rounds
 // widen to every sector-allowed world. An empty narrow pool also widens. Recency demotion stays inside whichever pool.
-const WILDCARD_P = 0.15;
+const WILDCARD_P = 0.05;
 const narrowFor = (round, excluded) => {
   const open = pool.filter(w => !excluded.has(w.id));
   if (!concept || args.locks.world) return { list: open };
-  if (unit(key, `wild:${round}`) < WILDCARD_P) return { list: open, wild: true };
+  if (unit(key, `wild:${round}`) < WILDCARD_P) {
+    // the wildcard never deals an avant-garde-tagged world to a concept that is not itself avant-garde
+    const calm = open.filter(w => concept.temperament === 'avant-garde' || !(w.temperaments || []).includes('avant-garde'));
+    return { list: calm.length ? calm : open, wild: true };
+  }
   const hints = new Set(concept.world_hints || []);
   const narrow = open.filter(w => hints.has(w.id) || (args.sector && (w.sectors || []).includes(args.sector)));
   return narrow.length ? { list: narrow } : { list: open, empty: true };
@@ -368,7 +375,7 @@ for (let r = 0; r < args.reroll; r++) {
 }
 let { list: worldPool, wild, empty } = narrowFor(args.reroll, excludedWorlds);
 if (!worldPool.length) { worldPool = pool; notes.push('re-roll exhausted the pool; reusing'); }
-if (wild) notes.push('WILDCARD: this round (15% of rolls) widened the world pool beyond the concept hints and sector-suited worlds; make the world earn its place or re-roll');
+if (wild) notes.push('WILDCARD: this round (5% of rolls) widened the world pool beyond the concept hints and sector-suited worlds; make the world earn its place or re-roll');
 if (empty) notes.push('no world matches the concept hints or sector in this mode; pool widened to every sector-allowed world');
 const world = pickWorld(worldPool, args.reroll);
 if (!world) die(3, 'no world could be assigned');

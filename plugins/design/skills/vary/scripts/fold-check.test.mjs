@@ -19,6 +19,7 @@ const shapes = n => sky + Array.from({ length: n }, (_, i) => `<rect x="${(i * 3
 const plate = n => `<svg viewBox="0 0 1400 400" width="1400" height="400" aria-hidden="true">${shapes(n)}</svg>`;
 const scene = `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">${shapes(160)}</svg>
 <h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><p style="position:relative;margin:-100px 40px 0;font-size:24px;width:max-content;background:#123;color:#fff">Cocktails and small plates, open daily.</p><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
+const withAction = scene.replace('<div style="margin-top:900px">', '<a href="#book" style="position:relative;margin:0 40px;font-size:20px">Book a table</a><div style="margin-top:900px">');
 const textOnly = '<!doctype html><body style="margin:0"><h1 style="margin:120px 40px">Fjalar Bar</h1><p>Open daily.</p></body>';
 
 test('text-only hero fails every scene metric', { skip: noPw && 'Playwright absent' }, () => {
@@ -27,7 +28,7 @@ test('text-only hero fails every scene metric', { skip: noPw && 'Playwright abse
   for (const id of ['coverage-desktop', 'detail', 'headline-in-scene', 'plates']) assert.match(r.stdout, new RegExp(`\\[FAIL\\] ${id}`));
 });
 test('full-bleed layered svg scene passes', { skip: noPw && 'Playwright absent' }, () => {
-  const r = fold('scene', scene);
+  const r = fold('scene', withAction);
   assert.equal(r.status, 0, r.stdout);
   assert.match(r.stdout, /fold-check PASS/);
 });
@@ -110,7 +111,23 @@ test('a repeated paragraph outside the footer fails; the same text in the footer
 test('an h1 with no value-proposition line near it fails headline-on-fold; no h1 fails too', { skip: noPw && 'Playwright absent' }, () => {
   assert.match(fold('lone-h1', sceneWith('<h1 style="position:relative;margin:120px 40px">Fjalar Bar</h1>')).stdout, /\[FAIL\] headline-on-fold: h1 "Fjalar Bar" has no other text line/);
   assert.match(fold('no-h1', '<!doctype html><body style="margin:0"><p>Fjalar Bar, open daily to all.</p></body>').stdout, /\[FAIL\] headline-on-fold: no visible h1/);
-  assert.match(fold('with-line', scene).stdout, /\[PASS\] headline-on-fold: h1 "Fjalar Bar" with line "Cocktails/);
+  assert.match(fold('with-line', withAction).stdout, /\[PASS\] headline-on-fold: h1 "Fjalar Bar" with line "Cocktails.*action "Book a table"/);
+});
+test('an h1 over the art with a line but no link or button fails headline-on-fold (no action)', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('no-action', scene);
+  assert.match(r.stdout, /\[FAIL\] headline-on-fold: h1 "Fjalar Bar" has no link or button/);
+  assert.match(r.stdout, /BLOCKING: headline-on-fold/);
+});
+test('headline only as svg text (no h1) fails headline-on-fold and headline-in-scene', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('svg-only', sceneWith('<svg viewBox="0 0 600 200" width="600" height="200" style="position:absolute;left:40px;top:100px"><text x="10" y="80" font-size="60">Fjalar Bar</text><text x="10" y="140" font-size="24">Open daily to everyone</text></svg><a href="#b" style="position:absolute;left:40px;top:340px">Book a table</a>'));
+  assert.match(r.stdout, /\[FAIL\] headline-on-fold: no visible h1/);
+  assert.match(r.stdout, /\[FAIL\] headline-in-scene/);
+  assert.match(r.stdout, /BLOCKING: .*headline-on-fold.*headline-in-scene|BLOCKING: .*headline-in-scene.*headline-on-fold/);
+});
+test('an h1 over the art passes even when a visually hidden h1 comes first', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('hidden-first', withAction.replace('<h1 style', '<h1 style="position:absolute;left:-9999px;top:0">Site</h1><h1 style'));
+  assert.match(r.stdout, /\[PASS\] headline-in-scene: h1 box overlaps an art box/);
+  assert.match(r.stdout, /BLOCKING: none/);
 });
 
 test('text that never reveals fails hidden-content; a reveal that fires passes', { skip: noPw && 'Playwright absent' }, () => {

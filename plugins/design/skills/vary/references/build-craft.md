@@ -97,10 +97,10 @@ Run these together in one inspection round on the real render (desktop and mobil
 9. Every brief requirement present and findable within seconds.
 10. The signature device is visible at hero, divider and micro scale; the art gallery passed two critique rounds.
 11. Art down the page: every section below the fold (contact and footer excepted) has its own drawn plate at 50% of the section's width or more and 280px tall; every catalogue or menu item has its own drawing. A section of only cards, text or a form is a defect.
-12. Type in the art: no frosted, translucent or blurred card, chip row or SaaS button pair over the hero art; headline, phone, hours and the primary action sit on in-scene surfaces (a sign wrapped in an `<a>` with a focus ring and an accessible name) never on a solid card or band over the scene.
+12. Type in the art: no frosted, translucent or blurred card, chip row or SaaS button pair over the hero art; the headline is a real `<h1>`; it, the phone, hours and the primary action sit over in-scene surfaces (graphics.md §1b; a sign wrapped in an `<a>` with a focus ring and an accessible name) never on a solid card or band over the scene.
 13. Collisions and dead zones at 1440x900 and 390x844: every text (HTML and svg) is fully visible with no overlap with another text or a drawn object; no empty region over 20% of the hero; the finish pass (value plan, grain) is present.
 14. No duplicated content: each fact (price list, hours, address, offer) appears once in the page body; the footer may repeat contact details only. Section skeletons differ from one section to the next (full-bleed plate, catalogue, process strip, map or plan, quote over art, ticket or label as an object); no plate is a labelled box with words in it.
-15. Headline on the fold: the first viewport carries the business name AND a one-line value proposition, painted on a drawn surface in the scene (sign, board, title block, ticket), never omitted and never on a floating card.
+15. Headline on the fold: the first viewport carries the business name AND a one-line value proposition, a real `<h1>` plus value line and primary action, positioned over a drawn surface in the scene (sign, board, title block, ticket; graphics.md §1b), never svg-only text, never omitted and never on a floating card.
 16. Time: the page ships. Inspect once, fix in one batch; do not reopen the art loop during the build.
 
 ## 7. Refuse — the category defaults this world did not choose
