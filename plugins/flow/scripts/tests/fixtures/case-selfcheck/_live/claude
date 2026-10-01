@@ -15,6 +15,7 @@ case " $* " in
 esac
 command -v flow >"$STUB_LOG/flow-path"
 printf '%s' "${CLAUDE_CODE_DISABLE_CLAUDE_MDS:-unset}" >"$STUB_LOG/mds"
+printf '%s' "${CLAUDE_PLUGIN_ROOT:-unset}" >"$STUB_LOG/plugin-root"
 printf '%s\n' "$*" >"$STUB_LOG/agent-args"
 if [ -n "${STUB_SLEEP:-}" ]; then sleep "$STUB_SLEEP"; fi
 cat "$STUB_TRACE"

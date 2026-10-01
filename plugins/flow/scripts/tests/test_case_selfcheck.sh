@@ -246,3 +246,79 @@ print(list(d), d["model"], d["judgeModel"], d["tags"], d["meanDelta"], d["partia
 		"['ts', 'sha', 'model', 'judgeModel', 'tags', 'meanDelta', 'costUsd', 'partial', 'reason'] claude-sonnet-5 claude-haiku-4-5 {'xhard': {'score': 1.0, 'delta': 0, 'cases': 1, 'post': {'pass': 1, 'total': 1}}} 0 False live runner (outside the eval sandbox) 40" "ledger line shape"
 	rm -rf "$root" "$log"
 }
+
+# R1: the agent's CLAUDE_PLUGIN_ROOT is the plugin under test.
+t_case_selfcheck_live_sets_plugin_root() {
+	_csc_no_yaml t_case_selfcheck_live_sets_plugin_root && return
+	local root log
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-pr ''
+	_csc_live "$root" "$log" xhard-pr
+	assert_eq "$(cat "$log/plugin-root")" "$(cd "$SCAN_DIR/.." && pwd -P)" "CLAUDE_PLUGIN_ROOT is the plugin under test"
+	rm -rf "$root" "$log"
+}
+
+# R1: a Bash call naming an installed plugin/skill copy contaminates the run.
+# R2: a scaffold that names $HOME is serialized; one that does not is not.
+# R3: a long run's clipped middle becomes one ordered line per tool call.
+t_case_selfcheck_live_runner_faults_and_digest() {
+	_csc_no_yaml t_case_selfcheck_live_runner_faults_and_digest && return
+	local d
+	d=$(mktemp -d)
+	printf 'echo "$HOME/.flow/stealth/x"\n' >"$d/scaffold.sh"
+	run_cmd python3 - "$CSC" "$d" <<'PY'
+import importlib.machinery, importlib.util, os, sys
+loader = importlib.machinery.SourceFileLoader("csc", sys.argv[1])
+spec = importlib.util.spec_from_loader("csc", loader)
+csc = importlib.util.module_from_spec(spec)
+loader.exec_module(csc)
+def bash(cmd):
+    return {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": cmd}}]}}
+home = os.path.expanduser("~")
+print("tilde", csc.installed_copy_use([bash("ls ~/.claude/plugins/marketplaces/x/bin/task-brief")]))
+print("abs", csc.installed_copy_use([bash("cat %s/.claude/skills/y/SKILL.md" % home)]))
+print("clean", csc.installed_copy_use([bash("ls ~/.claude/projects"), bash("flow next")]))
+print("home", csc.scaffold_uses_home(sys.argv[2]))
+open(sys.argv[2] + "/scaffold.sh", "w").write('# $HOME in a comment\nprintf x\n')
+print("comment", csc.scaffold_uses_home(sys.argv[2]))
+ev = []
+for i in range(400):
+    ev.append(bash("step-%03d %s" % (i, "x" * 300)))
+    ev.append({"type": "user", "message": {"content": [{"type": "tool_result", "content": "r" * 500}]}})
+ev.append({"type": "result", "result": "done"})
+t = csc.transcript(ev, "p")
+print("condensed", "middle of the run condensed" in t)
+print("digest", "#200 Bash step-199 " in t, "step-000" in t)
+print("order", t.index("#200 Bash") < t.index("#201 Bash"))
+print("bounded", len(t) < csc.TRANSCRIPT_CAP + 400 * 190)
+PY
+	assert_contains "$OUT" "tilde ~/.claude/plugins/marketplaces/x/bin/task-brief" "tilde path flagged"
+	assert_contains "$OUT" "abs $HOME/.claude/skills/y/SKILL.md" "expanded path flagged"
+	assert_contains "$OUT" "clean None" "other ~/.claude paths are fine"
+	assert_contains "$OUT" "home True" "scaffold naming \$HOME is serialized"
+	assert_contains "$OUT" "comment False" "a comment naming HOME is not"
+	assert_contains "$OUT" "condensed True" "long run condensed"
+	assert_contains "$OUT" "digest True True" "digest line per call, head kept"
+	assert_contains "$OUT" "order True" "digest is ordered"
+	assert_contains "$OUT" "bounded True" "transcript stays bounded"
+	rm -rf "$d"
+}
+
+# R1: a contaminated run fails and is labelled as a runner fault.
+t_case_selfcheck_live_contaminated_run_fails() {
+	_csc_no_yaml t_case_selfcheck_live_contaminated_run_fails && return
+	local root log tr
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	tr=$(mktemp)
+	cp "$CSC_FIX/_live/trace.jsonl" "$tr"
+	printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls ~/.claude/plugins/marketplaces/flow/scripts"}}]}}' >>"$tr"
+	_csc_live_case "$root" xhard-ct ''
+	run_cmd env CASE_LIVE_CLAUDE="$CSC_FIX/_live/claude" STUB_LOG="$log" STUB_TRACE="$tr" \
+		CASE_DIR="$root/xhard-ct" "$CSC" --live --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" xhard-ct
+	assert_rc 1 "contaminated run exits 1"
+	assert_contains "$OUT" "used an installed plugin copy: ~/.claude/plugins/marketplaces/flow/scripts" "labelled failure"
+	assert_eq "$(python3 -c 'import json,sys; r=json.load(open(sys.argv[1]))["runs"][0]; print(r["contaminated"], r["passed"])' "$log/out/results.json")" "True False" "results.json flags contaminated"
+	rm -rf "$root" "$log" "$tr"
+}

@@ -11,6 +11,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 try:
@@ -327,6 +328,7 @@ def run_agent(case, tree, trace_path, stderr_path, model):
     env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1"
     env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1"
     env["PATH"] = os.path.join(PLUGIN, "bin") + os.pathsep + env.get("PATH", "")
+    env["CLAUDE_PLUGIN_ROOT"] = PLUGIN
     limit = int(ex.get("timeout_seconds", 300))
     timed_out = False
     with open(trace_path, "w") as out, open(stderr_path, "w") as err:
@@ -397,6 +399,7 @@ def transcript(events, prompt=""):
     cap, the head and the tail survive — the start shows what the run armed or read
     first, the end shows how it finished."""
     parts = []
+    calls = {}  # part index -> "#<n> <Tool> <first 160 chars>" for a tool call
     for ev in events:
         content = event_content(ev)
         if not isinstance(content, list):
@@ -407,6 +410,12 @@ def transcript(events, prompt=""):
             if b.get("type") == "text" and ev.get("type") == "assistant":
                 parts.append("ASSISTANT: " + b.get("text", ""))
             elif b.get("type") == "tool_use":
+                inp = b.get("input")
+                inp = inp if isinstance(inp, dict) else {}
+                what = inp.get("command") or inp.get("description") or inp.get("file_path") \
+                    or inp.get("path") or json.dumps(b.get("input"))
+                calls[len(parts)] = "#%d %s %s" % (len(calls) + 1, b.get("name"),
+                                                  " ".join(str(what).split())[:160])
                 parts.append("TOOL %s: %s" % (b.get("name"), json.dumps(b.get("input"))[:600]))
             elif b.get("type") == "tool_result":
                 parts.append("RESULT: " + str(b.get("content"))[:600])
@@ -414,7 +423,18 @@ def transcript(events, prompt=""):
     body = "\n".join(parts)
     if len(body) > TRANSCRIPT_CAP:
         half = TRANSCRIPT_CAP // 2
-        body = body[:half] + "\n[... middle of the run clipped ...]\n" + body[-half:]
+        lo = used = 0
+        while lo < len(parts) and used + len(parts[lo]) + 1 <= half:
+            used += len(parts[lo]) + 1
+            lo += 1
+        hi = len(parts)
+        used = 0
+        while hi > lo and used + len(parts[hi - 1]) + 1 <= half:
+            used += len(parts[hi - 1]) + 1
+            hi -= 1
+        digest = [calls[i] for i in range(lo, hi) if i in calls]
+        body = "\n".join(parts[:lo] + ["[... middle of the run condensed: one line per tool call ...]"]
+                         + digest + ["[... end of digest ...]"] + parts[hi:])
     # The user's prompt is part of the material: a pre-approval ("treat this as go")
     # lives there, and without it the judge calls every approved gate "invented".
     return "USER PROMPT\n%s\n\nRUN TRANSCRIPT\n%s\n\nFINAL MESSAGE\n%s" % (prompt, body, final)
@@ -490,7 +510,26 @@ def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
     return False, "unsupported grader type %r" % t, 0.0
 
 
+HOME_STORE_LOCK = threading.Lock()
+
+
+def scaffold_uses_home(case_dir):
+    """True when scaffold.sh (comments aside) names $HOME or ~/. flow has no env override
+    for its stealth store (<HOME>/.flow/stealth/...) and the agent keeps the real HOME
+    for auth, so such cases cannot get an isolated store: they run one at a time."""
+    text = read_text(os.path.join(case_dir, "scaffold.sh")) or ""
+    code = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
+    return re.search(r"\$\{?HOME\b|(?:^|[\s=:\"'])~/", code) is not None
+
+
 def live_run(case_dir, case, name, k, out_dir, opts):
+    if scaffold_uses_home(case_dir):
+        with HOME_STORE_LOCK:
+            return live_run_one(case_dir, case, name, k, out_dir, opts)
+    return live_run_one(case_dir, case, name, k, out_dir, opts)
+
+
+def live_run_one(case_dir, case, name, k, out_dir, opts):
     run_dir = os.path.join(out_dir, name, "run-%d" % k)
     tree = os.path.join(run_dir, "tree")
     os.makedirs(tree)
@@ -511,6 +550,23 @@ def live_run(case_dir, case, name, k, out_dir, opts):
     if not opts["keep"]:
         shutil.rmtree(tree, ignore_errors=True)
     return rec
+
+
+def installed_copy_use(events):
+    """First path under ~/.claude/plugins or ~/.claude/skills (expanded) that a Bash tool
+    input names, or None. The run used an installed copy, not the plugin under test."""
+    home = os.path.expanduser("~")
+    pat = re.compile(r"(?:~|\$HOME|\$\{HOME\}|%s)/\.claude/(?:plugins|skills)[^\s'\"]*" % re.escape(home))
+    for ev in events:
+        if ev.get("type") != "assistant":
+            continue
+        for b in event_content(ev) or []:
+            if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "Bash":
+                for text in _strings(b.get("input")):
+                    m = pat.search(text)
+                    if m:
+                        return m.group(0)
+    return None
 
 
 def grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec):
@@ -538,7 +594,12 @@ def grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec
         rec["post"] = rc == 0
         if rc != 0:
             rec["failed"].append("postcheck: %s" % tail(pout, 5))
-    rec["passed"] = rec["score"] == 1 and rec["post"]
+    rec["contaminated"] = False
+    used = installed_copy_use(events)
+    if used:
+        rec["contaminated"] = True
+        rec["failed"].append("used an installed plugin copy: %s (runner/environment fault, not a model fault)" % used)
+    rec["passed"] = rec["score"] == 1 and rec["post"] and not rec["contaminated"]
 
 
 def live_line(rec):
