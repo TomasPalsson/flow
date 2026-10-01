@@ -133,11 +133,13 @@ For the complete craft reference with additional rules and CSS patterns, **load 
 
 ## Phase 3b — Author the signature visual
 
+Pick the treatment by signal, scene by default (`../vary/references/concepts.md` §3): a business, place or service page with no photos, no product UI and no style directive gets a drawn `scene`; typography, data-visual, utility, photography and product-ui need a directive, supplied assets or a genre that does not illustrate.
+
 Route by the concept's `HERO TREATMENT` (from the contract, or what the existing system's pages already do in extend mode):
 
 - `scene`: the scene bar below, art crew and two critique rounds.
 - `pattern`: art brief + gallery, one critique round, no crew; S1 coverage and full-bleed apply, the people and object clauses do not.
-- `photography`: write `.vary/visual-brief.md` listing which dossier asset goes where, with crop rule, sequence and grade. Photos ship unaltered unless the world or a directive says otherwise; identifiable real people are never redrawn.
+- `photography`: write `.vary/visual-brief.md` listing which dossier asset goes where, with crop rule, sequence and grade. Photos ship unaltered unless the world or a directive says otherwise; identifiable real people are never redrawn. The photos carry the page: no frames or ornament around them, no drawn stand-ins for products, and described-but-missing photos become full-size tonal plates (`../vary/references/build-craft.md` §6 item 19).
 - `product-ui`: capture list (which workflow, which real data, which states), DPR-2 captures, callouts allowed.
 - `typography`: a type specimen at hero size in the content language's glyphs, plus the fact the lettering carries.
 - `data-visual`: the chart spec, its dossier data and a text equivalent.
@@ -161,6 +163,7 @@ Read `../vary/references/graphics.md` (§0b the benchmark, §1b "Composing a sce
 - **Blocking craft fails (all treatments).** Before shipping, the fold-check rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content and headline-on-fold (operate/read: title-on-fold) must be PASS, plus headline-in-scene under the scene treatment only; the time budget never excuses them. Intentional repeats are marked `data-repeat-ok` and audited. Coverage, depth and plate-size may ship as logged open items.
 - (scene) **Body plates.** At least half the sections below the fold are full-width drawn plates (full-bleed plate with caption, catalogue of drawn items, process strip, map or plan, quote over art); a card with a small drawing counts as the card skeleton, at most twice per page.
 - **No collisions (S6, all treatments).** Every label, callout and sign text is fully visible at both viewports: no overlap with drawn objects or other labels.
+- **Phone width, client page only, native and honest (all treatments).** `../vary/references/build-craft.md` §6 items 17-20: nothing scrolls sideways or clips at 390px; no designer notes, reference codes or design keys on the page; photos carry a photography page; app screens use native controls and dashboards plot only real data.
 - (scene) **Art crew (after the art brief).** Read `../vary/references/art-crew.md`. Dispatch illustrator subagents IN PARALLEL with the Agent tool: one for the hero scene and one per section plate (cap 6), each handed ONLY the art-brief path, its plate's row (subject, facts, skeleton, size), the style object and core kit paths, and `art-crew.md`. Each builds its plate module, renders it at real size, critiques its own screenshot against the richness bar (objects not boxes, posture, shared ground and light, 3+ values, texture, facts in the art), fixes, and returns the module path and final PNG path. The lead integrates and does not redraw; without the Agent tool the lead draws the plates itself in the same order.
 
 Each critique round compares the gallery screenshot against S1-S3 and the §0b benchmark descriptions and lists what is missing (objects, layers, light, texture, facts-in-art, coverage). **Gate (scene):** the signature device renders at hero, divider and micro scale, the hero scene is composed whole, and every critique item from round 2 is closed. **Gate (other treatments):** the signature element is visible at hero scale (utility: the primary object of the tool) and the router item for the treatment is complete.

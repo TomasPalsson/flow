@@ -52,7 +52,7 @@ Ask the user at most one round of two or three questions, and only for facts tha
 
 ## Step 0b — Concepts
 
-Read [`references/concepts.md`](references/concepts.md) and write 4-7 concepts to `.vary/concepts.json`. Each concept takes a different angle on the business: a different audience moment, half of the trade, time of day or artefact. Each cites at least 3 fact ids, names the trade artefact it borrows, re-skins the functional objects (cart, confirmation, nav), names 2-3 `world_hints` (the one permitted read of `data/worlds.json`: take ids, names, sectors and `avoid_sectors` only, never use it to choose the final world), and offers 2-3 signature devices from the technique list. Each concept names a `treatment` (scene, pattern, photography, product-ui, typography, data-visual, utility). When the dossier has usable photos or a product UI, at least one concept uses `photography` or `product-ui`, and at least two treatments appear across the file. Write them all at full strength: the roll, not you, picks one.
+Read [`references/concepts.md`](references/concepts.md) and write 4-7 concepts to `.vary/concepts.json`. Each concept takes a different angle on the business: a different audience moment, half of the trade, time of day or artefact. Each cites at least 3 fact ids, names the trade artefact it borrows, re-skins the functional objects (cart, confirmation, nav), names 2-3 `world_hints` (the one permitted read of `data/worlds.json`: take ids, names, sectors and `avoid_sectors` only, never use it to choose the final world), and offers 2-3 signature devices from the technique list. Each concept names a `treatment` (scene, pattern, photography, product-ui, typography, data-visual, utility). Pick treatments by signal, scene by default (`references/concepts.md` §3): a small business, place or service with no photos, no product UI and no style directive gets `scene` concepts (at most one `pattern`). When the dossier has usable photos or a product UI, at least one concept uses `photography` or `product-ui`, and at least two treatments appear across the file. Write them all at full strength: the roll, not you, picks one.
 
 ## Step 1 — Roll
 
@@ -88,7 +88,7 @@ Route by the contract's `HERO TREATMENT`:
 
 - `scene`: the scene bar below, the art crew and two critique rounds.
 - `pattern`: art brief + gallery, one critique round, no crew. S1 coverage and full-bleed apply; the S2 people/objects clauses do not.
-- `photography`: write `.vary/visual-brief.md` listing which dossier asset goes where, with the crop rule, sequence and grade. Photos ship unaltered unless the world or a directive says otherwise. Identifiable real people are never redrawn.
+- `photography`: write `.vary/visual-brief.md` listing which dossier asset goes where, with the crop rule, sequence and grade. Photos ship unaltered unless the world or a directive says otherwise. Identifiable real people are never redrawn. The photos carry the page: no frames or ornament around them, no drawn stand-ins for products, and described-but-missing photos become full-size tonal plates (`references/build-craft.md` §6 item 19).
 - `product-ui`: a capture list (which workflow, which real data, which states), DPR-2 captures, callouts allowed.
 - `typography`: a type specimen at hero size with the content language's glyphs, plus the fact the lettering carries.
 - `data-visual`: the chart spec, its dossier data and a text equivalent.
