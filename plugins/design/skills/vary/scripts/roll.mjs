@@ -30,7 +30,7 @@
  *   --sector <id>   the project's sector (enum below). Worlds whose avoid_sectors list it are removed;
  *                   worlds whose sectors list it are weighted up. --lock world still wins.
  *   --lock concept=<id>  world-only veto: keep the concept, --reroll n re-deals world and device. With a concept dealt the
- *                   world pool is concept.world_hints + --sector-suited worlds; 5% of rounds print WILDCARD and widen it.
+ *                   world pool is concept.world_hints only; 5% of scene/pattern rounds (never operate/read, never a non-drawn treatment) print WILDCARD and widen it to every sector-allowed world, where sector-suited worlds keep their weight.
  *                   Each concept needs a `temperament` (heritage-craft, warm-domestic, civic-calm, technical-precise,
  *                   playful-bright, natural-raw, nocturnal-social, avant-garde); worlds not listing it are removed first.
  *   --concept-only  print only the CONCEPT / FACTS / FUNCTIONAL RESKIN / SIGNATURE DEVICE block (no world).
@@ -378,19 +378,21 @@ if (!pool.length) {
   notes.push(`world pool empty for mode=${args.mode}; relaxed to adjacent mode ${adjacent}`);
   if (!pool.length) { pool = worlds.filter(w => !w.trap && sectorOk(w) && tempOk(w)); notes.push('relaxed to full catalog'); }
 }
-// relevance: with a concept dealt, the pool is (concept.world_hints + worlds suited to --sector); WILDCARD_P of the rounds
-// widen to every sector-allowed world. An empty narrow pool also widens. Recency demotion stays inside whichever pool.
+// relevance: with a concept dealt, the pool is concept.world_hints only; WILDCARD_P of the rounds widen to every
+// sector-allowed world (sector-suited worlds keep their SUIT_MULT weight there and in the empty-pool fallback). The wildcard
+// never fires for a non-drawn treatment or for operate/read: those stay inside their hints. Recency demotion stays inside whichever pool.
 const WILDCARD_P = 0.05;
 const narrowFor = (round, excluded) => {
   const open = pool.filter(w => !excluded.has(w.id));
   if (!concept || args.locks.world) return { list: open };
-  if (unit(key, `wild:${round}`) < WILDCARD_P) {
+  const wildOk = drawn(treatment) && args.mode !== 'operate' && args.mode !== 'read';
+  if (wildOk && unit(key, `wild:${round}`) < WILDCARD_P) {
     // the wildcard never deals an avant-garde-tagged world to a concept that is not itself avant-garde
     const calm = open.filter(w => concept.temperament === 'avant-garde' || !(w.temperaments || []).includes('avant-garde'));
     return { list: calm.length ? calm : open, wild: true };
   }
   const hints = new Set(concept.world_hints || []);
-  const narrow = open.filter(w => hints.has(w.id) || (args.sector && (w.sectors || []).includes(args.sector)));
+  const narrow = open.filter(w => hints.has(w.id));
   return narrow.length ? { list: narrow } : { list: open, empty: true };
 };
 // exclusion chain for re-rolls: recompute rounds 0..n-1 under this key and drop what they dealt
@@ -401,8 +403,8 @@ for (let r = 0; r < args.reroll; r++) {
 }
 let { list: worldPool, wild, empty } = narrowFor(args.reroll, excludedWorlds);
 if (!worldPool.length) { worldPool = pool; notes.push('re-roll exhausted the pool; reusing'); }
-if (wild) notes.push('WILDCARD: this round (5% of rolls) widened the world pool beyond the concept hints and sector-suited worlds; make the world earn its place or re-roll');
-if (empty) notes.push('no world matches the concept hints or sector in this mode; pool widened to every sector-allowed world');
+if (wild) notes.push('WILDCARD: this round (5% of rolls) widened the world pool beyond the concept hints; make the world earn its place or re-roll');
+if (empty) notes.push('no world matches the concept hints in this mode; pool widened to every sector-allowed world');
 const world = pickWorld(worldPool, args.reroll);
 if (!world) die(3, 'no world could be assigned');
 
