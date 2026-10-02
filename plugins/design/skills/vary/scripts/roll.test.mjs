@@ -383,7 +383,7 @@ test('world pool: hints only (sector-suited worlds excluded) except WILDCARD rou
   const p = withConcepts('hintonly.json', c => { for (const x of c) { x.world_hints = hints; x.temperament = 'nocturnal-social'; x.treatment = 'scene'; } });
   const others = worlds.filter(w => !w.trap && !hints.includes(w.id) && w.sectors.includes('food-drink'));
   assert.ok(others.length >= 1);
-  const rolls = await many(200, i => runAsync(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--sector', 'food-drink', '--from', 'ho1', '--reroll', String(i)]));
+  const rolls = await many(200, i => runAsync(['--mode', 'persuade', '--dossier', DOSSIER, '--concepts', p, '--no-memory', '--sector', 'food-drink', '--from', `ho${i}`]));
   for (const r of rolls) {
     if (r.notes.some(n => /^WILDCARD/.test(n))) continue;
     assert.ok(hints.includes(r.world), `dealt ${r.world}`);
@@ -393,8 +393,8 @@ test('world pool: hints only (sector-suited worlds excluded) except WILDCARD rou
 test('WILDCARD never fires for a product-ui concept or in operate mode (200 rounds each)', async () => {
   const pui = withConcepts('pui-wild.json', c => { for (const x of c) { x.treatment = 'product-ui'; x.devices.push({ technique: 'product-capture', what: 'the rota grid' }); } });
   const dsc = withDossier('pui-wild-d.json', d => { d.product = { screens: ['rota grid'] }; });
-  const a = await many(200, i => runAsync(['--mode', 'persuade', '--dossier', dsc, '--concepts', pui, '--no-memory', '--from', 'wp1', '--reroll', String(i)]));
+  const a = await many(200, i => runAsync(['--mode', 'persuade', '--dossier', dsc, '--concepts', pui, '--no-memory', '--from', `wp${i}`]));
   const sc = withConcepts('scene-wild.json', c => { for (const x of c) x.treatment = 'scene'; });
-  const b = await many(200, i => runAsync(['--mode', 'operate', '--dossier', DOSSIER, '--concepts', sc, '--no-memory', '--from', 'wo1', '--reroll', String(i)]));
+  const b = await many(200, i => runAsync(['--mode', 'operate', '--dossier', DOSSIER, '--concepts', sc, '--no-memory', '--from', `wo${i}`]));
   for (const r of [...a, ...b]) assert.ok(!r.notes.some(n => /^WILDCARD/.test(n)), r.notes.join('|'));
 });
