@@ -39,7 +39,7 @@ Then settle these in one short block (write them; they feed the roll):
   | black and white | `strategy=ink-on-paper` and no accent (build-craft tint rules suspended) |
   | Swiss | `world=swiss-international` |
   | use our photos | `treatment=photography` |
-  | minimal | `treatment=typography`, or `photography` when photos exist (dead-zone and depth are INFO there); never `scene` unless the user also asks for drawings |
+  | minimal, quiet, luxurious | `treatment=typography`, or `photography` when photos exist (dead-zone and depth are INFO there); devices `photo-direction` or `typographic` only (no annotated photos, leader lines, frames or ornament); never `scene` unless the user also asks for drawings |
   | keep our brand | extend mode |
 
 - **Precedence** (the one place it is written; both evaluators repeat it). When rules collide, the higher item wins: 1. Truth: no invented facts. 2. Accessibility: contrast, keyboard, focus, reduced motion, text equivalents. 3. User directives (`dossier.directives`). 4. Existing brand or design system (extend mode). 5. Platform conventions (ios/android; operate Jakob's law). 6. The rolled contract. 7. Treatment-specific bars and skill defaults.
@@ -147,7 +147,7 @@ Fix every `FAIL` in one batch (contract present, contrast, focus-visible, 9 stat
 
 Spawn a FRESH subagent (Agent tool) with the desktop and phone fold and full-page screenshots, the dossier facts and the critic prompt and rubric from [`references/art-crew.md`](references/art-crew.md) section 5, with `{TREATMENT}` filled from the contract (specificity, signature visual, craft, wow, each 1-10; anchors from `graphics.md` §0b at 9-10 for scene and the §9-§12 bars otherwise; "pill figures / boxes for objects / template sections / clipped text / dead space" at 4-5). It returns scores and the 5 highest-impact fixes. The lead applies the fixes (plates go back to their illustrator) and re-runs a new critic; stop when the mean is 7.5 or more or after 2 critic rounds, logging open items in NOTES.md. After applying fixes, re-run `check.mjs` and the fold check and refresh the evaluator JSON before Step 5; record the last critic mean in NOTES.md. Critic rounds sit outside the art budget and may be skipped when time is short.
 
-**Blocking craft fails.** Before Step 5 or shipping, these fold-check rows must be PASS: collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, headline-on-fold (operate/read: title-on-fold), plus headline-in-scene for the scene treatment only (the check's `BLOCKING:` line lists any that fail). They are cheap to fix and the time budget never excuses them. Coverage, depth and plate-size may ship as logged open items (`NOTES.md`) if time runs out.
+**Blocking craft fails.** Before Step 5 or shipping, these fold-check rows must be PASS: collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, page-overflow (nothing wider than the viewport at 1440 or 390 unless inside its own scroll container), meta-copy (no designer or scaffold language in visible text; exempt with data-meta-ok), headline-on-fold (operate/read: title-on-fold), plus headline-in-scene for the scene treatment only (the check's `BLOCKING:` line lists any that fail). They are cheap to fix and the time budget never excuses them. Coverage, depth and plate-size may ship as logged open items (`NOTES.md`) if time runs out.
 
 ## Step 5 — Separate evaluation
 

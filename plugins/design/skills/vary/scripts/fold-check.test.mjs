@@ -225,3 +225,14 @@ test('placeholder only in an input attribute, alt or a code block passes meta-co
   assert.match(r.stdout, /\[PASS\] meta-copy-desktop/);
   assert.match(r.stdout, /\[PASS\] meta-copy-phone/);
 });
+test('a closed drawer off either edge, a body that clips x, and the word "todo" in Spanish all pass', { skip: noPw && 'Playwright absent' }, () => {
+  const drawer = side => `<nav style="position:fixed;top:0;${side}:0;width:280px;height:100vh;transform:translateX(${side === 'right' ? '' : '-'}100%)"><a href="#">Menu item one</a></nav>`;
+  const r = fold('ovf-drawer', doc(drawer('right') + drawer('left')), op);
+  assert.match(r.stdout, /\[PASS\] page-overflow-desktop/);
+  assert.match(r.stdout, /\[PASS\] page-overflow-phone/);
+  const clip = fold('ovf-clip', '<!doctype html><html style="overflow-x:hidden"><body style="margin:0;overflow-x:hidden"><h1>Orders</h1><div style="position:absolute;left:1300px;width:300px;height:40px;background:#abc"></div></body></html>', op);
+  assert.match(clip.stdout, /\[PASS\] page-overflow-desktop/);
+  const es = fold('meta-es', doc('<p>Abrimos todo el año. TODO: hero</p>'), op);
+  assert.match(es.stdout, /\[FAIL\] meta-copy-desktop: "TODO"/);
+  assert.doesNotMatch(es.stdout, /"todo"/);
+});

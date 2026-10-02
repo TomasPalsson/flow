@@ -41,7 +41,7 @@ Look at the place too: signage, the building, the room, the climate, the light. 
 - `facts[].source` is a URL, file path or "user brief". `demo: true` marks a value that is placeholder, not the client's.
 - `language.glyphs` lists the non-ASCII letters the content needs; Step 3 verifies the font against it.
 - `assets[].kind` is `photo`, `screenshot`, `logo` or `headshot` (plus others as needed). `notes` records consent for identifiable people and "show unaltered" for identity assets (headshots, logos, product screens).
-- `directives[]` holds what the user said about the look, verbatim (`text`), its `source` and the `locks` it implies as `key=value` strings; `roll.mjs` merges them into its locks and they outrank skill defaults. `product.app_path` points at the runnable app when product UI is a hero candidate.
+- `directives[]` holds what the user said about the look, verbatim (`text`), its `source` and the `locks` it implies as `key=value` strings; `roll.mjs` merges them into its locks and they outrank skill defaults. `signature_fact` is the id of the one fact only this client has and a stranger would remember (a place, an object, a ritual), picked before any concept is written; concepts must show it in the hero. `product.app_path` points at the runnable app when product UI is a hero candidate; `product.screens` lists screens the brief describes ("a rota grid, colour by shift") when there is no app or screenshot, and grounds a `product-ui` concept that rebuilds them in HTML.
 - `refuse` collects user vetoes and standing rules, and grows when the user rejects a world for the trade.
 
 ## 3. Minimums

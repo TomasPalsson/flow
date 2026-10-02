@@ -23,15 +23,17 @@
       const own = norm([...el.childNodes].filter(n => n.nodeType === 3).map(n => n.nodeValue).join(' '));
       if (!own && !/^(img|svg|video|canvas|iframe|table)$/.test(tag)) continue;
       const r = el.getBoundingClientRect();
-      // wholly off the left edge (right <= 0) is the left:-9999px hide pattern, not a layout bug
-      if (r.width === 0 || r.height === 0 || r.right <= 0 || !shown(el) || srOnly(el)) continue;
+      // wholly off either edge is a hide pattern (left:-9999px, a closed drawer translated out), not a layout bug
+      if (r.width === 0 || r.height === 0 || r.right <= 0 || r.left >= vw || !shown(el) || srOnly(el)) continue;
       if ((r.right > vw + 1 || r.left < -1) && !contained(el)) out.push({ el: label(el), text: own.slice(0, 30), right: Math.round(r.right) });
     }
-    return { scrollWidth: document.documentElement.scrollWidth, vw, offenders: out.slice(0, 5), total: out.length };
+    // html or body clipping x means the page cannot scroll sideways, whatever scrollWidth says
+    const clipsX = [document.documentElement, document.body].some(e => /^(hidden|clip)$/.test(getComputedStyle(e).overflowX));
+    return { scrollWidth: clipsX ? vw : document.documentElement.scrollWidth, vw, offenders: out.slice(0, 5), total: out.length };
   };
   const PATTERNS = ['signature device', 'design notes?', 'art direction', 'hero treatment', 'text equivalent of', 'the drawing above', 'drawn, not generated',
-    'placeholder', 'lorem ipsum', 'TODO', 'TBD', 'wireframe', 'will plot here', 'once telemetry', 'is wired', 'mock-?up', 'this section shows'];
-  const REGEXES = [...PATTERNS.map(p => new RegExp(`\\b${p}\\b`, 'gi')), /\bconcept:/gi, /\bREF [A-Z]{2,}-[A-Z0-9-]+/g];
+    'placeholder', 'lorem ipsum', 'wireframe', 'will plot here', 'once telemetry', 'is wired', 'mock-?up', 'this section shows'];
+  const REGEXES = [...PATTERNS.map(p => new RegExp(`\\b${p}\\b`, 'gi')), /\b(TODO|TBD)\b/g, /\bconcept:/gi, /\bREF [A-Z]{2,}-[A-Z0-9-]+/g];
   const meta = () => {
     const parts = [], walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

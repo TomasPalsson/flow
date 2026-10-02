@@ -53,7 +53,7 @@ export function treatmentProblem(c, dossier) {
   const assets = Array.isArray(dossier?.assets) ? dossier.assets : [];
   if (t === 'photography' && !assets.some(a => a && a.kind === 'photo' && a.usable === true)) return 'treatment photography needs at least one dossier.assets[] entry with kind "photo" and usable: true';
   const screens = dossier?.product?.screens;
-  const described = Array.isArray(screens) && screens.some(x => typeof x === 'string' && x.trim());
+  const described = Array.isArray(screens) && screens.length > 0 && screens.every(x => typeof x === 'string' && x.trim());
   if (t === 'product-ui' && !assets.some(a => a && a.kind === 'screenshot') && !(typeof dossier?.product?.app_path === 'string' && dossier.product.app_path.trim()) && !described) return 'treatment product-ui needs a dossier.assets[] entry with kind "screenshot", a non-empty dossier.product.app_path, or a non-empty dossier.product.screens[] (screens described in the brief, rebuilt in HTML from the facts)';
   return null;
 }

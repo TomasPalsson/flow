@@ -396,5 +396,7 @@ test('WILDCARD never fires for a product-ui concept or in operate mode (200 roun
   const a = await many(200, i => runAsync(['--mode', 'persuade', '--dossier', dsc, '--concepts', pui, '--no-memory', '--from', `wp${i}`]));
   const sc = withConcepts('scene-wild.json', c => { for (const x of c) x.treatment = 'scene'; });
   const b = await many(200, i => runAsync(['--mode', 'operate', '--dossier', DOSSIER, '--concepts', sc, '--no-memory', '--from', `wo${i}`]));
-  for (const r of [...a, ...b]) assert.ok(!r.notes.some(n => /^WILDCARD/.test(n)), r.notes.join('|'));
+  // a scene lock keeps the treatment drawn, so only the operate gate can hold the wildcard back here
+  const c = await many(200, i => runAsync(['--mode', 'operate', '--dossier', DOSSIER, '--concepts', sc, '--no-memory', '--lock', 'treatment=scene', '--from', `wl${i}`]));
+  for (const r of [...a, ...b, ...c]) assert.ok(!r.notes.some(n => /^WILDCARD/.test(n)), r.notes.join('|'));
 });
