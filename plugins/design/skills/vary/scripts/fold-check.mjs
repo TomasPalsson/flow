@@ -33,13 +33,18 @@
  *   stray-overlay (all modes, both viewports) a fixed/absolute element, ::before/::after, or last-painted svg shape covering >= 80% of the viewport
  *             with a semi-opaque (alpha 0.2-0.98; a lighter grain rect is allowed) dark (luminance < 0.35) fill
  *   clipped-text (all modes, both viewports) text with overflow hidden and scrollWidth > clientWidth (not ellipsis), or svg <text> whose bbox crosses its svg viewBox
+ *   page-overflow (all modes and treatments, both viewports; fold-page.browser.js) documentElement.scrollWidth > innerWidth + 1, or a visible text
+ *             element, img, svg, video, canvas, iframe or table crossing the viewport edge (right > innerWidth + 1, left < -1) with no
+ *             ancestor whose overflow-x is auto/scroll/hidden/clip; prints up to 5 offenders; visually hidden elements are ignored
+ *   meta-copy (all modes and treatments, both viewports) visible text (not script/style/code/pre, not inside [data-meta-ok], not alt/aria-label)
+ *             holding designer or scaffold language ("design note", "signature device", "placeholder", "lorem ipsum", "TODO", "REF XX-1" ...); prints each hit with context
  *   headline-on-fold (persuade/experience, desktop) a visible h1 (or role=heading level 1) in the first viewport plus another visible
  *             text line (>= 10 chars, outside nav/buttons) within 200px of it, plus an action (a link or button with visible text,
  *             outside nav) in the first viewport. An h1 laid over an art box is the intended pattern and passes; svg <text> alone
  *             (no h1) fails.
  *   title-on-fold (operate/read) a visible h1 or [role=heading][aria-level=1] in the first desktop viewport
  *   BLOCKING  final line listing the FAIL rows that must be fixed before shipping: collisions, clipped-text, hidden-content,
- *             stray-overlay, duplicate-content, headline-on-fold, title-on-fold, and headline-in-scene when the treatment gates it
+ *             stray-overlay, page-overflow, meta-copy, duplicate-content, headline-on-fold, title-on-fold, and headline-in-scene when the treatment gates it
  * Scene thresholds: coverage >= 0.55 desktop / 0.45 phone, detail >= 50 desktop, plates >= 4, h1 overlaps art.
  * Screenshots fold-desktop.png / fold-phone.png go to --out (default: next to a local file, else cwd).
  * Playwright is resolved from cwd, /tmp, $FOLD_CHECK_PW (a dir holding node_modules), or this script's dir; absent -> prints SKIP and exits 0.
@@ -59,6 +64,8 @@ const FOLD_DEPTH = fileURLToPath(new URL('./fold-depth.browser.js', import.meta.
 const FOLD_CONTENT = fileURLToPath(new URL('./fold-content.browser.js', import.meta.url));
 // craft-bug measures (hidden content, stray overlay, clipped text; round 7) live in their own browser file too
 const FOLD_CRAFT = fileURLToPath(new URL('./fold-craft.browser.js', import.meta.url));
+// page-overflow and meta-copy measures (B1, B2 of round 8) live in their own browser file too
+const FOLD_PAGE = fileURLToPath(new URL('./fold-page.browser.js', import.meta.url));
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i < 0 ? null : args[i + 1]; };
@@ -289,9 +296,11 @@ for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
   const content = name === 'desktop' ? { head: await page.evaluate(() => window.__foldContent.headline()), dup: await page.evaluate(() => window.__foldContent.duplicates()) } : null;
   await page.addScriptTag({ path: FOLD_CRAFT });
   const craft = { hidden: await page.evaluate(() => window.__foldCraft.hidden()), overlay: await page.evaluate(() => window.__foldCraft.overlay()), clipped: await page.evaluate(() => window.__foldCraft.clipped()) };
+  await page.addScriptTag({ path: FOLD_PAGE });
+  const pageRows = { overflow: await page.evaluate(() => window.__foldPage.overflow()), meta: await page.evaluate(() => window.__foldPage.meta()) };
   let dead = null;
   if (name === 'desktop') dead = deadZone(await page.evaluate(cellStats, shot.toString('base64')));
-  res[name] = { ...m, craft, text, cards, sections, dead, depth, content, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
+  res[name] = { ...m, craft, pageRows, text, cards, sections, dead, depth, content, coverage: union(m.art) / (w * h), rasterCoverage: union(m.raster) / (w * h) };
   await page.close();
 }
 await browser.close();

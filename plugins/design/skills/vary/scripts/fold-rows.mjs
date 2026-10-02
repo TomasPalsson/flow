@@ -1,7 +1,7 @@
 // fold-rows.mjs — turns the measured first-viewport numbers (fold-check.mjs) into PASS / FAIL / INFO rows, gated by treatment.
 // Thresholds calibrated on ara-bar/1, hitataekni/1,/4 (scene; must pass) and the nine trial-3 builds.
 const TH = { span: 0.95, edge: 0.03, range: 90, steps: 5, plateW: 0.35, plateH: 280, plateSteps: 3, solid: 0.06 };
-const BLOCKING_BASE = ['collisions', 'clipped-text', 'hidden-content', 'stray-overlay', 'duplicate-content', 'headline-on-fold', 'title-on-fold'];
+const BLOCKING_BASE = ['collisions', 'clipped-text', 'hidden-content', 'stray-overlay', 'page-overflow', 'meta-copy', 'duplicate-content', 'headline-on-fold', 'title-on-fold'];
 
 export function blockingRegex(g) {
   return new RegExp(`^(${[...BLOCKING_BASE, ...(g.inScene ? ['headline-in-scene'] : [])].join('|')})`);
@@ -81,11 +81,22 @@ function craftRows(c) {
   }
 }
 
+function pageRows(c) {
+  const { row, d, p } = c;
+  for (const [name, v] of [['desktop', d], ['phone', p]]) {
+    const o = v.pageRows.overflow, m = v.pageRows.meta, sideways = o.scrollWidth > o.vw + 1;
+    row(!sideways && o.offenders.length === 0, `page-overflow-${name}`, sideways || o.offenders.length
+      ? `${sideways ? `page scrolls sideways (scrollWidth ${o.scrollWidth} > ${o.vw}); ` : ''}${o.offenders.map(x => `${x.el} '${x.text}' right=${x.right}`).join('; ') || 'no single element found (look for negative margins, transforms or an overflowing pseudo-element)'}`
+      : `no horizontal overflow (scrollWidth ${o.scrollWidth}, viewport ${o.vw}) and no element crossing the edge outside a scroller`);
+    row(m.length === 0, `meta-copy-${name}`, m.length ? m.slice(0, 5).map(x => `"${x.term}" in "...${x.context}..." (designer/scaffold language in visible copy; [data-meta-ok] exempts a subtree)`).join('; ') : 'no designer or scaffold language in the visible text');
+  }
+}
+
 export function buildRows(res, mode, treatment, g) {
   const lines = [];
   const row = (ok, id, text) => lines.push({ ok, text: `[${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}] ${id}: ${text}` });
   const inf = on => (on ? '' : ` (informational for treatment ${treatment})`);
   const c = { row, d: res.desktop, p: res.phone, g, inf, mode, treatment };
-  coverageRows(c); collisionRows(c); artRows(c); plateRows(c); contentRows(c); craftRows(c);
+  coverageRows(c); collisionRows(c); artRows(c); plateRows(c); contentRows(c); craftRows(c); pageRows(c);
   return lines;
 }

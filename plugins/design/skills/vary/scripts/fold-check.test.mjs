@@ -16,9 +16,9 @@ const fold = (name, html, extra = []) => {
 const noPw = /fold-check SKIP/.test(fold('probe', '<p>x</p>').stdout);
 const sky = '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#001"/><stop offset="1" stop-color="#fed"/></linearGradient></defs><rect width="1440" height="900" fill="url(#g)"/>';
 const shapes = n => sky + Array.from({ length: n }, (_, i) => `<rect x="${(i * 37) % 1400}" y="${(i * 53) % 880}" width="40" height="30" fill="#${((i * 99991) % 0xffffff).toString(16).padStart(6, '0')}"/>`).join('');
-const plate = n => `<svg viewBox="0 0 1400 400" width="1400" height="400" aria-hidden="true">${shapes(n)}</svg>`;
+const plate = n => `<svg viewBox="0 0 1400 400" width="1400" height="400" style="max-width:100%;height:auto" aria-hidden="true">${shapes(n)}</svg>`;
 const scene = `<!doctype html><body style="margin:0"><svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">${shapes(160)}</svg>
-<h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><p style="position:relative;margin:-100px 40px 0;font-size:24px;width:max-content;background:#123;color:#fff">Cocktails and small plates, open daily.</p><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
+<h1 style="position:relative;margin:120px 40px;font-size:60px">Fjalar Bar</h1><p style="position:relative;margin:-100px 40px 0;font-size:24px;width:max-content;max-width:calc(100vw - 80px);background:#123;color:#fff">Cocktails and small plates, open daily.</p><div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div></body>`;
 const withAction = scene.replace('<div style="margin-top:900px">', '<a href="#book" style="position:relative;margin:0 40px;font-size:20px">Book a table</a><div style="margin-top:900px">');
 const textOnly = '<!doctype html><body style="margin:0"><h1 style="margin:120px 40px">Fjalar Bar</h1><p>Open daily.</p></body>';
 
@@ -175,7 +175,7 @@ test('operate mode without any h1 fails title-on-fold and blocks', { skip: noPw 
 });
 test('photography treatment: a framed img hero exits 0 and full-bleed is INFO', { skip: noPw && 'Playwright absent' }, () => {
   const png = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700"><rect width="900" height="700" fill="#789"/></svg>');
-  const page = `<!doctype html><body style="margin:0"><img src="${png}" alt="" style="display:block;width:900px;height:700px;margin:40px auto"><h1 style="margin:10px 40px">Maison Orel</h1><p>Campaign, autumn collection.</p><a href="#s">See the collection</a></body>`;
+  const page = `<!doctype html><body style="margin:0"><img src="${png}" alt="" style="display:block;width:900px;max-width:100%;height:700px;margin:40px auto"><h1 style="margin:10px 40px">Maison Orel</h1><p>Campaign, autumn collection.</p><a href="#s">See the collection</a></body>`;
   const r = fold('photo', page, ['--treatment', 'photography']);
   assert.match(r.stdout, /\[INFO\] full-bleed-desktop: .*informational for treatment photography/);
   assert.equal(r.status, 0, r.stdout);
@@ -194,3 +194,34 @@ test('repeated code snippets do not trip duplicate-content', { skip: noPw && 'Pl
   assert.match(fold('dup-code', sceneWith(`<section>${cmd}</section><section>${cmd}</section>`)).stdout, /\[PASS\] duplicate-content: .*pre\/code\/kbd/);
 });
 test('an unknown treatment is a usage error', () => assert.equal(spawnSync('node', [join(here, 'fold-check.mjs'), 'x.html', '--treatment', 'wobble']).status, 2));
+
+// ---- page-overflow and meta-copy (round 8, B1/B2) ----
+const doc = body => `<!doctype html><body style="margin:0"><h1>Orders</h1>${body}</body>`;
+const op = ['--mode', 'operate'];
+test('a 600px fixed-width div fails page-overflow at phone; inside an overflow-x:auto wrapper it passes', { skip: noPw && 'Playwright absent' }, () => {
+  const wide = '<div style="width:600px;height:40px;background:#abc">Wide table of orders</div>';
+  const bad = fold('ovf', doc(wide), op);
+  assert.match(bad.stdout, /\[FAIL\] page-overflow-phone: .*div 'Wide table of orders' right=600/);
+  assert.match(bad.stdout, /\[PASS\] page-overflow-desktop/);
+  assert.match(bad.stdout, /BLOCKING: .*page-overflow-phone/);
+  const ok = fold('ovf-ok', doc(`<div style="overflow-x:auto">${wide}</div>`), op);
+  assert.match(ok.stdout, /\[PASS\] page-overflow-phone/);
+  assert.match(ok.stdout, /BLOCKING: none/);
+});
+test('page-overflow is blocking in a scene run too', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('ovf-scene', sceneWith('<div style="position:relative;width:600px;height:40px">Open daily 17-23</div>'));
+  assert.match(r.stdout, /BLOCKING: .*page-overflow-phone/);
+});
+test('"Design note" in visible copy fails meta-copy; inside data-meta-ok it passes', { skip: noPw && 'Playwright absent' }, () => {
+  const bad = fold('meta', doc('<p>Design note: hero is a lantern</p>'), op);
+  assert.match(bad.stdout, /\[FAIL\] meta-copy-desktop: "Design note" in "\.\.\..*Design note.*"/);
+  assert.match(bad.stdout, /BLOCKING: .*meta-copy-desktop/);
+  const ok = fold('meta-ok', doc('<p data-meta-ok>Design note: <b>hero</b> is a lantern</p>'), op);
+  assert.match(ok.stdout, /\[PASS\] meta-copy-desktop/);
+  assert.match(ok.stdout, /\[PASS\] meta-copy-phone/);
+});
+test('placeholder only in an input attribute, alt or a code block passes meta-copy', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('meta-attr', doc('<input placeholder="Your name" aria-label="placeholder"><img alt="mockup" src="data:,"><code>placeholder</code>'), op);
+  assert.match(r.stdout, /\[PASS\] meta-copy-desktop/);
+  assert.match(r.stdout, /\[PASS\] meta-copy-phone/);
+});
