@@ -30,7 +30,8 @@ Never split the difference: polish on a discarded look, or a new identity smuggl
 
 The system owns palette, type and components. The page still has to be designed:
 
-- **Skeleton**: the archetype is a free axis. A docs page in an existing system can be an index-list or a broadsheet; a settings page can be card-less tables. The roll chooses the skeleton: `roll.mjs --lock ...` (never pick from `data/archetypes.json` yourself) by the surface's mode; do not default to the system's other pages' skeleton unless consistency is the explicit brief.
+- **Skeleton**: when the site already has inner pages, a new page copies their template (page head, breadcrumb or eyebrow, aside or rail, current-nav state, closing parts) and the roll only shapes the content area inside it; visitors should not be able to tell the page was added later. Where no inner-page pattern exists yet, the archetype is a free axis: a docs page can be an index-list or a broadsheet, a settings page card-less tables, chosen by `roll.mjs --lock ...` (never pick from `data/archetypes.json` yourself).
+- **The system's bans hold for new drawings too**: if the existing art has no gradients, blur, soft shadows or photo-real objects, the new page's art has none either (count them in the originals and match).
 - **Spacing rhythm and density** tuned to this page's content, inside the token scale.
 - **The one authored motion moment**, in the system's easing.
 - **States**: empty, error, loading and success screens designed for this page's real cases, in the system's vocabulary.
