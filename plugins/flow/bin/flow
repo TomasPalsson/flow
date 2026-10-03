@@ -167,7 +167,8 @@ ${C.accent}Commands:${C.reset}
                                                      ticks that no commit backs
   tick <ID> [--dir <d>] [--by user] [--sha <c>]     The only writer of [x] — records the newest
                                                      commit since Base touching the task's files:
-                                                     (or --sha), never a claim
+                                                     (or --sha), never a claim; --by user also
+                                                     answers a task whose files live outside this repo
   finish <on|off|status|check>                      Arm /flow:next --finish for the active spec (FINISH.md);
                                                      (check --hook is the Stop hook body)
   use <NNN-slug>                                    Point .specs/.current at one feature

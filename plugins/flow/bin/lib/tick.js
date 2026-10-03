@@ -1,6 +1,7 @@
 'use strict';
 
 // tick.js — `flow tick <ID> [--dir <spec-dir>] [--by user] [--sha <commit>]`.
+// `--by user` answers a CHK, or a T whose files: all live outside this repo.
 //
 // K-D: the ONLY writer of `[x]`. It measures the sha rather than trusting a
 // claim, which is what makes flow-lint's [x] → sha → files: join meaningful.
@@ -76,10 +77,21 @@ function commitStoreAfterTick(root, featureDir, slug, id, sha, stdout) {
   stdout.write(`flow: store committed (${storeTop})\n`);
 }
 
+// External task: files: non-empty and none of them tracked at HEAD (stealth
+// store, another repo). Same rule as flow-lint's by-user join skip.
+function isExternal(root, files) {
+  return files.length > 0 && files.every((f) => !git(root, ['ls-tree', '-r', '--name-only', 'HEAD', '--', f]).out);
+}
+
+function filesOf(line) {
+  const seg = line.split('—').map((s) => s.trim()).find((s) => s.startsWith('files:'));
+  return seg ? seg.slice('files:'.length).split(',').map((s) => s.trim()).filter(Boolean) : [];
+}
+
 // Which commit a tick records. `--sha` wins once verified; otherwise the newest
 // commit since Base that touched the task's files:. None → HEAD, and
 // flow-lint's done-touches-nothing says why.
-function resolveSha(root, { id, line, base, head, shaArg, isHuman }) {
+function resolveSha(root, { id, line, base, head, shaArg, isHuman, by }) {
   const hasBase = base && base !== 'none';
   if (shaArg) {
     const given = git(root, ['rev-parse', '--short', '--verify', '-q', `${shaArg}^{commit}`]);
@@ -93,14 +105,16 @@ function resolveSha(root, { id, line, base, head, shaArg, isHuman }) {
     return { sha: given.out };
   }
   if (isHuman) return { sha: head };
-  const filesSeg = line.split('—').map((s) => s.trim()).find((s) => s.startsWith('files:'));
-  const files = filesSeg ? filesSeg.slice('files:'.length).split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const files = filesOf(line);
   if (!files.length) return { sha: head };
+  const external = isExternal(root, files);
+  if (external && by === 'user') return { sha: head, byUser: true };
   const own = git(root, ['log', '-n', '1', '--format=%h', hasBase ? `${base}..HEAD` : 'HEAD', '--'].concat(files));
   if (own.ok && own.out) return { sha: own.out };
   return {
     error: `no commit since Base ${hasBase ? base : 'none'} touched ${files.join(', ')} — commit the work first`,
-    fix: `git add ${files.join(' ')} && git commit, or pass --sha <commit>`,
+    fix: `git add ${files.join(' ')} && git commit, or pass --sha <commit>` +
+      (external ? `; these files live outside this repo, so a person can answer it: flow tick ${id} --by user` : ''),
   };
 }
 
@@ -162,11 +176,11 @@ function run(argv, root, io, env) {
       `commit ${id}'s work first, then flow tick ${id}`);
   }
 
-  const r = resolveSha(root, { id, line: lines[hit], base, head: head.out, shaArg, isHuman });
+  const r = resolveSha(root, { id, line: lines[hit], base, head: head.out, shaArg, isHuman, by });
   if (r.error) return fail(stderr, r.error, r.fix);
   const sha = r.sha;
 
-  const suffix = isHuman ? ` — done: ${sha} by user` : ` — done: ${sha}`;
+  const suffix = isHuman || r.byUser ? ` — done: ${sha} by user` : ` — done: ${sha}`;
   lines[hit] = lines[hit].replace(/^- \[ \]/, '- [x]').replace(/\s*$/, '') + suffix;
   fs.writeFileSync(tasksPath, lines.join('\n'));
   resetCount(root);

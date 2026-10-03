@@ -280,6 +280,42 @@ t_v2_tick_refuses_when_its_files_were_never_committed() {
 	rm -rf "$home" "$proj"
 }
 
+t_v2_tick_by_user_answers_a_task_whose_files_live_outside_the_repo() {
+	local home proj set
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002 --by user
+	assert_rc 0 "an external T task ticked --by user exits 0"
+	OUT=$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md" || true)
+	assert_contains "$OUT" " — done: $(git -C "$proj" rev-parse --short HEAD) by user" "the line records HEAD by user"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_external_task_without_by_user_points_at_by_user() {
+	local home proj set
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "an external T task ticked without --by user still exits 1"
+	assert_contains "$ERR" "flow tick T002 --by user" "the fix line names the way out"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_by_user_is_no_bypass_for_tracked_files() {
+	local home proj set
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	sed 's/T002 still open — files: b.py/T002 still open — files: README.md/' "$proj/.specs/001-x/TASKS.md" >"$proj/t.tmp" &&
+		mv "$proj/t.tmp" "$proj/.specs/001-x/TASKS.md"
+	v2_cli_in "$proj" "$home" tick T002 --by user
+	assert_rc 1 "--by user on a task with a tracked file still needs a commit"
+	assert_contains "$ERR" "README.md" "the existing message names the file"
+	rm -rf "$home" "$proj"
+}
+
 # v2_wave_repo — a v2_repo with a parallel wave landed: a commit touching b.py
 # (T002's file) and then a later commit touching c.py, so HEAD is not T002's
 # commit. Echoes "<repo> <b-sha> <head-sha>".

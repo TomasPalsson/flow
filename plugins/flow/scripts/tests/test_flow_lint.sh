@@ -270,6 +270,37 @@ t_lint_done_touches_dot_and_directory() {
 	rm -rf "$d"
 }
 
+_by_user_repo() {
+	local d base sha
+	d=$(tmp_repo)
+	(
+		cd "$d" || exit 1
+		mkdir -p .specs/001-x
+		base=$(git rev-parse --short HEAD)
+		printf 'b\n' >other.py
+		git add -A && git commit -qm other
+		sha=$(git rev-parse --short HEAD)
+		{
+			printf '# Tasks — x\n'
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
+			printf -- '- [x] T001 docs elsewhere — files: docs/x.mdx — verify: `true` — done: %s by user\n' "$sha"
+			printf -- '- [x] T002 mixed — files: docs/x.mdx, README.md — verify: `true` — done: %s by user\n' "$sha"
+			printf '\n## Gates\n- [ ] G001 clean — verify: `true`\n'
+		} >.specs/001-x/TASKS.md
+	) >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+t_flowlint_by_user_external_task_skips_the_join() {
+	local d
+	d=$(_by_user_repo)
+	OUT=$(cd "$d" && bash "$FLOW_LINT" .specs/001-x/TASKS.md 2>&1)
+	assert_not_contains "$OUT" "T001 claims" "an external by-user task is not done-touches-nothing"
+	assert_contains "$OUT" "T002 claims" "a by-user task with a tracked file keeps the join"
+	rm -rf "$d"
+}
+
 t_flowlint_tick_at_or_before_base() {
 	local d
 	d=$(_lying_repo)
