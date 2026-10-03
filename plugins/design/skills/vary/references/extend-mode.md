@@ -24,6 +24,8 @@ Look for, in this order: `DESIGN.md` or `design.md`; a token file (`tokens.*`, `
 
 Never split the difference: polish on a discarded look, or a new identity smuggled into one component, are both failures.
 
+**Shared files are append-only.** A new page or section never edits an existing rule, token, component class or shared script that other pages use: changing a shared `.btn--accent` restyles every page that has one. Add the new page's styles in a page-scoped block (a body or section class) appended to the shared stylesheet, or in a new file, built from the existing tokens and classes. Adding the new page to the nav is the one edit allowed in the old pages. When the system has a rule the page needs (one accent button per page, no shadows, one dark band per page), follow it; a genuine bug in a shared file is reported in NOTES.md, not fixed silently.
+
 ## 3. Where distinctiveness lives when the system is fixed
 
 The system owns palette, type and components. The page still has to be designed:
