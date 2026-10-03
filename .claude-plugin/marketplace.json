@@ -7,7 +7,7 @@
       "name": "flow",
       "source": "./plugins/flow",
       "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the spec/next/fix/loop skill set, and /flow:loop (verifier-decided unattended loops).",
-      "version": "0.4.0"
+      "version": "0.5.0"
     },
     {
       "name": "flow-extras",
@@ -19,7 +19,7 @@
       "name": "design",
       "source": "./plugins/design",
       "description": "Design and UI skills: vary (roll-assigned, never-the-same UI design), visual design, UX critique, mobile design, polish passes, showcase pages, and UI animation.",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "name": "finance",
