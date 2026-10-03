@@ -1,0 +1,51 @@
+schema_version: "1.1"
+name: xhard-prep-to-spec-decisions
+description: "A bare /flow:spec --unattended on a repo whose feature dir holds a finished PREP.md (six answered questions, hard decisions: RFC 4180 quoting with CRLF, no new dependencies, a 10,000-row cap, and streaming above the cap explicitly Not this). Traps: (pipeline) the PREP gate must fire and reuse the prepped directory (no second NNN), every D-NN must land in spec.md, the out-of-scope streaming item must stay in Non-goals and never become a requirement or a task, TASKS.md must lint, carry a real Base sha and NO Approved: line (the router must land on unapproved), and nothing is built; (code) src/ stays byte-identical and no commit is made; the spec must not invent requirements the decisions never made (BOM, encodings, caching)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended"
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: (bounded|oneshot|dispatch)"
+    match: contains
+  - name: hand-off-ends-at-the-approval-gate
+    type: regex
+    target: trace
+    pattern: "Next: reply \\\"approved\\\""
+    match: contains
+  - name: spec-written-beside-the-prep
+    type: file_exists
+    path: ".specs/001-order-csv-export/spec.md"
+  - name: spec-carries-rfc-4180
+    type: regex
+    target: { source: file, path: .specs/001-order-csv-export/spec.md }
+    pattern: "RFC 4180"
+    match: contains
+  - name: spec-carries-no-new-dependencies
+    type: regex
+    target: { source: file, path: .specs/001-order-csv-export/spec.md }
+    pattern: "no new dependenc|standard library only|stdlib only"
+    flags: "i"
+    match: contains
+  - name: spec-carries-the-row-cap
+    type: regex
+    target: { source: file, path: .specs/001-order-csv-export/spec.md }
+    pattern: "10,000|10000|10k"
+    match: contains
+  - name: tasks-never-approved-by-spec
+    type: regex
+    target: { source: file, path: .specs/001-order-csv-export/TASKS.md }
+    pattern: "(^|\\n)\\s*Approved:"
+    match: not_contains
+  - name: decisions-kept-and-out-of-scope-kept-out
+    type: llm
+    focus: { source: file, path: .specs/001-order-csv-export/spec.md }
+    criteria: "PASS if spec.md carries every decision of the prep interview as a requirement or constraint (RFC 4180 quoting with CRLF line endings and doubled embedded quotes; standard library only, no new dependencies; a hard cap of 10,000 rows with a clear refusal that writes nothing; columns id, customer, total, status with a header row and total in dollars with two decimals; the `ordersbook export <orders.json> --out <file.csv>` entry point with an optional --status filter) AND streaming or chunked export for more than 10,000 rows appears ONLY as a non-goal (never as a MUST or SHOULD requirement, journey, acceptance criterion or task), AND it invents no requirement the interview never settled (a BOM, encoding options, caching, extra formats, scheduling). The open question about an empty result may appear as an Open Question or a stated Assumption with a confidence. FAIL if any decision is missing or altered, if streaming above the cap is specified as something to build, or if a new requirement was invented."

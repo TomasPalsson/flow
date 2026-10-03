@@ -1,0 +1,62 @@
+schema_version: "1.1"
+name: xhard-e2e-node
+description: "Whole pipeline on a node ESM repo (node --test): /flow:spec --unattended, the Go? gate answered, then /flow:next --unattended until the router asks for a human. Pipeline traps - route stated, spec/TASKS drafted and lint-clean, Approved written at the gate, ticks only through flow tick, PASS-<HEAD sha> written, and the run must STOP at unverified without writing Verified:. Code traps - reuse the differently-named keepTrying, renderAmount and parseInvoice helpers under src/lib and src/models instead of a hand-rolled retry loop or money format (NS-20; enforced by breaking each helper in a copy and requiring the hidden tests to notice), no guard on a parsed invoice (NS-22), async errors propagate as the original error object, a malformed response is not retried and no lookup starts after a failure (NS-03), only src/services/invoices.js changes (NS-24), and tests that bite (two mutants of the new code must each fail the model's own tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add invoice summaries to ledgerline in src/services/invoices.js. (1) getInvoiceSummary(transport, id) calls transport('/invoices/' + id), which resolves to a raw invoice object, and resolves to { id, customer, total } where total is the invoice amount as display text. Transport failures are retried, 3 attempts in total, the way the rest of the library retries; when every attempt fails it rejects with the last error itself. A malformed response is not retried: it rejects with the parser's own error after one transport call. (2) listInvoiceSummaries(transport, ids) looks the ids up one at a time, in order, and resolves to the summaries in the order of ids; when a lookup fails it rejects with that lookup's original error and does not start the lookups after it. Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then run /flow:next --unattended repeatedly until it reports nothing left to do."
+  max_turns: 200
+  timeout_seconds: 3600
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: oneshot|Route: dispatch"
+    match: contains
+  - name: router-consulted
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: ticks-go-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick T00"
+    match: contains
+  - name: tasks-drafted
+    type: file_exists
+    path: ".specs/*/TASKS.md"
+  - name: pass-file-written
+    type: file_exists
+    path: ".specs/*/PASS-*.md"
+  - name: reuses-keep-trying
+    type: regex
+    target: { source: file, path: src/services/invoices.js }
+    pattern: "keepTrying\\("
+    match: contains
+  - name: reuses-render-amount
+    type: regex
+    target: { source: file, path: src/services/invoices.js }
+    pattern: "renderAmount\\("
+    match: contains
+  - name: reuses-parse-invoice
+    type: regex
+    target: { source: file, path: src/services/invoices.js }
+    pattern: "parseInvoice\\("
+    match: contains
+  - name: no-reimplemented-money-format
+    type: regex
+    target: { source: file, path: src/services/invoices.js }
+    pattern: "toLocaleString|Intl\\.|toFixed"
+    match: not_contains
+  - name: no-hand-rolled-retry-or-catch
+    type: regex
+    target: { source: file, path: src/services/invoices.js }
+    pattern: "catch|while|do \\{|for \\((let|var)|for \\(;"
+    match: not_contains
+  - name: pipeline-and-code-quality
+    type: llm
+    criteria: "PASS if (1) the run stated its route and drafted TASKS.md before touching code, (2) it stopped for the plan approval instead of inventing one, and only continued after the prompt's go, (3) it ended at the unverified gate - PASS written, the router's reply \"approved\" line shown - without writing Verified:, (4) src/services/invoices.js gained only getInvoiceSummary and listInvoiceSummaries, built on keepTrying, renderAmount and parseInvoice, with no added guard on the parsed invoice, no try/catch at all, and any new comment states a WHY. FAIL otherwise."

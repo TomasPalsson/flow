@@ -8,8 +8,8 @@ context:
 execution:
   prompt: "/flow:fix format_cents rounds 1999 cents to $19.98 instead of $19.99"
   max_turns: 100
+  timeout_seconds: 1800
   allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
-timeout_seconds: 1800
 graders:
   - name: reproduces-before-fixing
     type: tool_order

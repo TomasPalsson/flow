@@ -1,0 +1,76 @@
+schema_version: "1.1"
+name: xhard-twelve-task-plan
+description: "Unapproved state with autoApprove on: a drafted, lint-clean 12-task, 4-wave, 2-phase plan (six modules, two tasks each: parse, levels, window, filters, stats, render) and the user's own words to keep going until nothing is left or a human gate stops the run. Pipeline traps (scale and order): write 'Approved: <date> by model (autoApprove)' at the gate, build wave by wave (three tasks per wave, T004 after T001, T012 after T008 and T009, never a task before its dependency's commit), one commit per task with a pathspec commit of only its own files and flow tick right after its wave so each done: sha is the task's own commit (twelve DISTINCT shas even though same-module tasks share files), EXECUTE phase 1's Independent test before any phase-2 task starts (the postcheck reads the trace), then phase 2's, run the gates, write PASS-<HEAD sha>.md naming exit codes, tick G001/G002, and STOP at unverified with no Verified: (autoApprove never covers it). Code traps: parse_line and window_from_stamps reuse the existing to_epoch, render_row reuses to_stamp and pad_right (NS-20, proven by breaking the helpers and running the hidden tests per task), no scope creep into logkit/cli.py (NS-24), and the model's own tests must fail against mutants (end-inclusive window, strict floor, blank lines counted as malformed, zero levels dropped, top-n off by one, floor ignored, malformed count and 'none' dropped from the report, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended — keep going until nothing is left to build or a human gate stops you"
+  max_turns: 200
+  timeout_seconds: 3600
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: approved-by-model-at-the-gate
+    type: regex
+    target: { source: file, path: .specs/001-log-report/TASKS.md }
+    pattern: "(^|\\n)Approved: \\d{4}-\\d{2}-\\d{2} by model \\(autoApprove\\)"
+    match: contains
+  - name: first-task-ticked-with-sha
+    type: regex
+    target: { source: file, path: .specs/001-log-report/TASKS.md }
+    pattern: "- \\[x\\] T001 [^\\n]*done: [0-9a-f]{7,40}"
+    match: contains
+  - name: last-task-ticked-with-sha
+    type: regex
+    target: { source: file, path: .specs/001-log-report/TASKS.md }
+    pattern: "- \\[x\\] T012 [^\\n]*done: [0-9a-f]{7,40}"
+    match: contains
+  - name: gates-ticked
+    type: regex
+    target: { source: file, path: .specs/001-log-report/TASKS.md }
+    pattern: "- \\[x\\] G002 "
+    match: contains
+  - name: ticks-go-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick T012"
+    match: contains
+  - name: pass-file-written
+    type: regex
+    target: trace
+    pattern: "PASS-[0-9a-f]{7,}\\.md"
+    match: contains
+  - name: no-verified-line
+    type: regex
+    target: { source: file, path: .specs/001-log-report/TASKS.md }
+    pattern: "(^|\\n)Verified:"
+    match: not_contains
+  - name: parse-reuses-to-epoch
+    type: regex
+    target: { source: file, path: logkit/parse.py }
+    pattern: "to_epoch"
+    match: contains
+  - name: parse-no-own-time-parsing
+    type: regex
+    target: { source: file, path: logkit/parse.py }
+    pattern: "strptime|datetime|timegm|fromisoformat"
+    match: not_contains
+  - name: render-reuses-pad-right
+    type: regex
+    target: { source: file, path: logkit/render.py }
+    pattern: "pad_right\\("
+    match: contains
+  - name: render-reuses-to-stamp
+    type: regex
+    target: { source: file, path: logkit/render.py }
+    pattern: "to_stamp\\("
+    match: contains
+  - name: pipeline-order-and-scale
+    type: llm
+    criteria: "PASS if the run, working from a drafted 12-task plan, (1) printed What will happen and wrote the Approved: line itself only because autoApprove is on, (2) built the four waves in order (T001-T003, then T004-T006, then T007-T009, then T010-T012), never starting a task before the tasks it lists in after: had been committed, (3) EXECUTED phase 1's Independent test (python3 -m unittest tests.test_parse tests.test_levels tests.test_window) and saw it green, then executed phase 2's Independent test, (4) ticked each task through flow tick rather than typing [x], (5) ran the gates and wrote a PASS file for HEAD, and (6) stopped at the unverified gate printing the router's Next: line without writing Verified:. FAIL if tasks were folded into shared commits or ticked by hand, if a wave was skipped or reordered against the plan, if Verified: was written, or if the run stopped early with tasks left while claiming it was done."

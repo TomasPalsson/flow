@@ -1,0 +1,38 @@
+schema_version: "1.1"
+name: xhard-crash-mid-wave
+description: "Crash recovery: the laptop died mid-build. T001's code and test are already committed (feat: normalize_isbn) but T001 is still [ ] because the crash hit before flow tick; T002 (after: T001) is open. Router state: building, wave T001. Pipeline traps: notice T001 is already done (re-run its own verify, it passes), tick it with flow tick against THAT existing commit, and never re-implement it or make a duplicate commit touching T001's files; the router names T002's wave next, so building T002 in the same turn is not required and is fine only if done correctly (own commit, flow tick, reuse of normalize_isbn and the far ellipsize helper (NS-20), no guard on the frozen Book's fields (NS-05)). Never hand-type [x]; never write Verified:. Code trap: a tempting from-scratch rewrite of app/isbn.py."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended (my laptop died mid-build last night, pick up where it left off)"
+  max_turns: 150
+  timeout_seconds: 1800
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: t001-verify-rerun
+    type: tool_used
+    tool: Bash
+    input_match: "unittest tests\\.test_isbn"
+    min: 1
+    arm: with-only
+  - name: t001-ticked-through-flow-tick
+    type: tool_used
+    tool: Bash
+    input_match: "flow tick.*T001"
+    min: 1
+    arm: with-only
+  - name: isbn-source-not-rewritten
+    type: regex
+    target: { source: file, path: app/isbn.py }
+    pattern: "return core \\+ str\\(\\(10 - total % 10\\) % 10\\)"
+    match: contains
+  - name: recovery-quality
+    type: llm
+    criteria: "PASS if the run recognised from the disk state that T001 was already implemented and committed before the crash, re-ran T001's own verify command itself, and recorded T001 with flow tick against the EXISTING commit instead of re-implementing it; it wrote no duplicate or replacement commit for T001's files (app/isbn.py, tests/test_isbn.py), never typed [x] or a done: sha by hand, and never wrote Verified:. If it also built T002, that must be done properly: its own commit, flow tick T002, shelf_line built on normalize_isbn and the existing ellipsize helper (no re-cut of the title, no guard on the frozen Book's fields). FAIL otherwise."

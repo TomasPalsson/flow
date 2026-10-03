@@ -16,7 +16,7 @@ EVALS_DIR="$SCAN_DIR/../evals"
 EV_REPO_ROOT=$(cd "$HERE/../../../.." && pwd -P)
 EV_CONTRACT_JS="$EV_REPO_ROOT/plugins/flow/bin/lib/eval/contract.js"
 
-EV_FALLBACK_TAGS="quality routing invariant needs-bash"
+EV_FALLBACK_TAGS="quality routing invariant needs-bash xhard"
 if [ -f "$EV_CONTRACT_JS" ]; then
 	EV_VALID_TAGS=$(cd "$EV_REPO_ROOT" && node -e "console.log(require('./plugins/flow/bin/lib/eval/contract.js').TAGS.join(' '))" 2>/dev/null)
 	[ -n "$EV_VALID_TAGS" ] || EV_VALID_TAGS="$EV_FALLBACK_TAGS"
@@ -296,4 +296,17 @@ t_pipeline_fix_bug_postcheck_executable_mentions_unittest() {
 		_fail "pipeline-fix-bug postcheck.sh is executable" "missing or not executable: $p"
 	fi
 	assert_contains "$(cat "$p" 2>/dev/null)" "unittest" "pipeline-fix-bug postcheck.sh mentions unittest"
+}
+
+t_case_selfcheck_xhard() {
+	local any=0 d
+	for d in "$EVALS_DIR"/xhard-*/; do
+		[ -d "$d" ] && any=1
+	done
+	if [ "$any" -eq 0 ]; then
+		printf '  skip t_case_selfcheck_xhard (no evals/xhard-* case yet)\n'
+		return
+	fi
+	run_cmd "$SCAN_DIR/case-selfcheck"
+	assert_rc 0 "case-selfcheck passes every xhard case"
 }

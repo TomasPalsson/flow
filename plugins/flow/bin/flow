@@ -156,7 +156,7 @@ ${C.accent}Commands:${C.reset}
   install [--dry-run] [--dotfiles <path>] [--marketplace <path>] [--force]
                                                      Deploy the harness on this machine
                                                      (idempotent); ends by running doctor
-  check [--fix]                                     Run project quality gates (check-all)
+  check [--fix] [--since <ref>]                     Run project quality gates (check-all; --since scopes lint/format)
   skills-lint                                       Run ~/.claude/scripts/skills-lint
   next [--json] [--force] [--peek]                  Print the one thing to do next, from
                                                      .specs/ and git alone (14 states; --json

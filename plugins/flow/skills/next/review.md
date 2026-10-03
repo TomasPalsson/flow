@@ -21,6 +21,8 @@ Each reviewer gets the brief path and the diff path, and nothing else. It must *
 
 **Which lenses run where is fixed, never a per-run choice**: `building` runs exactly **correctness + gaming + slop** on each task diff — the trio the saved `build-slices` workflow is pinned to, so every mode reviews a task identically. `gating` runs **all five** on the branch diff, matching `review-diff`'s defaults. A task-level security or cross-file worry is not dropped, it is caught at `gating` where the whole branch is visible.
 
+**One question per task, under correctness**: name one plausible wrong implementation of this task (error swallowed, boundary off by one, prefix match with no separator, running total from zero) — would these tests fail on it? A no is a finding.
+
 **Self-commit protocol**: each reviewer states, before reporting, what it checked and what it deliberately did **not** check and why. A lens with no findings returns `verdict: CLEAN` and its `checked` list — **empty is a legitimate result**, and a reviewer that reads silence as failure manufactures the difference.
 
 ## Finding shape and severity
@@ -30,6 +32,8 @@ Every finding: `{ predicate, severity, file, line, scenario, receipt }` — `sce
 - **fatal** — wrong behavior, data loss, security. Blocks the task.
 - **significant** — a correctness risk or a missing test for a P0 behavior. Blocks the task.
 - **minor** — style or preference. Recorded, never blocking; at most 3 per review.
+
+Whole-branch lens: a hunk that changes pre-existing lines outside the feature (a formatter's or not) is a finding, and a gate-fix commit does not exempt it. Any changed or removed line in an existing test file is severity **fatal** and blocks the task.
 
 Reviewer `verdict` is one of `CLEAN` / `FINDINGS` / `BLOCKED` (could not read the diff).
 

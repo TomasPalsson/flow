@@ -21,6 +21,6 @@ Independent test: `pytest tests/test_ui.py` — green with the API untouched.
 - [ ] CHK011 human-verify the filter chip at 375px in dark mode — files: src/ui/chip.tsx — verify: human: user says the chip wraps and stays legible
 
 ## Gates
-- [ ] G001 project gates clean — files: . — verify: `flow check --fix`
+- [ ] G001 project gates clean — files: . — verify: `flow check --fix --since 4f2a91c`
 - [ ] G002 branch review clean — files: . — verify: `flow pass`
 - [ ] G003 verification evidence exists — files: . — verify: `test -s verify/`

@@ -1,6 +1,6 @@
 ---
 name: evaluation-rubric
-description: The complete scoring rubric for the design evaluator subagent. 6 weighted dimensions with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
+description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
 ---
 
 # Evaluation Rubric — For the Evaluator Subagent
@@ -94,7 +94,7 @@ Severity is a function of three factors:
 
 ---
 
-## The 6-Dimension Composite Rubric
+## The 7-Dimension Composite Rubric
 
 ### Scoring Scale (all dimensions)
 
@@ -110,7 +110,7 @@ Half-scores permitted (1.5, 2.5, 3.5, 4.5). Every score must be accompanied by a
 
 ---
 
-### Dimension 1: Usability — Weight 25%
+### Dimension 1: Usability — Weight 20%
 
 Grade via Nielsen's 10 heuristics with severity logging.
 
@@ -134,7 +134,7 @@ Usability score: X/5 — [rationale]
 
 ---
 
-### Dimension 2: Composition and Visual Hierarchy — Weight 20%
+### Dimension 2: Composition and Visual Hierarchy — Weight 15%
 
 **Sub-dimensions (score each 1-5):**
 
@@ -150,19 +150,19 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 3: Color and Typography — Weight 20%
+### Dimension 3: Color and Typography — Weight 15%
 
 **Color sub-criteria (each = 1 point):**
 - [ ] Palette limited to ≤5 hues
 - [ ] OKLCH or systematic palette (not ad hoc)
 - [ ] Color reinforces semantic meaning consistently
 - [ ] **NOT indigo/purple as primary unless brand-justified**
-- [ ] **NO pure black, NO pure white**
+- [ ] **NO pure black, NO pure white** (unless a dossier directive, the brand system or the platform specifies it)
 - [ ] **NO gray text on colored backgrounds**
 - [ ] WCAG AA contrast (4.5:1 body, 3:1 large/UI)
 
 **Typography sub-criteria (each = 1 point):**
-- [ ] **NOT Inter/Roboto/Arial/system-ui/Space Grotesk as default**
+- [ ] **NOT Inter/Roboto/Arial/system-ui/Space Grotesk as default** (unless a dossier directive, the brand system or the platform specifies it)
 - [ ] Fonts with ≥5 weights
 - [ ] Body line-height 1.4-1.6
 - [ ] Display line-height 1.0-1.2
@@ -180,7 +180,7 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 4: Interaction and Flow — Weight 20%
+### Dimension 4: Interaction and Flow — Weight 15%
 
 **States to check (9 possible):**
 1. Default
@@ -257,15 +257,44 @@ Triage into three buckets:
 
 ---
 
+### Dimension 7: Project Specificity and Signature Element — Weight 20%
+
+Asks whether this design could only belong to this project. Inputs: the build, screenshots, and (if supplied) the project dossier (`dossier.json`), which is evidence about the client and may be used. Observations first, score second.
+
+**Observe before scoring:**
+- **Signature element**: read the contract's `HERO TREATMENT` and `DIRECTIVES` lines when present and name the element per treatment, citing source file and dossier fact ids: `scene`/`pattern` = the drawn or generated device at hero scale and one other scale; `photography` = the named dossier assets plus the art-direction rule (crop, sequence, grade); `product-ui` = the real capture and the workflow it shows; `typography` = the lettering idea and the fact it carries; `data-visual` = the chart and the data it encodes; `utility` = judged at detail scale (numerals, empty states, icons, copy), where a FAIL is a fix item, never a rebuild. None, or only abstract decoration (gradient blob, mesh, noise hero, stock icon set) → say so.
+- Subject swap: name a same-category business in another town. List every graphic, headline, label and control that would become false for it. Count them.
+- does at least one visual encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact. Also PASS when the hero visual is the client's own dossier asset.
+- Controls in the design's material (persuade/experience; operate surfaces keep platform conventions and are judged on tokens): nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
+- Would the paying customer in the dossier's audience find the look credible for this trade? Name the specific element if not.
+- **Art craft (screenshots only)**: no faces drawn on objects (food, products), mascots or emoji-blobs; real photographed faces are fine; subjects distinguishable at thumbnail size; style consistent. Photography and product-ui add fidelity (no filter, blend or overlay on client images), natural resolution at least 1.5x rendered, and crop (focal subject not cut by the nav). No screenshots → "Cannot determine from source alone".
+- Richness against the benchmark (When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment)): ara-bar = the restaurant at night (mountain ridge, stars, clad facade, lit windows, diner silhouettes, a street lamp; 10+ drawn objects, 3+ depth layers, a light source; brand painted on the sign, real phone number in the art). hitataekni = a full blueprint sheet (grid, bordered sheet with coordinates, a traced unit, dimension lines, callout bubbles, title block with the real name, founding year, address, emergency number). Check the hero: a scene or sheet covering >=55% of the 1440x900 first viewport (>=45% at 390x844); >=5 distinct subject objects over >=3 depth layers; headline set into the art; >=2 dossier facts inside the art. Richness floor: filled shapes, one consistent light source, texture, people or traces of use, 4 to 7 inks. Page budget: >=3 more drawn plates tied to different fact groups, plus micro-scale marks. Under the scene treatment a text-only, single-icon, empty-grid or boxed-diagram hero is a FAIL for persuade and caps this dimension at 2. Measure with `vary/scripts/fold-check.mjs <built page> --mode <mode> --treatment <HERO TREATMENT from the contract>` when a build exists.
+- Named fold checks (When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment); report each as PASS/FAIL with the fold-check line): (1) **Text collisions** (`collisions-desktop`, `collisions-phone`): no visible text box, HTML or svg `<text>`, overlaps another or is more than 30% covered by an opaque later-painted element; name the two texts on a FAIL. (2) **Dead zone** (`dead-zone`): no near-uniform-colour rectangle larger than 20% of the desktop fold; cite its size and position. (3) **Card over art** (`card-over-art-desktop`, `card-over-art-phone`): no translucent (alpha < 0.95), backdrop-filter or solid-background element with text covering more than 6% of the hero art area; headline, phone, hours and the primary action live on drawn surfaces inside the art (a sign, plate or title block in the svg is fine), never on a card floating over it. (4) **Art down the page** (`art-down-page`): at least 60% of the sections below the fold (contact/footer excluded) carry a drawn plate at least 40% of their width. (5) **Full bleed** (`full-bleed-desktop`, `full-bleed-phone`): the hero art box spans at least 95% of the viewport width with margins of at most 3% each side; a framed picture, card or polaroid with page margins fails; name the art box and its margins. (6) **Rendering depth** (`rendering-depth`): in the desktop hero art area the luminance range p95 - p5 is at least 90 and at least 5 of 16 luminance bins hold at least 2% of the pixels; flat fills with thin uniform strokes read as clip art. The flat-block texture number is printed for the report but not gated. (7) **Plate size** (`plates-size`): at least 50% of the below-fold section plates are at least 35% of the section width, at least 280px tall and carry at least 3 value steps; name the thin, small or pale ones. In persuade/experience any of these seven FAILing is a Specificity FAIL under P6 and is listed in the fix batch; in operate/read only the collisions check gates and the others are informational. For any other treatment, quote only the fold rows `fold-check.mjs` marks as gated for that treatment (rows printed `[INFO]` are not gated); a missing line is a RECAPTURE only if its row is gated. Native platforms (ios/android): device screenshots, fold rows N/A.
+- **Directive compliance**: list each `DIRECTIVES` line (the user's own words, e.g. "no illustrations", "black and white", "use our photos") and mark it kept or broken with evidence. A broken directive caps this dimension at 2 and is a critical issue. Directives outrank this skill's bars; a build that obeys a directive is not marked down for the bar it suspends.
+
+**Scoring table:**
+| Score | Anchor |
+|-------|--------|
+| 1 | No project-specific visual (no drawn, photographed, captured, typographic or data element from this project); stock icons or none; copy and visuals survive a competitor swap whole. |
+| 2 | Decorative effects only (gradient mesh, noise, blobs); one or two real facts in copy. |
+| 3 | One project-specific element (graphic, capture, lettering or chart), but generic (could be any pizzeria or any HVAC firm) or appearing once only. |
+| 4 | A signature element per treatment (drawn device, cited client assets with a direction rule, the real capture and workflow, a lettering idea tied to a fact, or the chart and its data) from cited facts, at 2 or more scales, with controls in the design's material; the subject swap lists 3 or more false items. |
+| 5 | As 4, plus the visual carries real data, the first viewport announces the concept, and the art is clean at thumbnail size. |
+
+Score 2 or below is a critical issue and returns the work to Phase 1 (purpose, dossier, concept), except under utility, when Phase 1 was skipped (component, critique, polish, audit), or for a broken directive, which go to Phase 3 fix items.
+
+---
+
 ## Composite Score Calculation
 
 ```
-Composite = (Usability × 0.25)
-          + (Composition × 0.20)
-          + (Color+Type × 0.20)
-          + (Interaction × 0.20)
+Composite = (Usability × 0.20)
+          + (Composition × 0.15)
+          + (Color+Type × 0.15)
+          + (Interaction × 0.15)
           + (Accessibility × 0.10)
           + (Microcopy × 0.05)
+          + (Specificity × 0.20)
 ```
 
 | Composite | Grade | Meaning |

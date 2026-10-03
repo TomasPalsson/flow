@@ -5,9 +5,10 @@ set -u
 
 usage() {
   cat <<'EOF'
-Usage: review-package <base> [<head>] [--out <path>]
+Usage: review-package (<base> [<head>] | <base>..<head>) [--out <path>]
 
-<head> defaults to HEAD. Verifies both refs with `git rev-parse --verify`.
+<head> defaults to HEAD. A single <base>..<head> argument is the same as two arguments;
+the symmetric <base>...<head> is refused (it means merge-base, which this diff is not). Verifies both refs with `git rev-parse --verify`.
 Writes to --out (default .claude/review/<base-short>..<head-short>.diff):
   git log --oneline base..head
   (blank line)
@@ -60,6 +61,19 @@ if [ -z "$BASE" ]; then
   usage >&2
   exit 1
 fi
+case "$BASE" in
+*...*)
+  printf 'review-package: %s: three-dot ranges are not supported; use <base>..<head>\n' "$BASE" >&2
+  exit 1
+  ;;
+*..*)
+  if [ -z "$HEAD_REF" ]; then
+    HEAD_REF=${BASE#*..}
+    BASE=${BASE%%..*}
+    [ -z "$HEAD_REF" ] && HEAD_REF="HEAD"
+  fi
+  ;;
+esac
 [ -z "$HEAD_REF" ] && HEAD_REF="HEAD"
 
 if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then

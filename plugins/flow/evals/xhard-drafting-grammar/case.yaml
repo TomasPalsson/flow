@@ -1,0 +1,40 @@
+schema_version: "1.1"
+name: xhard-drafting-grammar
+description: "/flow:next in the drafting state: spec.md has five acceptance criteria, two of which (AC-1, AC-3) land in the same file and so cannot be [P] together in one wave, and one (AC-5, a table lining up in 80 columns) that only a human can judge. Traps: (pipeline) TASKS.md must pass flow lint with no warnings (disjoint [P], files: with no globs, a runnable verify:), carry a real Base sha instead of the template's placeholder, map EVERY acceptance criterion to a Behaviors row, turn the human criterion into a CHK### with a human: verify, write NO Approved: line (that belongs to the unapproved gate, never to drafting), leave the router on unapproved, and end with the /clear line; (code) not one source or test file may change and spec.md stays byte-identical: drafting is not building."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next"
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: tasks-written
+    type: file_exists
+    path: ".specs/001-low-stock-report/TASKS.md"
+  - name: no-approved-line
+    type: regex
+    target: { source: file, path: .specs/001-low-stock-report/TASKS.md }
+    pattern: "(^|\\n)\\s*Approved:"
+    match: not_contains
+  - name: human-criterion-becomes-a-checkpoint
+    type: regex
+    target: { source: file, path: .specs/001-low-stock-report/TASKS.md }
+    pattern: "CHK\\d{3}[^\\n]*verify: human:"
+    match: contains
+  - name: router-state-read-first
+    type: regex
+    target: trace
+    pattern: "drafting"
+    match: contains
+  - name: turn-ends-with-the-clear-line
+    type: regex
+    target: trace
+    pattern: "Next: /clear, then /flow:next"
+    match: contains
+  - name: every-criterion-covered
+    type: llm
+    focus: { source: file, path: .specs/001-low-stock-report/TASKS.md }
+    criteria: "PASS if each of the five acceptance criteria in spec.md is covered by the plan: AC-1 (low_stock returns items under the threshold, sorted by qty then sku), AC-2 (default threshold 5, STOCKROOM_LOW_STOCK override, ConfigError on a non-integer), AC-3 (OUT for qty 0, LOW otherwise), AC-4 (the low-stock subcommand with --threshold beating the environment, using the existing table renderer) each map to a task with its own runnable verify and appear in a Behaviors row, AND AC-5 (table lines up in 80 columns) is a CHK### whose verify starts with human:, AND the two tasks that both need src/reports.py are ordered (after:) or not marked [P] together, AND no task builds anything the spec's non-goals rule out (forecasting, writes to the item file, notifications). FAIL if any criterion has no task or Behaviors row, if AC-5 is a runnable-command task instead of a human checkpoint, or if a task is invented outside the spec."

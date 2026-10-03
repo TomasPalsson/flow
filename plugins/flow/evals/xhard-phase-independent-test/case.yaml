@@ -1,0 +1,57 @@
+schema_version: "1.1"
+name: xhard-phase-independent-test
+description: "Building state, T003 is the last task of phase 1. T003's own verify (a unit test of the new command module) passes on its own, but the phase's `Independent test:` (tests.test_cli_e2e, already in the repo and red only for dedupe) stays red until the command is registered in app/cli.py. Pipeline trap: at the phase boundary the run must EXECUTE the Independent test, not just quote it, and fix what it finds, without touching the test or its data. Code traps: app/cli.py is a single-quote dispatch-table file while the rest of the repo is double-quoted (NS style drift), and the loader app/support/tabular.py.load_table (BOM, CRLF and blank lines) must be reused rather than a fresh csv reader (NS-20)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 100
+  timeout_seconds: 1800
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: independent-test-executed
+    type: regex
+    target: trace
+    pattern: "[\"'&;(]\\s*python3? -m unittest[^\"]*test_cli_e2e"
+    match: contains
+  - name: flow-tick-t003
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T003"
+    match: contains
+  - name: dedupe-registered-in-table
+    type: regex
+    target: { source: file, path: app/cli.py }
+    pattern: "'dedupe': *dedupe\\.run"
+    match: contains
+  - name: cli-no-double-quoted-strings-added
+    type: regex
+    target: { source: file, path: app/cli.py }
+    pattern: "\"dedupe\""
+    match: not_contains
+  - name: dedupe-reuses-load-table
+    type: regex
+    target: { source: file, path: app/commands/dedupe.py }
+    pattern: "load_table\\("
+    match: contains
+  - name: dedupe-calls-emit-table
+    type: regex
+    target: { source: file, path: app/commands/dedupe.py }
+    pattern: "emit_table\\("
+    match: contains
+  - name: dedupe-imports-from-tabular
+    type: regex
+    target: { source: file, path: app/commands/dedupe.py }
+    pattern: "app\\.support\\.tabular|from app\\.support import"
+    match: contains
+  - name: dedupe-no-own-reader
+    type: regex
+    target: { source: file, path: app/commands/dedupe.py }
+    pattern: "import csv|open\\(|read_text|pathlib"
+    match: not_contains
+  - name: phase-boundary-and-quality
+    type: llm
+    focus: { source: file, path: app/commands/dedupe.py }
+    criteria: "PASS if app/commands/dedupe.py reuses the existing load_table and emit_table helpers instead of re-reading or re-writing the table itself, adds no guard or dead branch, and carries no comment that merely restates the code. FAIL otherwise."

@@ -286,3 +286,27 @@ the file is now over 60 lines, a warning to stderr (exit stays 0).
 
 Exit codes: 0 written · 2 usage · 3 exact duplicate · 4 cannot write
 ```
+
+## case-selfcheck
+
+```
+Usage: case-selfcheck [--root <evals-dir>] [--keep] [<case-name>...]
+
+Proves each eval case can tell a no-op from a fix. Default: every
+evals/xhard-* case. Per case: shape (case.yaml, tags, executable scaffold),
+then scaffold a pristine tree — its file graders + postcheck.sh must NOT all
+pass (unless the case ships selfcheck-pristine-passes) — then scaffold again,
+run solution.sh, and every file grader + postcheck.sh must pass. llm,
+tool_used and trace graders are skipped and counted.
+Prints PASS/FAIL per case; exit 0 iff no FAIL.
+
+case-selfcheck --live [--model M] [--judge-model J] [--runs N] [-j N]
+                      [--out <dir>] [--keep] [--ledger] [<case-name>...]
+
+Runs the cases headless with `claude -p` outside the plugin-eval sandbox, in
+throwaway trees, with this checkout's plugin bin first on PATH. Grades regex,
+tool_used, llm (headless judge), file graders and postcheck.sh. One
+`LIVE <case> score=.. post=.. turns=.. cost=$.. <secs>s` line per run, results in
+<out>/results.json. --ledger appends one line to evals/ledger.jsonl.
+Exit 0 iff every run passed, 1 otherwise, 2 on setup errors. Spends money.
+```

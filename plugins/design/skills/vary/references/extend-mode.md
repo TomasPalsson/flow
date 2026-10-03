@@ -5,6 +5,8 @@ description: What to do when the repo already has a visual system (DESIGN.md, to
 
 # Extend mode
 
+`<VARY>` below is the base directory defined in SKILL.md Step 1: use it literally, never search the filesystem for the scripts, never run a copy under `~/.claude/plugins`.
+
 Visual authority is evidence, not a filename. A missing DESIGN.md does not make a project greenfield: a coherent identity already in code (tokens, a themed config, consistent components across pages) is the strongest possible lock. A local addition inherits its surface; it never becomes a new identity exercise.
 
 ## 1. Detect
@@ -16,7 +18,7 @@ Look for, in this order: `DESIGN.md` or `design.md`; a token file (`tokens.*`, `
 | Situation | Roll? | Command |
 |---|---|---|
 | New component / section / state inside an existing page | No | — |
-| New whole page inside an established system | Skeleton only | `node roll.mjs --mode <m> --lock display=<id> --lock body=<id> --lock palette=#<brand>`; if the system's fonts are not catalog ids, run `--canon` for the skeleton and keep the system's faces |
+| New whole page inside an established system | Skeleton only | `node <VARY>/scripts/roll.mjs --mode <m> --lock display=<id> --lock body=<id> --lock palette=#<brand>`; if the system's fonts are not catalog ids, run `--canon` for the skeleton and keep the system's faces |
 | Redesign explicitly requested ("replace the look") | Yes, full roll | Treat the old look as evidence of what the subject is, not authority over what it becomes; replace DESIGN.md at the end from the built result |
 | Incomplete brand (a logo and one hex) | Yes, with locks | `--lock palette=#hex`; the roll supplies world, skeleton and type |
 
@@ -26,7 +28,7 @@ Never split the difference: polish on a discarded look, or a new identity smuggl
 
 The system owns palette, type and components. The page still has to be designed:
 
-- **Skeleton**: the archetype is a free axis. A docs page in an existing system can be an index-list or a broadsheet; a settings page can be card-less tables. Pick from `data/archetypes.json` by the surface's mode; do not default to the system's other pages' skeleton unless consistency is the explicit brief.
+- **Skeleton**: the archetype is a free axis. A docs page in an existing system can be an index-list or a broadsheet; a settings page can be card-less tables. The roll chooses the skeleton: `roll.mjs --lock ...` (never pick from `data/archetypes.json` yourself) by the surface's mode; do not default to the system's other pages' skeleton unless consistency is the explicit brief.
 - **Spacing rhythm and density** tuned to this page's content, inside the token scale.
 - **The one authored motion moment**, in the system's easing.
 - **States**: empty, error, loading and success screens designed for this page's real cases, in the system's vocabulary.
@@ -34,7 +36,7 @@ The system owns palette, type and components. The page still has to be designed:
 - **Copy** that only this product could say; buttons that name outcomes.
 - **Numerals and data typography** where the page carries figures.
 
-Then Step 3 onward of SKILL.md applies unchanged (build fully, `check.mjs`, separate evaluation). The evaluator receives a contract block written by hand in the same field order, with WORLD set to `system: <name>` and GRAMMAR listing the system's own rules as found in code.
+Step 3a applies only if the system's existing pages use that treatment. Record `HERO TREATMENT:` in the hand-written contract as what the system already does. Icons come from the system. Then Step 3 onward of SKILL.md applies (build fully, `node <VARY>/scripts/check.mjs`, separate evaluation). The evaluator receives a contract block written by hand in the same field order, with WORLD set to `system: <name>` and GRAMMAR listing the system's own rules as found in code.
 
 ## 4. Recording
 

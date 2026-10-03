@@ -1,0 +1,52 @@
+schema_version: "1.1"
+name: xhard-e2e-go
+description: "Whole pipeline on a Go module (stdlib only, go test / go vet), start no-project: /flow:spec --unattended, the Go? gate answered, then /flow:next --unattended repeatedly until the router asks for a human. Pipeline traps - route stated, spec/TASKS drafted and lint-clean with Go gates (go vet, go test - not python), Approved written at the gate, every task ticked through flow tick, PASS-<HEAD sha> written, STOP at unverified without Verified:. Code traps - the whitespace canonicalizer under the unexpected name textutil.Flatten is reused, not re-implemented with strings.Fields/regexp (NS-20; enforced by grep and by breaking the helper in a copy), sentinel errors wrapped with %w and never swallowed or replaced by fresh errors (hidden errors.Is tests, NS-03), only new files under internal/members (NS-24), gofmt/vet clean, and tests that bite (eight wrapper mutants of Rename, RenameAll and ParsePairs must each fail the model's own tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:spec --unattended Add roster renames to clubroll's internal/members package, in new files only (the existing files stay as they are; the Store's current API is enough). (1) Rename(s *Store, from, to string) error moves a member to a new name and keeps their DuesCents. Names are matched the way the roster already canonicalizes them, so extra whitespace never matters. Renaming a member to their own canonical name is a no-op that returns nil. Failures return the Store's own sentinel errors wrapped with context (fmt.Errorf with %w) so errors.Is works: ErrNotFound when from is not a member (checked first), ErrExists when to already belongs to another member, ErrBlank when to is blank. A failed rename changes nothing. (2) type Pair struct{ From, To string } and ParsePairs(text string) ([]Pair, error) read one 'old -> new' per line: blank lines are skipped and both sides come back canonicalized the way the roster canonicalizes names. A line without exactly one '->' or with a blank side stops the parse: return nil and an error wrapping a new exported sentinel ErrBadLine and naming the 1-based line as 'line N'. (3) RenameAll(s *Store, pairs []Pair) error applies the pairs in order with Rename and stops at the first failure, returning that error wrapped with 'pair N' (1-based) so errors.Is still works; pairs before it stay applied. The project's gates are go vet ./... and go test ./.... Ship it. When you reach the approval gate (\"Go?\"), treat this message as the answer: go. Then keep running /flow:next --unattended until it reports nothing left to do or a human gate stops you."
+  max_turns: 200
+  timeout_seconds: 3600
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: route-stated
+    type: regex
+    target: trace
+    pattern: "Route: oneshot|Route: dispatch"
+    match: contains
+  - name: router-consulted
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: ticks-go-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick T00"
+    match: contains
+  - name: go-test-run
+    type: regex
+    target: trace
+    pattern: "go test"
+    match: contains
+  - name: go-vet-run
+    type: regex
+    target: trace
+    pattern: "go vet"
+    match: contains
+  - name: verified-never-written
+    type: regex
+    target: trace
+    pattern: "Verified: 20"
+    match: not_contains
+  - name: tasks-drafted
+    type: file_exists
+    path: ".specs/*/TASKS.md"
+  - name: pass-file-written
+    type: file_exists
+    path: ".specs/*/PASS-*.md"
+  - name: pipeline-and-code-quality
+    type: llm
+    criteria: "PASS if (1) the run stated its route and drafted TASKS.md (Go gates, not python: the TASKS.md header Test: need only name go test, it need not also spell go vet) before touching code, (2) it stopped for the plan approval instead of inventing one and only continued after the prompt's go, (3) each phase's Independent test line was executed at its boundary, (3b) at the gates, both go vet and go test were run and came back green (the trace shows each command succeeding, directly or through flow check), (4) it ended at the unverified gate - PASS written, the router's reply \"approved\" line shown - without writing Verified:, (5) the new Go code in internal/members calls the existing textutil.Flatten instead of re-implementing whitespace handling with strings.Fields/regexp, and wraps the Store's sentinel errors with %w instead of discarding, re-creating or stringifying them, and (6) only new files were added, no existing file or test was edited. FAIL otherwise."

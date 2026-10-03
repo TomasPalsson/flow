@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="is"><head><meta charset="utf-8"><title>ARA</title><link rel="stylesheet" href="art.css"></head>
+<body>
+<!--
+SEED KEY: demo01 · mode persuade · platform web
+WORLD: letterpress-wood-type
+CONCEPT: kvold — Kvöld á ARA — angle: the room on a dark evening — antecedent: paper menu on a wooden table
+FACTS:
+  - F1 "Formaggi — fjórir ostar, 2.490 kr" (ararestaurant.is/matsedill)
+  - F2 "Opið alla daga frá 11:30 til 22:00" (ararestaurant.is)
+  - F3 "Sími 554 3050" (storefront signage)
+FUNCTIONAL RESKIN: cart = guest-check pad
+SIGNATURE DEVICE: procedural-subject — every pizza drawn from its topping list · must appear at 3 scales
+SIGNATURE GRAPHIC: pizzas drawn by art.js from the topping lists in F1; hero, divider, bullet
+-->
+<main>
+  <h1>Formaggi fjórir ostar</h1>
+  <p>Opið alla daga frá 11:30 til 22:00. Sími 554 3050.</p>
+  <svg viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="40"/><circle cx="30" cy="40" r="5"/><circle cx="60" cy="30" r="5"/>
+    <circle cx="70" cy="60" r="5"/><circle cx="40" cy="70" r="5"/><path d="M10 10L90 90"/>
+    <path d="M10 90L90 10"/><rect x="45" y="45" width="10" height="10"/>
+  </svg>
+  <div id="art"></div>
+  <script type="module" src="art.js"></script>
+  <style>@media (prefers-reduced-motion: reduce){*{animation:none}}</style>
+</main>
+</body></html>

@@ -157,6 +157,20 @@ t_eval_dry_run_prints_pinned_models() {
 	assert_not_contains "$OUT" "--plugin-dir" "t_eval_dry_run_prints_pinned_models no-plugin-dir-without-flow-extras"
 }
 
+# t_eval_dry_run_case_filter — --case narrows the tag's selection to the named
+# case, and a name no selected case carries refuses instead of spawning nothing.
+t_eval_dry_run_case_filter() {
+	local proj home
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --dry-run --tag routing --case routing-fix-skill
+	assert_rc 0 "t_eval_dry_run_case_filter rc"
+	assert_contains "$OUT" "--case routing-fix-skill" "t_eval_dry_run_case_filter named-case"
+	assert_not_contains "$OUT" "--case quality-reuse-slugify" "t_eval_dry_run_case_filter other-case-absent"
+	ev_cli_in "$proj" "$home" eval --dry-run --tag quality --case routing-fix-skill
+	assert_rc 1 "t_eval_dry_run_case_filter unselected-name-refuses"
+}
+
 # t_eval_dry_run_loads_sibling_flow_extras — when plugins/flow-extras exists
 # beside plugins/flow in the repo, its routing skills must be loaded into the
 # same eval session via --plugin-dir (flow-extras/audit etc. need to be
@@ -166,9 +180,22 @@ t_eval_dry_run_loads_sibling_flow_extras() {
 	proj=$(ev_repo)
 	mkdir -p "$proj/plugins/flow-extras/skills"
 	home=$(tmp_dir)
-	ev_cli_in "$proj" "$home" eval --dry-run --tag quality
+	ev_cli_stub_in "$proj" "$home" "$(ev_fakebin)" eval --dry-run --tag quality
 	assert_rc 0 "t_eval_dry_run_loads_sibling_flow_extras rc"
 	assert_contains "$OUT" "--plugin-dir plugins/flow-extras" "t_eval_dry_run_loads_sibling_flow_extras plugin-dir-forwarded"
+}
+
+# t_eval_dry_run_skips_plugin_dir_the_cli_lacks — a claude whose `plugin eval`
+# has no --plugin-dir gets none (it would reject the whole run) and a notice.
+t_eval_dry_run_skips_plugin_dir_the_cli_lacks() {
+	local proj home
+	proj=$(ev_repo)
+	mkdir -p "$proj/plugins/flow-extras/skills"
+	home=$(tmp_dir)
+	CLAUDE_STUB_NO_PLUGIN_DIR=1 ev_cli_stub_in "$proj" "$home" "$(ev_fakebin)" eval --dry-run --tag quality
+	assert_rc 0 "t_eval_dry_run_skips_plugin_dir_the_cli_lacks rc"
+	assert_not_contains "$OUT" "--plugin-dir plugins/flow-extras" "t_eval_dry_run_skips_plugin_dir_the_cli_lacks no-plugin-dir"
+	assert_contains "$OUT" "flow-extras skills are not loaded" "t_eval_dry_run_skips_plugin_dir_the_cli_lacks notice"
 }
 
 # t_eval_dry_run_routing_case_gets_no_allow_tools — the flip side: a case

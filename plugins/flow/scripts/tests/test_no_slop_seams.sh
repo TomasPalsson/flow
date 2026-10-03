@@ -127,3 +127,31 @@ t_slopseam_execution_prompt_refactor_slopcheck_run() {
 	section=$(section_of "$EXEC_PROMPT" "REFACTOR")
 	assert_contains "$section" "slop-check" "execution-prompt.md REFACTOR names the slop-check run"
 }
+
+# O5 — the brief carries the RED rule and an absolute slop-check path.
+t_slopseam_brief_has_a_tests_section_with_the_red_rule() {
+	local d out
+	d=$(tmp_dir)
+	out="$d/brief.md"
+	bash "$TASK_BRIEF" "$FIX/tasks-good.md" T002 --out "$out" >/dev/null
+	assert_contains "$(cat "$out")" "## Tests" "task-brief output has a Tests section"
+	assert_contains "$(cat "$out")" "ONE assertion per item" "the Tests section states one assertion per boundary case"
+	assert_contains "$(cat "$out")" "> for >=" "the Tests section names the wrong implementations to catch"
+}
+
+t_slopseam_brief_names_slop_check_by_absolute_path() {
+	local d out line
+	d=$(tmp_dir)
+	out="$d/brief.md"
+	bash "$TASK_BRIEF" "$FIX/tasks-good.md" T002 --out "$out" >/dev/null
+	line=$(grep -- '--base' "$out" | grep 'slop-check' | tail -1)
+	case "$line" in
+	/*/skills/no-slop/scripts/slop-check\ --base\ *) _pass "slop-check command is absolute" ;;
+	*) _fail "slop-check command is absolute" "got: $line" ;;
+	esac
+	if [ -x "${line%% --base*}" ]; then
+		_pass "the named slop-check exists and is executable"
+	else
+		_fail "the named slop-check exists and is executable" "$line"
+	fi
+}

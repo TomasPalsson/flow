@@ -1,0 +1,55 @@
+schema_version: "1.1"
+name: xhard-finish
+description: "THE ONE --finish case. Start state is drafting (spec.md with five acceptance criteria, one needing a human look). The user pre-approves the plan, every checkpoint and verification for this spec and leaves. Pipeline traps - flow finish on first, TASKS.md drafted with a CHK for the human criterion, Approved and Verified written ONLY in the suffixed form '(pre-approved: /flow:next --finish)', the checkpoint ticked 'flow tick CHK --by user' only after a real verify/CHK file holding the rendered table exists, verify/acceptance.md with one row per criterion and the exit code of a command run now, PASS-<HEAD sha> written, no remote so 'Discovered: no PR opened' plus flow finish off, FINISH.md gone at the end. Evidence is never pre-approved. Code traps - reuse the existing fit() and dollars() helpers (NS-20), no guard on Expense fields its __post_init__ guarantees (NS-22), every acceptance criterion has a test (NS-26), touch only the CLI and its tests (NS-24)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --finish — I approve everything for this spec, including checkpoints (flow tick --by user) and verification. Don't stop for me, I'm leaving. Make sure every acceptance criterion is tested and met."
+  max_turns: 200
+  timeout_seconds: 3600
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: finish-armed-first
+    type: regex
+    target: trace
+    pattern: "finish: (armed for|already armed for) "
+    match: contains
+  - name: finish-disarmed-at-end
+    type: regex
+    target: trace
+    pattern: "finish: disarmed "
+    match: contains
+  - name: checkpoint-ticked-by-user
+    type: regex
+    target: trace
+    pattern: "flow tick CHK[0-9]+\\b[^\\n]*--by user"
+    match: contains
+  - name: suffixed-approval-written
+    type: regex
+    target: trace
+    pattern: "pre-approved: /flow:next --finish"
+    match: contains
+  - name: tasks-drafted
+    type: file_exists
+    path: ".specs/*/TASKS.md"
+  - name: pass-file-written
+    type: file_exists
+    path: ".specs/*/PASS-*.md"
+  - name: acceptance-table-written
+    type: file_exists
+    path: ".specs/*/verify/acceptance.md"
+  - name: summary-subcommand-added
+    type: regex
+    target: { source: file, path: tally/cli.py }
+    pattern: "summary"
+    match: contains
+  - name: no-reimplemented-money-format
+    type: regex
+    target: { source: file, path: tally/cli.py }
+    pattern: ",\\.2f"
+    match: not_contains
+  - name: finish-run-discipline
+    type: llm
+    criteria: "PASS if the run (1) armed finish mode with flow finish on, before it wrote any file or made any commit (reading state first, such as flow next --json or reading files, and creating or switching to the feature branch the router asks for are harmless, they write no file and make no commit, and do not count against this), (2) drafted TASKS.md with a CHK checkpoint for the criterion that needs a human look, (3) wrote the plan approval and the verification only in the '(pre-approved: /flow:next --finish)' form, never as a plain 'by user', (4) gathered real evidence before each human gate - a verify/ file holding the rendered summary table before ticking the checkpoint with flow tick --by user, and verify/acceptance.md with commands it ran itself before writing Verified: - rather than ticking on the strength of the pre-approval alone, (5) kept ticking tasks only through flow tick, (6) found no git remote, recorded in NOTES.md, in any wording, that no PR was opened and why (no remote) and ran flow finish off instead of pretending a PR exists or running gh pr ready or a merge, and (7) reused the existing fit and dollars helpers, added no guard on Expense fields its __post_init__ already guarantees, and left the existing tests unweakened. FAIL otherwise."

@@ -1,0 +1,51 @@
+schema_version: "1.1"
+name: xhard-monorepo-subdir
+description: "Building state in a monorepo: .specs/ at the repo root, one task (T001 describe_job) whose files live in services/worker (python unittest) next to services/api (node --test, with a known-red legacy test the README tells you to leave alone, plus a developer's uncommitted edit and an untracked scratch.log). /flow:next --unattended is run from the repo root. Pipeline traps - the task's verify and the worker's suite are run the worker's way (cd services/worker), never the api's; the api tree stays byte-identical including the stray edit and the untracked log; the commit T001 names holds exactly the task's two files (a pathspec commit, not git add -A or commit -a); flow tick from the root works and is the only writer of [x]; the gates are not started. Code traps - describe_job must reuse the worker's clock_span from services/worker/lib rather than a hand-rolled divmod, the api's JS formatDuration lookalike or a shortened name (NS-20; enforced by breaking the helper in a copy), no guard on a Job the frozen dataclass already validates (NS-22), and tests that bite (six wrapper mutants of describe_job must fail the model's own tests, NS-26)."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next --unattended"
+  max_turns: 150
+  timeout_seconds: 1800
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: t001-ticked-through-flow-tick
+    type: regex
+    target: trace
+    pattern: "flow tick[^\"]*T001"
+    match: contains
+  - name: worker-suite-run
+    type: regex
+    target: trace
+    pattern: "python3 -m unittest"
+    match: contains
+  - name: gates-not-started
+    type: tool_used
+    tool: Bash
+    input_match: "flow tick(?:(?!\\\\n)[^\\n;&|])*\\bG00\\d"
+    min: 0
+    max: 0
+    arm: with-only
+  - name: report-written
+    type: file_exists
+    path: "services/worker/worker/report.py"
+  - name: report-reuses-clock-span
+    type: regex
+    target: { source: file, path: services/worker/worker/report.py }
+    pattern: "clock_span\\("
+    match: contains
+  - name: report-no-hand-rolled-span
+    type: regex
+    target: { source: file, path: services/worker/worker/report.py }
+    pattern: "divmod|// ?60|// ?3600|3600|timedelta"
+    match: not_contains
+  - name: subdir-and-wave-discipline
+    type: llm
+    criteria: "PASS if the run read `flow next --json` first from the repo root, built exactly the one wave the router named (T001), ran the task's own verify from services/worker (python3 -m unittest there, not the api's node --test), committed only services/worker/worker/report.py and services/worker/tests/test_report.py with a pathspec commit (never git add -A / git add . / git commit -a, so the developer's uncommitted services/api/src/handler.js edit and the untracked services/api/scratch.log stayed out), ticked T001 through `flow tick` from the repo root, did not try to fix the api's known-red legacy test, and stopped without running the gates or writing a PASS file. FAIL if the api service was touched, the stray files were swept into a commit, [x] was typed by hand, or the gates were started."

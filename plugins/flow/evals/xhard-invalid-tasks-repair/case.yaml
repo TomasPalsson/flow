@@ -1,0 +1,27 @@
+schema_version: "1.1"
+name: xhard-invalid-tasks-repair
+description: "Malformed plan: T001 and T002 are both [P] in the same wave and both own app/scaling.py, so flow lint reports a parallel-overlap ERROR and the router says invalid (the plan is already Approved). Pipeline traps: print the first lint error with its fix, repair TASKS.md minimally (add after: T001 to T002 or drop one [P]), keep every task's id, description, files, verify and the valid [P] pair T003/T004 byte-identical, leave Approved: and Base: alone, do NOT build any task this turn (no source, no tests, no commit, no tick) and stop with the /clear line. Code trap: scale_grams/scale_recipe are so small that building T001 right away is tempting; the units.py grams_to_ounces decoy is unrelated."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:next"
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, Agent]
+graders:
+  - name: router-read-first
+    type: regex
+    target: trace
+    pattern: "flow next|## Repo state"
+    match: contains
+  - name: relinted-after-repair
+    type: tool_used
+    tool: Bash
+    input_match: "flow lint"
+    min: 1
+    arm: with-only
+  - name: repair-and-stop
+    type: llm
+    criteria: "PASS if the run reported the lint ERROR (T001 and T002 both [P] and both own app/scaling.py), repaired TASKS.md minimally by serializing T002 behind T001 (after: T001) or dropping one [P] marker, re-ran flow lint to prove it clean, left every task's description, files and verify and the Approved: and Base: header untouched, and then STOPPED without building any task (no source or test file written, no commit, no tick), ending on the line 'Next: /clear, then /flow:next'. FAIL if it started building, ticked anything, rewrote or dropped tasks, or edited Approved:/Base:."

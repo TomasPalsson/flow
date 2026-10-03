@@ -1081,3 +1081,373 @@ t_shared_diff_scope_json_wins_over_pretty() {
 	assert_not_contains "$OUT" "git change analysis" "t_shared_diff_scope_json_wins_over_pretty no-pretty-header"
 	rm -rf "$d"
 }
+
+# ---------------------------------------------------------------------------
+# check-all --since <ref> — gate only what the feature changed
+# ---------------------------------------------------------------------------
+
+# _ss_since_fixture <dir> — committed python repo: old.py carries lint AND format
+# debt, a stub .venv/bin/pytest leaves a sentinel; the repo is left clean.
+_ss_since_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	mkdir -p "$d/.venv/bin"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	printf 'import os\nx  =  1\n' >"$d/old.py"
+	printf '#!/bin/sh\ntouch "$PWD/pytest-ran"\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\npytest-ran\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_ignores_debt_in_untouched_file() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'y = 2\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue
+	assert_rc 1 "t_shared_check_all_since_ignores_debt_in_untouched_file unscoped-red"
+
+	rm -f "$d/pytest-ran"
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ignores_debt_in_untouched_file since-green"
+	assert_contains "$OUT" '"since": "HEAD"' "t_shared_check_all_since_ignores_debt_in_untouched_file since-field"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"scope": "changed"' "t_shared_check_all_since_ignores_debt_in_untouched_file scope"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_ignores_debt_in_untouched_file file-count"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "test"')" '"scope": "all"' "t_shared_check_all_since_ignores_debt_in_untouched_file test-scope"
+	assert_eq "$([ -e "$d/pytest-ran" ] && echo ran)" "ran" "t_shared_check_all_since_ignores_debt_in_untouched_file tests-still-run"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_changed_file_with_lint_error_is_red() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'import sys\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_changed_file_with_lint_error_is_red rc"
+	assert_contains "$(_ss_gate "$OUT" lint)" '"status": "fail"' "t_shared_check_all_since_changed_file_with_lint_error_is_red lint-red"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_fix_rewrites_only_changed_files() {
+	local d before
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	before=$(cat "$d/old.py")
+	printf 'z  =  3\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_rc 0 "t_shared_check_all_since_fix_rewrites_only_changed_files rc"
+	assert_eq "$(cat "$d/old.py")" "$before" "t_shared_check_all_since_fix_rewrites_only_changed_files untouched-identical"
+	assert_eq "$(cat "$d/new.py")" "z = 3" "t_shared_check_all_since_fix_rewrites_only_changed_files changed-formatted"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_no_changed_files_skips_lint_and_format() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_no_changed_files_skips_lint_and_format rc"
+	assert_contains "$(_ss_gate "$OUT" lint)" '"status": "skipped"' "t_shared_check_all_since_no_changed_files_skips_lint_and_format lint"
+	assert_contains "$(_ss_gate "$OUT" format)" '"status": "skipped"' "t_shared_check_all_since_no_changed_files_skips_lint_and_format format"
+	assert_contains "$OUT" 'skipped (no changed files)' "t_shared_check_all_since_no_changed_files_skips_lint_and_format message"
+	rm -rf "$d"
+}
+
+# _ss_ratchet_fixture <dir> — committed repo: old.py carries pre-existing ruff UP031 debt.
+_ss_ratchet_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n[tool.ruff.lint]\nselect=["F","UP"]\n' >"$d/pyproject.toml"
+	printf 'a = "%%s" %% 1\n' >"$d/old.py"
+	mkdir -p "$d/.venv/bin"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    return 2\n' >>"$d/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt rc"
+	assert_contains "$OUT" '1 pre-existing violation(s) in touched files ignored (present at HEAD)' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt message"
+	assert_contains "$OUT" '"preexisting": 1' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt json-preexisting"
+	assert_contains "$OUT" '"new": 0' "t_shared_check_all_since_ratchet_ignores_preexisting_lint_debt json-new"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_new_violation_is_red_alone() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    import sys\n    return 2\n' >>"$d/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_ratchet_new_violation_is_red_alone rc"
+	assert_contains "$OUT" 'F401' "t_shared_check_all_since_ratchet_new_violation_is_red_alone new-printed"
+	assert_not_contains "$OUT" 'UP031' "t_shared_check_all_since_ratchet_new_violation_is_red_alone old-not-printed"
+	assert_contains "$OUT" '"new": 1' "t_shared_check_all_since_ratchet_new_violation_is_red_alone json-new"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf '\n\ndef added():\n    import sys\n\n    return 2\n' >>"$d/old.py"
+	cp "$d/old.py" "$d/before.txt"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/old.py")" "$(cat "$d/before.txt")" "t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical byte-identical"
+	assert_contains "$OUT" '--fix not run on 1 file(s) with pre-existing violations' "t_shared_check_all_since_ratchet_fix_leaves_old_lines_identical says-so"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_new_file_violations_all_count() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_ratchet_fixture "$d"
+	printf 'b = "%%s" %% 2\n' >"$d/fresh.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_since_ratchet_new_file_violations_all_count rc"
+	assert_contains "$OUT" 'fresh.py:1: UP031' "t_shared_check_all_since_ratchet_new_file_violations_all_count new-file"
+	assert_contains "$OUT" '"preexisting": 0' "t_shared_check_all_since_ratchet_new_file_violations_all_count none-ignored"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_ratchet_respects_nested_package_config() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	mkdir -p "$d/pkg" "$d/.venv/bin"
+	printf '[lint]\nextend-select=["T20"]\n' >"$d/pkg/ruff.toml"
+	printf 'print(1)\n' >"$d/pkg/old.py"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf '\n\ndef added():\n    return 2\n' >>"$d/pkg/old.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_ratchet_respects_nested_package_config rc"
+	assert_contains "$OUT" '"preexisting": 1' "t_shared_check_all_since_ratchet_respects_nested_package_config json-preexisting"
+	assert_contains "$OUT" '"new": 0' "t_shared_check_all_since_ratchet_respects_nested_package_config json-new"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_script_gate_is_flagged_unscoped() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"lint":"exit 0"}}\n' >"$d/package.json"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+
+	_ss_in "$d" check-all --json --since HEAD
+	assert_rc 0 "t_shared_check_all_since_script_gate_is_flagged_unscoped rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"scope": "unscoped"' "t_shared_check_all_since_script_gate_is_flagged_unscoped scope"
+	assert_contains "$OUT" '(unscoped: npm run lint takes no file list)' "t_shared_check_all_since_script_gate_is_flagged_unscoped message"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_unknown_ref_exits_2() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"test":"exit 0"}}\n' >"$d/package.json"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+
+	_ss_in "$d" check-all --json --since no-such-ref
+	assert_rc 2 "t_shared_check_all_since_unknown_ref_exits_2 rc"
+	assert_contains "$ERR" "check-all: unknown ref no-such-ref" "t_shared_check_all_since_unknown_ref_exits_2 message"
+	assert_contains "$ERR" "fix:" "t_shared_check_all_since_unknown_ref_exits_2 fix-line"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_equals_form_and_non_ascii_names() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf 'import sys\n' >"$d/é.py"
+
+	_ss_in "$d" check-all --json --continue --since=HEAD
+	assert_rc 1 "t_shared_check_all_since_equals_form_and_non_ascii_names rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_equals_form_and_non_ascii_names file-count"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_honours_configured_excludes() {
+	local d before
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	mkdir -p "$d/gen"
+	printf '[project]\nname="x"\n[tool.ruff]\nextend-exclude=["gen"]\n' >"$d/pyproject.toml"
+	printf 'import os\nq  =  1\n' >"$d/gen/h.py"
+	printf 'y = 2\n' >"$d/new.py"
+	before=$(cat "$d/gen/h.py")
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_honours_configured_excludes green"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/gen/h.py")" "$before" "t_shared_check_all_since_honours_configured_excludes fix-leaves-excluded"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_works_from_a_subdirectory() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	mkdir -p "$d/sub/.venv/bin"
+	printf '[project]\nname="x"\n' >"$d/sub/pyproject.toml"
+	printf '#!/bin/sh\nexit 0\n' >"$d/sub/.venv/bin/pytest"
+	chmod +x "$d/sub/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	printf 'y = 2\n' >"$d/sub/ok.py"
+	printf 'z = 1\n' >"$d/top.py"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'z = 3\n' >"$d/sub/new.py"
+	printf 'import os\n' >"$d/top.py"
+
+	_ss_in "$d/sub" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_works_from_a_subdirectory rc"
+	assert_contains "$(printf '%s' "$OUT" | grep -A8 '"name": "lint"')" '"files": 1' "t_shared_check_all_since_works_from_a_subdirectory file-count"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_black_gets_force_exclude_regex() {
+	local d
+	d=$(tmp_dir)
+	_ss_since_fixture "$d"
+	printf '[project]\nname="x"\n[tool.black]\nextend-exclude = "/gen/"\n' >"$d/pyproject.toml"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$PWD/black-argv"\nexit 0\n' >"$d/.venv/bin/black"
+	chmod +x "$d/.venv/bin/black"
+	printf 'y = 2\n' >"$d/new.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_contains "$(cat "$d/black-argv")" "--check --force-exclude (?x:/gen/) -- new.py" "t_shared_check_all_since_black_gets_force_exclude_regex argv"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_scopes_prettier_scripts() {
+	local d before
+	command -v prettier >/dev/null 2>&1 || { printf '  skip prettier not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	printf '{"name":"x","scripts":{"format":"prettier --write .","format:check":"prettier --check ."}}\n' >"$d/package.json"
+	printf 'const a   =   1\n' >"$d/old.js"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'const b = 2;\n' >"$d/new.js"
+	before=$(cat "$d/old.js")
+
+	_ss_in "$d" check-all --json --continue
+	assert_rc 1 "t_shared_check_all_since_scopes_prettier_scripts unscoped-red"
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 0 "t_shared_check_all_since_scopes_prettier_scripts since-green"
+	assert_contains "$(_ss_gate "$OUT" format)" '"scope": "changed"' "t_shared_check_all_since_scopes_prettier_scripts scope"
+
+	printf 'const c   =   3\n' >"$d/new.js"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_rc 0 "t_shared_check_all_since_scopes_prettier_scripts fix-rc"
+	assert_eq "$(cat "$d/old.js")" "$before" "t_shared_check_all_since_scopes_prettier_scripts untouched-identical"
+	assert_eq "$(cat "$d/new.js")" "const c = 3;" "t_shared_check_all_since_scopes_prettier_scripts changed-formatted"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_scopes_eslint_script() {
+	local d
+	d=$(tmp_dir)
+	_ss_git_init "$d"
+	mkdir -p "$d/stubbin"
+	printf '{"name":"x","scripts":{"lint":"eslint --ext .js src"}}\n' >"$d/package.json"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$*" >"$PWD/eslint-argv"\nexit 0\n' >"$d/stubbin/eslint"
+	chmod +x "$d/stubbin/eslint"
+	printf 'stubbin/\neslint-argv\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+	printf 'a\n' >"$d/new.js"
+	printf 'b\n' >"$d/notes.txt"
+
+	_ss_in_env "$d" "PATH=$d/stubbin:$PATH" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/eslint-argv")" "--ext .js --fix -- new.js" "t_shared_check_all_since_scopes_eslint_script argv"
+	rm -rf "$d"
+}
+
+# O6 — file-level format ratchet: a file unformatted at <ref> is exempt from check and --fix.
+_ss_fmt_fixture() {
+	local d=$1
+	_ss_git_init "$d"
+	printf '[project]\nname="x"\n' >"$d/pyproject.toml"
+	printf "x = 'a'\n" >"$d/sq.py"
+	printf 'y = "a"\n' >"$d/clean.py"
+	mkdir -p "$d/.venv/bin"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	printf '.venv/\n' >"$d/.gitignore"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+}
+
+t_shared_check_all_since_format_ratchet_exempts_file_unformatted_at_ref() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf 'z = 1\n' >>"$d/sq.py"
+	cp "$d/sq.py" "$d/before.txt"
+
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/sq.py")" "$(cat "$d/before.txt")" "format ratchet: --fix leaves a pre-existing unformatted file byte-identical"
+	assert_contains "$(_ss_gate "$OUT" format)" '1 pre-existing unformatted file(s) in touched files ignored (present at HEAD)' "format ratchet: says what it ignored"
+	assert_not_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: the gate is not red for old debt"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_format_ratchet_check_mode_is_not_red_for_old_debt() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf 'z = 1\n' >>"$d/sq.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_not_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: check mode ignores a file unformatted at ref"
+	assert_contains "$(_ss_gate "$OUT" format)" 'pre-existing unformatted file(s)' "format ratchet: check mode reports it"
+	rm -rf "$d"
+}
+
+t_shared_check_all_since_format_ratchet_still_formats_files_clean_at_ref_and_new_files() {
+	local d
+	command -v ruff >/dev/null 2>&1 || { printf '  skip ruff not installed\n'; return 0; }
+	d=$(tmp_dir)
+	_ss_fmt_fixture "$d"
+	printf "y = 'b'\n" >"$d/clean.py"
+	printf "n = 'c'\n" >"$d/fresh.py"
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_contains "$(_ss_gate "$OUT" format)" '"status": "fail"' "format ratchet: a file clean at ref that was unformatted since is red"
+	_ss_in "$d" check-all --json --continue --fix --since HEAD
+	assert_eq "$(cat "$d/clean.py")" 'y = "b"' "format ratchet: --fix still formats a file that was clean at ref"
+	assert_eq "$(cat "$d/fresh.py")" 'n = "c"' "format ratchet: --fix still formats a new file"
+	rm -rf "$d"
+}

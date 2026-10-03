@@ -17,6 +17,7 @@ Every case carries exactly one primary tag from `plugins/flow/bin/lib/eval/contr
 | `routing` | The right skill fires for a plain-language request, and the wrong ones don't; two negative cases prove nothing fires when nothing should | `tool_used` graders are `arm: with-only` — a plugin-fired indicator, not part of the baseline-vs-plugin score |
 | `invariant` | A promise the plugin makes holds regardless of the specific skill: reproduce before fixing, never weaken a test to make it pass, don't claim completion without having verified | both, unless the check only makes sense with the plugin |
 | `pipeline` | The full `/flow:spec` → `/flow:next` pipeline end to end on a fixture, graded on the artifacts and code it produces, not just whether a skill fired: `flow-feature` (`/flow:spec --unattended` then `/flow:next --unattended` repeatedly, unattended build, graded on the route being stated and a real regression test written for the new properties — not a fixed `.specs/` artifact path, since the route it takes decides whether one exists at all), `fix-bug` (patches a bug, graded on the patched source and a mutation post-check that re-introduces the bug to prove the new test bites), `far-helper` (the same unattended pipeline on a repo whose slug helper is called `to_kebab` and lives in `app/support/` — found by its package or its body, never by its name), `spec-first-turn` (its one batched discovery turn states the route and offers every pre-answered position in the same message), `spec-only` (`/flow:spec --unattended` in one shot — no resumed transcript, since the route's approval gate never scales down — graded on what it writes or says and that it never lands the change itself), `prep-first-turn` (first turn asks exactly one hypothesis-led question; writing `PREP.md` before that question is prep's designed behaviour and must not count against it), `prep-resume-seed` (a bare `/flow:prep` with a `/flow:develop-idea` seed PREP.md on disk resumes that seed instead of asking for the idea) | `--ablation none`, one run each; the pipeline output itself is the point |
+| `xhard` | The hardest tier, aimed at the full flow pipeline (prep → spec → next → build waves → phase tests → gates → PASS → verify, plus one `/flow:next --finish` run), run with `--ablation none`: every case stacks two or more traps, grades behaviour with hidden tests the model never sees (`hidden/`, run by `postcheck.sh`), and ships a `solution.sh` that `scripts/case-selfcheck` uses to prove the case can be passed and that the untouched scaffold fails it. | both, unless the case says otherwise |
 | `needs-bash` | Secondary tag on any case that grants the `Bash` tool; skipped with a notice when `socat` is absent | — |
 
 ## Case shape
@@ -24,13 +25,16 @@ Every case carries exactly one primary tag from `plugins/flow/bin/lib/eval/contr
 Each case is one directory `evals/<tier>-<slug>/` with:
 
 - `case.yaml` — `schema_version`, `name`, `tags`, `runs`, `context.scaffold_script`,
-  `execution.prompt` / `execution.max_turns` / `execution.allowed_tools`, and an
-  inline `graders:` list (at least one; the CLI rejects zero).
+  `execution.prompt` / `execution.max_turns` (≤ 200) / `execution.timeout_seconds`
+  (≤ 3600, default 300 — a top-level `timeout_seconds` is silently ignored) /
+  `execution.allowed_tools`, and an inline `graders:` list (at least one; the CLI
+  rejects zero). `execution.env` takes `EVAL_*` keys only.
 - `scaffold.sh` — an executable bash script the CLI runs (with `--scaffold`) to
   build a small fixture repo before the case starts. A `.git` only when the case
-  needs one (the pipeline cases, and `routing-qa`'s feature branch; the sandbox
-  denies the `git` binary to the model, so the session-context hook stays quiet
-  either way), no shared fixture library — every case owns its own file, even
+  needs one (the pipeline cases, and `routing-qa`'s feature branch). The sandbox
+  masks `/bin/git` (as of claude 2.1.284), and flow's router cannot work without
+  it: every state reads `scan-failed`, so a git-dependent case cannot pass under
+  `claude plugin eval` as it stands. No shared fixture library — every case owns its own file, even
   when two scaffolds look similar. Plant nothing a model can fix by reading when
   the case is about routing: an obvious bug invites a direct fix instead of the skill.
 
@@ -48,6 +52,50 @@ prints `postcheck <case> <pass>/<total>`). The standard shape for a quality
 case is `slop-check --all-lines --files <path>...` (no git needed; every line
 of each listed file counts as added) `--strict`, run against the file(s) the
 task should touch.
+
+## Self-check
+
+`plugins/flow/scripts/case-selfcheck [--root <evals-dir>] [--keep] [<case-name>...]`
+(python3 + PyYAML) proves an `xhard-*` case is winnable and not a no-op. With no
+names it checks every `xhard-*` directory under the root (default: this `evals/`).
+Per case, first failure wins:
+
+1. Shape: `case.yaml` parses, `schema_version` is `"1.1"`, `name` matches the dir,
+   tags are in `TAGS`, `scaffold.sh` is executable, graders and `execution.prompt`
+   are non-empty, `postcheck.sh` (if any) is executable.
+2. A case is gradeable when it has a `file_exists` grader, a `regex` grader over
+   `{source: file}`, or a `postcheck.sh`. A gradeable case must ship an executable
+   `solution.sh`; a routing-only case just gets shape + scaffold checks.
+3. Pristine: scaffold into a fresh tmp dir and evaluate the file graders and
+   `postcheck.sh`. If they all pass, the case cannot tell a no-op from a fix and
+   fails, unless the case dir holds a one-line `selfcheck-pristine-passes` file
+   giving the reason a no-op is legal (e.g. a "must stop at the gate" case).
+4. Solution: scaffold again, run `solution.sh` (cwd = the tree, `CASE_DIR` and
+   `EVAL_PLUGIN_ROOT` set), then every file grader and `postcheck.sh` must pass.
+
+`llm`, `tool_used`, and trace-targeted regex graders are skipped and counted.
+`solution.sh` is the reference fix a model would have to reach; `hidden/` holds the
+tests the model never sees, which `postcheck.sh` copies in and runs. Output is one
+`PASS`/`FAIL` line per case and a `case-selfcheck: <p> passed, <f> failed` summary;
+exit 0 iff nothing failed. `--keep` leaves the tmp dirs in place.
+
+### Live mode
+
+`claude plugin eval` masks `/bin/git` in its sandbox, so pipeline cases die at
+`scan-failed` there. `case-selfcheck --live [--model M] [--judge-model J] [--runs N]
+[-j N] [--out <dir>] [--keep] [--ledger] [<case>...]` runs the cases headless
+outside it, in throwaway trees (default: every `xhard-*`; models default to
+`DEFAULT_MODELS`; `-j` caps at 8). Per run: scaffold (real `HOME`, so auth works),
+`claude -p <execution.prompt>` in the tree with this checkout's plugins and
+`<plugin>/bin` first on `PATH` (so `flow` is this checkout's CLI), capped by
+`execution.timeout_seconds` (the whole process group is killed), then every grader
+(`regex` over the trace or a file, `tool_used`, `llm` via a headless judge call,
+`file_exists`) and `postcheck.sh`. A run passes iff score is 1 and postcheck is ok.
+Output: a `LIVE <case> score=.. post=.. turns=.. cost=$.. <secs>s` line per run with
+an indented line per failed grader, then a summary; `<out>/results.json` and each
+`<out>/<case>/run-<k>/trace.jsonl` are kept, the trees only with `--keep`.
+`--ledger` appends one `xhard` line to `evals/ledger.jsonl`. Exit 0 iff every run
+passed, 1 otherwise, 2 on setup errors. It spends real money.
 
 ## Adding a case
 
