@@ -87,7 +87,7 @@ New surface or redesign only; inside an existing system skip this phase (extend 
    - `scene`: a drawn scene, only when the concept calls for it and the client has no better material; never chosen by default.
    - Native platform (ios/android): hand the platform layer to the `mobile-design` skill; evidence is device screenshots.
 
-   Simple and clean is a legitimate choice when it serves the user.
+   Simple and clean is a legitimate choice when the client asks for it or the surface is a dense tool; for a business, brand or event homepage, clean is the floor, not the goal: give it one memorable idea and the small custom details that make it this client's own. Usable and uninspired is a failure too.
 
 **Gate:** You can state the concept in one sentence, cite the three facts it rests on, and name the signature idea and where it appears. If you cannot, you will default to AI slop.
 
@@ -153,7 +153,7 @@ For the complete craft reference with additional rules and CSS patterns, **load 
 
 ## Phase 4b — Graphics check
 
-Custom graphics are a means, not a requirement. Call the `design:graphics` skill when the page has at least one of:
+Custom graphics serve the user and the brand. Call the `design:graphics` skill when the page has at least one of:
 
 1. **Icons:** the nav, categories, features or states need icons and a consistent custom set adds identity or clarity beyond a standard library (a standard library such as Lucide is fine on operate surfaces when it fits).
 2. **Explanation:** a process, mechanism, place, route or data the user must understand reads faster drawn (steps, diagram, map, chart form).
@@ -162,7 +162,9 @@ Custom graphics are a means, not a requirement. Call the `design:graphics` skill
 5. **Imagery:** hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a scene, a pattern; never a scene by default).
 6. **The user asked** for illustrations, cartoons, icons or drawings.
 
-Do not call it when: a directive forbids illustrations; photos or the product UI carry the page and a standard icon library covers the icons; the graphics would only decorate (no UX job, no brand job).
+Do not call it when: a directive forbids illustrations; the surface is a dense tool (dashboard, admin, docs) where a standard icon library covers the icons; or photos or the product UI already carry the page's character and nothing else needs drawing.
+
+**Character is a job too.** On a persuade or experience page for a business, brand or event, small custom graphics that make the site recognisably this client's are a brand job, not decoration: icons for the facts people scan (care, hours, steps, features), a small drawing per product, service or category, brand objects drawn as the trade's own artefacts, and art where there are no photos. Lean towards calling the graphics skill there; a page with no custom graphics at all must have another clear signature (photography, the product UI, a strong typographic or data idea). Usability still comes first: graphics never replace a label, slow a task or push content below the fold.
 
 When it applies, write `.vary/graphics-brief.md`:
 

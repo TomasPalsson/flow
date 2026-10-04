@@ -16,7 +16,7 @@ Four things fix this, and this skill is built around them:
 3. **The roll picks among grounded options.** Concepts come from the project's own facts, and worlds are filtered by its sector. Randomness then buys variety without buying irrelevance.
 4. **The signature is the one idea that makes this project recognisable.** Every build carries one, taken from the project's facts or assets: type, layout, colour, the client's own photography, the real product UI, data, motion or graphics. A palette and fonts over generic blocks is not a design.
 
-Priority, always: **usability first** (the visitor completes the task, finds things, reads and acts, on a phone, with a keyboard), **then a creative direction specific to this project**. No look is the default: a plain, very usable page is a legitimate outcome, and a drawing is one option among many.
+Priority, always: **usability first** (the visitor completes the task, finds things, reads and acts, on a phone, with a keyboard), **then a creative direction specific to this project**. No look is the default and a drawing is one option among many. Plain is right for dense tools or when the client asks; a business, brand or event homepage needs one memorable idea and the small custom details that make it this client's own. Usable and uninspired is a failure too.
 
 Then: commit fully, guard later. Craft rules are loaded only *after* the contract is written, because guardrails mixed into the brief measurably hedge the result. Review is done by a separate identity auditing the build against its own contract, because self-review rubber-stamps.
 
@@ -95,7 +95,9 @@ Run this before any UI code. Call the graphics skill when the page has at least 
 5. **Imagery**: hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a pattern, or a scene only when the concept needs one).
 6. The user asked for illustrations, cartoons, icons or drawings.
 
-Do not call it when: a directive forbids illustrations; photos or the product UI carry the page and a standard icon library covers the icons; the graphics would only decorate (no UX job, no brand job).
+Do not call it when: a directive forbids illustrations; the surface is a dense tool (dashboard, admin, docs) where a standard icon library covers the icons; or photos or the product UI already carry the page's character and nothing else needs drawing.
+
+**Character is a job too.** On a persuade or experience page for a business, brand or event, small custom graphics that make the site recognisably this client's are a brand job, not decoration: icons for the facts people scan (care, hours, steps, features), a small drawing per product, service or category, brand objects drawn as the trade's own artefacts, and art where there are no photos. Lean towards calling the graphics skill there; a page with no custom graphics at all must have another clear signature (photography, the product UI, a strong typographic or data idea). Usability still comes first: graphics never replace a label, slow a task or push content below the fold.
 
 When it applies, write `.vary/graphics-brief.md`:
 
