@@ -1,19 +1,19 @@
 ---
 name: concepts
-description: Step 0b of vary and design. How to turn the dossier into 4-7 grounded concepts (each the site as a physical thing from this trade or place, each a different angle on the business), written to .vary/concepts.json for roll.mjs to pick from. Includes the physical-object method and worked examples from two client sites.
+description: Step 0b of vary and design. How to turn the dossier into 4-7 grounded concepts (each the site as a physical thing from this trade or place, each a different angle on the business), written to .vary/concepts.json for roll.mjs to pick from. Includes the physical-object method and neutral worked examples across very different clients and treatments.
 ---
 
 # Concepts: the site as a thing from this trade, or the client's own pictures, product or numbers
 
 A concept is the site as a thing from this trade, or this client's own pictures, product or numbers set with a point of view. It is a one-sentence idea in which the site **is** that thing. The roll picks one of your concepts, so write every one as if it will win.
 
-- ARA (pizzeria and sports bar): "the site IS that room at night, a paper menu on a dark wooden table."
-- Hitatækni (HVAC shop): the shop as a set of engineering drawing sheets.
-- Hitatækni, a different roll: a picture book about where a building's air goes.
+- A pizzeria: the site IS the paper menu on a dark table.
+- An HVAC supplier: the shop as a set of engineering drawing sheets.
+- A hardware chain: a plain, fast product grid with one clear search. A plain usable concept is as valid as any other.
 
 ## 1. Method
 
-**a) List the business's halves.** Who uses it, when, and for what. ARA: the cozy evening room, the family's Friday take-away, the sports bar on match night, the street-corner pride of a neighbourhood landmark. Each half is a different angle. Four concepts that are four palettes of one half are not four angles.
+**a) List the business's halves.** Who uses it, when, and for what. A pizzeria with a bar: the cosy evening room, the family's Friday take-away, the sports bar on match night, the street-corner pride of a neighbourhood landmark. Each half is a different angle. Four concepts that are four palettes of one half are not four angles.
 
 **b) Apply the physical-object method to each half.** Ask: *what would this be as a physical artefact, and what did that world look like before the web?*
 
@@ -24,9 +24,9 @@ A concept is the site as a thing from this trade, or this client's own pictures,
 
 **c) Prefer the trade's own documents and hardware**: datasheet, drawing sheet, guest check, kitchen ticket, price tag, route card, work order, handbill. The dossier's `artefacts` list is the pool.
 
-**d) Re-skin the functional objects.** Re-skin functional objects on persuade/experience surfaces; operate surfaces keep conventional controls. Cart, confirmation, timetable, nav, buttons, empty and error states each become an object of the concept: ARA's cart is a guest-check pad and its confirmation a kitchen ticket on a rail; hitataekni D's buttons are corner-tick drafting symbols and its nav is bracketed. This is `functional_reskin`, and it is where a concept stops being a wallpaper.
+**d) Re-skin the functional objects.** Re-skin functional objects on persuade/experience surfaces; operate surfaces keep conventional controls. Cart, confirmation, timetable, nav, buttons, empty and error states each become an object of the concept: a pizzeria's cart is a guest-check pad and its confirmation a kitchen ticket on a rail; a surveyor's buttons are corner-tick drafting symbols and its nav is bracketed. Objects like these are drawn by the graphics skill (`../../graphics/references/graphics.md`). This is `functional_reskin`, and it is where a concept stops being a wallpaper.
 
-**e) Pick devices and worlds.** Each concept offers 2-3 signature graphic devices from the technique list in `graphics.md` §2, naming what each would draw from which facts, and 2-3 `world_hints` whose grammar fits the artefact. The roll picks one; write all of them at full strength.
+**e) Pick devices and worlds.** Each concept offers 2-3 signature graphic devices from the technique list in `../../graphics/references/graphics.md` §2, naming what each would draw from which facts, and 2-3 `world_hints` whose grammar fits the artefact. The roll picks one; write all of them at full strength.
 
 Worked method on thin categories:
 
@@ -44,7 +44,7 @@ A thin category simply has more `artefact` and `place` facts in the dossier and 
 A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure below.
 
 ```json
-[{"id":"kvold","name":"Kvöld á ARA","angle":"the room on a dark evening",
+[{"id":"kvold","name":"Evening at the pizzeria","angle":"the room on a dark evening",
   "antecedent":"paper menu on a wooden table; waiter's guest check",
   "treatment":"scene",
   "facts":["F1","F7","F12"],
@@ -78,8 +78,10 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 - At least 3 facts each, and at least one fact must be visible in the device.
 - None may be the category's standard page or its predictable opposite, unless a directive or `--canon` asks for it.
 - At most one concept may use the business's name as its metaphor.
-- **Treatment by signal, scene by default.** A `persuade` or `experience` page for a business, place or service with no usable photos, no product UI and no style directive gets drawn art: every concept is `scene`, or `pattern` for at most one. A plain type page or a lone chart is the failure here: a children's clinic, a funeral home or a fish market each needs a picture of its own world. Other treatments need a signal: a directive (the SKILL.md directive table), supplied photos (`photography`), a real product UI (`product-ui`), or a genre whose best examples do not illustrate (SaaS landing: `product-ui`; dashboard: `data-visual` or `utility`; docs: `typography` or `utility`; photo-led luxury: `photography`). Write the signal into the concept's `angle` when it is not `scene`. In those genres the signal binds every concept, not one: all concepts of a SaaS landing are `product-ui`, of a dashboard `data-visual` or `utility`, of a docs home `typography` or `utility`, of a photo-led brand `photography`; the angles differ, the treatment does not. A software product's landing page is `product-ui` even with no screenshots: record each screen the brief describes in `dossier.product.screens` and rebuild it in HTML from the facts, with real names and numbers (`roll.mjs` accepts that as grounding). Under a non-drawn treatment no concept replaces the genre's native form with a drawn conceit (a hardware rack for a SaaS, a notebook with leader lines for a quiet luxury brand, roman-numeral plates for an onboarding flow).
-- Spread the devices: not every concept leads with an illustration engine. (Under the scene default the range comes from the devices and worlds, not from dropping the art.) Mix drawn, traced, diagrammatic, textural and typographic devices so the roll has real range.
+- **Concepts must differ in treatment and composition, not only in subject.** Spread them across at least three treatments; none is the default. Two concepts with the same layout and different topics are one concept.
+- **A plain, very usable direction is a legitimate concept.** A clear product grid, a quiet document page or a straight form can be the concept; real clients often pick it. Usability comes first, creativity second, and neither needs a drawing.
+- **Treatment follows the project, not a habit.** Choose treatments the content and the audience can use: supplied photos (`photography`), a real product UI (`product-ui`; a software landing page is `product-ui` even with no screenshots: record each screen the brief describes in `dossier.product.screens` and rebuild it in HTML from the facts, with real names and numbers, which `roll.mjs` accepts as grounding), figures (`data-visual`), words (`typography`), a task tool (`utility`), or drawn work (`pattern`, `scene`) when the client has no photos or product and the concept calls for it. A directive (SKILL.md directive table) binds every concept. Under a non-drawn treatment no concept replaces the genre's native form with a drawn conceit. Drawn concepts are produced by the graphics skill (`../../graphics/references/graphics.md`).
+- Spread the devices: not every concept leads with an illustration engine. Mix drawn, traced, diagrammatic, textural, photographic and typographic devices so the roll has real range.
 - Every concept names 2-3 `world_hints`: worlds whose grammar suits the trade artefact. They define the pool the roll draws the world from (with worlds listing the sector) and are weighted 8x; at least one must list the concept's `temperament` or `roll.mjs` exits 2. Hints must fit the audience mood: no Bauhaus primaries for a calm clinic, no sunburst ticket for a quiet service. The roll still picks, you do not.
 - Write every concept as if it will win. Never leave a weak "safe" concept as a decoy.
 - **Test for each:** "Would this concept still be true for the competitor down the street?" If yes, rewrite it around a fact only this client has.
@@ -88,19 +90,17 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 
 ## 4. Worked examples
 
-| Client | Concept (angle) | Rests on facts like |
-|---|---|---|
-| ARA A "Kvöld á ARA" | the site is the room at night: paper menu on a dark wooden table, hand-inked dishes; cart is a guest-check pad, confirmation a kitchen ticket | dark October evenings in Kópavogur; Edison bulbs and oven glow; the real menu lines and prices |
-| ARA B "Heimsækið Búðakór" | the neighbourhood pizzeria sold as a 1950s travel destination: litho poster, "Farseðill" ticket as cart, boarding pass as confirmation | family on a sofa deciding on Friday; the real building at dusk; the Esja-like ridge; pizza as the rising sun |
-| ARA C "Boltinn & barinn" | letterpress match-night handbills; the sports-bar half of the business | real beer and wine prices; open to 01:00 Fri and Sat; the big screen; real photos as one-ink halftones |
-| ARA D "Hverfisstaðurinn" | Nordic daylight diner for the neighbourhood: deals as hanging price tags with string | turquoise booths in the real photo; deal prices 8.600 / 5.500 / 6.000 / 3.600 / 2.800; a verbatim review about regular take-away |
-| Hitatækni A "Loftið í húsinu" | picture book about where a building's air goes, each spread ending on the product that does the job | air handling in Icelandic apartment blocks; filter change monthly; hitaveita water through valves; sensors at 19-21 °C; since 1963 |
-| Hitatækni B "Tækniblað" | the shop as an HVAC datasheet binder: ruled grid, mono data, size ruler | Belimo ranges with DN sizes; sheet numbers from brand and position |
-| Hitatækni C "Spec-sheet" | 1980s Japanese component brochure, brushed aluminium, one signal colour, a model code as big as the name | Belimo actuators as machined units; brand blue; Swegon rooftop unit spec labels |
-| Release-notes SaaS "The release-notes ledger" | `product-ui`: the real changelog and the capture of the workflow it ships, set as a ledger | real app screens; the named workflow; version dates |
-| Fashion house, own campaign photography "The contact sheet" | `photography`: the client's frames shown unaltered as a contact sheet, crop and sequence as the signature | usable photo assets; collection names; season dates |
-| Developer docs "The maintenance manual" | `utility` or `typography`: numbered procedures, torque-table style parameters, no hero | real API entities; install steps; version facts |
-| Swiss black-and-white studio (directive: no illustrations) | `typography`: a grid of the studio's own lettering carrying its founding year | project list; directive `treatment=typography`; the studio's name and city |
-| Hitatækni D "Teikning" | the shop as engineering drawing sheets: blue plates, dimension lines, a title block, spec tables on vellum | air handling documented as drawings; a heat wheel, damper, coil, valve, filter; real DN and voltage spec rows |
+Fictional clients, deliberately far apart in treatment. Each one shows how the idea rests on facts and how the first screen serves the visitor.
 
-Same client, four angles: variants of one client use one dossier and one concepts file, and `--reroll 0..N-1` deals a different concept each round.
+| Client | Concept (angle) | Treatment | Rests on facts like |
+|---|---|---|---|
+| Hardware chain, 40 stores | "The aisle sign": a plain, fast product grid, big search, stock by store, aisle-sign lettering for categories | `utility` (a plain usable page) | real category list; stock-by-store field; opening hours per store; price per unit |
+| Boutique law firm | "The typeset opinion": a typographic page where a case citation set at hero size is the signature | `typography` | founding year; practice areas; a verbatim published ruling citation |
+| Fashion label with its own campaign photography | "The contact sheet": the client's frames shown unaltered as a contact sheet; crop and sequence are the signature | `photography` | usable photo assets; collection names; season dates |
+| Public transport timetable app | "The departure board": a live-style board, delay in the only alert colour, a dated history ledger | `data-visual` | real routes; headways; punctuality figures |
+| Neighbourhood bakery with a deals page | "The price tag": deals as hanging price tags and a punched loyalty card, drawn as the shop's own objects | `pattern` with brand objects (graphics skill) | deal prices; opening hours; the shop's string-tied bags |
+| Children's dentist | "The tooth fairy's map": a friendly drawn map of the clinic visit in four steps, bright, daytime | `scene` (graphics skill) | the four steps of a visit; the waiting-room ceiling mural; opening hours |
+| Release-notes SaaS | "The release ledger": the real changelog and the capture of the workflow it ships, set as a ledger | `product-ui` | real app screens; the named workflow; version dates |
+| Swiss studio (directive: no illustrations) | "The studio's own lettering": a grid of project names carrying the founding year | `typography` | project list; directive `treatment=typography`; the studio's name and city |
+
+Same client, several angles: variants of one client use one dossier and one concepts file, and `--reroll 0..N-1` deals a different concept each round.

@@ -1,11 +1,11 @@
 ---
 name: evaluation-rubric
-description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
+description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions (usability first) with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
 ---
 
 # Evaluation Rubric — For the Evaluator Subagent
 
-**This file is loaded by the evaluator subagent, not by the design-excellence skill's main flow.** The generating Claude should NOT read this file — that would pollute the prompt that shapes generation with the criteria that shape evaluation, collapsing the very separation we are trying to preserve.
+**This file is loaded by the evaluator subagent, not by the design skill's main flow.** The generating Claude should NOT read this file — that would pollute the prompt that shapes generation with the criteria that shape evaluation, collapsing the very separation we are trying to preserve.
 
 ---
 
@@ -104,13 +104,13 @@ Severity is a function of three factors:
 | 2 | Poor | Several significant issues; impairs core tasks |
 | 3 | Adequate | Meets baseline; noticeable issues but core tasks completable |
 | 4 | Good | Minor issues only; most users succeed without friction |
-| 5 | Excellent | No meaningful issues; benchmark quality |
+| 5 | Excellent | No meaningful issues |
 
 Half-scores permitted (1.5, 2.5, 3.5, 4.5). Every score must be accompanied by a one-sentence rationale with specific evidence.
 
 ---
 
-### Dimension 1: Usability — Weight 20%
+### Dimension 1: Usability — Weight 25%
 
 Grade via Nielsen's 10 heuristics with severity logging.
 
@@ -134,7 +134,7 @@ Usability score: X/5 — [rationale]
 
 ---
 
-### Dimension 2: Composition and Visual Hierarchy — Weight 15%
+### Dimension 2: Composition and Visual Hierarchy — Weight 10%
 
 **Sub-dimensions (score each 1-5):**
 
@@ -150,7 +150,7 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 3: Color and Typography — Weight 15%
+### Dimension 3: Color and Typography — Weight 10%
 
 **Color sub-criteria (each = 1 point):**
 - [ ] Palette limited to ≤5 hues
@@ -209,7 +209,7 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 5: Accessibility — Weight 10%
+### Dimension 5: Accessibility — Weight 15%
 
 Triage into three buckets:
 
@@ -242,7 +242,7 @@ Triage into three buckets:
 
 ---
 
-### Dimension 6: Content and Microcopy — Weight 5%
+### Dimension 6: Content and Microcopy — Weight 10%
 
 **Check each (1 point each, max 7):**
 - [ ] Labels action-oriented and specific (not "Submit" but "Save changes")
@@ -257,49 +257,46 @@ Triage into three buckets:
 
 ---
 
-### Dimension 7: Project Specificity and Signature Element — Weight 20%
+### Dimension 7: Project Specificity and Creativity — Weight 15%
 
-Asks whether this design could only belong to this project. Inputs: the build, screenshots, and (if supplied) the project dossier (`dossier.json`), which is evidence about the client and may be used. Observations first, score second.
+Judged on four things, never against a named example site: (a) built from this client's real content, (b) recognisable (could only belong to this project), (c) not the generic AI look, (d) appropriate to the audience. Usability outranks this dimension: a distinctive look that hurts the primary task is marked down here too. Observations first.
 
-**Observe before scoring:**
-- **Signature element**: read the contract's `HERO TREATMENT` and `DIRECTIVES` lines when present and name the element per treatment, citing source file and dossier fact ids: `scene`/`pattern` = the drawn or generated device at hero scale and one other scale; `photography` = the named dossier assets plus the art-direction rule (crop, sequence, grade); `product-ui` = the real capture and the workflow it shows; `typography` = the lettering idea and the fact it carries; `data-visual` = the chart and the data it encodes; `utility` = judged at detail scale (numerals, empty states, icons, copy), where a FAIL is a fix item, never a rebuild. None, or only abstract decoration (gradient blob, mesh, noise hero, stock icon set) → say so.
-- Subject swap: name a same-category business in another town. List every graphic, headline, label and control that would become false for it. Count them.
-- does at least one visual encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact. Also PASS when the hero visual is the client's own dossier asset.
-- Controls in the design's material (persuade/experience; operate surfaces keep platform conventions and are judged on tokens): nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
-- Would the paying customer in the dossier's audience find the look credible for this trade? Name the specific element if not.
-- **Art craft (screenshots only)**: no faces drawn on objects (food, products), mascots or emoji-blobs; real photographed faces are fine; subjects distinguishable at thumbnail size; style consistent. Photography and product-ui add fidelity (no filter, blend or overlay on client images), natural resolution at least 1.5x rendered, and crop (focal subject not cut by the nav). No screenshots → "Cannot determine from source alone".
-- Richness against the benchmark (When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment)): ara-bar = the restaurant at night (mountain ridge, stars, clad facade, lit windows, diner silhouettes, a street lamp; 10+ drawn objects, 3+ depth layers, a light source; brand painted on the sign, real phone number in the art). hitataekni = a full blueprint sheet (grid, bordered sheet with coordinates, a traced unit, dimension lines, callout bubbles, title block with the real name, founding year, address, emergency number). Check the hero: a scene or sheet covering >=55% of the 1440x900 first viewport (>=45% at 390x844); >=5 distinct subject objects over >=3 depth layers; headline set into the art; >=2 dossier facts inside the art. Richness floor: filled shapes, one consistent light source, texture, people or traces of use, 4 to 7 inks. Page budget: >=3 more drawn plates tied to different fact groups, plus micro-scale marks. Under the scene treatment a text-only, single-icon, empty-grid or boxed-diagram hero is a FAIL for persuade and caps this dimension at 2. Measure with `vary/scripts/fold-check.mjs <built page> --mode <mode> --treatment <HERO TREATMENT from the contract>` when a build exists.
-- Named fold checks (When HERO TREATMENT = scene (the default for persuade/experience without a stated treatment); report each as PASS/FAIL with the fold-check line): (1) **Text collisions** (`collisions-desktop`, `collisions-phone`): no visible text box, HTML or svg `<text>`, overlaps another or is more than 30% covered by an opaque later-painted element; name the two texts on a FAIL. (2) **Dead zone** (`dead-zone`): no near-uniform-colour rectangle larger than 20% of the desktop fold; cite its size and position. (3) **Card over art** (`card-over-art-desktop`, `card-over-art-phone`): no translucent (alpha < 0.95), backdrop-filter or solid-background element with text covering more than 6% of the hero art area; headline, phone, hours and the primary action live on drawn surfaces inside the art (a sign, plate or title block in the svg is fine), never on a card floating over it. (4) **Art down the page** (`art-down-page`): at least 60% of the sections below the fold (contact/footer excluded) carry a drawn plate at least 40% of their width. (5) **Full bleed** (`full-bleed-desktop`, `full-bleed-phone`): the hero art box spans at least 95% of the viewport width with margins of at most 3% each side; a framed picture, card or polaroid with page margins fails; name the art box and its margins. (6) **Rendering depth** (`rendering-depth`): in the desktop hero art area the luminance range p95 - p5 is at least 90 and at least 5 of 16 luminance bins hold at least 2% of the pixels; flat fills with thin uniform strokes read as clip art. The flat-block texture number is printed for the report but not gated. (7) **Plate size** (`plates-size`): at least 50% of the below-fold section plates are at least 35% of the section width, at least 280px tall and carry at least 3 value steps; name the thin, small or pale ones. In persuade/experience any of these seven FAILing is a Specificity FAIL under P6 and is listed in the fix batch; in operate/read only the collisions check gates and the others are informational. For any other treatment, quote only the fold rows `fold-check.mjs` marks as gated for that treatment (rows printed `[INFO]` are not gated); a missing line is a RECAPTURE only if its row is gated. Native platforms (ios/android): device screenshots, fold rows N/A.
+- **Signature idea**: read the contract's `HERO TREATMENT` and `DIRECTIVES` lines when present and name the one idea that makes the project recognisable, citing source file and dossier fact ids. It may be type, layout, colour, photography (named dossier assets plus the crop, sequence and grade rule), the product UI (the real capture and workflow), data (the chart and what it encodes), motion, drawn graphics (the device at hero scale and one other scale) or a utility surface judged at detail scale (numerals, empty states, icons, copy), where a FAIL is a fix item, never a rebuild. No treatment is preferred; a plain, clean build that serves the user and uses the client's content well can score high. None, or only abstract decoration (gradient blob, mesh, noise hero, stock icon set) → say so.
+- **Subject swap**: name a same-category business in another town. List every graphic, headline and control that would become false for it. Fewer than 3 items means the design is generic.
+- **Real content**: does at least one visual or section encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact. Also PASS when the main visual is the client's own dossier asset.
+- **Not the generic AI look**: name the typical AI version of this page (font, primary colour, layout, copy tone) and say how this build differs materially.
+- **Controls in the design's material** (persuade/experience; operate surfaces keep platform conventions and are judged on tokens): nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
+- **Audience fit**: would the dossier's paying audience find this look credible and appropriate in mood for the trade, and do reading surfaces stay legible? A FAIL names the specific element, not "feels off".
+- **Graphics craft (when the page has custom graphics; screenshots only)**: each graphic has a UX or brand job; faces are not drawn on objects (food, products), no mascots or emoji-blobs; subjects distinguishable at thumbnail size; one consistent style; alt text or `aria-hidden` present (see `GRAPHICS.md` when supplied). Photography and product-ui add fidelity (no filter, blend or overlay on client images), natural resolution at least 1.5x rendered, and crop (focal subject not cut by the nav). No screenshots → "Cannot determine from source alone".
+- **Named fold checks**: when a built page exists, report each gated row with the `fold-check.mjs` line quoted (run `fold-check.mjs <built page> --mode <mode> --treatment <HERO TREATMENT from the contract>` from the vary skill directory, the sibling of this skill; never search the filesystem for it). Rows printed `[INFO]` are not gated; a missing line is a RECAPTURE only if its row is gated. In every mode text collisions (`collisions-desktop`, `collisions-phone`) gate: no visible text box, HTML or svg `<text>`, overlaps another or is more than 30% covered by an opaque later-painted element; name the two texts on a FAIL. Also quote `page-overflow`, `meta-copy`, `duplicate-content` and `headline-on-fold` (operate/read: `title-on-fold`). Native platforms (ios/android): device screenshots, fold rows N/A.
 - **Directive compliance**: list each `DIRECTIVES` line (the user's own words, e.g. "no illustrations", "black and white", "use our photos") and mark it kept or broken with evidence. A broken directive caps this dimension at 2 and is a critical issue. Directives outrank this skill's bars; a build that obeys a directive is not marked down for the bar it suspends.
 
-**Scoring table:**
-| Score | Anchor |
-|-------|--------|
-| 1 | No project-specific visual (no drawn, photographed, captured, typographic or data element from this project); stock icons or none; copy and visuals survive a competitor swap whole. |
-| 2 | Decorative effects only (gradient mesh, noise, blobs); one or two real facts in copy. |
-| 3 | One project-specific element (graphic, capture, lettering or chart), but generic (could be any pizzeria or any HVAC firm) or appearing once only. |
-| 4 | A signature element per treatment (drawn device, cited client assets with a direction rule, the real capture and workflow, a lettering idea tied to a fact, or the chart and its data) from cited facts, at 2 or more scales, with controls in the design's material; the subject swap lists 3 or more false items. |
-| 5 | As 4, plus the visual carries real data, the first viewport announces the concept, and the art is clean at thumbnail size. |
+Score:
+- 1: nothing project-specific (no photographed, captured, typographic, drawn, layout or data element from this project); survives a competitor swap whole
+- 2: decorative effects only; one or two real facts in copy
+- 3: one project-specific element, but generic or appearing once
+- 4: a clear signature idea built from cited facts at 2+ scales or placements, controls in the design's material, 3+ false items in the subject swap, visibly not the generic AI look and right for the audience
+- 5: as 4, plus the idea carries real data or content, the first screen announces the project, clean at thumbnail size
 
-Score 2 or below is a critical issue and returns the work to Phase 1 (purpose, dossier, concept), except under utility, when Phase 1 was skipped (component, critique, polish, audit), or for a broken directive, which go to Phase 3 fix items.
+Score 2 or below is a critical issue and returns the work to Phase 3 (purpose, dossier, concept, signature idea), except under utility, when Phase 3 was skipped (component, critique, polish, audit), or for a broken directive, which go to Phase 4 fix items.
 
 ---
 
 ## Composite Score Calculation
 
 ```
-Composite = (Usability × 0.20)
-          + (Composition × 0.15)
-          + (Color+Type × 0.15)
+Composite = (Usability × 0.25)
           + (Interaction × 0.15)
-          + (Accessibility × 0.10)
-          + (Microcopy × 0.05)
-          + (Specificity × 0.20)
+          + (Accessibility × 0.15)
+          + (Microcopy × 0.10)
+          + (Composition × 0.10)
+          + (Color+Type × 0.10)
+          + (Specificity and creativity × 0.15)
 ```
 
 | Composite | Grade | Meaning |
 |-----------|-------|---------|
-| 4.5-5.0 | **A** | Benchmark; publishable |
+| 4.5-5.0 | **A** | Publishable |
 | 4.0-4.4 | **B** | Ship-ready with minor polish |
 | 3.0-3.9 | **C** | Needs revision before shipping |
 | 2.0-2.9 | **D** | Significant redesign required |
@@ -332,7 +329,7 @@ Apply these consistently. Each counters a documented bias:
 3. **Calibration anchors.** Reference examples:
    - Score 1 example: form with no labels, no validation, no error messages, no focus indicators
    - Score 3 example: landing page with Inter, indigo primary, generic copy, no empty states
-   - Score 5 example: benchmark quality with every state designed, accessible, specific copy
+   - Score 5 example: no meaningful issues, every state designed, accessible, specific copy
 
 4. **Structured output.** Fixed template; no free-form.
 

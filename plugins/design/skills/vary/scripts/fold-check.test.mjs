@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dir = mkdtempSync(join(tmpdir(), 'fold-'));
-const fold = (name, html, extra = []) => {
+// scene-bar fixtures: the default treatment is typography, so scene pages ask for scene unless the test names a mode or treatment
+const fold = (name, html, extra = []) => rawFold(name, html, extra.includes('--treatment') || extra.includes('--mode') ? extra : ['--treatment', 'scene', ...extra]);
+const rawFold = (name, html, extra = []) => {
   const f = join(dir, name + '.html'); writeFileSync(f, html);
   return spawnSync('node', [join(here, 'fold-check.mjs'), f, '--out', join(dir, name), ...extra], { encoding: 'utf8', cwd: tmpdir() });
 };
@@ -235,4 +237,13 @@ test('a closed drawer off either edge, a body that clips x, and the word "todo" 
   const es = fold('meta-es', doc('<p>Abrimos todo el año. TODO: hero</p>'), op);
   assert.match(es.stdout, /\[FAIL\] meta-copy-desktop: "TODO"/);
   assert.doesNotMatch(es.stdout, /"todo"/);
+});
+
+test('persuade with no --treatment defaults to typography: scene rows are INFO, headline-on-fold still blocks', { skip: noPw && 'Playwright absent' }, () => {
+  const r = rawFold('default-typo', textOnly);
+  assert.match(r.stdout, /treatment=typography/);
+  for (const id of ['coverage-desktop', 'detail', 'headline-in-scene', 'plates']) assert.match(r.stdout, new RegExp(`\\[INFO\\] ${id}`));
+  assert.match(r.stdout, /\[FAIL\] headline-on-fold/);
+  assert.match(r.stdout, /BLOCKING: .*headline-on-fold/);
+  assert.notEqual(r.status, 0);
 });

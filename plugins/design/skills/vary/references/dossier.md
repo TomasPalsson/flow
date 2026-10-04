@@ -10,7 +10,7 @@ Every later step cites this file. Concepts cite fact ids, graphics are seeded fr
 ## 1. Sources, in this order
 
 1. **Repo content.** README, data or CMS fixtures, i18n strings, existing pages, `assets/`, `public/`. If a data module already exists (`menu.ts`, `company.ts`, `catalog.json`), read it whole.
-2. **The client's live site.** Page text, plus the media library. If the product store is thin, pull the uploads folder instead (hitataekni: the WooCommerce store held 1 product, the media library held 172 images and 37 PDFs). Save page copy as plain text files next to the images.
+2. **The client's live site.** Page text, plus the media library. If the product store is thin, pull the uploads folder instead (a shop's store may hold 1 product while its media library holds 170 images and 37 PDFs). Save page copy as plain text files next to the images.
    - Throttle downloads: 1-2 requests at a time with a pause. A parallel burst got the origin firewall to ban the client. On a ban, fall back to the Wayback Machine (`web.archive.org/web/<ts>id_/<url>`).
 3. **Assets the user supplies**: logo, photos, PDFs, brand sheet. Look at each image (Read it) and note what it shows.
 4. **Public reviews**, quoted verbatim with the source and date.
@@ -21,13 +21,13 @@ Look at the place too: signage, the building, the room, the climate, the light. 
 ## 2. Schema of `.vary/dossier.json`
 
 ```json
-{"project":"ARA","subject":"neighbourhood pizzeria and sports bar, Búðakór, Kópavogur","sector":"food-drink",
+{"project":"Corner Pizzeria","subject":"neighbourhood pizzeria and sports bar, Kópavogur","sector":"food-drink",
  "audience":["families ordering take-away on Friday","match-night regulars"],
  "place":{"city":"Kópavogur","climate":"dark winters","light":"Edison bulbs, oven glow","landmarks":["Esja-like ridge"]},
  "language":{"code":"is","glyphs":"þðÞÐÁÍÓÚÝÆÖ"},
- "brand":{"name":"ARA","hex":["#..."],"logo":"assets/scraped/logo.png","signage":"gold serif ARA on navy cladding, 554 3050"},
- "facts":[{"id":"F1","kind":"product","text":"Formaggi — fjórir ostar …","source":"ararestaurant.is/matsedill"},
-          {"id":"F2","kind":"price","text":"Pizza Margarita 2.790 kr.","source":"ararestaurant.is/matsedill","demo":false}],
+ "brand":{"name":"Corner Pizzeria","hex":["#..."],"logo":"assets/scraped/logo.png","signage":"gold serif name on navy cladding, phone number beneath"},
+ "facts":[{"id":"F1","kind":"product","text":"Formaggi — fjórir ostar …","source":"example.is/matsedill"},
+          {"id":"F2","kind":"price","text":"Pizza Margarita 2.790 kr.","source":"example.is/matsedill","demo":false}],
  "assets":[{"path":"shared/img/basar.webp","kind":"photo","usable":true,"notes":"turquoise booths"}],
  "artefacts":["paper menu","guest-check pad","kitchen ticket rail","match-night handbill"],
  "refuse":["no status strip","no staff portraits"],
@@ -54,9 +54,9 @@ Look at the place too: signage, the building, the room, the climate, the light. 
 ## 4. Rules
 
 - **Text is verbatim.** Menu lines, spec rows, hours, quotes: copy them exactly, in the client's language. Demo prices carry `"demo": true`.
-- **Never invent** customers, testimonials, statistics, capabilities or dates (hitataekni spec: "never invent customers, testimonials or statistics"; ara-bar: "Real content only (no inventing)").
+- **Never invent** customers, testimonials, statistics, capabilities or dates ("real content only").
 - **Facts are small and checkable.** One fact is one claim with one source: "Open Fri-Sat until 01:00", "Belimo valve DN 15-25". Split a paragraph into several facts.
-- **Content lands in the build as a data module** (`content.ts`, `company.ts`, `menu.ts`) holding the dossier values, so pages and graphics are generated from the same source (ara-bar `shared/menu.ts`, hitataekni `shared/company.ts`). `check.mjs` then finds the cited facts in the build.
-- **Photos are material, not decoration.** Record which assets are usable and what each shows; `graphics.md` §2 says how to transform them. Mark any with a baked-in badge or watermark in `notes`.
+- **Content lands in the build as a data module** (`content.ts`, `company.ts`, `menu.ts`) holding the dossier values, so pages and graphics are generated from the same source (for example `shared/menu.ts` or `shared/company.ts`). `check.mjs` then finds the cited facts in the build.
+- **Photos are material, not decoration.** Record which assets are usable and what each shows; `../../graphics/references/graphics.md` §2 says how to transform them. Mark any with a baked-in badge or watermark in `notes`.
 - **People.** Staff or owner portraits only when the dossier says the client wants them.
 - Write the file once the sources are read, and keep it small enough for the evaluator to read.

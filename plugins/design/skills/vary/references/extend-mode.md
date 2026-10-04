@@ -31,7 +31,7 @@ Never split the difference: polish on a discarded look, or a new identity smuggl
 The system owns palette, type and components. The page still has to be designed:
 
 - **Skeleton**: when the site already has inner pages, a new page copies their template (page head, breadcrumb or eyebrow, aside or rail, current-nav state, closing parts) and the roll only shapes the content area inside it; visitors should not be able to tell the page was added later. Where no inner-page pattern exists yet, the archetype is a free axis: a docs page can be an index-list or a broadsheet, a settings page card-less tables, chosen by `roll.mjs --lock ...` (never pick from `data/archetypes.json` yourself).
-- **The system's bans hold for new drawings too**: if the existing art has no gradients, blur, soft shadows or photo-real objects, the new page's art has none either (count them in the originals and match).
+- **The system's bans hold for new drawings too**: if the existing art has no gradients, blur, soft shadows or photo-real objects, the new page's art has none either (count them in the originals and match). When the new page needs graphics, the graphics brief (`.vary/graphics-brief.md`, SKILL.md Step 3a) tells `design:graphics` to match the existing art and its bans, the equivalent of `--lock style=<the existing style>`: name the existing style, the stroke and palette in use and the bans counted from the originals, and point it at the existing asset files.
 - **Spacing rhythm and density** tuned to this page's content, inside the token scale.
 - **The one authored motion moment**, in the system's easing.
 - **States**: empty, error, loading and success screens designed for this page's real cases, in the system's vocabulary.
@@ -39,7 +39,7 @@ The system owns palette, type and components. The page still has to be designed:
 - **Copy** that only this product could say; buttons that name outcomes.
 - **Numerals and data typography** where the page carries figures.
 
-Step 3a applies only if the system's existing pages use that treatment. Record `HERO TREATMENT:` in the hand-written contract as what the system already does. Icons come from the system. Then Step 3 onward of SKILL.md applies (build fully, `node <VARY>/scripts/check.mjs`, separate evaluation). The evaluator receives a contract block written by hand in the same field order, with WORLD set to `system: <name>` and GRAMMAR listing the system's own rules as found in code.
+The graphics check (Step 3a) applies only if the system's existing pages use drawn art or the new page has a real need for it; then the new art copies the site's drawing style. Record `HERO TREATMENT:` in the hand-written contract as what the system already does. Icons come from the system. Then Step 3 onward of SKILL.md applies (build fully, `node <VARY>/scripts/check.mjs`, separate evaluation). The evaluator receives a contract block written by hand in the same field order, with WORLD set to `system: <name>` and GRAMMAR listing the system's own rules as found in code.
 
 ## 4. Recording
 

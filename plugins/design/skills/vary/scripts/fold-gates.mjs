@@ -12,4 +12,5 @@ export const GATES = {
   typography: { ...OFF },
   utility: { ...OFF },
 };
-export const defaultTreatment = mode => (mode === 'persuade' || mode === 'experience' ? 'scene' : 'utility');
+// default is neutral: a drawn scene is a choice, so scene rows gate only on an explicit --treatment scene
+export const defaultTreatment = mode => (mode === 'persuade' || mode === 'experience' ? 'typography' : 'utility');
