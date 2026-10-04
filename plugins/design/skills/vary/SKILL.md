@@ -56,6 +56,8 @@ Ask the user at most one round of two or three questions, and only for facts tha
 
 Read [`references/concepts.md`](references/concepts.md) and write 4-7 concepts to `.vary/concepts.json`. Each concept takes a different angle on the business: a different audience moment, half of the trade, time of day or artefact. Each cites at least 3 fact ids, names the trade artefact it borrows, re-skins the functional objects (cart, confirmation, nav), names 2-3 `world_hints` (the one permitted read of `data/worlds.json`: take ids, names, sectors and `avoid_sectors` only, never use it to choose the final world), and offers 2-3 signature devices from the technique list. Each concept names a `treatment` (pattern, photography, product-ui, typography, data-visual, utility, scene). The concepts spread across at least three different treatments and none is the default; a plain, very usable direction is a legitimate concept (real clients often pick it). When the dossier has usable photos or a product UI, at least one concept uses `photography` or `product-ui`. Concepts must differ in treatment and composition, not only in subject (`references/concepts.md` §3). Write them all at full strength: the roll, not you, picks one.
 
+Then run the idea check in [`references/concepts.md`](references/concepts.md) §3b: a fresh creative-director subagent scores every concept, and only concepts at 7 or above go to the roll.
+
 ## Step 1 — Roll
 
 ```bash

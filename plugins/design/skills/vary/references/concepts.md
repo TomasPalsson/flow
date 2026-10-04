@@ -88,6 +88,18 @@ A JSON array. `roll.mjs --concepts` validates it and exits 2 on any failure belo
 - **The signature fact leads.** Every concept's hero shows the dossier's `signature_fact` (the one thing only this client has: the 1868 wool office and its cast-iron sample drawers, the reference kilogram on its isolated plinth, the night-sky ceiling of a clinic called the Moon) or the client's own place, product or people. A concept built on the client's customers, an adjacent trade or a pun on the name (a market stall for an accountant whose clients trade at a market, a circus tent for a clinic, saws for a funeral director who was once a joiner) fails; so does a concept that breaks the audience mood.
 - A concept must not require anything the dossier refuses (`refuse`), or content it lacks.
 
+## 3b. Idea check (before the roll)
+
+The roll picks among the concepts, so a weak concept can win. Before rolling, spawn a FRESH subagent (Agent tool, `model: opus`) as a creative director. Hand it `.vary/dossier.json`, `.vary/concepts.json`, the surface's mode and the primary task, and nothing from this skill. It scores every concept 1-10 on:
+
+- **Only this client**: swap in a competitor's name; if the concept still works, it scores low. The idea must come from the client's own world (their artefact, place, process, product or data story), never a costume from an unrelated one (a bus timetable for a cycling dashboard, a circus for a clinic).
+- **Memorable**: can a visitor describe it in one sentence tomorrow?
+- **Serves the main task**: it makes the primary job clearer or faster (finding a plant, reading the trend, booking a ticket); a concept that hides the task behind a gimmick scores low.
+- **Honest**: it runs on facts the dossier has; it needs no invented content.
+- **Buildable at quality** in this session (a concept that needs photos the client lacks, or art the time budget cannot reach, scores low).
+
+The mean of the five is the concept score. Drop every concept under 7; rewrite the dropped ones once along the director's notes and re-score them; roll only among concepts at 7 or above (at least 3; if fewer survive, write new ones until 3 do). Record the scores in `.vary/concepts.json` (`idea_score`, `idea_notes`). The roll still picks; the director never chooses the winner.
+
 ## 4. Worked examples
 
 Fictional clients, deliberately far apart in treatment. Each one shows how the idea rests on facts and how the first screen serves the visitor.

@@ -89,6 +89,8 @@ New surface or redesign only; inside an existing system skip this phase (extend 
 
    Simple and clean is a legitimate choice when the client asks for it or the surface is a dense tool; for a business, brand or event homepage, clean is the floor, not the goal: give it one memorable idea and the small custom details that make it this client's own. Usable and uninspired is a failure too.
 
+Before running the roll, run the idea check in `../vary/references/concepts.md` §3b: a fresh creative-director subagent scores every concept, and only concepts at 7 or above go to the roll.
+
 **Gate:** You can state the concept in one sentence, cite the three facts it rests on, and name the signature idea and where it appears. If you cannot, you will default to AI slop.
 
 ---

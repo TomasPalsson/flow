@@ -38,6 +38,11 @@ test('operate mode reports coverage as informational', { skip: noPw && 'Playwrig
   const r = fold('op', scene, ['--mode', 'operate']);
   assert.match(r.stdout, /\[INFO\] coverage-desktop/);
 });
+test('operate mode with --treatment data-visual never fails art rows', { skip: noPw && 'Playwright absent' }, () => {
+  const r = fold('op-dv', '<!doctype html><body style="margin:0"><h1>Statistics</h1><p>Orders per week</p><table><tr><td>A-1</td></tr></table></body>', ['--mode', 'operate', '--treatment', 'data-visual']);
+  for (const id of ['coverage-desktop', 'coverage-phone', 'detail']) assert.match(r.stdout, new RegExp(`\\[INFO\\] ${id}`));
+  assert.match(r.stdout, /BLOCKING: none/);
+});
 test('missing target is a usage error', () => assert.equal(spawnSync('node', [join(here, 'fold-check.mjs')]).status, 2));
 
 const tail = `<div style="margin-top:900px">${plate(10)}${plate(10)}${plate(10)}</div>`;
