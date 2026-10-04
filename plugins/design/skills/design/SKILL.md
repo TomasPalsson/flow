@@ -159,7 +159,7 @@ Custom graphics serve the user and the brand. Call the `design:graphics` skill w
 2. **Explanation:** a process, mechanism, place, route or data the user must understand reads faster drawn (steps, diagram, map, chart form).
 3. **States:** empty, error, success or onboarding screens that a small illustration makes friendlier or clearer.
 4. **Brand objects:** functional reskin objects that make the site what it is (price tags, coupons, tickets, stamps, labels, cards drawn as the trade's own artefacts).
-5. **Imagery:** hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a scene, a pattern; never a scene by default).
+5. **Imagery:** hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a scene, a pattern; never a scene by default). A business that sells physical things and has no photos gets a drawing of each product.
 6. **The user asked** for illustrations, cartoons, icons or drawings.
 
 Do not call it when: a directive forbids illustrations; the surface is a dense tool (dashboard, admin, docs) where a standard icon library covers the icons; or photos or the product UI already carry the page's character and nothing else needs drawing.
@@ -209,7 +209,7 @@ Because the mockup runs in perfect conditions; production does not. Turn on `pre
 - **Mood fit.** State the audience's mood need (children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy); a concept that breaks it is re-rolled with `--lock concept=<id>` before building further.
 - **No collisions, no clipped text.** Every label, callout and text is fully visible at both viewports: no overlap with objects or other labels.
 - **Page overflow, meta-copy, duplicate content.** Nothing wider than the viewport at 1440 or 390 unless inside its own scroll container; no designer or scaffold language in visible text (exempt with `data-meta-ok`); each fact appears once in the body (the footer may repeat contact details); intentional repeats are marked `data-repeat-ok`.
-- **Phone width, native and honest.** `../vary/references/build-craft.md` §6 items 17-20: nothing scrolls sideways or clips at 390px; no designer notes or design keys on the page; photos carry a photography page; app screens use native controls and dashboards plot only real data.
+- **Phone width, native and honest.** `../vary/references/build-craft.md` §6 items 17-24 (first screen answers the top question, products shown, brand objects carry real content, phone nav behind a menu button past three links): nothing scrolls sideways or clips at 390px; no designer notes or design keys on the page; photos carry a photography page; app screens use native controls and dashboards plot only real data.
 
 Run the fold check as `node <VARY>/scripts/fold-check.mjs <page> --mode <m> --treatment <t>`, where `<t>` is the treatment the contract names. The rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, page-overflow, meta-copy and headline-on-fold (operate/read: title-on-fold) must be PASS; the time budget never excuses them. Rows printed `[INFO]` are not gated. After fixes, re-run `check.mjs` and the fold check and refresh the evaluator JSON before Phase 6. User DIRECTIVES outrank every bar here: a directive such as "no illustrations" or "plain black and white" is never answered with added art.
 

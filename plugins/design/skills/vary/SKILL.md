@@ -92,7 +92,7 @@ Run this before any UI code. Call the graphics skill when the page has at least 
 2. **Explanation**: a process, mechanism, place, route or data the user must understand reads faster drawn (steps, diagram, map, chart form).
 3. **States**: empty, error, success or onboarding screens that a small illustration makes friendlier or clearer.
 4. **Brand objects**: functional reskin objects that make the site what it is (price tags, coupons, tickets, stamps, labels, cards drawn as the trade's own artefacts).
-5. **Imagery**: hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a pattern, or a scene only when the concept needs one).
+5. **Imagery**: hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a pattern, or a scene only when the concept needs one). A business that sells physical things and has no photos gets a drawing of each product.
 6. The user asked for illustrations, cartoons, icons or drawings.
 
 Do not call it when: a directive forbids illustrations; the surface is a dense tool (dashboard, admin, docs) where a standard icon library covers the icons; or photos or the product UI already carry the page's character and nothing else needs drawing.
