@@ -129,6 +129,8 @@ Rules for every treatment:
 
 ## Step 3 — Build, fully committed
 
+**Section plan (before any page code).** Write `.vary/section-plan.md`: one row per section, top to bottom, with (1) the section's job for the user, (2) how the signature idea shows up there at full strength, in a way that does the job (the care tag on each product, the theme in the programme slots, the data story in the detail view), and (3) its layout skeleton, different from its neighbours. "Standard cards", "a list" or "a table" are allowed only for dense data, legal text or forms, and even then carry one detail of the idea. A section whose row says the idea does not appear is redesigned before it is built. Build from this plan.
+
 Read [`references/build-craft.md`](references/build-craft.md) in full now, not earlier. It holds palette composition from the seed, type loading, motion, states, browser surfaces and the craft floor. It is loaded after the contract on purpose.
 
 While building:
@@ -157,6 +159,8 @@ Before running it, check the content by eye: **each fact (price list, hours, add
 Craft-bug rules (check by eye and in the screenshots before the gate): content is visible with no JS-triggered reveal (an element may animate in only from a visible state, never from opacity 0 that a script must clear); no full-viewport overlay or backdrop left on the page; nothing in the hero is cropped by the nav or the viewport edge; every dial, axis or scale is monotonic and labelled with real values; every callout leader ends on its object.
 
 Fix every `FAIL` in one batch (contract present, contrast, focus-visible, 9 states, reduced motion, image dimensions, font weights, arbitrary Tailwind values, AI vocabulary and em-dash density, template tells, and the project checks: concept-contract, facts-in-build, and, for scene, pattern and data-visual treatments only, bespoke-graphics, seeded-art, svg-a11y; for any other treatment those three are INFO, not FAIL, and a bespoke-graphics FAIL on a typography, photography, product-ui or utility build is not fixed by adding art). A user directive outranks any check row (precedence item 3): never add an illustration to satisfy a check against a "no illustrations" directive. Never satisfy a check by loosening it. Keep the JSON: the evaluator reads it.
+
+**Carry-through check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: opus`) with the full-page screenshots at desktop and phone, `.vary/section-plan.md` and the one-sentence concept. It scrolls the page top to bottom and answers, per section: is the idea present and doing a job here, or has the page fallen back to the category's default cards and lists? It names the weakest section and the concrete change that would carry the idea into it. Rebuild that section (and any other it flags as "idea absent"), then re-shoot. One round; usability fixes still win any conflict.
 
 ## Step 4b — Critic before shipping
 

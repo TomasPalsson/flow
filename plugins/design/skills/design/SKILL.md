@@ -97,6 +97,8 @@ Before running the roll, run the idea check in `../vary/references/concepts.md` 
 
 ## Phase 4 — Execute
 
+**Section plan (before any page code).** Write `.vary/section-plan.md`: one row per section, top to bottom, with (1) the section's job for the user, (2) how the signature idea shows up there at full strength, in a way that does the job (the care tag on each product, the theme in the programme slots, the data story in the detail view), and (3) its layout skeleton, different from its neighbours. "Standard cards", "a list" or "a table" are allowed only for dense data, legal text or forms, and even then carry one detail of the idea. A section whose row says the idea does not appear is redesigned before it is built. Build from this plan.
+
 This is where craft numbers matter more than principles. The difference between "engineer-built" and "designer-quality" UI lives in specific values experts apply automatically.
 
 **The NEVER-defaults — override all of these with intent:**
@@ -178,6 +180,12 @@ When it applies, write `.vary/graphics-brief.md`:
 Then invoke `Skill(design:graphics, args: ".vary/graphics-brief.md")`. It returns the files (SVG, or JS modules rendering SVG) and `assets/art/GRAPHICS.md` with each asset's file, size, alt text (or `aria-hidden` for decoration) and placement. Integrate the files and use that alt text; never redraw them. The graphics skill's own method lives in `../graphics/references/graphics.md` and `../graphics/references/art-crew.md`; this skill does not load it.
 
 **Gate:** The graphics check is answered (called, with the returned files integrated, or not called with the reason), and every graphic on the page has a UX or brand job.
+
+---
+
+## Phase 4c — Carry-through
+
+**Carry-through check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: opus`) with the full-page screenshots at desktop and phone, `.vary/section-plan.md` and the one-sentence concept. It scrolls the page top to bottom and answers, per section: is the idea present and doing a job here, or has the page fallen back to the category's default cards and lists? It names the weakest section and the concrete change that would carry the idea into it. Rebuild that section (and any other it flags as "idea absent"), then re-shoot. One round; usability fixes still win any conflict.
 
 ---
 
