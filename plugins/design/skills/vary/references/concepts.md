@@ -94,6 +94,7 @@ The roll picks among the concepts, so a weak concept can win. Before rolling, sp
 
 - **Only this client**: swap in a competitor's name; if the concept still works, it scores low. The idea must come from the client's own world (their artefact, place, process, product or data story), never a costume from an unrelated one (a bus timetable for a cycling dashboard, a circus for a clinic).
 - **Memorable**: can a visitor describe it in one sentence tomorrow?
+- **Past the genre default**: the first idea anyone in this genre would have (a specimen sheet for a type conference, an official statistics report for a data dashboard, a chalkboard for a shop) is a costume of the genre, not of the subject. It scores 6 at most unless it is pushed somewhere only this client could go (the cycling data as streets and movement, the type theme as real signage that travels). Prefer the subject's own world (its places, motion, materials, people, rituals) over the genre's.
 - **Serves the main task**: it makes the primary job clearer or faster (finding a plant, reading the trend, booking a ticket); a concept that hides the task behind a gimmick scores low.
 - **Honest**: it runs on facts the dossier has; it needs no invented content.
 - **Buildable at quality** in this session (a concept that needs photos the client lacks, or art the time budget cannot reach, scores low).
