@@ -74,7 +74,6 @@ tooling cocoindex
 tooling pentest
 tooling prompt-injection-tester
 tooling slack
-tooling worklog
 tooling icelandic-professor'
 
 t_mkt_repo_present() {
