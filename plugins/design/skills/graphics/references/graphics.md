@@ -1,69 +1,50 @@
 ---
-name: graphics
-description: Step 3a of vary (Phase 3b of design). The playbook for custom, subject-specific graphics written in code: how to derive one signature device from the dossier, the art-engine architecture, a technique catalog with a working code pattern per technique, banned forms, budgets, accessibility, and the art-brief, gallery and screenshot-critique loop that must pass before any UI page code.
+name: graphics-engine
+description: The engine and method reference of the graphics skill. How to derive a subject-specific drawing from the brief's facts, the art-engine architecture, a technique catalog with a working code pattern per technique, banned forms, budgets, accessibility, and the brief, render and critique loop.
 ---
 
 # Graphics: draw the subject
 
-When the treatment is scene or pattern, the graphics are the identity. A palette and fonts over CSS blocks is not a design. Every build carries one **signature device** drawn from the subject, shown at three scales, built from dossier facts. The roll assigned the technique; this file says how to execute it. The two client sites that set the bar did it this way: ara-bar drew every dish and its own building as seeded SVG; hitataekni drew its air handling unit as a cutaway and traced its products into drafting-sheet line art. The patterns below are those engines' real methods, generalised: feed them the subject's own facts, because a pattern copied with placeholder data looks generic (a navy slab with a gold blob). Section 0b is the bar. The patterns teach techniques, not motifs: never draw a pizza, a carton, a storefront or an air-handling unit unless it is THIS client's subject — take the method (projection, char spots, zoned fills, tracing, dimension lines) and point it at the nouns in this dossier.
+Custom graphics are a means to a job: they make something clearer for the user (an icon, a diagram, a map, an empty state) or make the brand recognisable (a spot illustration, a price tag or coupon drawn as the trade's own artefact, a hero). Every asset names its job in the brief. A drawing with no job is cut. The style comes from `data/styles.json` through `pick-style.mjs`, so the look differs project to project; this file says how to execute it. The patterns below teach techniques, not motifs: feed them this client's own facts, because a pattern copied with placeholder data looks generic. Never draw a subject that is not this client's.
 
-## 0. Derive the device from the subject
+## 0. Derive the drawing from the subject
 
-1. Pull 5-10 nouns from the dossier facts: place, material, mechanism, product, history.
+1. Pull 5-10 nouns from the brief's facts: place, material, mechanism, product, history.
 2. Find the ONE primitive they share: a contour, a stroke, a ring, a tile, a sheet, an ink layer.
-3. Make it carry data, seeded from real values: menu toppings, DN ranges, founding year, hours.
-4. Place it at **3 scales**: hero, section divider, micro (icon, bullet, empty state, cursor).
+3. Make it carry data, seeded from real values: menu items, size ranges, founding year, hours.
+4. Where the job allows, use it at more than one scale: large (hero or section), small (spot, divider), micro (icon, bullet, empty state).
 5. One device, one texture, one motion rule.
 
 Test: *"Could this graphic only belong to this business?"* If a competitor could ship it, redraw it from a fact they do not have.
 
-| Project | Device | Data it carries |
+| Fictional client | Device | Data it carries |
 |---|---|---|
-| ara-bar | procedural pizzas | topping lists from `menu.ts` (`pizza/specs.ts`) |
-| ara-bar | storefront scene | the real signage and phone number |
-| hitataekni | air-handling-unit cutaway | real parts cross-referenced to the shop's categories |
-| hitataekni | traced Belimo line art | real spec rows (DN range, voltage) in the dimension labels |
-| hitataekni | air ribbons through an Icelandic apartment block | the company's process |
-## 0b. What cool looks like (the bar to aim at)
+| A bakery | loaves drawn from the day's bake list | the real item names and counts |
+| A tile shop | a pattern tile that repeats the catalogue's real motifs | the tile codes in the corners |
+| A ferry line | a route line with stops | the real timetable stops and crossing times |
+| A dental clinic | tooth cross-sections for each treatment | the treatment names and durations |
 
-Ten signature devices from the two benchmark sites. "Built" is what exists in their code; "carry" is how the same idea scales where the code did not (marked as such). Aim for this density of specificity: every picture is a function of a fact the competitor does not have.
+What good work shares, and what a review checks:
 
-| # | Device | What was drawn | From which fact | Three scales |
-|---|---|---|---|---|
-| 1 | ara-bar pizzas | Top-down pies with leopard-char crust and scorched rim, overlapping melted-cheese blobs with sauce between, zoned toppings (the four-cheese pizza has four wavy quarters), a lifted slice with cheese strands (`lift: true`) | The topping list of each dish in `menu.ts` | Hero: the lifted slice. Divider: the pizza as a rising sun over hills, 24-wedge sunburst. Micro: the 96px thumb with fewer, bolder toppings |
-| 2 | ara-bar storefront | The real building at dusk and night: navy corrugated cladding with a string-light wire, a dusk gradient sky of glowing bands and cloud lenses, a drip-edged snow ridge, a crest and gold "ARA" pinned with `textLength` over a "RESTAURANT" ribbon, "554 3050" on a second sign and the door, pendant bulbs, faceless diners at tables, glass shine, paving slabs and a street lamp with a halo | The client's own photo of the premises | Hero: the whole scene. Divider: the ridge strip with the sky cut away by string surgery. Micro (carry): the sign alone as a sticker |
-| 3 | ara-bar takeaway carton | Oblique-projection box with lid, receipt with zig-zag edge, squashed-ellipse "ARA" sticker, cast shadow, two tapered steam wisps | The real take-away service | Hero: the cart or confirmation page. Divider (carry): the corrugated wall as a repeated strip. Micro: the sticker as the basket icon |
-| 4 | ara-bar oven | Brick dome in running bond, fire-glow clamped inside the mouth, five flames and an ember scatter, a peel in perspective, a woodpile with offset tree rings | The wood-fired oven in the room | Hero: the oven glow. Divider (carry): a row of flames. Micro: one flame as a bullet |
-| 5 | hitataekni cutaway | Air handling unit in section A-A: heat wheel with honeycomb rings and 16 spokes, pleated filter, coil, backward-curved fan, hatched casing, scale bar, eleven numbered callouts | Real parts = the shop's product categories (the parts list links into the shop) | Hero: sheet 00 (`sheet()` in section d draws the frame, zone markers, title block, leader callouts, flow labels and the L/H dimensions around a `unit()`). Divider: the hatched wall strip with the scale bar. Micro: one numbered callout circle or one part as a nav glyph |
-| 6 | hitataekni traced line art | Belimo products edge-traced from the scraped photos (warranty roundel painted out first), white line on blue, dimension lines at the traced bounds | Spec rows: `DN 15-25`, `2-VEGA`, voltages | Hero: the cover sheet, a traced rooftop unit drafted in over 1.1s with zone markers A-F and 1-8. Plate: each product. Micro (carry): a small mask in a cart line |
-| 7 | hitataekni air ribbons | A flat-roofed Icelandic block with snow on the parapet and lit windows; a tapered blue fresh-air ribbon in, a grey stale one out | The company's trade (air through a building) | Hero: spread 1 of the picture book. Divider: the ribbon alone as a swash that draws on scroll. Micro (carry): a ribbon tick as a list marker |
-| 8 | hitataekni filter clogging | A filter bed that fills from the bottom with specks, "Manudur 1 to 12" from a typed CSS integer counter | The filter-subscription interval it sells | Hero: the pinned spread. Divider (carry): the bed as a progress bar. Micro: the counter digit |
-| 9 | hitataekni hood section | A kitchen-hood duct in section, grease built up as perpendicular hatch ticks along the walls, dimensions "6 MAN." and "3-5 AR" | The duct-cleaning service intervals | Hero: the service sheet. Divider (carry): the tick row. Micro: a single tick-lined pipe icon |
-| 10 | hitataekni title block | A drawing-sheet title block that behaves like one: sheet counter updates as plates cross the viewport middle, founding year 1963, emergency number, address, margin ruler | The firm's own details | Hero (carry): the cover. Divider: the margin ruler. Micro: the sheet counter chip |
+1. **The picture is a function of a fact.** Remove the logo and the art still says whose it is.
+2. **One drawing, several scales**, from the same function, not different pieces of clip art.
+3. **Authored imperfection** where the style wants it: wobble, misregistration, char spots; reproducible from a seed.
+4. **A restriction that is tested**: six inks and no opacity, or strokes only on one colour.
+5. **Objects with a job**: the cart is a ticket, the callout opens the product page, the gauge explains what the company sells.
+6. **Craft the template skips**: a finished state for narrow screens and reduced motion, a text equivalent.
 
-What these have in common, and what a review should check:
-
-1. **The picture is a function of a fact.** Remove the logo and the hero still says whose it is.
-2. **One drawing, three scales**, from the same function, not three different pieces of clip art.
-3. **Authored imperfection**: wobble, misregistration, char spots, grease ticks; reproducible from a seed.
-4. **A restriction that is tested**: six inks and no opacity, or strokes only on one blue.
-5. **Objects with a job**: the cart is a guest check or a ticket, the callout opens the product page, the gauge is the explanation of what the company sells.
-6. **Craft the template skips**: a mask for the badge baked into the photo, hand-patched glyphs for the content language, a finished state for narrow and reduced-motion, a text equivalent.
-
-A scene-treatment hero must pass the scene bar (S1-S3 in the vary Step 3a, composed per §1b): a full-bleed scene or sheet, 5+ subject objects, 3+ depth layers, one light, headline set into it, 2+ facts drawn in it. A single icon, a bare grid, a lone diagram in a framed box or a text-only hero is a FAIL for a scene-treatment persuade page.
-
-If your hero could be mistaken for a stock illustration or a gradient blob with a gold shape on it, it is below the bar: redraw it from a fact.
+If a drawing could be mistaken for stock clip-art or a gradient blob with a shape on it, redraw it from a fact.
 
 ## 1. Art-engine architecture
 
 - **Plain functions that return SVG strings.** No DOM, so the engine runs in Bun, Node and the browser, and a test can render it. Pages inline the string, or a build script writes `.svg` files.
-- **Seeded PRNG keyed per item**: `rng("pizza:" + id)`. Never `Math.random` in art (a re-render must be identical; `check.mjs` warns on it).
+- **Seeded PRNG keyed per item**: `rng("pizza:" + id)`. Never `Math.random` in art (a re-render must be identical).
 - **Draw once, style many (the swatch bridge).** A drawing never contains a colour. It names swatches (`crust`, `sauce`, `shadow`) and calls `shape(S, d, 'sauce')`. A **style object** `S = { name, palette, outline, wobble, shade, misregister }` maps every name to an ink hex for one world: `ink` is warm line and hatch, `litho` is flat fills with offset shadows and no outline, `press` snaps the line palette to six inks. `shape()` writes a **literal** `fill="#hex"` plus `data-sw="sauce"`, so the ink-set test, `[fill="#hex"]` selectors and `[data-sw]` selectors all work. Never write `fill="var(--x)"` in a drawing: attribute selectors cannot see through it, and a test cannot check it. CSS variables stay for page chrome; the picture's colours come from the style object.
-- **Leave composition markers** in the output (the first path is always the sky) so pages can cut a scene apart by string surgery, as ara-bar's poster strips the storefront's sky with `svg.indexOf('<path d="M-10 ')`.
+- **Leave composition markers** in the output (the first path is always the sky) so pages can cut a scene apart by string surgery (for example `svg.indexOf('<path d="M-10 ")` to strip a sky).
 - **No `<clipPath>`/`<filter>` ids in drawings** when many SVGs are inlined on one page: ids collide. Clip by sampling (`hatchIn` below takes an `inside(x, y)` predicate) or namespace ids with the item key.
 - **Hand-made on purpose, reproducibly.** Imperfection is authored: wobble from the seeded PRNG, 3px misregistration, char spots, a rotation of -0.4 degrees. It is the same on every load.
 
-File layout the art brief should name: `art/core.js` (kit below), `art/scene.js` (building, carton, ribbons), `art/pizza.js` (or one file per subject family), `art/print.js` (ink sets and snapping), `art/draft.js` (strokes-only drafting kit and sheet), `art/wellformed.js` (test helper), `trace.mjs` (build-time, run by hand or from a package script), `art/art.test.js`, `art/draft.test.js`, `art-gallery.html`.
+File layout the plan should name: `art/core.js` (kit below), `art/scene.js` (building, carton, ribbons), `art/pizza.js` (or one file per subject family), `art/print.js` (ink sets and snapping), `art/draft.js` (strokes-only drafting kit and sheet), `art/wellformed.js` (test helper), `trace.mjs` (build-time, run by hand or from a package script), `art/art.test.js`, `art/draft.test.js`, `art-gallery.html`.
 
 Core kit (tested; paste into `art/core.js`). `STYLES` holds two worlds so the same drawing can be re-inked; add yours next to them and keep the swatch names stable:
 
@@ -173,7 +154,7 @@ The torn edge: set `clip-path: var(--torn)` from `torn(seed)`, with a lighter ba
 
 ## 1b. Composing a scene
 
-The hero of a persuade or experience page is a **scene**, not an object: ara-bar's is the restaurant at night, hitataekni's is a whole blueprint sheet. Both are 10+ drawn objects, 3+ depth layers and one light source, with the brand set into the picture. Generalise the method to this dossier's place, never the motifs.
+A **scene** is one technique among many: use it only when the concept calls for a place drawn whole (a hero, a section plate, an empty-state setting). It is never the default; an icon set, spot illustrations, an object or a pattern is often better. A scene is 10+ drawn objects, 3+ depth layers and one light source. Generalise the method to this client's place, never to fixed motifs.
 
 **Layer order** (paint back to front; each layer is a function returning SVG, all seeded):
 
@@ -184,7 +165,7 @@ The hero of a persuade or experience page is a **scene**, not an object: ara-bar
 5. **Lighting overlay**: warm window glow, a halo round the lamp, a cast shadow under every object, a darkened edge vignette. One light source; lit faces and shaded faces share one direction.
 6. **Lettering**: sign, ribbon, painted wall text, title block. Real dossier strings only.
 
-**Headline into the scene.** Default: the h1 is large display type (at least 72px at 1440, 44px at 390) set straight into the scene's open area (night sky, wall, open sheet), left or top third, as the benchmarks do (ARA's name over the dark sky, Hitatækni's title on the sheet); the art leaves that area open on purpose. A sign, plaque or board is the headline surface only when it is the business's real signage drawn at real scale (at least a third of the hero's width), never a small framed box in the middle of the art. Colour: give the scene a value range (a lit focal point against a dark or deep field, or saturated accents against a pale field); one muddy tone across the whole hero fails. The brand or headline is the scene's own lettering (the sign over the door, painted wall type, a title block). The page headline is always live text (a real `<h1>`) positioned over that drawn surface (pattern in §1b). Set it over a quiet zone of the scene (sky, wall, empty sheet area) and keep that zone flat. **Readable over art**: put a plate behind copy (a darker band, a card of the scene's own material) or put the copy on the scene's own board or sign; measure contrast over the darkest and lightest pixel under the text, not the average. Body copy and prices never sit directly on detail.
+**Headline with a scene.** When copy shares the picture, the page headline is live text (a real `<h1>`), never painted into the art. Set it over a quiet zone of the scene (sky, wall, open area), left or top third, and keep that zone flat; the art leaves that area open on purpose. A sign, plaque or board is the headline surface only when it is the business's real signage drawn at real scale (at least a third of the picture's width), never a small framed box in the middle of the art. **Readable over art**: put a plate behind copy (a darker band, a card of the scene's own material) or put the copy on the scene's own board or sign; measure contrast over the darkest and lightest pixel under the text, not the average. Body copy and prices never sit directly on detail. Give the scene a value range (a lit focal point against a dark field, or saturated accents against a pale one); one muddy tone across the whole picture fails.
 
 **Facts in the art.** Draw at least two dossier strings inside the picture: the phone number painted on the sign, the founding year and address in the title block, hours on a door card, the real product names on shelf labels.
 
@@ -248,7 +229,7 @@ export function heroScene(S, facts, { W = 1440, H = 900 } = {}) {
 
 **Checklist for the gallery's whole-scene render**: at least 5 distinct objects counted aloud; at least 3 depth layers; one visible light source with cast shadows; texture on at least two surfaces (hatching, grain, halftone, paper); people or traces of use; at least 2 dossier facts legible inside the art; covers at least 55% of the 1440x900 first viewport (45% at 390x844); the §1d finish pass is applied (value plan, 3 value steps per material, grain, no empty region over 20% of the hero); every label, callout and sign text is fully visible (collision rule in §7). Fail any and the round is not closed.
 
-**Real `<h1>` over a drawn surface (the fold pattern).** The art leaves a flat sign/board/title-block area; the `<h1>`, value line and action are absolutely positioned over exactly that rectangle and styled as its lettering (the surface's own font, colour and ink). Never svg-only text, never a card:
+**Real `<h1>` over a drawn surface (pattern).** The art leaves a flat sign/board/title-block area; the `<h1>`, value line and action are absolutely positioned over exactly that rectangle and styled as its lettering (the surface's own font, colour and ink). Never svg-only text, never a card:
 
 ```html
 <header class="hero" style="position:relative; aspect-ratio:1440/900; width:100%; max-height:100svh">
@@ -256,8 +237,8 @@ export function heroScene(S, facts, { W = 1440, H = 900 } = {}) {
     <rect x="470" y="130" width="500" height="250" rx="10" fill="#1d1a16"/>  <!-- the drawn sign board, left empty of text -->
   </svg>
   <div class="board" style="position:absolute; left:32.6%; top:14.4%; width:34.7%; height:27.8%; display:grid; place-content:center; text-align:center">
-    <h1 style="font:700 clamp(28px,4.4vw,64px)/1 var(--display); color:#f2c14e; margin:0">Hitataekni</h1>
-    <p style="color:#f6e7c1; margin:.4em 0">Heating repairs for Reykjavik homes.</p>
+    <h1 style="font:700 clamp(28px,4.4vw,64px)/1 var(--display); color:#f2c14e; margin:0">Northgate</h1>
+    <p style="color:#f6e7c1; margin:.4em 0">Heating repairs for local homes.</p>
     <a href="tel:+3545550123" style="color:#1d1a16; background:#f2c14e; padding:.5em 1em; border-radius:6px">Call 555 0123</a>
   </div>
 </header>
@@ -268,12 +249,12 @@ The percentages are the board rectangle over the viewBox (x/1440, y/900, w/1440,
 **Lettering on a scene surface that stays legible and clickable (worked example).** The phone, hours and a painted action may live ON a drawn surface (sign, ticket, chalkboard, title block, label), never on a frosted card, chip row or button pair laid over the art. A painted sign can be wrapped in a real control, so the picture is the button; the page `<h1>` still exists as live text (above). Do not repeat the business name in both: when the `<h1>` carries the name, the sign's svg text is the phone only (or the whole sign is `aria-hidden` decoration with the `<a>` named by the phone), so the name appears in the DOM once:
 
 ```html
-<a class="sign" href="tel:+3545550123" aria-label="Call Hitataekni: 555 0123">
+<a class="sign" href="tel:+3545550123" aria-label="Call Northgate: 555 0123">
   <svg viewBox="0 0 640 220" role="img" aria-labelledby="sign-t" width="640" height="220">
-    <title id="sign-t">Hitataekni, repairs. Phone 555 0123</title>
+    <title id="sign-t">Northgate, repairs. Phone 555 0123</title>
     <rect x="4" y="4" width="632" height="212" rx="10" fill="#1d1a16"/>              <!-- sign board: solid, so contrast is measured on a known ground -->
     <rect x="4" y="4" width="632" height="38" rx="10" fill="#2c2720"/>               <!-- lit top plane: value step 2 -->
-    <text x="320" y="130" text-anchor="middle" font-size="84" textLength="560" lengthAdjust="spacingAndGlyphs" fill="#f2c14e">HITATAEKNI</text>
+    <text x="320" y="130" text-anchor="middle" font-size="84" textLength="560" lengthAdjust="spacingAndGlyphs" fill="#f2c14e">NORTHGATE</text>
     <text x="320" y="186" text-anchor="middle" font-size="34" fill="#f6e7c1">555 0123</text>
   </svg>
 </a>
@@ -300,7 +281,7 @@ A scene is drawn at 1000-1500 units wide, so line weights, hatch gaps, label siz
 
 ## 1d. Finish pass (applied in the art loop, after the objects are drawn)
 
-Flat single-tone vectors read as clip-art. The benchmarks win on value structure: lit windows against a night sky, a gold sign, grain, a blueprint grid with a title block. Run this pass on the hero and on every plate before the critique screenshot.
+Flat single-tone vectors read as clip-art. Good work wins on value structure: a lit focal point against a dark field, grain, a grid with a title block. Run this pass on every asset that has shading (not on monoline icons or styles whose ban list forbids it) before the critique render.
 
 1. **Value plan.** Decide the light before shading: time of day, ONE key light (direction), ONE glow source (window, lamp, oven mouth, screen). Lit planes face the key light, shaded planes the other way, cast shadows fall away from it. The brightest value on the plate goes to the focal fact (the sign, the product, the price tag); everything else sits at least two steps darker. Squint test: blur the screenshot, the focal fact must still be the brightest spot.
 2. **No flat muddy fills.** Every material (wall, roof, cloth, wood, metal, figure) has at least 3 value steps from the palette: lit, mid, shade, plus an edge or cast shadow. Hatching on one brown is not three steps. Never fill a large area with a single mid-value brown or grey.
@@ -340,9 +321,9 @@ export const finish = (S, W, H, id) => `
 
 Critique additions for this pass: name the light source, point at the brightest value and say whether it is the focal fact, count value steps on the two largest materials, and measure the largest empty region as a percentage of the hero.
 
-### Depth recipe (the numbers the fold gate measures)
+### Depth recipe (numbers to aim for on shaded art)
 
-Measured on the desktop screenshot of the art area (hero, and each plate on its own box). Judges fail "flat fills with thin uniform strokes" as clip art; the benchmarks have glow, texture, gradient skies and hatch used as shading.
+Measured on a render of the asset. Shaded styles that read as "flat fills with thin uniform strokes" look like clip art; give them glow, texture, gradients and hatch used as shading. Flat or monoline styles skip this recipe: their value comes from silhouette and a strict palette.
 
 | Measure | Target | How to hit it in SVG |
 |---|---|---|
@@ -350,7 +331,7 @@ Measured on the desktop screenshot of the art area (hero, and each plate on its 
 | Value steps (of 16 luminance bins, bins holding at least 2% of pixels) | at least 5 (a plate: at least 3) | 3-5 value ramps per material (lit, mid, shade, edge, cast shadow); a gradient sky; a glow disc; a vignette |
 | Texture (mean local std-dev, 8x8 blocks, flattest 30% of blocks) | reported, not gated (a smooth gradient sky is legitimately flat); aim for 2 or more over flat fills | Grain from the finish pass, stretched so it reads; hatch used as SHADING on the shaded face, never as the fill; paper or halftone tooth |
 
-The targets are the gate's thresholds (`TH` in `fold-check.mjs`), and the gate prints the three numbers. Flat worlds (litho, flat) forbid gradients and opacity: use the §1d substitutes (offset lighter shape for the glow, border band for the vignette, hatch or halftone in an existing ink for the grain) and meet the same numbers with those. Recipe: (1) gradient sky or backdrop, never a flat rect; (2) 3-5 stops per material, light from the one key; (3) one glow with `mix-blend-mode:screen` on the focal fact; (4) grain over everything; (5) hatch lines follow the form and darken one face; (6) strokes vary in weight (heavier at the shaded edge), never one uniform hairline.
+The targets are guides for shaded art. Flat worlds (litho, flat) forbid gradients and opacity: use the §1d substitutes (offset lighter shape for the glow, border band for the vignette, hatch or halftone in an existing ink for the grain) and meet the same numbers with those. Recipe: (1) gradient sky or backdrop, never a flat rect; (2) 3-5 stops per material, light from the one key; (3) one glow with `mix-blend-mode:screen` on the focal fact; (4) grain over everything; (5) hatch lines follow the form and darken one face; (6) strokes vary in weight (heavier at the shaded edge), never one uniform hairline.
 
 ## 1e. Objects, not boxes
 
@@ -409,11 +390,11 @@ Check both at 96px and at plate size in the gallery. A train that reads as a lon
 
 ## 2. Technique catalog
 
-These ids match the roll's `TECHNIQUES`. Each entry: when it fits, a working pattern, the motif to take from the subject, and the performance and accessibility notes. Whatever the technique, ship a finished static state (no JS, no animation).
+Each entry: when it fits, a working pattern, the motif to take from the subject, and the performance and accessibility notes. Whatever the technique, ship a finished static state (no JS, no animation).
 
 ### a. `seeded-illustration`: flat-shape scenes of the real place or object
 
-Fits: a hero scene of the actual building, room, landscape or product; spot illustrations; process scenes. This is the ara-bar engine's real method, not a sketch of it: layered flat shapes, a limited ink set, oblique-projection objects, shading as hatching clipped by geometry, tapered strokes, and every detail taken from a fact. Copied as-is the patterns below look plain; what makes them specific is what you feed them (the real sign, the real phone number, which windows are lit, which cheese is on which quarter).
+Fits: a hero scene of the actual building, room, landscape or product; spot illustrations; process scenes. The method: layered flat shapes, a limited ink set, oblique-projection objects, shading as hatching clipped by geometry, tapered strokes, and every detail taken from a fact. Copied as-is the patterns below look plain; what makes them specific is what you feed them (the real sign, the real phone number, which windows are lit, which topping is on which quarter).
 
 ```js
 import { rng, rr, blob, poly, bez, taper, hatchIn, inPoly, scatter, shape, strokeSw, shade, svg, f, STYLES } from './core.js';
@@ -430,7 +411,7 @@ const txt = (S, x, y, s, size, sw, { anchor = 'middle', len, weight = 700, mono 
 const veil = (S, d, sw, op) => S.shade === 'flat' ? '' : `<path d="${d}" fill="${S.palette[sw]}" data-sw="${sw}" opacity="${op}"/>`;   // tone: line worlds only; flat worlds use hard shapes
 
 // A labelled carton, drawn from three numbers and a real label: a pizza box, a parts crate, a sample bag, a parcel.
-export function carton({ w = 175, d = 125, h = 36, label = 'ARA', sub = '', key = 'box' } = {}, S = STYLES.ink) {
+export function carton({ w = 175, d = 125, h = 36, label = 'NORD', sub = '', key = 'box' } = {}, S = STYLES.ink) {
   const r = rng('carton:' + key), top = plane([50, 170], [1, -.257], [1, .4]);       // lid plane: U runs right and up, V runs down and right
   const A = top.pt(0, 0), B = top.pt(w, 0), C = top.pt(w, d), D = top.pt(0, d), dn = (p, k = h) => [p[0], p[1] + k];
   const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
@@ -467,7 +448,7 @@ function diner(S, x, b, r, lean = 0, glass = false) {                       // f
     + shape(S, blob(x + lean * 1.4, b - 48, hd * .85, hd, r, .05, 7), 'woodDark', { line: false });
   return glass ? o + shape(S, poly([[x + 22, b - 26], [x + 31, b - 26], [x + 29, b - 8], [x + 24, b - 8]]), 'sun', { line: false }) : o;
 }
-export function storefront(key, { sign = 'ARA', sub = 'RESTAURANT', phone = '554 3050', night = false } = {}, S = STYLES.ink) {
+export function storefront(key, { sign = 'NORD', sub = 'KITCHEN', phone = '554 3050', night = false } = {}, S = STYLES.ink) {
   const r = rng('store:' + key), P = S.palette, flat = S.shade === 'flat', sw = sign.length * 106;
   let o = shape(S, 'M-10 -10H1210V810H-10Z', 'skyDark', { line: false });                                        // marker: first path = sky
   if (night) for (const [x, y] of scatter(r, 60, () => true, 24, [10, 10, 1190, 200])) o += shape(S, blob(x, y, 1.6, 1.6, r, .2, 5), 'paper', { line: false });
@@ -588,7 +569,7 @@ Motif: signage text, the phone number, the real facade, the real horizon. Silhou
 
 ### b. `procedural-subject`: models generated from data
 
-Fits: any catalogue where each item is different (menu, parts, plans, rooms). The drawing is a function of the item's record, so a new item is drawn without new art. The ara-bar pizzas work this way: the topping list in `specs.ts` is transcribed from `menu.ts`, so each dish on the page is the dish on the menu.
+Fits: any catalogue where each item is different (menu, parts, plans, rooms). The drawing is a function of the item's record, so a new item is drawn without new art. A menu of pizzas works this way: the topping list in the item record is transcribed from the real menu, so each dish drawn is the dish on the menu.
 
 ```js
 import { rng, rr, blob, poly, bez, taper, scatter, shape, strokeSw, shade, hatchIn, svg, f, STYLES } from './core.js';
@@ -686,7 +667,7 @@ Motif: the topping list, the layers of a burger (`layers: ['patty', 'cheese', 'l
 
 ### c. `traced-line`: build-time edge detection of real photos
 
-Fits: any subject with real product photos; turns pasted catalogue photos into one-colour drafting line art. Run once at build time; the page ships a mask PNG per photo and a `bounds.json`. This is the hitataekni `design-d/scripts/trace.ts` pipeline, generalised.
+Fits: any subject with real product photos; turns pasted catalogue photos into one-colour drafting line art. Run once at build time; the page ships a mask PNG per photo and a `bounds.json`.
 
 Pipeline: greyscale, **paint out baked-in junk first** (warranty roundel, floor reflection, watermark: set those regions to the background value so they never produce edges), gaussian blur, Sobel gradient, non-maximum suppression (edges one pixel wide), hysteresis (a weak edge survives only when connected to a strong one), despeckle, dilate, bounding box. Every stage is a pure function on typed arrays, so it runs and tests without an image library; only `main()` needs `sharp`.
 
@@ -770,14 +751,14 @@ Show it as a coloured mask, so the line colour stays a token:
 .trace { background: var(--line); -webkit-mask: var(--src) center / contain no-repeat; mask: var(--src) center / contain no-repeat; }
 ```
 ```html
-<div class="trace" style="--src:url(/art/valve-dn25.png);aspect-ratio:4/3" role="img" aria-label="Belimo valve DN 25, line drawing"></div>
+<div class="trace" style="--src:url(/art/valve-dn25.png);aspect-ratio:4/3" role="img" aria-label="Valve DN 25, line drawing"></div>
 ```
 
 Pair it with real numbers: dimension lines at the traced bounds, labels copied from spec rows (`DN 15-25`), never invented. The `dim()` and `traceDims()` helpers are in `art/draft.js` (section d); `traceDims(bounds[name], { h: 'DN 15-25', v: '2-VEGA' })` puts a horizontal span under the object and a vertical span beside it, each with extension lines, arrowheads and a label, in the page's line colour. Perf: the PNG is one small mask per product. The whole drafting plate (the mask, the dimensions, the title block) draws in with the `pathLength` line-draw variant in section f.
 
 ### d. `mechanism-diagram`: cutaways and exploded views with callouts
 
-Fits: products with parts, processes with steps (an air handling unit, a filter swap, a roof build-up, a lock). Plain SVG from a parts array: each part is a real drawn mechanism, not a labelled box; numbered callouts, a section cut with hatching, a scale bar, dimension lines, and a parts list cross-referenced to products or categories. The hitataekni cutaway is built exactly like this: wheel with honeycomb rings and 16 spokes, zig-zag pleated filter, coil with tube ends, backward-curved fan, eleven callouts, section A-A.
+Fits: products with parts, processes with steps (an air handling unit, a filter swap, a roof build-up, a lock). Plain SVG from a parts array: each part is a real drawn mechanism, not a labelled box; numbered callouts, a section cut with hatching, a scale bar, dimension lines, and a parts list cross-referenced to products or categories. A cutaway built this way for a ventilation unit has: wheel with honeycomb rings and 16 spokes, zig-zag pleated filter, coil with tube ends, backward-curved fan, eleven callouts, section A-A.
 
 ```js
 import { f, hatchIn, inPoly } from './core.js';
@@ -1014,7 +995,7 @@ export const press = { ...STYLES.litho, name: 'press', palette: Object.fromEntri
 
 The misregistration shadow is already in `shape()` (`shadow: 'shadow'` offsets the same path by `S.misregister`, flat worlds only), so a litho drawing needs no extra code. Add a third world by mapping the same swatch names to the six inks with `nearest()`, as `press` does above: the poster, the letterpress handbill and the match-night flyer can then be one set of drawings.
 
-**Enforce the constraint with a test** (this is the style-rule test the art brief names): render every subject at every size and assert no opacity, no gradient, no filter and every colour in the ink set; also assert determinism and that swatch names and hexes agree. A test that passes on a drawing with a stray `opacity` is a test that does not bite: check it fails when you add one. The same goes for the markup itself: `wellFormed()` (in `art/wellformed.js`) rejects unbalanced tags and any text node outside `<text>`, which is how a path-data string pasted into an SVG (the drafting-kit hatch bug) is caught; the test file proves it bites by feeding it that exact mistake. Run it over every subject at every size.
+**Enforce the constraint with a test** (this is the style-rule test the plan names): render every subject at every size and assert no opacity, no gradient, no filter and every colour in the ink set; also assert determinism and that swatch names and hexes agree. A test that passes on a drawing with a stray `opacity` is a test that does not bite: check it fails when you add one. The same goes for the markup itself: `wellFormed()` (in `art/wellformed.js`) rejects unbalanced tags and any text node outside `<text>`, which is how a path-data string pasted into an SVG (the drafting-kit hatch bug) is caught; the test file proves it bites by feeding it that exact mistake. Run it over every subject at every size.
 
 ```js
 // art/wellformed.js: a small well-formedness check for the SVG strings the engine returns (no XML library needed).
@@ -1044,13 +1025,13 @@ import { wellFormed } from './wellformed.js';
 
 const item = { id: 'diavola', toppings: [{ k: 'pepperoni', n: 9 }, { k: 'olive', n: 8 }, { k: 'basil', n: 4 }] };
 const doc = s => s.startsWith('<svg') ? s : `<svg>${s}</svg>`;   // block() returns bare markup
-const SUBJECTS = {                                   // every subject the art brief lists, at every size it ships
+const SUBJECTS = {                                   // every subject the brief lists, at every size it ships
   'pizza hero': S => pizza(item, S, 'hero'),
   'pizza lifted slice': S => pizza({ ...item, lift: true }, S, 'hero'),
   'pizza thumb': S => pizza({ ...item, toppings: item.toppings.slice(0, 2) }, S, 'thumb'),
-  carton: S => carton({ label: 'ARA' }, S),
-  storefront: S => storefront('ara', {}, S),
-  'storefront night': S => storefront('ara', { night: true }, S),
+  carton: S => carton({ label: 'NORD' }, S),
+  storefront: S => storefront('nord', {}, S),
+  'storefront night': S => storefront('nord', { night: true }, S),
   block: S => block('b', { lit: new Set(['0,1']) }, S).body + ribbons([{ path: [[0, 0], [50, 0], [50, 90], [100, 90]], sw: 'air', width: 12 }], S),
   'block scene': S => blockScene('b', { lit: new Set(['0,1', '2,2']) }, S),
 };
@@ -1097,9 +1078,9 @@ test('pizza: a lifted slice adds a second group and cheese strands; the thumb ne
   assert.doesNotMatch(pizza({ ...item, lift: true }, STYLES.ink, 'thumb'), /rotate\(9\)/);
 });
 test('storefront: first path is the sky; sign, sub-ribbon, phone sign, cladding ribs, lamp and snow are all drawn', () => {
-  const s = storefront('ara', { sign: 'ARA', phone: '554 3050' }, STYLES.ink);
+  const s = storefront('nord', { sign: 'NORD', phone: '554 3050' }, STYLES.ink);
   assert.ok(s.includes('<path d="M-10 -10') && s.indexOf('<path d="M-10 -10') < s.indexOf('data-sw="ridge"'));
-  for (const t of ['>ARA<', '>RESTAURANT<', '>554 3050<']) assert.ok(s.includes(t), t);
+  for (const t of ['>NORD<', '>KITCHEN<', '>554 3050<']) assert.ok(s.includes(t), t);
   assert.match(s, /textLength="318"/);
   assert.ok(count(s, /data-sw="rib"/g) >= 1 && count(s, /data-sw="snow"/g) >= 3 && count(s, /data-sw="sun"/g) >= 5);
 });
@@ -1156,7 +1137,7 @@ Fits: subjects with strong lettering heritage and no imagery (a founding year, a
 ```html
 <svg viewBox="0 0 600 200" role="img" aria-label="Founded 1963">
   <defs><path id="arc" d="M30 170 Q300 -40 570 170"/></defs>
-  <text font-family="var(--display)" font-size="40" letter-spacing=".08em" fill="var(--ink)"><textPath href="#arc" startOffset="50%" text-anchor="middle">HITATÆKNI · SÍÐAN</textPath></text>
+  <text font-family="var(--display)" font-size="40" letter-spacing=".08em" fill="var(--ink)"><textPath href="#arc" startOffset="50%" text-anchor="middle">NORTHGATE · EST. 1963</textPath></text>
 </svg>
 ```
 ```css
@@ -1250,7 +1231,7 @@ Render at 0.5-1x resolution, cap DPR at 2, pause off-screen, `aria-hidden="true"
 
 ### n. Custom icon set (at micro scale)
 
-Every project ships its own icons, not a library, unless the repo has an icon system (extend mode) or an operate surface uses one library consistently. 24-unit grid, one stroke width, `currentColor`, one quirk drawn from the subject (squared ends for engineering, brushed ends for craft, cut corners for stone), as a `<symbol>` sprite.
+A custom icon set is for projects where it adds identity or clarity; a standard library is fine when the repo has an icon system (extend mode) or an operate surface uses one library consistently. See `icons.md` for the full method. In short: 24-unit grid, one stroke width, `currentColor`, one quirk drawn from the subject (squared ends for engineering, brushed ends for craft, cut corners for stone), as a `<symbol>` sprite.
 
 ```html
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1264,7 +1245,7 @@ Icon-only buttons need a text label (`aria-label` or visually hidden text). Comp
 
 ### o. Photos transformed, not pasted
 
-Photos as supporting material in a scene or pattern treatment are transformed into the world's material. Under photography or product-ui, and for identity assets (headshots, partner logos, product screens), the image ships faithfully: art direction by crop, sequence, size and grade only. The snippets below apply to the transformed case.
+When a photo is used as supporting material inside a drawn piece, it can be transformed into the style's material. Identity assets (headshots, partner logos, product screens) and photos the page carries on their own ship faithfully: crop, size and grade only. The snippets below apply to the transformed case.
 
 ```css
 .cutout { mix-blend-mode: multiply }                                           /* white-ground cut-out onto painted paper */
@@ -1273,65 +1254,30 @@ Photos as supporting material in a scene or pattern treatment are transformed in
 .pinned { padding: 8px 8px 22px; background: var(--paper); transform: rotate(var(--tilt, 1.2deg)) }   /* pinned print */
 ```
 
-Crop or clip baked-in badges and watermarks (`object-position`, a `clip-path`, or paint them out before tracing). Under photography or product-ui, only crop and clip badges; do not transform. In a scene or pattern treatment: where there is no photo, draw it with a technique above; where a photo must stay, make it a one-ink halftone (`mix-blend-mode: multiply` over a `.halftone`), a greyscale plate or a traced line.
+Crop or clip baked-in badges and watermarks (`object-position`, a `clip-path`, or paint them out before tracing). Photos that stay faithful are only cropped or clipped. In a drawn piece: where there is no photo, draw it with a technique above; where a photo must stay, make it a one-ink halftone (`mix-blend-mode: multiply` over a `.halftone`), a greyscale plate or a traced line.
 
-## 3. Lead-device tables
-
-Subject type to lead device:
+## 3. Subject type to device
 
 | Subject type | Lead device | Support |
 |---|---|---|
-| Place / travel | Traced SVG silhouette or contour lines, seeded | Grain, scroll-drawn route |
+| Place / travel | Traced SVG silhouette or contour lines, seeded; a map | Grain, a drawn route |
 | Craft / material | Grain, texture, CSS surface pattern | Typographic numerals, custom icons |
-| Tech / product | Shader or generative field, diagram of the real mechanism | Icon set, mono type |
+| Tech / product | Diagram of the real mechanism, generative field | Icon set, mono type |
 | History / institution | Typographic illustration, data timeline | Halftone, stamp CSS art |
 | Data-heavy | Bespoke data diagram | Seeded marks |
+| Retail / food / services | Brand objects (price tag, coupon, ticket, label) and spot illustrations | Icon set |
 
-World to natural execution (guides execution only; the roll already picked the technique):
-
-| World | Natural technique |
-|---|---|
-| blueprint | traced-line + mechanism-diagram |
-| childrens-book | seeded-illustration + scroll-scene |
-| mid-century-travel-poster | print-process |
-| industrial-datasheet | annotated-photo |
-| letterpress-wood-type | typographic + print-process |
-| cartographic | generative contour (generative-pattern) |
-| japanese-consumer-electronics-80s | material-texture + annotated-photo |
-| risograph-zine, punk-zine, newsprint-tabloid | print-process (halftone, misregistration) |
-| nautical-chart, field-guide-naturalist | seeded-illustration + data-diagram |
-| apothecary-label, illuminated-manuscript | typographic + material-texture |
-| board-game-rulebook, video-game-menu | mechanism-diagram + generative-pattern |
-| scientific-journal, pharmaceutical-clinical | data-diagram + mechanism-diagram |
-| transit-signage, wayfinding-aicher | typographic + generative-pattern (pictograms on a grid) |
-| terminal-hacker, aviation-hud, trading-floor | data-diagram (live readouts); shader only if it is the device |
-| swiss-international, bauhaus, de-stijl, constructivist, op-art, art-deco-geometric | generative-pattern (grid, geometry as the mark) |
-| mid-century-corporate, dieter-rams-braun, scandinavian-functionalism | mechanism-diagram (clean product line art) + material-texture |
-| vintage-analog, grunge-carson, brutalist-web, neo-brutalism | material-texture + typographic |
-| museum-gallery, editorial-newspaper, japanese-editorial, luxury-fashion-editorial | annotated-photo + typographic (restrained) |
-| sports-broadcast, memphis, y2k-frutiger-aero, psychedelic | generative-pattern or shader (when the world is the energy) |
-
-For any world not listed, read its grammar and materials and apply the same rule: take the physical thing its antecedent is made of and draw it.
-
-### Hero-forbidden devices per mode
-
-The roll refuses these techniques as the **hero** device (they stay allowed at plate, divider or micro scale). It mirrors `HERO_FORBIDDEN` in `scripts/roll.mjs`:
-
-| Mode | Forbidden as hero | Why |
-|---|---|---|
-| `operate` | `shader`, `scroll-scene` | people are doing a task: no live canvas, no pinned scroll story between them and the form |
-| `read` | `shader` | long reading: a moving field fights the text |
-| `persuade`, `experience` | none | the hero may carry the full device |
-
-If every device a concept offers is forbidden for the mode, the roll keeps the concept and notes it: draw the device at plate and micro scale and (scene) open the page with a static drawing. When you hand-pick a device (a reroll or a veto), apply the same table.
+The style catalog (`data/styles.json`) gives the look; the technique catalog (section 2) gives the method. Pick the technique from the physical thing the style is made of (ink, paper, wire, tile) and draw it.
 
 ## 4. Banned forms and the owner test
 
-- No faces on food (a pepperoni that reads as a smiling face, breadsticks that look like fingers were both caught in critique), no kawaii, no mascots, no emoji-blobs.
-- No stock icon libraries as the identity.
-- No generic gradient blobs, meshes or noise-only heroes where a drawing of the subject belongs.
-- No AI-image look.
-- Staff or owner portraits only if the dossier allows them.
+- No faces on food or objects unless the style is character-driven and the brief asks for it; characters and mascots are welcome when the style sheet allows them and they serve the brand.
+- No stock icon libraries as the identity of a custom set; mixing two icon families in one set.
+- No generic gradient blobs, meshes or noise-only art where a drawing of the subject belongs.
+- No AI-image look: melted detail, gibberish lettering, uncanny hands.
+- No invented facts: no made-up numbers, names, addresses or certifications drawn into art.
+- Staff or owner portraits only if the brief allows them.
+- Whatever the chosen style bans (see its `banned` list), also stays out.
 
 Test: *"Would the owner print this on their menu, van or datasheet?"* If not, redraw.
 
@@ -1350,82 +1296,20 @@ Test: *"Would the owner print this on their menu, van or datasheet?"* If not, re
 - Contrast is measured over the texture and the worst frame. Decorative saturated fields stay on graphic plates; reading, prices and forms sit on a high-contrast field.
 - **Verify glyphs** for the content language: render the hero copy with the assigned face and look for fallback boxes or misleading shapes (þ ð Á Í Ö). Swap or patch a face that fails, and pin which weights ship.
 
-## 7. Art brief, gallery and critique loop (scene treatment, before any UI page code)
+## 7. The graphics loop: brief, style sheet, draw, render, critique
 
-1. **Write `.vary/art-brief.md`** with these sections:
-   1. Subjects: an exhaustive list from the dossier, each with its fact ids.
-   2. Engine and file layout (`art/core.js`, `art/<subject>.js`, `art/styles.js`, `art/art.test.js`).
-   3. Style object(s), one per world.
-   4. Banned forms (§4 plus the world's refuse list).
-   5. Sizes: hero, and thumb at 96px.
-   6. The style-rule test to write (for litho: "no opacity, no gradients, only the six inks").
-   7. The 3 placements of the device: hero, divider, micro.
-   8. **Objects table**: every drawn object (§1e) with its silhouette parts (a train: roof line, bogies, windows, door, couplers; a book: spine, boards, headband, page block), the three value steps it uses, and for each person the posture or gesture and the cast shadow. A box standing for a thing is not an entry.
-   9. **Section skeleton table**: one row per section below the fold, assigning one of the six skeletons below to it and naming the plate's subject. No two consecutive rows may share a skeleton.
-   10. **Shared plate frame**: the shared ground line (% of plate height), key-light direction, glow source and grain level, one value for all plates; and **per-plate rows**: subject, fact ids, skeleton, size at desktop and phone. The lead fills the illustrator template's placeholders ({GROUND_Y}, {LIGHT_DIR}, sizes) from these; illustrators never choose them.
-   11. **Headline surface**: the drawn surface in the hero scene that carries the business name AND a one-line value proposition (sign, board, title block, ticket), with both strings, rendered as a real `<h1>` plus value line plus action over that surface (§1b pattern), and the **audience mood need** in one line (children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy) that the concept and world must serve.
-2. **Build the art module** (plates are drawn by parallel illustrator subagents per `art-crew.md`; the lead integrates) and `art-gallery.html` rendering every subject at both sizes. Write the style-rule test and run it.
-3. **Screenshot the gallery** with Playwright, `npx agent-browser` or the browser MCP, and **Read the PNGs**. Look; do not assume.
-4. **Write `.vary/critique-r1.json`** (the critique list also checks, per drawn object, the §1e rules: real silhouette not a box, at least 3 value steps, posture and cast shadow for people; and per section: no two consecutive sections share a skeleton, no plate is a labelled box, no fact is shown twice, the hero carries name and value proposition on a drawn surface) as `[{"subject","problem","fix"}]` plus a 1-10 score per group. Problems are concrete ("pepperoni reads as a smiling face", "the heat wheel is indistinguishable from the fan at 96px"), never "could be better".
-5. **Fix, re-render, re-screenshot, write `critique-r2.json`.** Two rounds, then build. Items still open after round 2 go into NOTES.md as `art: open — <item>` and the page ships; never start a third round.
-6. No UI page code until round 2 passes.
+1. **Read the brief** (`.vary/graphics-brief.md`): project, page system (tokens, fonts, directives), the asset rows (id, kind, what, facts, UX job, size, placement), output dir. Cut any row with no job.
+2. **Write the style sheet** (`.vary/graphics-style.md`): the picked style, palette swatches from the page tokens, stroke weight, corner treatment, shading rule, texture rule, how people and objects are simplified, what is banned. One sheet for every asset.
+3. **Plan each asset**: for each row, the objects table (section 1e): every drawn object with its silhouette parts and, if the style shades, its value steps; for each person the posture and shadow. Name the engine files (`art/core.js`, `art/<asset>.js`, `art/styles.js`) when the job needs code; a small job can be hand-written SVG files.
+4. **Draw** (the lead for small jobs, illustrator subagents for bigger ones per `art-crew.md`) and write a gallery page rendering every asset at its real desktop and phone sizes, plus the style-rule test if the style has a hard restriction (for example "no opacity, only the six inks").
+5. **Render and look.** Screenshot the gallery with Playwright, `rsvg-convert` or the browser MCP, and Read the PNGs. Look; do not assume.
+6. **Critique round 1.** Write `.vary/critique-r1.json` as `[{"asset","problem","fix"}]` plus a 1-10 score per group. Check per asset: the UX job is done at size, matches the style sheet and tokens, silhouettes are real (not boxes), no collisions or clipped text, facts are the client's, and the set is in one hand. Problems are concrete ("the magnifier handle reads as a pencil at 16px", "the coupon's scissors collide with the price"), never "could be better".
+7. **Fix, re-render, critique round 2** (`critique-r2.json`). Two rounds, then deliver. Items still open go into `assets/art/GRAPHICS.md` as `open: <item>`; never start a third round.
 
-**Art all the way down (scene rule).** Every section below the fold carries its own drawn plate at real size: at least 40% of that section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, fully rendered with the §1d finish pass and at least 3 value steps (not a thin pale line diagram in a tinted box), drawn from that section's own facts (place, product, process, people, history). A catalogue, menu or services list draws EACH item: the art engine is a function of the item record (§1), so every row or card gets its own drawing from its own fields. A section that is only cards, text or a form is a failure unless it is the contact block (or the footer). The art brief lists one plate per section. Identity assets (headshots, sponsor or partner logos, client photos of people, product screenshots) are shown unaltered and are exempt from "draw each item"; data sections (schedule, pricing table, comparison, code) are exempt from plates.
+**Collision rule (every round, both sizes).** Every label, callout and sign text is fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering; no callout hidden behind a prop. Check the desktop and phone renders separately, zoomed on each text.
 
-**Section skeletons (assign one per section in the brief; no two consecutive sections share a skeleton).** Without this, every section falls back to copy left and a small boxed diagram right.
-
-1. **Full-bleed plate with caption**: the drawing spans the section's full width; a short caption sits on a drawn surface in it or in a band under it.
-2. **Catalogue of drawn items**: a row or grid where each item (product, dish, service, room) is its own drawing from its own record, with name and price beneath.
-3. **Process strip**: 3-5 drawn steps left to right (or down on a phone), each step a drawing of the work at that stage, joined by a drawn path or line.
-4. **Map or plan**: the place drawn from above (street plan, floor plan, site plan), with the real address and route marked in it.
-5. **Big quote over art**: one real quote, set large, on a drawn surface inside a full-width scene (a wall, a window, a page), with its source.
-6. **Ticket, label or form drawn as an object**: the booking, price list or enquiry presented as a ticket, shop label, order slip or ledger page that is itself the container, in the world's material.
-
-(scene) Every section plate is a drawing of that section's subject, never a labelled box with words in it. Each fact (price list, hours, address) is placed once in the body; the footer may repeat contact details only. A primary action may repeat (amounts inside a `<form>`, anything marked `data-repeat-ok`); code blocks are exempt. Identity assets and data sections are exempt as above.
-
-**Collision rule (every critique round, both viewports).** Every label, callout and sign text must be fully visible: no overlap with a drawn object, another label or a UI element; no object cutting through lettering ('REPAI_RERS'); no callout hidden behind a prop; no grey smear at the scene edge. Check the 1440x900 and the 390x844 screenshots separately, zoomed on each text; list every collision as a "reads as the wrong thing" item and fix it before the round closes.
-
-**Time budget.** The art loop is capped: two critique rounds, then build. Order: hero first, plates second, micro icons last. With the art crew, the illustrators' render-and-fix rounds (2 each, 3 for the hero, run in parallel, capped at about 20 minutes wall-clock) count as the plate pass; the lead's gallery review is a single read followed by one fix. Critic rounds (Step 4b) sit outside the art budget, are capped at 2 and may be skipped when time is short. If the gallery has been rendered 6 times, stop critiquing and build the page with the art you have; a shipped page with good art beats a perfect gallery and no page. Never start a third round to polish a plate.
-
-**Art crew and critic.** `art-crew.md` holds the illustrator brief, the self-critique checklist, the integration rules (one shared ground line and light direction, plate sizes from the brief) and the pre-ship critic rubric; the §0b rows are its 9-10 anchor.
+**Time budget.** Order: the asset with the most UX weight first, then the rest, micro icons last. Illustrator subagents get 2 render-and-fix rounds each (3 for the most important asset), in parallel, capped at about 20 minutes. If the gallery has been rendered 6 times, stop critiquing and deliver what you have.
 
 ## 8. Generated raster images
 
-Only for photographic material code cannot draw, and only when `impeccable/scripts/generate-image.mjs` has a key. Label it synthetic in the dossier and transform it per §2o. Code-drawn art is preferred; a generated image is never the signature device.
-
-## 9. Bar: photography treatment
-
-The hero and sections are the client's own photos (dossier assets), art-directed, never redrawn or filtered.
-
-- The signature is the direction: a crop rule, a sequence and a consistent grade, with the asset paths cited in `.vary/visual-brief.md`.
-- No `filter`, blend mode, overlay or grain on work images; identifiable people are never redrawn.
-- Natural resolution at least 1.5x the rendered size; `width` and `height` set.
-- Text over a photo is measured on the darkest and lightest pixel under it; no glass card.
-- Critique checklist: focal subject not cropped by the nav; grade consistent across frames; every cited asset is used where the brief says; no stretched or upscaled frame; h1, value line and action in the fold.
-
-## 10. Bar: product-ui treatment
-
-The hero is a real capture or live UI of the product, shown faithfully.
-
-- The signature is a named workflow from the dossier visible in the capture, with real data and states; callouts allowed, a framed device allowed, the h1 may sit beside the capture.
-- Captures at DPR 2, no blur, no halftone, no invented screens or numbers.
-- Skeletons available: capture with callouts, comparison or pricing table, code sample.
-- Critique checklist: the workflow is nameable from the capture; text in it is legible at the rendered size; data matches the dossier; callout leaders end on their element; at least one more section shows a second state.
-
-## 11. Bar: typography treatment
-
-Type is the picture.
-
-- The signature is a typographic system or lettering idea that encodes one dossier fact (a founding year as the grid, a route code as the display).
-- A specimen at hero size, rendered with the content language's glyphs; at most two faces from the roll; hierarchy by size, weight and position.
-- Under a black and white directive: two inks, no tints, no accent; rules, scale and spacing carry the design.
-- Critique checklist: the fact the lettering carries is readable; glyphs are present; scale contrast is at least 3:1 between display and body; whitespace is intentional, not leftover.
-
-## 12. Bar: utility treatment
-
-No hero: the tool or document is the first screen.
-
-- Distinctiveness lives in details: numerals (tabular, aligned), empty states, error states, icons from one consistent library, copy only this product could say.
-- Conventional navigation, forms and error handling; the world is applied through tokens.
-- A visible h1 or page title in the first viewport.
-- Critique checklist: the primary task is reachable in one action; tables align on the numerals; every empty and error state is designed; focus and keyboard paths complete; no decorative plate.
+Out of scope for this skill. Code-drawn art is preferred; if the caller supplies a raster, treat it as an identity asset and do not transform it.

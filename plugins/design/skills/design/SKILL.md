@@ -1,6 +1,6 @@
 ---
 name: design
-description: Five-phase design process that escapes AI-slop defaults (bg-indigo-500, Inter, centered hero + 3-column grid, rounded-2xl uniformly, shadow-lg uniformly, "Build the future of X" copy). Use whenever generating, building, mocking up, improving, refining, polishing, critiquing, or evaluating any UI, frontend, or visual design. Phases: aesthetic commitment → UX architecture (Nielsen's 10, priority-ordered) → craft execution (OKLCH palettes, ease-out-quart cubic-bezier, tiered radius/shadow, ≥5-weight typography) → polish sweep → external skepticism-tuned evaluator subagent. Keywords: design, UI, UX, frontend, landing page, dashboard, component, form, modal, navbar, card, marketing page, SaaS, admin, portfolio, mobile app, build this, make this look good, not generic, not AI slop, production quality, best design, Nielsen heuristics, UX audit, design review, critique. For a brand-new site or page where looks should differ between runs, prefer `vary` (it assigns the direction); use `design` for critique, audits, polish, or when the user invokes it by name. Both start from the project dossier and draw custom graphics.
+description: Design process that puts UX and usability first (task, findability, hierarchy, accessibility, phone), then fit to the client's real content, then a creative, project-specific look that escapes AI-slop defaults (bg-indigo-500, Inter, centered hero + 3-column grid, uniform rounded-2xl and shadow-lg, "Build the future of X" copy). Use whenever generating, building, mocking up, improving, refining, polishing, critiquing, or evaluating any UI, frontend, or visual design. Phases: understand → UX architecture (Nielsen's 10, priority-ordered) → direction (dossier, concept, signature idea) → craft execution (OKLCH palettes, ease-out-quart, tiered radius/shadow, ≥5-weight typography) → graphics check → polish sweep → external skepticism-tuned evaluator subagent. Custom graphics (icons, illustrations, brand objects) come from `design:graphics` when the page needs them. Keywords: design, UI, UX, frontend, landing page, dashboard, component, form, modal, navbar, card, marketing page, SaaS, admin, portfolio, mobile app, build this, make this look good, not generic, not AI slop, production quality, best design, Nielsen heuristics, UX audit, design review, critique. For a brand-new site or page where looks should differ between runs, prefer `vary` (it assigns the direction); use `design` for critique, audits, polish, or when the user invokes it by name.
 user-invocable: true
 argument-hint: "[target description]"
 ---
@@ -9,35 +9,35 @@ argument-hint: "[target description]"
 
 Claude's default design output is not neutral. Without intervention, it collapses to the statistical center of its training distribution: `bg-indigo-500`, Inter font, centered hero + 3-column feature grid, `rounded-2xl`, `shadow-lg`, "Build the future of X" copy. Anthropic calls this "distributional convergence" in their own documentation. Users call it "AI slop." The Adam Wathan apology of August 2025 — "I'm sorry for making every button in Tailwind UI use bg-indigo-500... this caused every AI-generated interface on Earth to turn purple" — is the origin story.
 
-This skill is the counterforce. Five phases, each with a gate. The final phase hands the output to a SEPARATE skepticism-tuned evaluator subagent because Anthropic's own harness research documented that Claude "confidently praises the work — even when, to a human observer, the quality is obviously mediocre." Self-critique is broken for creative work. External calibrated evaluation is not.
+This skill is the counterforce. Priority order: first UX and usability (the user finishes their task, finds things, can read and operate it on a phone, with assistive tech), then fit to the client's real content, then creativity and variety. Each phase has a gate. The final phase hands the output to a SEPARATE skepticism-tuned evaluator subagent because Anthropic's own harness research documented that Claude "confidently praises the work — even when, to a human observer, the quality is obviously mediocre." Self-critique is broken for creative work. External calibrated evaluation is not.
 
 ## The Process
 
-Five phases. Each has a gate. Do not skip gates.
+Each phase has a gate. Do not skip gates.
 
 ```
-Phase 1: THINK        → commit to aesthetic direction before any code
-Phase 2: ARCHITECT    → apply UX principles with priority ordering
-Phase 3: EXECUTE      → craft numbers, not defaults
-Phase 4: POLISH       → details that separate ship from shipped
-Phase 5: EVALUATE     → separate subagent grades the output
+Phase 1:  UNDERSTAND  → purpose, users, primary task, existing system, constraints
+Phase 2:  ARCHITECT   → apply UX principles with priority ordering
+Phase 3:  DIRECTION   → dossier, concept, the one signature idea
+Phase 4:  EXECUTE     → craft numbers, not defaults
+Phase 4b: GRAPHICS    → graphics check; design:graphics when the page needs custom art
+Phase 5:  POLISH      → details that separate ship from shipped
+Phase 6:  EVALUATE    → separate subagent grades the output
 ```
 
 ---
 
-## Phase 1 — Think
+## Phase 1 — Understand
 
 Before writing any code, answer these in your head (or out loud if the scope is large):
 
-1. **Purpose.** What problem does this interface solve? Who uses it? What's the single thing they need to do most?
-2. **Dossier.** First, if the repo already has a visual system (DESIGN.md, a token or theme file, styled shared components, or existing pages that share one palette and type), read `../vary/references/extend-mode.md` and follow it for everything below: it decides what still rolls, and shared files stay append-only. This holds for a whole new page in an existing site too, not only for a section. New surface or redesign: follow `../vary/references/dossier.md` and write `.vary/dossier.json`. A component, section, critique, polish or audit inside an existing surface: read the surface, write no dossier and run no roll (extend mode rules, `../vary/references/extend-mode.md`); skip items 2-4 and carry on at item 5.
-3. **Concept.** New surface or redesign only: write 4-7 concepts per `../vary/references/concepts.md`, then run `node <VARY>/scripts/roll.mjs --mode <m> --dossier .vary/dossier.json --concepts .vary/concepts.json --sector <s> --concept-only --project <repo-root>` (`<VARY>` is the sibling `vary` skill directory: this skill's "Base directory for this skill" path with the last segment `design` replaced by `vary`, or `${CLAUDE_PLUGIN_ROOT}/skills/vary` when set; substitute it literally. Never search the filesystem (`find`, `ls ~`) for the scripts and never run a copy under `~/.claude/plugins` or `~/.claude/skills` unless it IS that directory; if `<VARY>/scripts/roll.mjs` is missing, stop and say so. `--project` is required) and commit to the concept and device it prints. This keeps variety in `design` without a world roll. Choose the mode of the surface built first (home or landing page: usually `persuade`; app, dashboard, checkout: `operate`; docs and articles: `read`; portfolio or gallery: `experience`); later surfaces reuse the contract. Choose the sector a customer would file the business under; when torn between two, take the one whose worlds list fits the concept hints better and note it. Here no world is dealt, so a `--lock concept=<id> --reroll n` only re-deals the device.
-4. **Signature element.** New surface or redesign only. Name the device, the facts it encodes and its three placements.
-5. **Constraints.** Framework, performance budget, accessibility targets, device context, brand system if one exists.
+1. **Purpose and users.** What problem does this interface solve? Who uses it, on what device, in what mood? What is the single thing they need to do most (the primary task)?
+2. **Existing system (extend mode).** If the repo already has a visual system (DESIGN.md, a token or theme file, styled shared components, or existing pages that share one palette and type), read `../vary/references/extend-mode.md` and follow it for everything below: it decides what still rolls, and shared files stay append-only. This holds for a whole new page in an existing site too, not only for a section. A component, section, critique, polish or audit inside an existing surface: read the surface, write no dossier and run no roll; skip Phase 3 and carry on at Phase 4.
+3. **Constraints.** Framework, performance budget, accessibility targets, device context, brand system if one exists, and any user directives in their own words.
 
-**Gate:** For a new surface or redesign: you can state the concept in one sentence, cite the three facts it rests on, and name the signature element and where it appears. For a component, critique, polish or audit: you can name the surface's existing system and the one thing you will change. If you cannot, you will default to AI slop.
+**Gate:** You can state the primary task and the user in one sentence. For a component, critique, polish or audit: you can name the surface's existing system and the one thing you will change.
 
-**Critical move — motivate the constraint, don't just state it.** Tell yourself: "the user will feel this is AI-generated slop if it has purple gradients and Inter — they want this to feel crafted." Motivated constraints outperform bare prohibitions.
+**Critical move: motivate the constraint, don't just state it.** Tell yourself: "the user will feel this is AI-generated slop if it has purple gradients and Inter. They want this to feel crafted, and they want to finish their task." Motivated constraints outperform bare prohibitions.
 
 ---
 
@@ -63,15 +63,41 @@ Before visual decisions, make UX decisions. Visual polish on a broken flow is li
 
 On operate surfaces Jakob's law governs controls: nav, forms and errors keep platform conventions and are skinned through tokens, not re-invented in the world's material.
 
-**Precedence.** Precedence (highest first): 1 truth (no invented facts); 2 accessibility; 3 user directives (`dossier.directives`, or the user's own words in this request when no dossier exists); 4 existing brand or design system (extend mode); 5 platform conventions (ios/android, operate Jakob's law); 6 the rolled contract; 7 treatment-specific bars and skill defaults.
+**Precedence (highest first):** 1 truth (no invented facts); 2 accessibility and usability; 3 user directives (`dossier.directives`, or the user's own words in this request when no dossier exists); 4 existing brand or design system (extend mode); 5 platform conventions (ios/android, operate Jakob's law); 6 the rolled contract; 7 skill defaults.
 
 **Gate:** Before drawing anything, name the primary task, the touch target minimum, the empty/error/loading states you will design, and the single focal element per screen.
 
-For deeper UX reference when stuck on a specific decision, load [references/ux-principles.md](references/ux-principles.md) — **Do NOT load** unless you are actively resolving a Tier 1 or Tier 2 concern and need the expert nuance beyond the summary above.
+For deeper UX reference when stuck on a specific decision, load [references/ux-principles.md](references/ux-principles.md). **Do NOT load** unless you are actively resolving a Tier 1 or Tier 2 concern and need the expert nuance beyond the summary above.
 
 ---
 
-## Phase 3 — Execute
+## Phase 3 — Direction
+
+New surface or redesign only; inside an existing system skip this phase (extend mode).
+
+1. **Dossier.** Follow `../vary/references/dossier.md` and write `.vary/dossier.json`: the client's real facts, audience, refusals and directives. Never invent facts.
+2. **Concepts and roll.** Write 4-7 concepts per `../vary/references/concepts.md`, then run `node <VARY>/scripts/roll.mjs --mode <m> --dossier .vary/dossier.json --concepts .vary/concepts.json --sector <s> --concept-only --project <repo-root>` (`<VARY>` is the sibling `vary` skill directory: this skill's "Base directory for this skill" path with the last segment `design` replaced by `vary`, or `${CLAUDE_PLUGIN_ROOT}/skills/vary` when set; substitute it literally. Never search the filesystem (`find`, `ls ~`) for the scripts and never run a copy under `~/.claude/plugins` or `~/.claude/skills` unless it IS that directory; if `<VARY>/scripts/roll.mjs` is missing, stop and say so. `--project` is required) and commit to the concept and device it prints. This keeps variety in `design` without a world roll. Choose the mode of the surface built first (home or landing page: usually `persuade`; app, dashboard, checkout: `operate`; docs and articles: `read`; portfolio or gallery: `experience`); later surfaces reuse the contract. Choose the sector a customer would file the business under; when torn between two, take the one whose worlds list fits the concept hints better and note it. Here no world is dealt, so a `--lock concept=<id> --reroll n` only re-deals the device.
+3. **Signature idea.** Name the one idea that makes this project recognisable, the dossier facts it rests on, and where it appears (three placements). It can be type, layout, colour, photography, the product UI, data, motion or graphics. No treatment is the default; pick the one that serves this client and this audience. Options, each with its rule:
+   - `photography`: the client's photos carry the page, shipped unaltered (no filter, frame or ornament); identifiable real people are never redrawn; described-but-missing photos become full-size tonal plates (`../vary/references/build-craft.md` §6 item 19).
+   - `product-ui`: the product's own interface rebuilt with real data, real states and DPR-2 captures; callouts allowed.
+   - `typography`: lettering at display size in the content language's glyphs, tied to a fact the lettering carries.
+   - `data-visual`: a chart or table drawn from the dossier's real data, with a text equivalent.
+   - `utility`: the tool or document itself is the first screen; no art.
+   - `pattern`: a generated or drawn pattern from the trade's own artefacts.
+   - `scene`: a drawn scene, only when the concept calls for it and the client has no better material; never chosen by default.
+   - Native platform (ios/android): hand the platform layer to the `mobile-design` skill; evidence is device screenshots.
+
+   Simple and clean is a legitimate choice when the client asks for it or the surface is a dense tool; for a business, brand or event homepage, clean is the floor, not the goal: give it one memorable idea and the small custom details that make it this client's own. Usable and uninspired is a failure too.
+
+Before running the roll, run the idea check in `../vary/references/concepts.md` §3b: a fresh creative-director subagent scores every concept, and only concepts at 7 or above go to the roll.
+
+**Gate:** You can state the concept in one sentence, cite the three facts it rests on, and name the signature idea and where it appears. If you cannot, you will default to AI slop.
+
+---
+
+## Phase 4 — Execute
+
+**Section plan (before any page code).** Write `.vary/section-plan.md`: one row per section, top to bottom, with (1) the section's job for the user, (2) whether the concept's idea helps that job and how (the care tag on each product, the theme in the speaker specimens, the data story in the main chart), or "not here" when it would only decorate, (3) which content lives here (each piece of content in exactly one section), and (4) its layout skeleton, different from its neighbours. A section that is only the category's default cards with nothing of this client in it gets one specific detail. Build from this plan.
 
 This is where craft numbers matter more than principles. The difference between "engineer-built" and "designer-quality" UI lives in specific values experts apply automatically.
 
@@ -81,7 +107,7 @@ This is where craft numbers matter more than principles. The difference between 
 |---------|------------------|---------------------|
 | Font | Inter, Roboto, Arial, system-ui, Space Grotesk | A face chosen for the concept's trade, era or lettering heritage, with at least 5 weights, verified to render the content language's glyphs. Do not reuse the face from your last project. |
 | Primary color | `bg-indigo-500`, purple, `from-indigo-500 to-purple-600` | Any hue EXCEPT indigo/purple, unless the brand legitimately requires it. Use OKLCH for definition. |
-| Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR a material texture that the concept's artefact actually has (paper fibre, wood grain, brushed metal, blueprint grid). See graphics.md §2h. |
+| Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR a material texture that the concept's artefact actually has (paper fibre, wood grain, brushed metal, blueprint grid). |
 | Layout | Centered everything, 3-column feature grid, Hero→Features→CTA invariant | Asymmetric composition with intentional tension. Start from content, not template. |
 | Radius | `rounded-2xl` on everything uniformly | Tiered scale: inputs 4px, buttons 6-8px, cards 10-12px, `rounded-full` reserved for avatars/pills |
 | Shadow | `shadow-lg` on every card | Tiered elevation. Multi-layer shadows with doubling formula. Match shadow hue to background hue (never pure black). |
@@ -129,48 +155,41 @@ For the complete craft reference with additional rules and CSS patterns, **load 
 
 **Gate:** Your output has explicit typography choices (by name), an explicit color approach (OKLCH values or named palette), a spacing scale, an easing function, and at least three designed states (not just happy path).
 
----
+## Phase 4b — Graphics check
 
-## Phase 3b — Author the signature visual
+Custom graphics serve the user and the brand. Call the `design:graphics` skill when the page has at least one of:
 
-Pick the treatment by signal, scene by default (`../vary/references/concepts.md` §3): a business, place or service page with no photos, no product UI and no style directive gets a drawn `scene`; typography, data-visual, utility, photography and product-ui need a directive, supplied assets or a genre that does not illustrate.
+1. **Icons:** the nav, categories, features or states need icons and a consistent custom set adds identity or clarity beyond a standard library (a standard library such as Lucide is fine on operate surfaces when it fits).
+2. **Explanation:** a process, mechanism, place, route or data the user must understand reads faster drawn (steps, diagram, map, chart form).
+3. **States:** empty, error, success or onboarding screens that a small illustration makes friendlier or clearer.
+4. **Brand objects:** functional reskin objects that make the site what it is (price tags, coupons, tickets, stamps, labels, cards drawn as the trade's own artefacts).
+5. **Imagery:** hero or section imagery when the client has no usable photos or product UI and the concept calls for drawn art (spot illustrations, objects, a scene, a pattern; never a scene by default). A business that sells physical things and has no photos gets a drawing of each product.
+6. **The user asked** for illustrations, cartoons, icons or drawings.
 
-Route by the concept's `HERO TREATMENT` (from the contract, or what the existing system's pages already do in extend mode):
+Do not call it when: a directive forbids illustrations; the surface is a dense tool (dashboard, admin, docs) where a standard icon library covers the icons; or photos or the product UI already carry the page's character and nothing else needs drawing.
 
-- `scene`: the scene bar below, art crew and two critique rounds.
-- `pattern`: art brief + gallery, one critique round, no crew; S1 coverage and full-bleed apply, the people and object clauses do not.
-- `photography`: write `.vary/visual-brief.md` listing which dossier asset goes where, with crop rule, sequence and grade. Photos ship unaltered unless the world or a directive says otherwise; identifiable real people are never redrawn. The photos carry the page: no frames or ornament around them, no drawn stand-ins for products, and described-but-missing photos become full-size tonal plates (`../vary/references/build-craft.md` §6 item 19).
-- `product-ui`: capture list (which workflow, which real data, which states), DPR-2 captures, callouts allowed.
-- `typography`: a type specimen at hero size in the content language's glyphs, plus the fact the lettering carries.
-- `data-visual`: the chart spec, its dossier data and a text equivalent.
-- `utility`: no art brief; skip to building the tool or document as the first screen.
-- Native platform (ios/android): hand the platform layer to the `mobile-design` skill; evidence is device screenshots.
+**Character is a job too.** On a persuade or experience page for a business, brand or event, small custom graphics that make the site recognisably this client's are a brand job, not decoration: icons for the facts people scan (care, hours, steps, features), a small drawing per product, service or category, brand objects drawn as the trade's own artefacts, and art where there are no photos. Lean towards calling the graphics skill there; a page with no custom graphics at all must have another clear signature (photography, the product UI, a strong typographic or data idea). Usability still comes first: graphics never replace a label, slow a task or push content below the fold.
 
-Identity assets (headshots, sponsor or partner logos, client photos of people, product screenshots) ship unaltered and are exempt from "draw each item"; data sections (schedule, pricing table, comparison, code) are exempt from plates.
+When it applies, write `.vary/graphics-brief.md`:
 
-### Scene bar (treatment = scene only)
+- **Project:** one line; the audience and the mood they need.
+- **Page system:** palette tokens (hex), fonts, radius and stroke feel, light or dark, and any user directives.
+- **Assets:** one row each: `id`, `kind` (icon-set | spot | hero | section | diagram | map | object | pattern), what it shows, which dossier facts it carries, the UX job it does (why a user is better off with it), size or aspect, placement.
+- **Output dir:** default `assets/art/`.
 
-Read `../vary/references/graphics.md` (§0b the benchmark, §1b "Composing a scene" the method) and run its §7 art-brief → gallery → screenshot critique loop (two rounds, then build: hero first, plates second; a shipped page with good art beats a perfect gallery and no page) before building pages. No UI page code until round 2 passes. The art must meet the scene bar:
+Then invoke `Skill(design:graphics, args: ".vary/graphics-brief.md")`. It returns the files (SVG, or JS modules rendering SVG) and `assets/art/GRAPHICS.md` with each asset's file, size, alt text (or `aria-hidden` for decoration) and placement. Integrate the files and use that alt text; never redraw them. The graphics skill's own method lives in `../graphics/references/graphics.md` and `../graphics/references/art-crew.md`; this skill does not load it.
 
-- (scene) **Hero scene (S1).** For persuade and experience: **edge to edge, no frame (G1).** The hero scene spans the full viewport width at desktop and phone (at least 95%, touching both edges): no HTML box, card, polaroid, frame or page margin around it (a border drawn inside the art, such as a blueprint sheet's, is part of the art). Judges: "full-bleed scene, not a framed picture". For persuade and experience surfaces the first viewport is a full-bleed illustrated scene or sheet: the drawing covers at least 55% of the first viewport at 1440x900 and 45% at 390x844, composed of at least 5 distinct subject objects from the dossier across at least 3 depth layers (environment, main subject, foreground detail or people). The brand or headline is set INTO the scene (sign, label, title block, painted lettering), not floated beside a boxed picture, and at least 2 real dossier facts are drawn inside the art (phone on the sign, founding year in a title block, hours on a door card).
-- (scene) **Richness floor (S2).** Filled shapes, one consistent light source (lit and shaded faces, cast shadows), texture (grain, hatching, halftone, paper), people or traces of use where the business has them, 4-7 inks. A single icon, bare grid, lone diagram in a framed box or decorative blob fails the hero.
-- (scene) **Art all the way down (S3).** Every section below the fold carries its own drawn plate at real size (at least 40% of the section's width (never under a third — the gate fails plates under 35%) and 280px tall at desktop, never thumbnail-only, and fully rendered with the same finish pass as the hero: gradient, glow, grain, at least 3 value steps; never a thin, small, pale line diagram in a tinted box), drawn from that section's facts; a catalogue, menu or services list draws EACH item (the art is a function of the item record). A section that is only cards, text or a form fails unless it is the contact block. Plus micro-scale icons, bullets and dividers in the same hand.
-- (scene) **Finish (S4, G2).** `graphics.md` §1d and its Depth recipe (flat fills with thin uniform strokes read as clip art): a value plan (one key light, one glow, brightest value on the focal fact), at least 3 value steps per material, grain at 3-8%, no empty region over 20% of the hero.
-- (scene) **Type in the art (S5, G3).** No frosted, translucent or SOLID card, chip row or SaaS button pair over the hero art: an opaque headline container covering more than 6% of the art area fails (judges: "a headline card floats over the art, covering it"). The headline is a real `<h1>` and the primary action a real link or button set over a drawn surface (the scene's open sky, wall or sheet by default; a real sign, title block or board at real scale; §1b has the pattern); phone and hours may be painted in the svg.
-- (scene) **Objects and body composition (S7).** Every drawn object has a real silhouette (a train has bogies, windows and a roof line; a book has spine, boards and headband; never a box standing for a thing), at least 3 value steps, and people have a posture or gesture and a cast shadow (`graphics.md` §1e). No two consecutive sections share a layout skeleton: the art brief assigns one of six per section (full-bleed plate with caption; catalogue of drawn items; process strip of 3-5 drawn steps; map or plan; big quote over art; ticket, label or form drawn as an object), and every section plate is a drawing of that section's subject, never a labelled box with words in it. Each fact (price list, hours, address) appears once in the page body; the footer may repeat contact details only.
-- **Headline on the fold (all treatments).** Persuade and experience: the first viewport always carries a real HTML `<h1>` (business name or the promise), a one-line value proposition and the primary action (link or button with visible text); never only svg `<text>`, never omitted. Operate and read: a visible `<h1>` or page title. Scene treatment only: the h1 sits ON a drawn surface of the scene, absolutely positioned over the open area the art leaves for it (the scene's sky, wall or sheet by default, as large display type; a sign or board only when it is the real signage at real scale) and styled as that surface's lettering (`../vary/references/graphics.md` §1b has the pattern).
-- **Mood fit (all treatments).** The art brief states the audience's mood need (children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy); a concept or world that breaks it fails the critic and is re-rolled with `--lock concept=<id>` before building further.
-- **Blocking craft fails (all treatments).** Before shipping, the fold-check rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, page-overflow (nothing wider than the viewport at 1440 or 390 unless inside its own scroll container), meta-copy (no designer or scaffold language in visible text; exempt with data-meta-ok), and headline-on-fold (operate/read: title-on-fold) must be PASS, plus headline-in-scene under the scene treatment only; the time budget never excuses them. Intentional repeats are marked `data-repeat-ok` and audited. Coverage, depth and plate-size may ship as logged open items.
-- (scene) **Body plates.** At least half the sections below the fold are full-width drawn plates (full-bleed plate with caption, catalogue of drawn items, process strip, map or plan, quote over art); a card with a small drawing counts as the card skeleton, at most twice per page.
-- **No collisions (S6, all treatments).** Every label, callout and sign text is fully visible at both viewports: no overlap with drawn objects or other labels.
-- **Phone width, client page only, native and honest (all treatments).** `../vary/references/build-craft.md` §6 items 17-20: nothing scrolls sideways or clips at 390px; no designer notes, reference codes or design keys on the page; photos carry a photography page; app screens use native controls and dashboards plot only real data.
-- (scene) **Art crew (after the art brief).** Read `../vary/references/art-crew.md`. Dispatch illustrator subagents IN PARALLEL with the Agent tool: one for the hero scene and one per section plate (cap 6), each handed ONLY the art-brief path, its plate's row (subject, facts, skeleton, size), the style object and core kit paths, and `art-crew.md`. Each builds its plate module, renders it at real size, critiques its own screenshot against the richness bar (objects not boxes, posture, shared ground and light, 3+ values, texture, facts in the art), fixes, and returns the module path and final PNG path. The lead integrates and does not redraw; without the Agent tool the lead draws the plates itself in the same order.
-
-Each critique round compares the gallery screenshot against S1-S3 and the §0b benchmark descriptions and lists what is missing (objects, layers, light, texture, facts-in-art, coverage). **Gate (scene):** the signature device renders at hero, divider and micro scale, the hero scene is composed whole, and every critique item from round 2 is closed. **Gate (other treatments):** the signature element is visible at hero scale (utility: the primary object of the tool) and the router item for the treatment is complete.
+**Gate:** The graphics check is answered (called, with the returned files integrated, or not called with the reason), and every graphic on the page has a UX or brand job.
 
 ---
 
-## Phase 4 — Polish
+## Phase 4c — Whole-page check
+
+**Whole-page check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: opus`) with the full-page screenshots at desktop and phone, `.vary/section-plan.md` and the one-sentence concept. It scrolls top to bottom and reports, per section: (1) **repetition**: the same content shown more than once (a lineup in the hero, the programme and the speaker list; a list of counters as map, legend and table) or the same motif stamped on elements that do not need it (download buttons, weekday bars, every card); (2) **dead sections**: a section where the page falls back to the category's default cards with nothing of this client in it; (3) a **stock metaphor** that has replaced the most subject-specific element. Fix in that order: cut repetition first (each piece of content appears once, in the section whose job it is; a motif stays where it does a job), then give the weakest dead section one specific detail, then restore the subject-specific element. Re-shoot once. Usability fixes win any conflict.
+
+---
+
+## Phase 5 — Polish
 
 Polish is the last step, not the first. Do not polish work that is not functionally complete. An expert polishing a design does not walk through a labeled checklist — they scan with a trained eye for specific failure modes that an untrained eye misses. Transfer that trained-eye by interrogating the design with these questions, not by marching through a sequence.
 
@@ -194,7 +213,15 @@ Because the mockup runs in perfect conditions; production does not. Turn on `pre
 
 **Craft-bug rules (Polish checklist).** Content is visible with no JS-triggered reveal (an element may animate in only from a visible state); no full-viewport overlay or backdrop left on the page; nothing in the hero is cropped by the nav or the viewport edge; every dial, axis or scale is monotonic and labelled with real values; every callout leader ends on its object.
 
-**Critic before shipping (Phase 4b).** Scene treatment only; for any other treatment, skip the art-crew critic and instead grade the signature element for that treatment (the capture, lettering idea, chart, or pattern) 1-10 against the dossier facts and the user DIRECTIVES, which outrank every anchor below (a directive such as "no illustrations" or "plain black and white" is never answered with added art). Run the fold check as `fold-check.mjs <page> --mode <m> --treatment <HERO TREATMENT>`. Under the scene treatment: spawn a FRESH subagent (Agent tool) with the desktop and phone fold and full-page screenshots, the dossier facts, and the critic prompt and rubric from `../vary/references/art-crew.md` section 5 (specificity, graphics, craft, wow, each 1-10; `graphics.md` §0b anchors at 9-10, "pill figures / boxes for objects / template sections / clipped text / dead space" at 4-5). It returns scores and the 5 highest-impact fixes; apply them and re-run a new critic; stop at mean 7.5 or more or after 2 critic rounds, logging open items in NOTES.md. After applying fixes, re-run `check.mjs` and the fold check and refresh the evaluator JSON before Phase 5; record the last critic mean in NOTES.md. Critic rounds sit outside the art budget and may be skipped when time is short.
+**Blocking craft fails (all treatments).**
+
+- **Headline on the first screen.** Persuade and experience: a real HTML `<h1>` (business name or the promise), a one-line value proposition and the primary action (link or button with visible text); never only svg `<text>`, never omitted. Operate and read: a visible `<h1>` or page title.
+- **Mood fit.** State the audience's mood need (children: bright, safe, daytime; bereavement: calm, quiet, dignified; B2B lab: precise, trustworthy); a concept that breaks it is re-rolled with `--lock concept=<id>` before building further.
+- **No collisions, no clipped text.** Every label, callout and text is fully visible at both viewports: no overlap with objects or other labels.
+- **Page overflow, meta-copy, duplicate content.** Nothing wider than the viewport at 1440 or 390 unless inside its own scroll container; no designer or scaffold language in visible text (exempt with `data-meta-ok`); each fact appears once in the body (the footer may repeat contact details); intentional repeats are marked `data-repeat-ok`.
+- **Phone width, native and honest.** `../vary/references/build-craft.md` §6 items 17-28 (show the subject at hero scale, the idea where it does a job with no repetition, time-aware content, place questions get a map, first screen answers the top question, products shown, brand objects carry real content, phone nav behind a menu button past three links): nothing scrolls sideways or clips at 390px; no designer notes or design keys on the page; photos carry a photography page; app screens use native controls and dashboards plot only real data.
+
+Run the fold check as `node <VARY>/scripts/fold-check.mjs <page> --mode <m> --treatment <t>`, where `<t>` is the treatment the contract names. The rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, page-overflow, meta-copy and headline-on-fold (operate/read: title-on-fold) must be PASS; the time budget never excuses them. Rows printed `[INFO]` are not gated. After fixes, re-run `check.mjs` and the fold check and refresh the evaluator JSON before Phase 6. User DIRECTIVES outrank every bar here: a directive such as "no illustrations" or "plain black and white" is never answered with added art.
 
 **Gate:** You cannot answer "I'm not sure" to any of the four questions above and consider the design polished. If you can't answer, you have not actually run the check.
 
@@ -202,9 +229,9 @@ For the complete anti-pattern catalog with additional classical/accessibility/pe
 
 ---
 
-## Phase 5 — Evaluate
+## Phase 6 — Evaluate
 
-**Do NOT load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself.** That file belongs to the evaluator subagent. If you load it, you contaminate the generator/evaluator separation that makes Phase 5 effective — the criteria that grade the design would also shape your generation, and Anthropic's own harness research documents that this collapses the quality signal. The evaluator subagent reads the rubric; you read only `evaluator-prompt.md` to understand what the subagent will do.
+**Do NOT load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself.** That file belongs to the evaluator subagent. If you load it, you contaminate the generator/evaluator separation that makes Phase 6 effective — the criteria that grade the design would also shape your generation, and Anthropic's own harness research documents that this collapses the quality signal. The evaluator subagent reads the rubric; you read only `evaluator-prompt.md` to understand what the subagent will do.
 
 **This phase is mandatory for any design the user will actually ship.** It is skippable only for throwaway prototypes or sketches where the user explicitly said "just something quick."
 
@@ -212,17 +239,17 @@ For the complete anti-pattern catalog with additional classical/accessibility/pe
 
 1. **Collect the design output.** If it is a file you created, note the absolute file path. If it is a rendered component in a conversation, save it to a temp file first so you can pass a path rather than a massive string.
 2. **Read [`evaluator-prompt.md`](evaluator-prompt.md)** — this is the complete prompt template for the subagent. Do not paraphrase it; you will copy it verbatim.
-3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. Also pass `.vary/dossier.json` and the page screenshots, plus `.vary/art-brief.md`, `.vary/critique-r2.json` and the gallery only when they exist (they exist for the scene treatment only), and the fold-check output produced with `--treatment <HERO TREATMENT>`. For short designs (<200 lines), you may inline the source instead of passing a path.
-4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Composition, Color+Type, Interaction, Accessibility, Microcopy, Project specificity), a weighted composite, specific violations with severity, and prioritized fixes.
+3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. Also pass `.vary/dossier.json` when it exists, the page screenshots, `assets/art/GRAPHICS.md` when graphics were made, and the fold-check output produced with `--treatment <t>`. For short designs (<200 lines), you may inline the source instead of passing a path.
+4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Interaction, Accessibility, Microcopy, Composition, Color+Type, Project specificity and creativity), a weighted composite, specific violations with severity, and prioritized fixes.
 5. **Iterate based on score:**
    - Composite ≥ 4.0 (B grade or better) → SHIP.
    - Composite 3.0-3.9 (C) → apply the top 3 fixes and re-spawn a NEW evaluator (fresh context, no memory of prior iteration).
-   - Composite < 3.0 (D/F) → return to Phase 2 or Phase 3 depending on which dimensions scored lowest. Usability/Interaction failures point back to Phase 2. Composition/Color/Typography failures point back to Phase 3.
-   - Project specificity dimension score ≤2 (whatever the composite) → return to Phase 1 when a dossier and roll exist and the treatment is not utility; under utility, or when Phase 1 was skipped (component, critique, polish, audit), it goes to Phase 3 fix items instead. A broken directive goes to Phase 3 (rebuild the visual), never to Phase 1.
+   - Composite < 3.0 (D/F) → return to Phase 2 or Phase 4 depending on which dimensions scored lowest. Usability/Interaction/Accessibility failures point back to Phase 2. Composition/Color/Typography failures point back to Phase 4.
+   - Project specificity and creativity score ≤2 (whatever the composite) → return to Phase 3 (Direction) when a dossier and roll exist and the treatment is not utility; under utility, or when Phase 3 was skipped (component, critique, polish, audit), it goes to Phase 4 fix items instead. A broken directive goes to Phase 4 (rebuild the visual), never to Phase 3.
 
 **Iterate until the score converges or ≥ 4.0.** Anthropic's harness research shows creative leaps happen in iteration 7-9, not iteration 1. The evaluator loop is where quality compounds — single-pass design peaks at "competent," iterated design peaks at "memorable."
 
-**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 20%, Composition 15%, Color+Type 15%, Interaction 15%, Accessibility 10%, Microcopy 5%, Project specificity 20%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
+**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 25%, Interaction 15%, Accessibility 15%, Microcopy 10%, Composition 10%, Color+Type 10%, Project specificity and creativity 15%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
 
 ---
 
@@ -263,6 +290,8 @@ There is no fixed "non-default" list that fixes this — any fixed list creates 
 2. **What is materially different from that version that would still serve the brief?** Not "slightly modified" — materially different. Different typographic classification (serif when sans is expected), different compositional logic (asymmetric when centered is expected), different density (dense when airy is expected), different aesthetic lineage drawn from the subject's own artefacts (its documents, hardware, signage, printed matter, place), whichever is farthest from the default AND true to this project.
 3. **Commit to that choice and execute it with precision.** Half-committing to a distinctive direction produces worse results than fully committing to a generic one. A perfectly executed Inter landing page beats a half-executed Fraunces one. If you are going to pick a distinctive font, use all its weights and optical sizes. If you are going to pick a distinctive color, let it dominate.
 
-**Vary the AXIS of distinctiveness, not just the values on one axis.** If the last design you produced was distinctive through typography, make this one distinctive through composition or color instead. If the last was distinctive through motion, make this one distinctive through density or atmosphere. The goal is not a rotation through a fixed "distinctive" list — it is picking a different dimension to express character each time. Also vary the graphic technique: if the last project's signature was a seeded illustration, this one is traced line, a diagram or a pattern. roll.mjs `--concept-only` tracks this for you.
+**Vary the AXIS of distinctiveness, not just the values on one axis.** If the last design you produced was distinctive through typography, make this one distinctive through composition or color instead. If the last was distinctive through motion, make this one distinctive through density or atmosphere. The goal is not a rotation through a fixed "distinctive" list — it is picking a different dimension to express character each time. Also vary the graphic technique when graphics are used. roll.mjs `--concept-only` tracks this for you.
 
-**One more calibration.** When the Phase 1 aesthetic direction genuinely requires breaking a Phase 3 rule — a terminal/monospace aesthetic requires a mono font even though the Phase 3 font list is mostly sans-serif; a zine/brutalist aesthetic wants jagged asymmetric shadows even though Phase 3 prescribes tiered multi-layer depth — break the rule deliberately and execute the break with craft. Phase 3 rules are defaults to escape, not laws to worship. The worst outcome is a half-committed distinctive direction constrained by Phase 3 rules that were meant for a different aesthetic. Commit fully.
+**Never repeat the same signature idea or graphic style across projects.** A drawn scene is not a default; photography, type, layout, colour, data, the product UI and motion are equal candidates. Simple and clean is a legitimate creative choice when it serves the user: many real clients choose the plain option, and a well-executed restrained page beats an over-decorated one.
+
+**One more calibration.** When the Phase 3 direction genuinely requires breaking a Phase 4 rule — a terminal/monospace aesthetic requires a mono font even though the Phase 4 font list is mostly sans-serif; a zine/brutalist aesthetic wants jagged asymmetric shadows even though Phase 4 prescribes tiered multi-layer depth — break the rule deliberately and execute the break with craft. Phase 4 rules are defaults to escape, not laws to worship. The worst outcome is a half-committed distinctive direction constrained by Phase 4 rules that were meant for a different aesthetic. Commit fully.

@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "moods": ["playful", "calm", "technical", "premium", "warm", "bold", "editorial", "kids", "civic", "natural", "nostalgic"],
+  "kinds": ["icon-set", "spot", "hero", "section", "diagram", "map", "object", "pattern"],
+  "styles": [
+    {
+      "id": "flat-geometric",
+      "name": "Flat geometric",
+      "look": "Circles, rectangles and triangles in a tight palette, no outlines, crisp edges, objects reduced to their simplest shapes.",
+      "traits": { "stroke": "none, shapes only", "fill": "flat, 3-5 colours", "shading": "none, or one darker offset shape", "texture": "none", "simplification": "people as geometric bodies without faces; objects as 3-6 primitives" },
+      "suits": ["bold", "playful", "technical", "civic"],
+      "avoid": ["nostalgic"],
+      "best_for": ["icon-set", "spot", "hero", "section", "pattern"],
+      "banned": ["outlines", "gradients", "drop shadows", "texture", "more than 5 colours"]
+    },
+    {
+      "id": "monoline",
+      "name": "Monoline",
+      "look": "One even stroke weight and round caps; every drawing is a single continuous-feeling line with no fills.",
+      "traits": { "stroke": "single weight, round caps and joins", "fill": "none, optional one accent fill", "shading": "none", "texture": "none", "simplification": "people as a few lines; objects as outline only" },
+      "suits": ["calm", "premium", "technical", "editorial", "warm"],
+      "avoid": ["bold", "nostalgic"],
+      "best_for": ["icon-set", "spot", "diagram", "object"],
+      "banned": ["filled areas except one accent", "a second stroke weight", "gradients", "shadows"]
+    },
+    {
+      "id": "hand-inked-hatching",
+      "name": "Hand-inked line with hatching",
+      "look": "Pen drawing with slightly wobbly outlines and cross-hatching for shade on a paper tone.",
+      "traits": { "stroke": "varied weight, heavier on the shaded side", "fill": "paper colour plus one ink", "shading": "hatching and cross-hatching", "texture": "paper tone", "simplification": "people with simple faces and clothing folds; objects with visible construction" },
+      "suits": ["editorial", "nostalgic", "warm", "natural", "calm"],
+      "avoid": ["bold", "technical"],
+      "best_for": ["spot", "hero", "section", "object", "map"],
+      "banned": ["gradients", "flat vector perfection", "more than one ink plus paper", "digital glow"]
+    },
+    {
+      "id": "risograph-two-colour",
+      "name": "Risograph two-colour print",
+      "look": "Two spot inks that overprint into a third, visible grain and slight misregistration, flat shapes on cream paper.",
+      "traits": { "stroke": "rare, chunky", "fill": "two inks and their overlap, multiply blend", "shading": "overprint and grain", "texture": "grain, halftone dots, 2-3px misregistration", "simplification": "bold blobby shapes; faces minimal" },
+      "suits": ["playful", "editorial", "bold", "warm"],
+      "avoid": ["premium", "technical"],
+      "best_for": ["spot", "hero", "section", "pattern", "object"],
+      "banned": ["a third ink", "gradients", "clean vector perfection", "drop shadows"]
+    },
+    {
+      "id": "paper-cut-layers",
+      "name": "Paper-cut layers",
+      "look": "Stacked flat shapes with soft drop shadows between layers, as if cut from coloured card.",
+      "traits": { "stroke": "none", "fill": "flat card colours, one per layer", "shading": "soft shadow under each layer", "texture": "subtle paper fibre", "simplification": "rounded, torn-edge silhouettes; people as simple cut shapes" },
+      "suits": ["playful", "kids", "warm", "natural", "calm"],
+      "avoid": ["technical", "bold"],
+      "best_for": ["hero", "section", "spot", "pattern"],
+      "banned": ["outlines", "glossy highlights", "gradients inside a layer", "sharp hairlines"]
+    },
+    {
+      "id": "isometric",
+      "name": "Isometric",
+      "look": "Objects and spaces drawn on a 30-degree grid with three tone faces, clean edges and no perspective distortion.",
+      "traits": { "stroke": "thin or none", "fill": "flat three-tone per object (top, left, right)", "shading": "face tone only", "texture": "none", "simplification": "tiny people as peg figures; objects as extruded modules" },
+      "suits": ["technical", "bold", "civic", "playful"],
+      "avoid": ["nostalgic", "natural"],
+      "best_for": ["hero", "section", "diagram", "object", "spot"],
+      "banned": ["perspective vanishing points", "mixed projections", "outline-only faces", "hand wobble"]
+    },
+    {
+      "id": "blueprint-technical",
+      "name": "Blueprint technical drawing",
+      "look": "White or pale lines on a deep blue field: dimension lines, section hatching, callouts and a title block.",
+      "traits": { "stroke": "fine, even, with dimension and centre lines", "fill": "none; hatch for cut surfaces", "shading": "none", "texture": "faint grid", "simplification": "orthographic views; people only as scale figures" },
+      "suits": ["technical", "civic", "calm"],
+      "avoid": ["playful", "kids", "warm"],
+      "best_for": ["diagram", "hero", "section", "object", "map"],
+      "banned": ["colour fills", "gradients", "decorative curves", "invented dimensions"]
+    },
+    {
+      "id": "woodcut-linocut",
+      "name": "Woodcut and linocut",
+      "look": "Bold black carved shapes with gouge marks and white lines cut out of solid ink, on a paper tone.",
+      "traits": { "stroke": "thick, tapered cuts", "fill": "solid ink and paper", "shading": "parallel gouge lines", "texture": "uneven ink coverage", "simplification": "heavy silhouettes; faces as a few cuts" },
+      "suits": ["bold", "nostalgic", "natural", "editorial"],
+      "avoid": ["premium", "kids", "technical"],
+      "best_for": ["hero", "spot", "section", "object", "pattern"],
+      "banned": ["gradients", "thin hairlines", "soft shadows", "more than one ink plus an optional spot colour"]
+    },
+    {
+      "id": "collage-cutout",
+      "name": "Collage and cut-out",
+      "look": "Torn and scissor-cut shapes in mixed textures and colours, overlapping with offset shadows, tape and stitching.",
+      "traits": { "stroke": "none, or a stitched dashed line", "fill": "mixed flat colours and patterned paper", "shading": "hard offset shadows", "texture": "paper grain, halftone, tape", "simplification": "figures assembled from a few cut pieces" },
+      "suits": ["playful", "bold", "editorial", "warm"],
+      "avoid": ["premium", "technical", "calm"],
+      "best_for": ["hero", "section", "spot", "pattern", "object"],
+      "banned": ["clean gradients", "uniform neat alignment", "icon-grid precision"]
+    },
+    {
+      "id": "pixel-art",
+      "name": "Pixel art",
+      "look": "A visible low-resolution grid with limited palette and hard edges, scaled up with no smoothing.",
+      "traits": { "stroke": "1-pixel outlines", "fill": "indexed palette of 8-16 colours", "shading": "dithering and 2-3 tone ramps", "texture": "none beyond dither", "simplification": "sprites on a 16 or 32 pixel grid" },
+      "suits": ["playful", "nostalgic", "bold", "technical"],
+      "avoid": ["premium", "calm", "civic"],
+      "best_for": ["icon-set", "spot", "hero", "pattern", "object"],
+      "banned": ["anti-aliased curves", "gradients", "sub-pixel positions", "more than 16 colours"]
+    },
+    {
+      "id": "soft-clay",
+      "name": "Soft clay shading",
+      "look": "Rounded, puffy forms with soft gradients, highlights and gentle shadows, like matte clay or vinyl toys.",
+      "traits": { "stroke": "none", "fill": "soft gradients in one hue family per object", "shading": "radial highlight and ambient shadow", "texture": "smooth matte", "simplification": "chunky rounded bodies, dot eyes" },
+      "suits": ["playful", "kids", "warm", "premium"],
+      "avoid": ["technical", "nostalgic", "civic"],
+      "best_for": ["hero", "spot", "object", "icon-set"],
+      "banned": ["hard outlines", "sharp corners", "hatching", "text in the drawing"]
+    },
+    {
+      "id": "halftone-duotone",
+      "name": "Halftone duotone",
+      "look": "Subjects built from a dot screen in one ink on a contrasting field, big dots, newspaper-like.",
+      "traits": { "stroke": "none or heavy outline", "fill": "dot screen with a visible angle", "shading": "dot size", "texture": "visible halftone dots", "simplification": "high-contrast shapes; faces dissolved into dots" },
+      "suits": ["bold", "editorial", "nostalgic", "technical"],
+      "avoid": ["kids", "calm"],
+      "best_for": ["hero", "section", "pattern", "spot"],
+      "banned": ["smooth gradients", "more than two inks", "thin lines", "drop shadows"]
+    },
+    {
+      "id": "mid-century-catalogue",
+      "name": "Mid-century catalogue",
+      "look": "Mid-century catalogue and magazine drawing: simplified shapes with off-register colour, small tidy details and a warm limited palette.",
+      "traits": { "stroke": "thin, partial outlines offset from the fill", "fill": "flat, muted warm palette, offset from the line", "shading": "none, or a darker flat shape", "texture": "light speckle", "simplification": "elongated, stylised people; objects as neat symbols" },
+      "suits": ["nostalgic", "warm", "editorial", "premium"],
+      "avoid": ["technical", "bold"],
+      "best_for": ["spot", "section", "object", "hero", "pattern"],
+      "banned": ["gradients", "glossy highlights", "neon colours", "perfectly aligned fills and lines"]
+    },
+    {
+      "id": "sticker-badge",
+      "name": "Sticker and badge",
+      "look": "Chunky shapes with a thick white or dark die-cut border, glossy flat colour and a small drop shadow, like a sticker sheet.",
+      "traits": { "stroke": "thick uniform outline plus a die-cut border", "fill": "saturated flat colour", "shading": "one highlight, one lower shade", "texture": "none", "simplification": "round faces, big eyes allowed, tiny hands" },
+      "suits": ["playful", "bold", "kids"],
+      "avoid": ["premium", "calm", "technical"],
+      "best_for": ["icon-set", "spot", "object", "pattern"],
+      "banned": ["hairlines", "muted palettes", "photo textures", "scenes with depth"]
+    },
+    {
+      "id": "crayon-child",
+      "name": "Crayon and child-drawn",
+      "look": "Waxy, uneven strokes and wobbly shapes that fill unevenly, as if drawn by a child with crayons.",
+      "traits": { "stroke": "thick, uneven, rough edges", "fill": "scribbled with paper showing through", "shading": "none", "texture": "wax grain and paper tooth", "simplification": "stick limbs, round heads, naive perspective" },
+      "suits": ["kids", "playful", "warm", "natural"],
+      "avoid": ["premium", "technical", "civic"],
+      "best_for": ["spot", "hero", "section", "pattern"],
+      "banned": ["straight rulers", "gradients", "tidy alignment", "real data rendered as charts"]
+    },
+    {
+      "id": "editorial-cartoon",
+      "name": "Editorial cartoon",
+      "look": "Expressive ink caricature with varied line, exaggerated proportions, a spot of watercolour-like colour and a witty idea.",
+      "traits": { "stroke": "confident, tapering, varied weight", "fill": "limited flat tones, loose colour offset from the line", "shading": "a few hatch strokes", "texture": "light paper", "simplification": "exaggerated heads and gestures; objects as props" },
+      "suits": ["editorial", "playful", "bold", "warm"],
+      "avoid": ["premium", "civic"],
+      "best_for": ["spot", "hero", "section", "object"],
+      "banned": ["real identifiable people", "mockery of the client's customers", "stock poses", "perfect geometry"]
+    },
+    {
+      "id": "cartographic",
+      "name": "Cartographic",
+      "look": "Map language: contour lines, hachures, graticules, compass roses and small pictorial symbols with a tidy legend.",
+      "traits": { "stroke": "fine contour and road lines in 2-3 weights", "fill": "pale land, water and green tints", "shading": "hachures or hill tint", "texture": "none", "simplification": "buildings as footprints; people as route markers" },
+      "suits": ["natural", "technical", "nostalgic", "editorial", "civic"],
+      "avoid": ["bold", "kids"],
+      "best_for": ["map", "diagram", "hero", "section", "pattern"],
+      "banned": ["invented places or routes", "perspective", "gradients", "unlabelled symbols"]
+    },
+    {
+      "id": "infographic-diagram",
+      "name": "Infographic diagram",
+      "look": "Clean explanatory graphics: numbered steps, arrows, labelled parts and simple pictograms on a consistent grid.",
+      "traits": { "stroke": "even, round caps, 2px at 24 scale", "fill": "flat, two or three semantic colours", "shading": "none", "texture": "none", "simplification": "pictograms for people and objects; real labels" },
+      "suits": ["technical", "civic", "calm", "bold"],
+      "avoid": ["nostalgic"],
+      "best_for": ["diagram", "section", "icon-set", "map", "spot"],
+      "banned": ["decoration without data", "meaning by colour alone", "3D effects", "invented numbers"]
+    },
+    {
+      "id": "stamp-letterpress",
+      "name": "Stamp and letterpress",
+      "look": "Rubber-stamp and letterpress marks: one ink, rough edges, circular text, rules, ornaments and slightly uneven pressure.",
+      "traits": { "stroke": "bold, with ink-spread edges", "fill": "one ink, uneven coverage", "shading": "none", "texture": "ink voids, slight rotation", "simplification": "emblems, seals and ornaments instead of scenes" },
+      "suits": ["nostalgic", "premium", "editorial", "civic", "warm"],
+      "avoid": ["playful", "technical"],
+      "best_for": ["object", "icon-set", "pattern", "spot"],
+      "banned": ["gradients", "more than one ink", "smooth vector edges", "photographic detail"]
+    },
+    {
+      "id": "neon-line-dark",
+      "name": "Neon line on dark",
+      "look": "Thin glowing coloured lines on a near-black ground, like neon tubes or a night-time interface.",
+      "traits": { "stroke": "even, rounded, with a soft glow", "fill": "none; dark ground", "shading": "glow only", "texture": "none", "simplification": "outline pictograms; people as figures in light" },
+      "suits": ["bold", "technical", "playful", "premium"],
+      "avoid": ["calm", "kids", "natural", "nostalgic"],
+      "best_for": ["icon-set", "hero", "spot", "pattern", "diagram"],
+      "banned": ["light backgrounds", "filled solid shapes", "more than three glow colours", "glow that lowers text contrast"]
+    },
+    {
+      "id": "watercolour-wash",
+      "name": "Watercolour wash",
+      "look": "Soft translucent washes with bleeding edges and paper white left showing, with an optional loose pencil line.",
+      "traits": { "stroke": "loose pencil or none", "fill": "layered translucent blobs with darker edges", "shading": "wash density", "texture": "turbulence-based paper and pigment edges", "simplification": "impressionistic figures, no detail in faces" },
+      "suits": ["calm", "natural", "warm", "premium", "kids"],
+      "avoid": ["technical", "bold"],
+      "best_for": ["hero", "section", "spot", "pattern"],
+      "banned": ["hard edges", "opaque flat fills", "heavy filter stacks that exceed the size budget", "text inside the wash"]
+    },
+    {
+      "id": "architectural-line",
+      "name": "Architectural line drawing",
+      "look": "Precise elevation and plan drawings in fine black lines with a little hatch, entourage trees and people as thin figures.",
+      "traits": { "stroke": "fine, with heavier cut lines", "fill": "white, with occasional poche", "shading": "line weight and hatch", "texture": "none", "simplification": "figures as thin silhouettes; materials as hatch patterns" },
+      "suits": ["premium", "calm", "technical", "civic", "editorial"],
+      "avoid": ["playful", "kids", "bold"],
+      "best_for": ["hero", "section", "diagram", "map", "object"],
+      "banned": ["colour fills beyond one accent", "wobble", "gradients", "invented building details"]
+    },
+    {
+      "id": "retro-travel-poster",
+      "name": "Retro screenprint poster",
+      "look": "Stacked flat colour planes with stepped tones, gradients made of bands, and a strong focal shape.",
+      "traits": { "stroke": "none", "fill": "4-6 flat inks with banded steps", "shading": "tone bands, no blends", "texture": "light grain", "simplification": "bold simple masses; figures as silhouettes" },
+      "suits": ["nostalgic", "warm", "natural", "bold"],
+      "avoid": ["technical", "calm"],
+      "best_for": ["hero", "section", "spot", "pattern"],
+      "banned": ["smooth gradients", "outlines", "photographic detail", "more than 6 inks"]
+    },
+    {
+      "id": "scribble-sketch",
+      "name": "Scribble sketch",
+      "look": "Quick loose pencil or marker scribbles with overlapping lines and a few flat colour blocks as highlight.",
+      "traits": { "stroke": "loose, overlapping, uneven", "fill": "a single colour block per drawing", "shading": "scribble density", "texture": "paper", "simplification": "gestural figures" },
+      "suits": ["playful", "editorial", "warm", "kids"],
+      "avoid": ["premium", "technical", "civic"],
+      "best_for": ["spot", "section", "hero", "pattern"],
+      "banned": ["precise geometry", "gradients", "tidy fills", "more than one colour block"]
+    }
+  ]
+}

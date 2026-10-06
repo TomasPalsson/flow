@@ -1,7 +1,7 @@
 // roll-treatment.mjs — hero treatment model for roll.mjs (vary SKILL Step 3a): which treatment a concept carries, what each
 // treatment obliges, and how dossier directives lock the roll. Pure functions; roll.mjs owns I/O and exits.
 
-// signature-device techniques (graphics.md section 2)
+// signature-device techniques (design:graphics references/graphics.md section 2)
 export const TECHNIQUES = ['seeded-illustration', 'procedural-subject', 'traced-line', 'mechanism-diagram',
   'annotated-photo', 'photo-direction', 'product-capture', 'scroll-scene', 'data-diagram', 'material-texture', 'print-process',
   'typographic', 'generative-pattern', 'shader'];

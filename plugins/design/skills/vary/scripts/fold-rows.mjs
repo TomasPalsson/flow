@@ -1,5 +1,6 @@
 // fold-rows.mjs — turns the measured first-viewport numbers (fold-check.mjs) into PASS / FAIL / INFO rows, gated by treatment.
 // Thresholds calibrated on ara-bar/1, hitataekni/1,/4 (scene; must pass) and the nine trial-3 builds.
+import { OFF } from './fold-gates.mjs';
 const TH = { span: 0.95, edge: 0.03, range: 90, steps: 5, plateW: 0.35, plateH: 280, plateSteps: 3, solid: 0.06 };
 const BLOCKING_BASE = ['collisions', 'clipped-text', 'hidden-content', 'stray-overlay', 'page-overflow', 'meta-copy', 'duplicate-content', 'headline-on-fold', 'title-on-fold'];
 
@@ -95,7 +96,10 @@ function pageRows(c) {
 export function buildRows(res, mode, treatment, g) {
   const lines = [];
   const row = (ok, id, text) => lines.push({ ok, text: `[${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}] ${id}: ${text}` });
-  const inf = on => (on ? '' : ` (informational for treatment ${treatment})`);
+  // operate/read surfaces (dashboards, apps, docs) never gate art quantity, whatever the treatment
+  const readSurface = mode === 'operate' || mode === 'read';
+  if (readSurface) g = OFF;
+  const inf = on => (on ? '' : readSurface ? ` (informational in ${mode} mode)` : ` (informational for treatment ${treatment})`);
   const c = { row, d: res.desktop, p: res.phone, g, inf, mode, treatment };
   coverageRows(c); collisionRows(c); artRows(c); plateRows(c); contentRows(c); craftRows(c); pageRows(c);
   return lines;

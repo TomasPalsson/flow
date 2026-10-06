@@ -3,7 +3,7 @@
  * fold-check.mjs — measures whether the first viewport is an illustrated scene (vary SKILL S1-S3).
  *
  * Usage:  node fold-check.mjs <url-or-html> [--mode persuade|experience|operate|read] [--treatment scene|pattern|photography|product-ui|typography|data-visual|utility] [--out <dir>]
- * Treatment (default scene for persuade/experience, utility for operate/read) decides which rows are gated; the rest print INFO
+ * Treatment (in operate/read mode every art row is INFO whatever the treatment; default typography for persuade/experience, utility for operate/read; pass --treatment scene for the drawn-scene rows) decides which rows are gated; the rest print INFO
  * ("informational for treatment <t>"). The gate table lives in fold-gates.mjs, the row text in fold-rows.mjs.
  * Loads the page at 1440x900 and 390x844, waits 1.5 s, and measures in the first viewport:
  *   coverage  union area of visible svg/canvas/img/video/background-image(url) boxes / viewport area
