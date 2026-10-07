@@ -66,7 +66,7 @@ if (sections.detail !== undefined) {
 const terms = sections.words === undefined ? [] :
   [...sections.words.matchAll(/<dt\b[^>]*>([\s\S]*?)<\/dt>/gi)].map(m => prose(m[1])).filter(Boolean);
 const restText = prose(Object.entries(sections).filter(([k]) => k !== 'words').map(([, v]) => v).join(' ')).toLowerCase();
-const hasWord = (text, w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}\\p{N}])`, 'iu').test(text);
+const hasWord = (text, w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:e?s)?($|[^\\p{L}\\p{N}])`, 'iu').test(text);
 if (sections.words !== undefined) {
   if (!terms.length) fail('words card has no <dt> terms');
   const unused = terms.filter(t => !hasWord(restText, t.toLowerCase()));

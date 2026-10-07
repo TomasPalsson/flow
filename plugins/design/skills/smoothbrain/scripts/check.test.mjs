@@ -83,3 +83,8 @@ test('more than five terms warns', () => {
 });
 
 test('script text is ignored', () => assert.doesNotMatch(check(page()).out, /IGNORED|NOPE/));
+
+test('a plural on the page counts as a use of the term', () => {
+  const r = check(page({ ...SECTIONS, words: SECTIONS.words.replace('</dl>', '<dt>arrival</dt><dd>A job coming in.</dd></dl>'), moves: SECTIONS.moves.replace('A job arrives.', 'Two arrivals come.') }));
+  assert.equal(r.code, 0, r.out);
+});

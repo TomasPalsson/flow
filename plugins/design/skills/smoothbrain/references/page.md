@@ -1,6 +1,6 @@
 # The smoothbrain page
 
-One HTML file. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
+One HTML file. When you publish it as an Artifact, `artifact-design` wins on the document shell: leave out `<!doctype>`, `<html>` and `<head>` and keep the `<title>`, `<style>` and body content. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
 
 | `data-zoom` | Holds | Check |
 |---|---|---|
@@ -26,12 +26,13 @@ Optional: `data-zoom="breaks"` (where the comparison stops being true) and `data
 :root[data-theme="dark"]{--bg:#15140f;--ink:#f1ede4;--muted:#a49d90;--line:#3a372f;--a:#f08a5d;--b:#7fb3ec;--c:#79c99a;--card:#1f1d18}
 body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.55 system-ui,sans-serif}
 section{max-width:68rem;margin:0 auto;padding:3rem 16px}
-[data-zoom="big-picture"]{min-height:92vh;display:grid;align-content:center;gap:1rem}
+[data-zoom="big-picture"]{display:grid;gap:1rem;padding-top:2rem}
 [data-zoom="big-picture"] svg{width:100%;max-height:62vh}
 .one-line{font-size:clamp(1.3rem,3vw,1.9rem);max-width:36ch;margin:0}
 .parts{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr))}
 .part{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
-[data-step]{display:none}[data-step].on{display:block}
+.js [data-step]{display:none}.js [data-step].on{display:block}
+@media (max-width:640px){[data-zoom="moves"]{display:flex;flex-direction:column}[data-zoom="moves"] .steps,[data-zoom="moves"] .controls{order:-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -58,7 +59,9 @@ Pick the palette and fonts for the topic. The tokens above are a shape, not a lo
 
 ## How it moves (step-through)
 
-One stage SVG stays still. Each step lights up the parts that act in that step (`data-on="id id"`) and shows one caption. Each step changes only one thing.
+One stage SVG stays still. Each step lights up the parts that act in that step (`data-on="id id"`) and shows one caption. Each step is one event. One event may change several values (a clock, a state, a bill); that is fine.
+
+Without JavaScript, every caption shows as a plain list (the `.js` class gates the hiding). The caption list is `aria-live="polite"` so a screen reader hears each step. On a phone the captions and buttons sit above the stage, so the reader does not scroll after each Next.
 
 ```html
 <section data-zoom="moves">
@@ -66,19 +69,23 @@ One stage SVG stays still. Each step lights up the parts that act in that step (
   <svg id="stage" viewBox="0 0 1000 400" role="img"><title>…</title>
     <g id="s-user">…</g><g id="s-hook">…</g><g id="s-model">…</g>
   </svg>
-  <ol class="steps">
-    <li data-step data-on="s-user">You type <b>/goal</b>.</li>
-    <li data-step data-on="s-user s-hook">The <b>hook</b> (a script that runs at a fixed moment) saves the goal.</li>
-    <li data-step data-on="s-hook s-model">…</li>
+  <ol class="steps" aria-live="polite">
+    <li data-step data-on="s-user" data-v-state="waiting">You type <b>/goal</b>.</li>
+    <li data-step data-on="s-user s-hook" data-v-state="saved">The <b>hook</b> (a script that runs at a fixed moment) saves the goal.</li>
+    <li data-step data-on="s-hook s-model" data-v-state="blocked">…</li>
   </ol>
-  <button id="back">Back</button> <span id="count"></span> <button id="next">Next</button>
+  <p class="controls"><button id="back">Back</button> <span id="count"></span> <button id="next">Next</button></p>
 </section>
 <script>
+document.documentElement.classList.add('js');
 const steps=[...document.querySelectorAll('[data-step]')];let i=0;
 function show(n){i=Math.max(0,Math.min(steps.length-1,n));
   steps.forEach((s,k)=>s.classList.toggle('on',k===i));
   const on=(steps[i].dataset.on||'').split(' ');
   document.querySelectorAll('#stage > g[id]').forEach(g=>g.style.opacity=on.includes(g.id)?1:.18);
+  // data-v-<id>="text" on a step writes that text into the stage element #v-<id>.
+  for(const [k,v] of Object.entries(steps[i].dataset)) if(k.startsWith('v')&&k!=='v'){
+    const el=document.getElementById('v-'+k.slice(1).replace(/[A-Z]/g,c=>'-'+c.toLowerCase()).replace(/^-/,'')); if(el) el.textContent=v;}
   document.getElementById('count').textContent=`${i+1} / ${steps.length}`;}
 document.getElementById('next').onclick=()=>show(i+1);
 document.getElementById('back').onclick=()=>show(i-1);
@@ -87,7 +94,7 @@ show(0);
 </script>
 ```
 
-When a value changes (a counter, a queue length, a state name), draw the value in the stage and change its text per step. The reader must see the real numbers move.
+When a value changes (a counter, a queue length, a state name), draw it in the stage as `<text id="v-state">` and set `data-v-state="…"` on each step. The script writes it. The reader must see the real numbers move.
 
 ## Detail
 
@@ -108,7 +115,12 @@ Detail is for depth, not for the main story. Each section answers one question, 
 </dl></section>
 ```
 
-The `<dt>` text must match the word on the page exactly (case does not matter). If the page says "Stop hook" in one place and "end hook" in another, pick one.
+The `<dt>` text must match a word on the page (case does not matter; a plural with -s or -es counts). If the page says "Stop hook" in one place and "end hook" in another, pick one.
+
+## What the checker reads
+
+- Visible prose only: SVG text, `<code>` and `<pre>` are skipped. Explain any acronym in a drawing in the words card or in nearby prose.
+- The acronym check uses reading order, labels and eyebrows above the `<h1>` included. Spell the acronym out at its first appearance, wherever that is.
 
 ## Failure modes to check by eye
 

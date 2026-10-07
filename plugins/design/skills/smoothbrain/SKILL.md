@@ -24,17 +24,18 @@ Write the one sentence the reader must leave with. Every part of the page serves
 Simplified Technical English (ASD-STE100) sets the register. The project supplies the nouns.
 
 - Read `GLOSSARY.md`, `GLOSSARY-MAP.md`, `CONTEXT.md`, `CLAUDE.md` and the code's own names if they exist. Use those words. Do not invent a name for a thing that has one.
+- For a topic outside a repo, use the terms in the vendor's or the field's own docs.
 - One word, one meaning. A thing keeps the same name on every label, caption and detail section.
 - Sentences: 20 words max for steps, 25 max for descriptions. Active voice. One idea per sentence. Keep the verbs, subjects and articles.
 - No noun stacks of more than 3 words.
 - Put the meaning of a hard word right after it, in parentheses. Do the same for every acronym.
-- Five new terms per page at most. Show each thing before you give its name.
+- Five new terms per page at most. These go in the words card. Show each thing before you give its name. Other hard words get their meaning in parentheses and stay out of the card.
 
 ## 3. The zoom ladder (the page)
 
 1. **Big picture.** One picture and one sentence fill the first screen. The picture shows the whole thing with every part named. A reader who stops here is still right.
 2. **The parts.** 3 to 5 cards. Each card has a small picture, the project noun, and one line on what the part does.
-3. **How it moves.** A step-through: the reader presses Next and one thing changes per step. Use a real example with real values, in the real order.
+3. **How it moves.** A step-through: the reader presses Next and one event happens per step. Use a real example with real values, in the real order.
 4. **The detail.** Closed sections the reader opens if they want them. Put the real terms, `path:line` references, numbers, edge cases and "why it is built this way" here. Real detail is welcome. Plain words still apply.
 5. **Words on this page.** A picture glossary: each term, its icon, and one line. It uses the same spelling as the rest of the page.
 
@@ -55,7 +56,7 @@ Add these when they help: **Where the comparison breaks** (see below), and **Che
 1. Call the Artifact tool with `action: "quickstart"` and `intent: "other"`. Load `artifact-design` and `artifact-diagramming`.
 2. Read `references/page.md` for the page parts, the step-through code and the picture rules.
 3. For a mascot, an object drawing or an icon set, call `design:graphics`. Draw diagrams as inline SVG yourself.
-4. Run `node scripts/check.mjs <page.html>` from this skill's folder and fix every FAIL.
+4. Run `node <this skill's folder>/scripts/check.mjs <page.html>` and fix every FAIL.
 5. Publish the page and give the link.
 
 The chat reply is three lines: the big-picture sentence, the link, and "Which part do you want deeper?"
