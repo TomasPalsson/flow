@@ -15,7 +15,7 @@ reproduce (red test, committed)  →  diagnose  →  ONE gate  →  fix (test go
 **Spend nothing you do not need.** A one-file bug with a pasted stack trace costs **zero subagents and one stop**: write the failing test, fix it, prove it, PR. Every dispatch below is conditional — spawn only what the evidence already in hand does not cover, and never re-derive something the user already pasted.
 
 **Bundled references, one hop each — load only the one a step names:**
-[`diagnosis.md`](diagnosis.md) (root-cause template) · [`execution-prompt.md`](execution-prompt.md) (`--loop` body only) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/project-detection.md`](../shared/project-detection.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/verification.md`](../shared/verification.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/next/review.md`](../next/review.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md)
+[`diagnosis.md`](diagnosis.md) (root-cause template) · [`feedback-loops.md`](feedback-loops.md) (loop ladder, only when a plain test will not reproduce it) · [`execution-prompt.md`](execution-prompt.md) (`--loop` body only) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/project-detection.md`](../shared/project-detection.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/verification.md`](../shared/verification.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/next/review.md`](../next/review.md) · [`${CLAUDE_PLUGIN_ROOT}/skills/shared/issue-refs.md`](../shared/issue-refs.md)
 
 ## 0. Setup
 
@@ -46,13 +46,15 @@ Write the test yourself and prove it is a real oracle — **both sides**:
 
 **Never edit a non-test file before the failing test has been run and its red output is in front of you** — writing the test is not reproducing; the run is. The first tool call that touches source is an edit only after a Bash call has executed the test and shown the reported failure.
 
-**Prose steps are input to writing that test, never a substitute for it.** If you genuinely cannot write one, say so and stop: *"I can't turn this into a failing test. Here's what I tried: [list]. What am I missing about the environment, steps or input?"*
+**Prose steps are input to writing that test, never a substitute for it.** If a plain test will not reproduce the bug, load [`feedback-loops.md`](feedback-loops.md) and walk its ladder; the red-capable command it yields is the reproduction, committed beside the test. Only when every rung fails, say so and stop: *"I can't turn this into a failing test. Here's what I tried: [list]. What am I missing about the environment, steps or input?"*
 
 **Intermittent** (not red on every run): instrument first, collect 3+ failure samples, establish a failure rate over 10+ runs, and make the test assert the *rate*, not a single run. Record the rate in the diagnosis. Do not fix blind.
 
 ## 2. Diagnose
 
 Run `git log --oneline -10 -- <files>` yourself — it is ten lines you want verbatim, not a subagent round-trip. When triage gave a minimal failing command and a known-good ref exists, prefer `git bisect run <that command>`: it returns a named commit instead of a ranked guess.
+
+When the trace does not explain the failure, minimise the reproduction and write ranked falsifiable hypotheses per [`feedback-loops.md`](feedback-loops.md) before probing.
 
 Dispatch **one** `explorer` agent (`model: haiku`, as its own definition pins), handed the `file:line` and nothing else, **only when the trace does not already explain the failure**. A bug whose cause is visible in the file you just opened does not need one. A second explorer only if the first returns two incompatible traces.
 
@@ -66,7 +68,7 @@ Say, in this shape, and stop — unless the request already answered this gate (
 
 > **Root cause:** `session.ts:88` refreshes the token before checking expiry. **Fix:** move the expiry check above the refresh. **Risk:** low — `refresh.ts:40` is the only sibling caller and it is unaffected. This run will stop for you **1 more time** (the PR — backend, so verification is just the suite). Go?
 
-State the gate manifest truthfully — **count the stops for real**, they differ by category: a backend bug stops once more (the PR), a frontend bug twice (verification, then the PR). If two causes are equally supported, present both with evidence and recommend one.
+State the gate manifest truthfully — **count the stops for real**, they differ by category: a backend bug stops once more (the PR), a frontend bug twice (verification, then the PR). If two causes are equally supported, present both with evidence and recommend one. If §2 ranked hypotheses, list them in one line each and mark the one the probes confirmed.
 
 ## 4. Fix
 
@@ -92,8 +94,8 @@ Then, in order:
 
 1. **backend · infrastructure — do not load `verification.md` at all.** Its entire quick path for a no-UI change is: skip the browser, run the tests, grep a running server's logs for `[VERIFY]` lines, done. That sentence *is* the tier. Load [`verification.md`](../shared/verification.md) only for a frontend or integration bug, at the standard tier. Either way, a verification claim with no artefact on disk does not count.
 2. Review the diff with the `correctness` and `gaming` lenses from [`review.md`](../next/review.md); keep findings scoring ≥80; the fix ladder caps at 5 rounds. It has no tiers — do not ask it for one.
-3. Re-run the reproduction command one last time, at submit time, and grep the diff for `[VERIFY]` strings and test-file edits.
-4. `gh pr create --draft` → title `fix(<scope>): <description>`; body carries what was broken, the root cause, the fix, and the revert-proof exit codes from §4. **`gh pr ready` only on a `verified` verdict** — on `partial` the PR stays draft and you say which check did not run. A ready PR with an unrun check looks reviewed and is not.
+3. Re-run the reproduction command one last time, at submit time, and grep the diff for `[VERIFY]` strings and test-file edits, and for `[DEBUG-`: remove every hit.
+4. `gh pr create --draft` → title `fix(<scope>): <description>`; body follows [`pr-body.md`](../shared/pr-body.md) and carries what was broken, the root cause (which hypothesis proved correct), the fix, and the revert-proof exit codes from §4. **`gh pr ready` only on a `verified` verdict** — on `partial` the PR stays draft and you say which check did not run. A ready PR with an unrun check looks reviewed and is not.
 5. Issue runs: moment 2 per [`issue-refs.md`](../shared/issue-refs.md) §4 at merge, marker checked first.
 6. Delete `.claude/fix-diagnosis.local.md` if you wrote one.
 

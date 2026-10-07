@@ -103,6 +103,8 @@ Pushback always names the concrete reason AND offers an alternative. Never refus
 
 ### Step 2d: Apply the minimal change
 
+Before rewriting a description or body, read `references/writing-for-agents.md`: context pointers, leading words, negation, no-ops, completion criteria.
+
 Edit surgically. Preserve voice. Touch only budgeted sections.
 
 ### Step 2e: Validate
