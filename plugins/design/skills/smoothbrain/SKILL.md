@@ -29,7 +29,7 @@ Simplified Technical English (ASD-STE100) sets the register. The project supplie
 - Sentences: 20 words max for steps, 25 max for descriptions. Active voice. One idea per sentence. Keep the verbs, subjects and articles.
 - No noun stacks of more than 3 words.
 - Put the meaning of a hard word right after it, in parentheses. Do the same for every acronym.
-- Five new terms per page at most. These go in the words card. Show each thing before you give its name. Other hard words get their meaning in parentheses and stay out of the card. Names of values (state names, status codes, file names) are values, not terms: show them in the pictures and the step-through.
+- Aim for five new terms per page or fewer. These go in the words card. Never drop a term the reader needs to meet the number: explain it in parentheses instead. Names the reader already knows (the project's own name) are not new terms. Show each thing before you give its name. Other hard words get their meaning in parentheses and stay out of the card. Names of values (state names, status codes, file names) are values, not terms: show them in the pictures and the step-through.
 
 ## 3. The zoom ladder (the page)
 

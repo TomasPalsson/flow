@@ -1,10 +1,10 @@
 # The smoothbrain page
 
-One HTML file. When you publish it as an Artifact, `artifact-design` wins on the document shell: leave out `<!doctype>`, `<html>` and `<head>` and keep the `<title>`, `<style>` and body content. A local file that is not published keeps the full shell shown below. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
+One HTML file. When you publish it as an Artifact, `artifact-design` wins on the document shell: leave out `<!doctype>`, `<html>`, `<head>` and `<body>` tags and keep the `<title>`, `<style>` and body content. A local file that is not published keeps the full shell shown below. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
 
 | `data-zoom` | Holds | Check |
 |---|---|---|
-| `big-picture` | `<h1>`, one sentence in `<p class="one-line">`, one inline `<svg>` | SVG present, sentence ≤ 25 words |
+| `big-picture` | `<h1>`, one sentence in `<p class="one-line">`, a wide and a tall inline `<svg>` | SVG present, sentence ≤ 25 words |
 | `parts` | 3 to 5 `<article class="part">`, each with a small SVG, an `<h3>` noun, one line | count 3..5 |
 | `moves` | a stage SVG plus 3 or more `[data-step]` captions, Back/Next buttons | ≥ 3 steps |
 | `detail` | one or more `<details>` with `<summary>` | ≥ 1 |
@@ -51,7 +51,7 @@ Pick the palette and fonts for the topic. The tokens above are a shape, not a lo
 
 ## Big picture SVG
 
-- Desktop: one `viewBox` around `0 0 1000 560`. On a 375px phone that shows at 0.375 scale, so labels need about 30 units to stay readable. Most pages draw a second, narrow SVG for phones (see below). Give it `role="img"`, a `<title>` and a `<desc>` that says the one sentence.
+- Draw two SVGs by default: a wide one (`viewBox` around `0 0 1000 560`) and a tall one for phones (`viewBox` width 400 to 600), and switch with a CSS media query at 640px. One 1000-wide SVG shows at 0.375 scale on a 375px phone, so it would need 30-unit labels. Give it `role="img"`, a `<title>` and a `<desc>` that says the one sentence.
 - Every part of the whole is drawn and labelled with `<text>` on or beside the shape. No legend.
 - Arrows show what causes what. Write the verb on the arrow ("sends", "checks", "stops").
 - Use `fill="var(--a)"` or `stroke="currentColor"` so it works in dark mode.
