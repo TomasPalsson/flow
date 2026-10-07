@@ -55,7 +55,7 @@ Add these when they help: **Where the comparison breaks** (see below), and **Che
 
 1. Call the Artifact tool with `action: "quickstart"` and `intent: "other"`. Load `artifact-design` and `artifact-diagramming`.
 2. Read `references/page.md` for the page parts, the step-through code and the picture rules.
-3. Let the picker assign the drawing style, so the look changes every run: `node <this skill's folder>/../graphics/scripts/pick-style.mjs --mood <2 words for the topic> --kinds diagram,icon-set --project <repo root or cwd>`. Commit to it, or re-roll with `--reroll 2` if it fights the topic. Do not fall back to graph paper and hand lettering. A style the user asks for wins.
+3. Let the picker assign the drawing style, so the look changes every run: `node <this skill's folder>/../graphics/scripts/pick-style.mjs --mood <2 words for the topic> --kinds diagram,icon-set`. Leave out `--project`: the global memory still stops repeats, and the repo stays clean. Commit to the pick. Re-roll with `--reroll 2` if it fights the topic or works in only one theme (light and dark are both required). Do not fall back to graph paper and hand lettering. A style the user asks for wins.
 4. For a mascot, an object drawing or an icon set, call `design:graphics`. Draw diagrams as inline SVG yourself.
 5. Run `node <this skill's folder>/scripts/check.mjs <page.html>` and fix every FAIL.
 6. Publish the page and give the link.

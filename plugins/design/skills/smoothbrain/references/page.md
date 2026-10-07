@@ -1,6 +1,6 @@
 # The smoothbrain page
 
-One HTML file. When you publish it as an Artifact, `artifact-design` wins on the document shell: leave out `<!doctype>`, `<html>` and `<head>` and keep the `<title>`, `<style>` and body content. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
+One HTML file. When you publish it as an Artifact, `artifact-design` wins on the document shell: leave out `<!doctype>`, `<html>` and `<head>` and keep the `<title>`, `<style>` and body content. A local file that is not published keeps the full shell shown below. The five rungs of the zoom ladder are `<section data-zoom="...">` elements, in this order. `scripts/check.mjs` finds them by these attributes, so keep the names exact.
 
 | `data-zoom` | Holds | Check |
 |---|---|---|
@@ -32,7 +32,7 @@ section{max-width:68rem;margin:0 auto;padding:3rem 16px}
 .parts{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr))}
 .part{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
 .js [data-step]{display:none}.js [data-step].on{display:block}
-@media (max-width:640px){[data-zoom="moves"]{display:flex;flex-direction:column}[data-zoom="moves"] .steps,[data-zoom="moves"] .controls{order:-1}}
+@media (max-width:640px){[data-zoom="moves"]{display:flex;flex-direction:column}[data-zoom="moves"] > h2,[data-zoom="moves"] > p:not(.controls){order:-2}[data-zoom="moves"] .steps,[data-zoom="moves"] .controls{order:-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -51,7 +51,7 @@ Pick the palette and fonts for the topic. The tokens above are a shape, not a lo
 
 ## Big picture SVG
 
-- One `viewBox`, around `0 0 1000 560`. Give it `role="img"`, a `<title>` and a `<desc>` that says the one sentence.
+- Desktop: one `viewBox` around `0 0 1000 560`. On a 375px phone that shows at 0.375 scale, so labels need about 30 units to stay readable. Most pages draw a second, narrow SVG for phones (see below). Give it `role="img"`, a `<title>` and a `<desc>` that says the one sentence.
 - Every part of the whole is drawn and labelled with `<text>` on or beside the shape. No legend.
 - Arrows show what causes what. Write the verb on the arrow ("sends", "checks", "stops").
 - Use `fill="var(--a)"` or `stroke="currentColor"` so it works in dark mode.
@@ -94,7 +94,7 @@ show(0);
 </script>
 ```
 
-When a value changes (a counter, a queue length, a state name), draw it in the stage as `<text id="v-state">` and set `data-v-state="…"` on each step. The script writes it. The reader must see the real numbers move.
+When a value changes (a counter, a queue length, a state name), draw it in the stage as `<text id="v-state">` and set `data-v-state="…"` on each step. The script writes it. Put every `data-v-*` value on every step, not only the ones that change, so Back restores the stage. The reader must see the real numbers move.
 
 ## Detail
 
@@ -121,7 +121,7 @@ The `<dt>` text must match a word on the page (case does not matter; a plural wi
 
 - Sentences and acronyms: visible prose only. SVG text, `<code>` and `<pre>` are skipped. Explain any acronym in a drawing in the words card or in nearby prose.
 - Words-card terms: visible text including `<code>`, so `TASKS.md` in code counts as a use.
-- File names (`TASKS.md`) and IDs (`CHK011`) are not acronyms.
+- File names (`TASKS.md`) and IDs (`CHK011`) are not acronyms. Other all-caps words (status names such as `FAIL`, `HIT`) count as acronyms: put them in `<code>`.
 - Step captions (`[data-step]`): 20 words max per sentence. Other prose: 25.
 - The acronym check uses reading order, labels and eyebrows above the `<h1>` included. Spell the acronym out at its first appearance, wherever that is.
 
