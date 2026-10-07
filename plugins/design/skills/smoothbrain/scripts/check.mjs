@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const RUNGS = ['big-picture', 'parts', 'moves', 'detail', 'words'];
 const MAX_WORDS = 25;
+const MAX_STEP_WORDS = 20;
 const MAX_TERMS = 5;
 
 const file = process.argv[2];
@@ -22,6 +23,8 @@ const ok = msg => results.push(`ok   ${msg}`);
 const decode = s => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 // Visible prose: no SVG text, no code.
 const prose = s => decode(s.replace(/<(svg|pre|code)\b[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+// Visible text including code, for matching words-card terms.
+const visible = s => decode(s.replace(/<svg\b[\s\S]*?<\/svg>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 const count = (s, re) => (s.match(re) || []).length;
 
 const sections = {};
@@ -64,8 +67,8 @@ if (sections.detail !== undefined) {
 
 // 3. Words card: every term is used on the page.
 const terms = sections.words === undefined ? [] :
-  [...sections.words.matchAll(/<dt\b[^>]*>([\s\S]*?)<\/dt>/gi)].map(m => prose(m[1])).filter(Boolean);
-const restText = prose(Object.entries(sections).filter(([k]) => k !== 'words').map(([, v]) => v).join(' ')).toLowerCase();
+  [...sections.words.matchAll(/<dt\b[^>]*>([\s\S]*?)<\/dt>/gi)].map(m => visible(m[1])).filter(Boolean);
+const restText = visible(Object.entries(sections).filter(([k]) => k !== 'words').map(([, v]) => v).join(' ')).toLowerCase();
 const hasWord = (text, w) => new RegExp(`(^|[^\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:e?s)?($|[^\\p{L}\\p{N}])`, 'iu').test(text);
 if (sections.words !== undefined) {
   if (!terms.length) fail('words card has no <dt> terms');
@@ -87,7 +90,16 @@ for (const b of blocks) {
     }
   }
 }
-if (!long) ok(`every sentence ${MAX_WORDS} words or fewer`);
+for (const m of html.matchAll(/<(\w+)\b[^>]*\bdata-step\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
+  for (const s of prose(m[2]).split(/(?<=[.!?])\s+/)) {
+    const words = s.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+    if (words > MAX_STEP_WORDS && words <= MAX_WORDS) {
+      long++;
+      fail(`step sentence of ${words} words (max ${MAX_STEP_WORDS} in a step): "${s.slice(0, 80)}…"`);
+    }
+  }
+}
+if (!long) ok(`every sentence ${MAX_WORDS} words or fewer, steps ${MAX_STEP_WORDS}`);
 
 // 5. Acronyms: the first use sits next to its meaning in parentheses, or the words card has it.
 const text = prose(html);
@@ -97,6 +109,8 @@ const bad = [];
 for (const m of text.matchAll(/(?<![\p{L}\p{N}-])[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*s?(?![\p{L}\p{N}])/gu)) {
   const word = m[0].replace(/s$/, '');
   if (done.has(word) || !/[A-Z].*[A-Z]/.test(word)) continue;
+  // File names (TASKS.md) and IDs (CHK011) are names, not acronyms.
+  if (/^\.[a-z]/.test(text.slice(m.index + m[0].length)) || /^[A-Z]{2,}\d+$/.test(word)) continue;
   done.add(word);
   const before = text.slice(0, m.index).trimEnd();
   const after = text.slice(m.index + m[0].length).trimStart();

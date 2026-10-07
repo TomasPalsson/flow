@@ -84,6 +84,18 @@ test('more than five terms warns', () => {
 
 test('script text is ignored', () => assert.doesNotMatch(check(page()).out, /IGNORED|NOPE/));
 
+test('file names and IDs are not acronyms, and code counts as a use', () => {
+  const r = check(page({ ...SECTIONS,
+    words: SECTIONS.words.replace('</dl>', '<dt>TASKS.md</dt><dd>The task list.</dd></dl>'),
+    moves: SECTIONS.moves.replace('A job arrives.', 'A job lands in <code>TASKS.md</code> as CHK011.') }));
+  assert.equal(r.code, 0, r.out);
+});
+
+test('a step caption over 20 words fails', () => {
+  const s = Array.from({ length: 22 }, (_, i) => `w${i}`).join(' ') + '.';
+  fails({ moves: SECTIONS.moves.replace('A job arrives.', s) }, /FAIL.*step.*22 words/);
+});
+
 test('a plural on the page counts as a use of the term', () => {
   const r = check(page({ ...SECTIONS, words: SECTIONS.words.replace('</dl>', '<dt>arrival</dt><dd>A job coming in.</dd></dl>'), moves: SECTIONS.moves.replace('A job arrives.', 'Two arrivals come.') }));
   assert.equal(r.code, 0, r.out);

@@ -10,7 +10,7 @@ One HTML file. When you publish it as an Artifact, `artifact-design` wins on the
 | `detail` | one or more `<details>` with `<summary>` | ≥ 1 |
 | `words` | `<dl>` of `<dt>` term + `<dd>` (icon + one line) | every term also used on the page |
 
-Optional: `data-zoom="breaks"` (where the comparison stops being true) and `data-zoom="check"` (questions in `<details>`). They go after `moves`.
+Optional: `data-zoom="breaks"` (where the comparison stops being true) and `data-zoom="check"` (questions in `<details>`). They go after `moves` and before `detail`.
 
 ## Skeleton
 
@@ -55,7 +55,7 @@ Pick the palette and fonts for the topic. The tokens above are a shape, not a lo
 - Every part of the whole is drawn and labelled with `<text>` on or beside the shape. No legend.
 - Arrows show what causes what. Write the verb on the arrow ("sends", "checks", "stops").
 - Use `fill="var(--a)"` or `stroke="currentColor"` so it works in dark mode.
-- At phone width the text must stay ≥ 12px. Use fewer, bigger labels. If that is not enough, draw a second, taller SVG and switch between the two with a CSS media query.
+- At phone width the rendered text must stay ≥ 11px. Rendered size = font size × screen width ÷ viewBox width, so 22px text in a 600-wide viewBox shows at about 13px on a 375px phone. Use fewer, bigger labels. If that is not enough, draw a second, taller SVG (viewBox width 400 to 600) and switch between the two with a CSS media query. The same rule applies to the step-through stage.
 
 ## How it moves (step-through)
 
@@ -119,7 +119,10 @@ The `<dt>` text must match a word on the page (case does not matter; a plural wi
 
 ## What the checker reads
 
-- Visible prose only: SVG text, `<code>` and `<pre>` are skipped. Explain any acronym in a drawing in the words card or in nearby prose.
+- Sentences and acronyms: visible prose only. SVG text, `<code>` and `<pre>` are skipped. Explain any acronym in a drawing in the words card or in nearby prose.
+- Words-card terms: visible text including `<code>`, so `TASKS.md` in code counts as a use.
+- File names (`TASKS.md`) and IDs (`CHK011`) are not acronyms.
+- Step captions (`[data-step]`): 20 words max per sentence. Other prose: 25.
 - The acronym check uses reading order, labels and eyebrows above the `<h1>` included. Spell the acronym out at its first appearance, wherever that is.
 
 ## Failure modes to check by eye
