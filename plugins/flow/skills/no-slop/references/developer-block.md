@@ -55,6 +55,9 @@ you report that exit code. Expected values come from the spec or hand computatio
 never from running the implementation. No `assert True`, no `toBeDefined()` alone, no
 asserting a mock was called with the input you just passed, no `raises(Exception)`,
 no sleeps, no snapshot as the only assertion. Never skip, weaken, or delete a test.
+Test through the public interface; mock only at system boundaries (network, clock,
+randomness, third-party APIs), never your own modules; verify through the interface,
+never through a side channel such as querying the database the code just wrote.
 
 Write a high-quality, general-purpose solution. Do not hard-code values or special-case
 the test inputs. If the task is unreasonable or a test is wrong, say so in the report
@@ -73,6 +76,6 @@ finding or justify it in one line in the report.
 | Two rules | Cross-validation ruling A: reuse is zero-tolerance, extraction is Rule of Three. |
 | Comments | Anthropic and Claude Code convention; Codex's "no comments at all" rejected for Claude models inside TDD. |
 | Style match | Codex's official prompt and CodeRabbit's 2.66x formatting finding. |
-| Tests | LLM oracles capture actual, not expected, behaviour; Red must be a real gate. |
+| Tests | LLM oracles capture actual, not expected, behaviour; Red must be a real gate. Interface-only testing and boundary-only mocks: mattpocock/skills tdd (MIT). |
 | General solution | Anthropic's "avoid focusing on passing tests and hardcoding" block, condensed. |
 | slop-check | Advisory mechanical pass; the developer fixes or justifies, the adversary confirms. |

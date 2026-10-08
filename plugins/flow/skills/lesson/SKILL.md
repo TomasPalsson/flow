@@ -1,7 +1,7 @@
 ---
 name: lesson
-description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson. Walks a fixed ladder — regression test, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/flow-extras:skill-improver), or a one-off preference that only applies to this conversation."
-argument-hint: "[what went wrong]"
+description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson, or /lesson --retro after a build, especially one that went sideways. Walks a fixed ladder — regression test, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/flow-extras:skill-improver), or a one-off preference that only applies to this conversation."
+argument-hint: "[what went wrong] | --retro [session]"
 ---
 
 # /lesson — never the same mistake twice
@@ -9,6 +9,22 @@ argument-hint: "[what went wrong]"
 Anytime an agent makes a mistake, engineer it out so the mistake cannot recur. A sentence in CLAUDE.md is a request; a test, hook or script is enforcement. This skill exists so the enforcement gets written every time, not just remembered.
 
 Finish the interrupted task's current step first if one is mid-flight. **This skill proposes; the user decides.** When a hook or a correction suggested it (rather than the user typing `/lesson`), do Steps 1–3 only, present the proposal in three lines (mistake, rung, what would be written), and wait for a yes. A normal prompt that merely sounded like a correction gets no lesson. Once started, never leave the guardrail half-written.
+
+## --retro — sweep a whole session
+
+`/lesson --retro [session]` finds candidates across a whole session; the ladder below still builds each one. Read the primary source: this conversation, or a named session log (the `*.jsonl` files in Claude Code's per-project session directory). Look for:
+
+- **Navigation:** slow to find a file. Use when the agent searched long for something a pointer would have found; the rung is a navigation pointer.
+- **Automated checks:** a mistake a check could have caught. Use when a test, lint or hook would have failed first. An existing check that is unwired or broken is the finding; so is a repo with no guardrail at all.
+- **Review rules:** a mechanical violation becomes a deterministic check; a judgement call becomes a reviewer rule.
+- **Steering bloat:** CLAUDE.md lines that should be checks.
+- **Tool economy:** expensive or repeated tool calls.
+- **No-ops:** steering lines that do not change behaviour.
+- **Information access:** logs or read-only access the agent lacked.
+
+Present at most 5, ranked by severity, each in the three-line proposal shape (mistake, rung, what would be written). Write nothing before the user picks. Each picked candidate runs Steps 1–6 unchanged.
+
+Retro categories adapted from mattpocock/skills retro (MIT).
 
 ## Step 1 — Pin the mistake
 

@@ -58,6 +58,8 @@ Lines 95-100: Repeat the 2-3 most violated rules (recency zone)
 
 ### Writing Rules — Phrasing for Maximum Compliance
 
+Before writing or pruning lines, read [`../skill-improver/references/writing-for-agents.md`](../skill-improver/references/writing-for-agents.md): context pointers, leading words, negation, no-ops.
+
 Before phrasing any rule, ask: **"Am I stating a fact about how this project works, or issuing a command?"** Facts transfer more reliably than commands.
 
 **Declarative over imperative.** State facts, not commands.

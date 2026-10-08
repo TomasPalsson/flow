@@ -1,7 +1,7 @@
 {
   "name": "tooling",
-  "version": "0.2.0",
-  "description": "General developer tooling skills: project scaffolding, CLI building, code style, GitHub CLI, agent architecture, RAG, and more.",
+  "version": "0.3.0",
+  "description": "General developer tooling skills: project scaffolding, CLI building, code style, GitHub CLI, agent architecture, RAG, human-step wizards, and more.",
   "author": {
     "name": "TomasPalsson"
   },
