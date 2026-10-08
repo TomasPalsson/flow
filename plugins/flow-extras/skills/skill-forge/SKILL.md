@@ -205,7 +205,7 @@ skill-draft/
 
 Write ALL files in the manifest. Start with SKILL.md, then supporting files.
 
-**Writing SKILL.md** — follow these principles:
+**Writing SKILL.md** — follow these principles, and read [`../skill-improver/references/writing-for-agents.md`](../skill-improver/references/writing-for-agents.md) first (context pointers, leading words, negation, no-ops, completion criteria):
 
 **Description field** — the most critical field. Must answer:
 1. **WHAT** does this skill do?
