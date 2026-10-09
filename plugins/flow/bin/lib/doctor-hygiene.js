@@ -110,13 +110,28 @@ function squashPatchIdInBase(e, base) {
     .some((c) => patchId(e.path, gitRaw(e.path, ['show', '--format=', c])) === want);
 }
 
-function warningFor(e, base, clean, merged, idle) {
+// Describes a dirty worktree from `git status --porcelain` text. Tracked edits
+// are counted; untracked-only files are named, because "untracked" is not
+// "scratch" (a new file nobody `git add`ed may be real work), so the user
+// judges from the names. Returns 'clean' for empty status.
+function dirtySummary(statusRaw) {
+  const lines = statusRaw.split('\n').filter(Boolean);
+  if (lines.length === 0) return 'clean';
+  const tracked = lines.filter((l) => !l.startsWith('?? '));
+  if (tracked.length > 0) return `tracked edits: ${tracked.length} files`;
+  const names = lines.map((l) => l.slice(3));
+  const shown = names.slice(0, 5).join(', ');
+  return `untracked only: ${shown}${names.length > 5 ? `, +${names.length - 5} more` : ''}`;
+}
+
+function warningFor(e, base, status, merged, idle) {
+  const clean = status === '';
   if (merged && clean && idle >= 1) {
     return `${e.path} (branch ${e.branch}) is merged and clean, idle ${idle}d — safe to remove: git worktree remove ${e.path}`;
   }
   if (idle >= 14) {
     const ahead = git(e.path, ['rev-list', '--count', `${base.head}..${e.head}`]).out || '0';
-    return `${e.path} idle ${idle}d (${ahead} commits not in base, ${clean ? 'clean' : 'dirty'}) — review, then: git worktree remove ${e.path}`;
+    return `${e.path} idle ${idle}d (${ahead} commits not in base, ${dirtySummary(status)}) — review, then: git worktree remove ${e.path}`;
   }
   return null;
 }
@@ -135,9 +150,9 @@ function worktreeHygieneCheck(push, cwd) {
   const warnings = [];
   for (const e of entries) {
     if (!isCandidateWorktree(e, cwdReal)) continue;
-    const clean = git(e.path, ['status', '--porcelain']).out === '';
+    const status = gitRaw(e.path, ['status', '--porcelain']);
     const merged = git(e.path, ['merge-base', '--is-ancestor', e.head, base.head]).ok || patchesInBase(e, base);
-    const warning = warningFor(e, base, clean, merged, idleDays(e.path));
+    const warning = warningFor(e, base, status, merged, idleDays(e.path));
     if (warning) warnings.push(warning);
   }
 

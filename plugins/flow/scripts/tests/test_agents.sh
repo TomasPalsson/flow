@@ -180,11 +180,23 @@ t_agents_claim_check_baseline_treatment_and_inconclusive() {
 	assert_contains "$body" "merge base" "claim-check.md: change claims run at the merge base"
 }
 
-t_agents_adversary_structure_lens_is_opt_in() {
+# Flipped deliberately (M04): structure runs in the whole-branch review by default,
+# but only as advisory; it was opt-in before.
+t_agents_adversary_structure_lens_is_whole_branch_advisory() {
 	local body
 	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
-	assert_contains "$body" "**structure** — opt-in" "adversary.md: structure lens declared opt-in"
+	assert_contains "$body" "**structure** — whole-branch only, advisory" "adversary.md: structure lens declared whole-branch only, advisory"
+	assert_not_contains "$body" "opt-in" "adversary.md: structure lens is no longer opt-in"
 	assert_contains "$body" "restructuring under which branches disappear" "adversary.md: structure lens asks about disappearing branches"
+}
+
+t_agents_adversary_correctness_asks_about_reruns() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "what a second run does" "adversary.md: correctness asks what a second run does"
+	assert_contains "$body" "what a crash after each write leaves behind" "adversary.md: correctness asks what a crash after each write leaves"
+	assert_contains "$body" "left half-applied with no reconcile path" "adversary.md: correctness flags half-applied related writes"
+	assert_contains "$body" "command, migration, loop, deploy step or queue consumer" "adversary.md: rerun clause names its trigger"
 }
 
 # ---------------------------------------------------------------------------
@@ -234,6 +246,13 @@ t_agents_triage_frontmatter_exact_values() {
 t_agents_triage_body_sections_in_order() {
 	_agents_assert_body_order "$AGENTS_DIR/triage.md" "triage.md" \
 		"## Dispatch contract" "## Protocol" "## Output format"
+}
+
+t_agents_triage_reported_cause_field() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/triage.md")
+	assert_contains "$body" "REPORTED CAUSE: <text> — confirmed | refuted | untested (<command run>)" "triage.md: output format has REPORTED CAUSE"
+	assert_contains "$body" "one candidate to test, never the answer" "triage.md: protocol treats a reported cause as a candidate"
 }
 
 t_agents_triage_body_has_required_content() {
@@ -350,4 +369,16 @@ t_agents_mutation_gutted_body_detected() {
 		_fail "mutation guard: gutting the body removes Anti-overreach and the order check would fail to find it" "still found at line $got"
 	fi
 	rm -rf "$td"
+}
+
+t_agents_adversary_gaming_has_returns_nothing_probe() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "still pass if every function it imports returned undefined/None asserts nothing" "adversary.md: gaming lens carries the returns-nothing probe"
+}
+
+t_agents_claim_check_accepts_caller_output_path() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/claim-check.md")
+	assert_contains "$body" "(or to the output path the caller gave you instead)" "claim-check.md: writes to a caller-given path, default unchanged"
 }

@@ -221,19 +221,34 @@ async function runTask(id) {
   }
 
   const localParked = []
+  // history: one {round, findings, notes} per completed fix round. From round 2
+  // on, every fix prompt carries it so a fresh agent does not retry what an
+  // earlier round already tried (skills/next/review.md: "told what the first
+  // three attempts tried and why each failed").
+  const history = []
+  let stopReason = null
 
   for (let round = 1; round <= 5 && current.length > 0; round++) {
     const stronger = round >= 4
-    const prompt = 'Task ' + ctx.id + '. Brief: ' + ctx.briefPath + '. Diff: ' + ctx.diffPath +
-      '. Fix these adversarial findings: ' + JSON.stringify(current) +
-      '. Run the test command: ' + testCmd + '. Return the updated TASK_RESULT.'
-    let fixed
-    if (stronger) {
-      fixed = await agent(prompt, { agentType: 'developer', model: 'opus', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
-    } else {
-      fixed = await agent(prompt, { agentType: 'developer', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
+    let prompt = 'Task ' + ctx.id + '. Brief: ' + ctx.briefPath + '. Diff: ' + ctx.diffPath +
+      '. Fix these adversarial findings: ' + JSON.stringify(current) + '.'
+    if (history.length > 0) {
+      prompt += ' ' + (stronger ? 'Approaches tried and failed in earlier rounds' : 'Earlier fix rounds') +
+        ' (round, findings, what that fixer reported): ' + JSON.stringify(history) + '.'
     }
-    if (!fixed) { break }
+    prompt += ' Run the test command: ' + testCmd + '. Return the updated TASK_RESULT.'
+    // Retry-once on a null result: the same call, same prompt, so a transient
+    // failure does not end the ladder; a second null parks with the true reason.
+    let fixed
+    for (let attempt = 1; attempt <= 2 && !fixed; attempt++) {
+      if (stronger) {
+        fixed = await agent(prompt, { agentType: 'developer', model: 'opus', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
+      } else {
+        fixed = await agent(prompt, { agentType: 'developer', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
+      }
+    }
+    if (!fixed) { stopReason = 'fix agent returned nothing in round ' + round; break }
+    history.push({ round: round, findings: current, notes: fixed.notes || '' })
     ctx = Object.assign({}, ctx, fixed, { id: id, briefPath: ctx.briefPath })
     log('fix round ' + round + ' for task ' + ctx.id + (stronger ? ' (fresh implementer, opus)' : ' (same implementer)'))
 
@@ -254,7 +269,8 @@ async function runTask(id) {
   }
 
   for (const finding of current) {
-    const ruling = { task: ctx.id, finding: finding, ruling: 'parked', why: 'fix ladder exhausted after 5 rounds without resolving this finding' }
+    const why = stopReason || 'fix ladder exhausted after 5 rounds without resolving this finding'
+    const ruling = { task: ctx.id, finding: finding, ruling: 'parked', why: why }
     localParked.push(ruling)
     log('parked: task ' + ctx.id + ' - ' + finding.predicate)
   }
@@ -287,14 +303,28 @@ const parked = []
 
 for (let w = 0; w < waves.length; w++) {
   const ready = waves[w]
-  const waveResults = []
-  for (let c = 0; c < ready.length; c += MAX_PARALLEL) {
-    const chunk = ready.slice(c, c + MAX_PARALLEL)
-    const chunkResults = await parallel(chunk.map(function (id) {
-      return function () { return runTask(id) }
-    }))
-    waveResults.push.apply(waveResults, chunkResults)
+  // A worker pool, not fixed chunks: min(MAX_PARALLEL, ready.length) workers
+  // each pull the next index off a shared queue, so a finished task frees its
+  // slot at once. Results are stored by index, keeping wave order (not finish
+  // order) so the PR body and digest do not reshuffle between runs.
+  const waveResults = new Array(ready.length).fill(null)
+  let nextIndex = 0
+  const workers = []
+  for (let k = 0; k < Math.min(MAX_PARALLEL, ready.length); k++) {
+    workers.push(async function () {
+      while (nextIndex < ready.length) {
+        const i = nextIndex++
+        // a thrown task frees its slot (null result) and must not kill the worker
+        try {
+          waveResults[i] = await runTask(ready[i])
+        } catch (e) {
+          log('task ' + ready[i] + ' threw: ' + (e && e.message ? e.message : e))
+          waveResults[i] = null
+        }
+      }
+    })
   }
+  await parallel(workers)
   waveResults.forEach(function (r) {
     if (!r) { return }
     finalTasks.push(r.result)

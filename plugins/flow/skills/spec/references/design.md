@@ -33,7 +33,7 @@ Cap: **≤90 lines** plus the contract file. Signatures yes, bodies no.
 | 4 | **Module boundaries** | one line per module: `layer N · may import: <closed list> · exports: <closed list>` + "anything not listed is a bug". Ship the enforcement config, not the prose. State sibling independence as a pattern, never pairwise. |
 | 5 | **Shared resources** | `resource · constructed by · passed how · received by` for the DB handle, HTTP client, config, cache, clock and logger, plus the config-key namespace and who owns migration numbering. An agent told nothing constructs its own. |
 | 6 | **Deliberately duplicated** | bullets naming the prohibited consolidation *and what to do instead* — retry/backoff, date formatting, validation helpers, `utils/`. If genuinely none, write `none — because <reason>`: an empty section and a complete one are otherwise indistinguishable. |
-| 7 | **Decisions** | ≤6 lines: *"In the context of `<component>`, facing `<force, as a checkable fact>`, we chose `<mechanism + signature>` and rejected `<option>`, to achieve `<benefit>`, accepting `<named cost>`."* Plus one `Makes hard:` line per decision naming the files a reversal touches. |
+| 7 | **Decisions** | ≤6 lines: *"In the context of `<component>`, facing `<force, as a checkable fact>`, we chose `<mechanism + signature>` and rejected `<option>`, to achieve `<benefit>`, accepting `<named cost>`."* Plus one `Makes hard:` line per decision naming the files a reversal touches. The rejected option has a different shape (another module, data flow or ownership), not a parameter of the chosen one: a flag variant is the same design, not an alternative. |
 
 ## Pattern adoption gate
 
@@ -47,6 +47,7 @@ Run this before ANY structure enters the file. Every field filled, or do not ado
 4. SPEC WITNESS      The two concrete cases are at spec §____ and §____ (spec, never TASKS.md).
 5. MECHANISM         <the exact declaration every agent will read, in this project's language>
 6. REJECTED          ____, rejected because ____ (cite the force from field 1 or 4).
+                     The rejected option is a different shape, not a parameter of the chosen one.
 7. CONFIRMATION      A violation is caught by ____ (lint rule, import-boundary test, type error).
 8. COST              This makes ____ harder — it would touch ____.
 ```
@@ -69,6 +70,7 @@ Cut one block per task, here, in this same pass. `${CLAUDE_PLUGIN_ROOT}/scripts/
 
 ```
 ## Contract for T007 — <title>
+USAGE      <3-10 lines of a real call site: how the caller uses what this task builds>
 CONTRACT   <path> — import from it. A type you need that is not there is an escalation, never a local declaration.
 NAMES      <the naming-table rows this task touches, verbatim, banned synonyms included>
 MODULE     <path> · layer N · may import: <closed list> · exports: <closed list>
@@ -82,6 +84,8 @@ THE FIVE   (1) NEVER invent an error type, field name or result shape that alrea
            outside the task's `files:` list — a change to an unlisted file is a defect.
            (5) NEVER abbreviate inside an identifier. Spell the word.
 ```
+
+USAGE comes first because the caller's view is the cheapest spec to check. The task's RED test starts from that call, and the CALLS signatures must match it; when they disagree, change CALLS, not the call site.
 
 THE FIVE is the whole prose budget and the set is closed — do not substitute into it. The block fixes NAME, LOCATION and SIGNATURE, never COMPLETENESS; acceptance criteria come verbatim from the spec and the task's own `verify:`.
 

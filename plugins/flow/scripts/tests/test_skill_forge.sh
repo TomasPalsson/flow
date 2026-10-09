@@ -71,3 +71,57 @@ t_forge_no_close_match_prints_receipt_line() {
 		'reuse check: searched <terms> in <dirs>; nothing close' \
 		"no close match prints the one-line reuse-check receipt"
 }
+
+# ---- flow-extras round 2: ultracode standing orders / hand-made oracle,
+# skill-improver eval step, benchmark-checklist absolute budget ----
+
+EXTRAS_DIR="$SCAN_DIR/../../flow-extras/skills"
+
+t_forge_ultracode_standing_orders() {
+	assert_contains "$(cat "$EXTRAS_DIR/ultracode/references/spec-template.md")" '## Standing orders' \
+		"spec-template has the Standing orders heading"
+	local skill
+	skill=$(cat "$EXTRAS_DIR/ultracode/SKILL.md")
+	assert_contains "$skill" 'append it there before acting on it' \
+		"ultracode appends a mid-run directive before acting"
+	assert_contains "$skill" 'every brief, respawn and fix-round prompt' \
+		"ultracode pastes standing orders into every spawn"
+}
+
+t_forge_ultracode_script_oracle() {
+	local skill
+	skill=$(cat "$EXTRAS_DIR/ultracode/SKILL.md")
+	assert_contains "$skill" 'Do unit 1 by hand and commit it' \
+		"script-before-fleet hand-does unit 1"
+	assert_contains "$skill" 'scratch worktree' \
+		"the tool runs on unit 1 in a scratch worktree"
+	assert_contains "$skill" 'The diff must be empty, or each hunk must be explained in SPEC.md' \
+		"diff must be empty or explained before the wide run"
+}
+
+t_forge_benchmark_absolute_budget() {
+	assert_contains "$(cat "$EXTRAS_DIR/benchmark-checklist/SKILL.md")" \
+		'If the baseline does not have the feature, there is no ratio' \
+		"benchmark question 2 refuses a ratio against a missing baseline"
+}
+
+t_forge_improver_eval_step() {
+	local skill
+	skill=$(cat "$EXTRAS_DIR/skill-improver/SKILL.md")
+	assert_contains "$skill" '### Step 2f' "skill-improver has a final eval step"
+	assert_contains "$skill" 'flow eval --case <name>... --runs 3' "step runs flow eval --case with 3 runs"
+	assert_contains "$skill" 'base=<score> edit=<score>' "step prints base and edit scores"
+	assert_contains "$skill" 'no eval cases for <skill>' "step prints one line when nothing is selected"
+}
+
+t_forge_improver_select_cases() {
+	local sel="$EXTRAS_DIR/skill-improver/scripts/select-cases"
+	local root out
+	root="$(cd "$SCAN_DIR/../../.." && pwd)"
+	out=$("$sel" fix "$root")
+	assert_contains "$out" 'evals/routing-fix/case.yaml' "fix selects routing-fix"
+	assert_contains "$out" 'evals/pipeline-fix-bug/case.yaml' "fix selects pipeline-fix-bug"
+	assert_not_contains "$out" 'evals/routing-audit/case.yaml' \
+		"a case that lists fix among wrong answers is not selected"
+	assert_eq "$("$sel" no-such-skill-xyz "$root")" "" "a skill with no cases prints nothing"
+}

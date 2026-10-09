@@ -322,3 +322,59 @@ t_case_selfcheck_live_contaminated_run_fails() {
 	assert_eq "$(python3 -c 'import json,sys; r=json.load(open(sys.argv[1]))["runs"][0]; print(r["contaminated"], r["passed"])' "$log/out/results.json")" "True False" "results.json flags contaminated"
 	rm -rf "$root" "$log" "$tr"
 }
+
+# M17: a candidate must not see that it is graded. The static pass scans the
+# scaffold's identity, the case prompt and the names the scaffold creates.
+_csc_meta_case() { # <root> <name> <prompt> <scaffold-body>
+	_csc_mkcase "$1" "$2" '  - name: g
+    type: regex
+    target: { source: file, path: a.py }
+    pattern: "x = 2"
+    match: contains' "$4"
+	sed "s|prompt: \"p\"|prompt: \"$3\"|" "$1/$2/case.yaml" >"$1/$2/case.yaml.new" && mv "$1/$2/case.yaml.new" "$1/$2/case.yaml"
+}
+
+t_case_selfcheck_meta_word_in_prompt_fails() {
+	_csc_no_yaml t_case_selfcheck_meta_word_in_prompt_fails && return
+	local root
+	root=$(mktemp -d)
+	_csc_meta_case "$root" xhard-pe "Fix the bug so the eval passes" 'printf "x = 1\n" > a.py'
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "a prompt naming the eval fails the case"
+	assert_contains "$OUT" "FAIL xhard-pe: candidate can see it is graded (prompt 'eval')" "prompt hit named"
+	rm -rf "$root"
+}
+
+t_case_selfcheck_meta_word_in_identity_and_path_fails() {
+	_csc_no_yaml t_case_selfcheck_meta_word_in_identity_and_path_fails && return
+	local root
+	root=$(mktemp -d)
+	_csc_meta_case "$root" xhard-id "Fix it" 'git init -q; git config user.name "eval-scaffold"; git config user.email "dev@example.com"; printf "x = 1\n" > a.py'
+	_csc_meta_case "$root" xhard-path "Fix it" 'mkdir benchmark; printf "x = 1\n" > a.py'
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "identity or path naming the grading fails"
+	assert_contains "$OUT" "FAIL xhard-id: candidate can see it is graded (git user.name 'eval')" "identity hit named"
+	assert_contains "$OUT" "FAIL xhard-path: candidate can see it is graded (path benchmark 'benchmark')" "path hit named"
+	rm -rf "$root"
+}
+
+t_case_selfcheck_meta_scan_is_whole_word() {
+	_csc_no_yaml t_case_selfcheck_meta_scan_is_whole_word && return
+	local root
+	root=$(mktemp -d)
+	_csc_meta_case "$root" xhard-ok "Evaluate the retrieval score field" 'git init -q; git config user.name "Dev"; git config user.email "dev@example.com"; mkdir src; printf "x = 1\n" > a.py; : > src/score.py'
+	run_cmd "$CSC" --root "$root"
+	assert_not_contains "$OUT" "candidate can see" "evaluate, retrieval and score are not meta words"
+	assert_contains "$OUT" "PASS xhard-ok" "neutral case passes"
+	rm -rf "$root"
+}
+
+# Every shipped scaffold uses a neutral identity (closes I-003).
+t_case_selfcheck_shipped_cases_are_neutral() {
+	_csc_no_yaml t_case_selfcheck_shipped_cases_are_neutral && return
+	local names d
+	names=$(for d in "$SCAN_DIR"/../evals/*/; do [ -f "$d/scaffold.sh" ] && basename "$d"; done)
+	# shellcheck disable=SC2086
+	run_cmd "$CSC" $names
+	assert_not_contains "$OUT" "candidate can see it is graded" "no shipped scaffold names the grading"
+}

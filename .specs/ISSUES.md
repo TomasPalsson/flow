@@ -25,7 +25,7 @@ Problem: a candidate that can see `eval` in its commit author knows it is being 
 Whose: internal: anyone reading `flow eval` scores as evidence a skill change helped
 Today: scores are taken at face value
 Verify: `grep -rlnE 'eval|judge|rubric|benchmark|candidate' plugins/flow/evals/*/scaffold.sh` shows no candidate-visible identity, path or prompt with those words, and the suite's pass rates are re-baselined
-Status: open
+Status: open — identities neutral (Dev <dev@example.com>) and case-selfcheck scan landed; live re-baseline of pass rates pending
 
 ## I-004 — skills-lint reports two dead references in plugins/flow/evals/README.md
 Found: 2026-10-09 · during the pstack borrow review · severity: minor
@@ -43,4 +43,13 @@ Problem: the reason text for a verifier whose output carries a PID is not printe
 Whose: internal: the scripts suite as a gate; loop operators reading why arming was refused
 Today: ignored as pre-existing
 Verify: the test passes on three consecutive runs, and the refusal names the reason whenever rc is 4
+Status: open
+
+## I-006 — bin/lib/router.js is 682 lines, over the 400-line size guard
+Found: 2026-10-09 · during the pstack borrow round 2 · severity: minor
+Evidence: `wc -l plugins/flow/bin/lib/router.js` → 682 on main at 702895a; size-guard.sh blocks every edit to it ("file is 692 lines (max 400)") — the round-2 claim-check gate was moved into lib/lint.js `withClaimCheck` to keep router.js at its old size
+Problem: any change to the router trips the size guard, so fixes there get pushed into other modules or need the escape hatch
+Whose: internal: anyone changing `flow next` routing
+Today: edits route around it
+Verify: router.js under 400 lines after a split (e.g. feature resolution and lint runner into their own modules) with test_next.sh unchanged and green
 Status: open

@@ -22,6 +22,8 @@ description: What goes wrong in unattended loops, how flow loop detects each cas
 | Stale contract from another session | `flow doctor` WARN; `tick` allows on `session_id` mismatch | — | `flow loop stop --reason stale` |
 | Corrupt contract | non-numeric fields / empty verify | `loop.md.corrupt` appears | `flow loop stop`; `init` again |
 | Context rot inside a session loop | not detected (it is the shape's cost) | quality drops after a few iterations | switch to fresh |
+| Metric attempts all rejected | `decisions.tsv` rows with `kept=no`; `metric_rejects` streak | `iter` lines; `stop … stall`/`wedge` only after `--min-attempts` | read the tsv: the idea space is exhausted or the noise bar is too high for the gains available. Change category (the continuation says so after 3 in a row), or lower the noise |
+| Metric revert could not apply | `git revert` conflicted and was aborted | `stop … revert-failed` | the candidate touched a file the earlier history also changed or `LEARNINGS.md` was committed; revert by hand, re-run `init` |
 | Reward hacking against visible tests only | not detected locally | green | held-out job in CI on a protected branch; compare pass rates |
 
 ## Reading a run

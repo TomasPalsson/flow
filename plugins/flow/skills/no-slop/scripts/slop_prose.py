@@ -1,4 +1,4 @@
-"""slop_prose: NP-04 to NP-08 prose-tell detectors for `slop-check --prose`.
+"""slop_prose: NP-04 to NP-09 and NP-12 prose-tell detectors for `slop-check --prose`.
 
 Reads markdown, masks fenced and inline code, and returns
 (path, line, id, message, "prose") tuples in the shape slop-check emits.
@@ -26,6 +26,21 @@ FILLER_RE = re.compile(
     r"^(?:it(?:'s| is) (?:important|worth) (?:to note|noting)|certainly[!,]|"
     r"of course[!,]|great question|in conclusion|in summary|to sum up|"
     r"to summari[sz]e|i hope this helps|let me know if)", re.I)
+PERF_NUM_RE = re.compile(
+    r"\b\d+(?:\.\d+)?\s?(?:%|x\b|×|ms\b|µs\b|s\b|req/s|rps\b)|\bp(?:50|95|99)\b", re.I)
+PERF_CMP_RE = re.compile(
+    r"\b(?:faster|slower|speed-?ups?|reduc(?:ed|es|tion)|improv(?:ed|es|ement))\b|"
+    r"\bfrom\b.+\bto\b|->|→", re.I)
+PERF_PROOF_RE = re.compile(r"\b\d+\s+runs?\b|\b(?:median|mean of|best of)\b|\bn\s?=\s?\d|\$_+", re.I)
+CMD_CODE_RE = re.compile(r"\s|\./|(?:^|\s)--?\w")
+JARGON = (
+    ("substrate", "base or layer"), ("wedge", "entry point or first use"),
+    ("flywheel", "feedback loop"), ("north star", "main goal"),
+    ("growth vector", "growth path"), ("strategic vector", "direction"),
+)
+JARGON_RE = re.compile(r"\b(" + "|".join(w for w, _ in JARGON) + r")\b", re.I)
+JARGON_PLAIN = dict(JARGON)
+QUOTED_RE = re.compile(r'"[^"\n]*"|“[^”\n]*”')
 MAX_WORDS = 30
 UNREADABLE = []
 
@@ -39,9 +54,15 @@ SENT_END_RE = re.compile(r"(?<=[.!?])\s+")
 LEAD_RE = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+|>\s*|#+\s+)")
 
 
+def _mask_code(m):
+    """Mask inline code; a command-looking span starts with `$` (NP-09 proof)."""
+    n = len(m.group(0))
+    return ("$" + "_" * (n - 1)) if CMD_CODE_RE.search(m.group(0)[1:-1]) else "_" * n
+
+
 def _mask(line):
     """Replace code and URLs with same-length underscores (one word each)."""
-    line = INLINE_CODE_RE.sub(lambda m: "_" * len(m.group(0)), line)
+    line = INLINE_CODE_RE.sub(_mask_code, line)
     line = LINK_RE.sub(lambda m: m.group(1) + "_" * (len(m.group(0)) - len(m.group(1))), line)
     return URL_RE.sub(lambda m: "_" * len(m.group(0)), line)
 
@@ -97,6 +118,20 @@ def _sentences(para):
         yield line, part.strip()
 
 
+def _perf_and_jargon(path, line, sent):
+    """NP-09 (perf number + comparison, no run count or command) and NP-12."""
+    out = []
+    if (PERF_NUM_RE.search(sent) and PERF_CMP_RE.search(sent)
+            and not PERF_PROOF_RE.search(sent)):
+        out.append((path, line, "NP-09", "unvetted perf number: run benchmark-checklist", "prose"))
+    for m in JARGON_RE.finditer(QUOTED_RE.sub(lambda q: "_" * len(q.group(0)), sent)):
+        if m.group(0)[0].isupper() and m.start() > 0:
+            continue
+        word = m.group(0).lower()
+        out.append((path, line, "NP-12", f"jargon metaphor '{word}'; say {JARGON_PLAIN[word]}", "prose"))
+    return out
+
+
 def _sentence_findings(path, line, sent):
     out = []
     for m in AI_RE.finditer(sent):
@@ -108,6 +143,7 @@ def _sentence_findings(path, line, sent):
         out.append((path, line, "NP-06", "'not X, but Y' reflex; state Y directly", "prose"))
     if FILLER_RE.match(sent):
         out.append((path, line, "NP-07", "throat-clearing opener or summary closer; start with the point", "prose"))
+    out.extend(_perf_and_jargon(path, line, sent))
     words = len(sent.split())
     if words > MAX_WORDS:
         out.append((path, line, "NP-08", f"sentence has {words} words (limit {MAX_WORDS}); split it", "prose"))

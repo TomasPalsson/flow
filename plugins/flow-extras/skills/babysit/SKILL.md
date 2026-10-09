@@ -21,10 +21,12 @@ A small or docs-only PR gets `check`. Under `drive` also set the limits now: `--
 
 Run `drive` polling as a background shell command (Bash with `run_in_background`), because a 60-minute wait exceeds the foreground limit. The script polls, not a model: a model waiting in a loop burns context for nothing, and the harness wakes you when the script exits.
 
+Exception, when called from `/flow:next --finish`: `FINISH.md` is armed, and ending the turn to wait makes the finish-gate Stop hook re-prompt in a loop. Poll in the foreground instead (Bash `timeout 600000`, the 10 minute maximum; the 2 minute default would kill a 9 minute chunk), in chunks of `--max-minutes 9` (repeat the call up to the 60-minute and 5-wave caps) so the turn never ends mid-wait. Skip the whole run quietly when `gh` fails or the repo has no `.github/workflows/*.yml`.
+
 ## 2. Read state
 
 ```
-${CLAUDE_PLUGIN_ROOT}/skills/babysit/scripts/pr-watch <pr> [pr...] [--repo o/r] [--once] [--json] [--flake CHECK] [--reruns N] [--waves N --max-waves M] [--max-minutes M]
+${CLAUDE_PLUGIN_ROOT}/skills/babysit/scripts/pr-watch <pr> [pr...] [--repo o/r] [--once] [--json] [--flake CHECK] [--reruns N] [--waves N --max-waves M] [--max-minutes M] [--expect-ci | --no-expect-ci]
 ```
 
 Several PRs are independent: there is no ordering rule, and a push to one does not change another. The script prints one line per PR (base, draft, CI, merge state, open threads, and that PR's action), then a `failing <check> <link>` line under any PR with red checks. It acts on one PR: the first with work to do (`resolve-conflict`, `fix-ci`, `rerun-flake`), else the first `wait`, else the first stop; so a pending or stopped PR never hides work on another. `--json` adds a `prs` list with every PR's action and failing check links.
@@ -36,17 +38,21 @@ Several PRs are independent: there is no ordering rule, and a push to one does n
 | `rerun-flake` | Section 3. |
 | `stop-threads` | The PR has unresolved review threads. List them in the report and stop for the user; do not answer or resolve them here. |
 | `wait` | Checks pending, mergeability unknown, or changes requested by a human. Poll again; do not fix around a human's pending review. |
-| `done` | Merge-ready. Section 6. If every PR shows `pass:0 fail:0 pending:0` right after a push, CI may not have registered yet: read once more after a minute before trusting it. |
+| `done` | Merge-ready. Section 6. |
+| `stop-no-checks` | A workflow runs on `pull_request` but no checks registered after 3 polls. Its branch or path filters probably exclude this PR, so there is no CI to fix. Report it and stop; do not go to section 3. |
 | `stop-closed`, `stop-merged` | Report and stop. |
 
 Exit codes: 0 done, 2 stop, 3 out of time or out of push waves (or `--once` while waiting), 4 gh failed, 5 work to do (the printed action). It polls only while the action is `wait`; on any other action it returns, so act, push, and run it again. `check` uses `--once`, which ignores `--max-minutes`. `--max-minutes` defaults to 60; `0` means no limit and only applies when passed explicitly.
+
+An empty check list is `wait` while the checkout has a workflow that runs on `pull_request` or `pull_request_target`, because checks take a moment to register after a push; any other repo reads it as `done`. `--expect-ci` or `--no-expect-ci` overrides that guess. Under `--once` the count of empty polls is always zero, so a bare `check` on a PR with no checks yet reports `wait`.
 
 The order is conflicts, then CI, because a conflict invalidates CI results. Batch every known fix into one push, since each push restarts CI.
 
 ## 3. CI
 
-The script prints each failing check's link. Take the run id from it and read the failing log with `gh run view <run-id> --log-failed`. Reproduce the failure locally with the same command before pushing; each blind push restarts CI and hides the cause.
+The script prints each failing check's link. When the link is a GitHub Actions run, take the run id from it and read the failing log with `gh run view <run-id> --log-failed`. Reproduce the failure locally with the same command before pushing; each blind push restarts CI and hides the cause.
 
+- A check tagged `(external)` (Vercel or another outside app; `external: true` in `--json`) has no run id, so `gh run view` and `gh run rerun` do not apply. Open its link to find the failing command, reproduce it locally with the project's build command, and fix it with a push. Never `gh run rerun` it. If it looks like a flake, the provider's own redeploy is the retry; report it as a flake the same way.
 - Failure in code the diff never touched: check `git merge-base --is-ancestor <base> HEAD`. A stale base needs a conflict-style update (section 4), not a retry.
 - Failure that looks like a flake (timeout, network, a test unrelated to the diff): re-run once with `gh run rerun <run-id> --failed`, and pass `--flake <check> --reruns 1` on later reads (`--flake <check> --reruns 0` makes `pr-watch` itself answer `rerun-flake`). A pass after a rerun is reported as a flake with the check name and run URL, not as proof the change is sound. A second identical failure was never a flake; read the logs and treat it as real.
 - Failure in the diff's own code: a real defect. Hand it to `/flow:fix` (reproduce, root cause, smallest change).
@@ -69,7 +75,7 @@ Close every run with this, even a stop:
 
 - Mode, and per PR a row: PR, base, draft or ready, CI (check names and run URLs), conflicts, open threads, next action.
 - Fixed: commit SHAs, and the command that showed each fix works.
-- Asked: what needs a human (open review threads, a rebase), and why it was not decided here.
+- Asked: what needs a human (open review threads, a rebase, a `stop-no-checks` PR whose workflow filters skip it), and why it was not decided here.
 - Flakes: check names, and whether the rerun passed.
 - Not verified: anything claimed without a command behind it.
 
@@ -77,6 +83,6 @@ Merge-ready means `pr-watch` returned `done` on the final push, stated with that
 
 ## Checks
 
-- `scripts/pr-watch` policy: `python3 -B -I scripts/test_pr_watch.py` from this skill's directory (covers `decide`, `pick`, `read_state` with `gh` faked, `--max-minutes`, and the wave budget)
+- `scripts/pr-watch` policy, from this skill's directory: `python3 -B -I scripts/test_pr_watch.py` (`decide`, `pick`, `read_state` with `gh` faked) and `python3 -B -I scripts/test_pr_watch_budget.py` (external checks, the wave budget, `--max-minutes`, `--json`)
 
-Credit: adapted from cursor/plugins pstack playbooks/babysit.md and watch-pr/policy.ts (MIT).
+Credit: adapted from cursor/plugins pstack playbooks/babysit.md and watch-pr/policy.ts (MIT); external-check guidance adapted from cursor-team-kit fix-ci and ci-watcher.

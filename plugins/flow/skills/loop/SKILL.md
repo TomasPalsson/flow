@@ -1,8 +1,8 @@
 ---
 name: loop
-description: "Run a task in an unattended loop until a deterministic verifier passes — never until the model says so. Use WHENEVER the user says /flow:loop, /loop-until, 'loop until', 'keep going until the tests pass', 'ralph', 'ralph loop', 'run this overnight', 'grind through the backlog', 'iterate until green', 'don't stop until', 'autonomous loop', 'unattended', 'loop engineering', or hands over a task with a runnable check and wants to walk away. Two shapes: in-session (Stop hook, ≤ 8 iterations, you watch) and fresh (outer loop of fresh `claude -p` sessions via `flow loop run`, capped by iterations/minutes/dollars/stall). Do NOT use for: polling on a timer (/loop 5m), a goal only a reader can judge, a one-shot fix (/fix), or a feature with human decisions inside it (/flow:next)."
+description: "Run a task in an unattended loop until a deterministic verifier passes — never until the model says so. Use WHENEVER the user says /flow:loop, /loop-until, 'loop until', 'keep going until the tests pass', 'ralph', 'ralph loop', 'run this overnight', 'grind through the backlog', 'iterate until green', 'don't stop until', 'autonomous loop', 'unattended', 'loop engineering', or hands over a task with a runnable check, or a score to raise or lower (the metric shape: keep a change only if the number beats noise, otherwise revert), and wants to walk away. Two shapes: in-session (Stop hook, ≤ 8 iterations, you watch) and fresh (outer loop of fresh `claude -p` sessions via `flow loop run`, capped by iterations/minutes/dollars/stall). Do NOT use for: polling on a timer (/loop 5m), a goal only a reader can judge, a one-shot fix (/fix), or a feature with human decisions inside it (/flow:next)."
 user-invocable: true
-argument-hint: "<goal> --verify \"<cmd>\" [--fresh] [--max-iterations N] [--max-minutes N] [--max-usd N] [--worktree]"
+argument-hint: "<goal> --verify \"<cmd>\" | --metric \"<cmd>\" --direction max|min [--fresh] [--max-iterations N] [--max-minutes N] [--max-usd N] [--worktree]"
 ---
 
 # /flow:loop — the verifier decides, not the model
@@ -55,6 +55,12 @@ The verifier is one shell command, exit 0 = goal met, run by the harness with `C
 
 If the goal cannot be written as a command, write the closest command you can and keep the judgement for a human gate at the end; do not put an LLM judge in the exit path.
 
+### Raising or lowering a score: the metric shape
+
+When the goal is a number to move (an eval score, a latency, a bundle size, a count of failures) rather than a check to turn green, use the metric form. A pass/fail verifier cannot express "better than before", and a hand-run climb loses the record of what was tried. Read [`references/verifier-design.md`](references/verifier-design.md) §7 for the command, then arm with `--metric` in Step 4.
+
+In this form `--verify` is the regression gate (it must stay green), and the loop keeps a commit only when the median of `--runs` metric runs beats the best value by more than the noise measured at init. A rejected attempt is undone with `git revert`, so it stays in history, and every attempt is a row in `.claude/loop/decisions.tsv`. The tree must be clean at init.
+
 ## Step 3 — Write the per-iteration prompt and the task list
 
 Read [`references/loop-prompt.md`](references/loop-prompt.md) in full. Do not reload `verifier-design.md`; the verifier is fixed by now.
@@ -69,6 +75,13 @@ The body names the task list and the rule for choosing from it. For a backlog us
 flow loop init "<goal, one sentence>" --verify "<cmd>" \
   [--shape session|fresh] [--prompt-file .claude/loop/prompt.md] \
   [--max-iterations N] [--max-minutes N] [--max-usd N] [--stall-after N]
+```
+
+For a metric goal, arm with `--metric` instead (the tree must be clean; `--target` is then the number to reach):
+
+```bash
+flow loop init "<goal>" --metric '<cmd printing one number>' --direction max|min --runs 3 \
+  --min-attempts N [--target V] [--verify "<regression gate>"] [--shape fresh]
 ```
 
 `init` writes `.claude/loop/loop.md` (the contract), runs the verifier once (must be red), records the base commit and the test-file count, and prints the caps. Defaults: session 8 iterations; fresh 30 iterations, 480 minutes, `stall_after` 3.

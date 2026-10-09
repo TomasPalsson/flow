@@ -556,3 +556,33 @@ t_flow_new_spec_reuse_prep_dir() {
 	assert_rc 1 "flow: new-spec --reuse on a missing dir exits 1"
 	rm -rf "$repo"
 }
+
+# A USAGE row inside the per-task Contract block reaches the generated brief
+# with no change to task-brief (it appends the whole block).
+t_flow_task_brief_carries_contract_usage_row() {
+	local d
+	d=$(tmp_repo)
+	cat >"$d/TASKS.md" <<'TASKS'
+# Tasks — Usage brief
+Spec: spec.md · Design: design.md · Base: HEAD · Route: dispatch · Test: `true`
+
+## Phase 1 — Core
+Goal: a thing works.
+Independent test: `true`
+- [ ] T007 Add the thing — files: a.py — verify: `true`
+TASKS
+	cat >"$d/design.md" <<'DESIGN'
+# Design
+
+## Contract for T007
+```
+USAGE
+  out = add_thing(3)
+CALLS add_thing(n) -> int
+```
+DESIGN
+	run_cmd bash -c 'cd "$1" && "$2" TASKS.md T007 --design design.md' _ "$d" "$SCAN_DIR/task-brief"
+	assert_rc 0 "flow: task-brief with a Contract block exits 0"
+	assert_contains "$(cat "$d/review/T007-brief.md")" "USAGE" "flow: the brief carries the Contract's USAGE row"
+	rm -rf "$d"
+}

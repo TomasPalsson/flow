@@ -1,5 +1,6 @@
 # Tasks — Entry tagging
 Spec: spec.md · Design: none · Base: 4f2a91c · Route: dispatch · Test: `pytest -q`
+<!-- Optional header field, only when spec.md says **Behaviour-preserving**: yes — "· Parity: <cmd>". Plan T000 runs it at Base into verify/baseline.txt; a G### gate runs "<cmd> | diff verify/baseline.txt -". -->
 
 ## Behaviors
 | ID | Given / When / Then | Task | Proven by |

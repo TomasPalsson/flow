@@ -27,6 +27,8 @@ TASKS=$FEAT/TASKS.md
 # ---- the gate lines, in the --finish form --------------------------------------
 grep -E '^Approved: .*\(pre-approved: /flow:next --finish\)' "$TASKS" >/dev/null || die "no 'Approved: ... (pre-approved: /flow:next --finish)' line"
 grep -E '^Verified: .*\(pre-approved: /flow:next --finish\)' "$TASKS" >/dev/null || die "no 'Verified: ... (pre-approved: /flow:next --finish)' line"
+CC="$(dirname "$TASKS")/verify/claim-check.md"
+grep -E '[0-9]+ confirmed, 0 unsupported' "$CC" >/dev/null 2>&1 || die "no verify/claim-check.md with 0 unsupported behind the pre-approved Verified: line"
 grep -E '^(Approved|Verified): .* by (model|user)$' "$TASKS" >/dev/null && die "an Approved/Verified line lacks the pre-approval suffix"
 
 # ---- plan shape, ticks, checkpoint evidence ------------------------------------

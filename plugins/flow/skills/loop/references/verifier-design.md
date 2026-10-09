@@ -65,3 +65,19 @@ A `suspect` run is not fixed inside the loop. The finding is reported verbatim a
 | page matches a design target | `plugins/flow/scripts/ui-score score --target .loop-target --url ...` — [browser-verifier.md](browser-verifier.md) |
 
 When no command approximates the goal, the loop is the wrong tool: keep the judgement for a human gate at the end, or split the goal until a command exists.
+
+## 7. Metric form: a number to move, with a gate that must stay green
+
+Use it when the goal is "raise or lower this score". The command prints one number (the last number on stdout counts) and exits 0:
+
+```bash
+flow loop init "raise the eval pass rate" --metric 'node scripts/eval-score.js' \
+  --direction max --runs 3 --min-attempts 5 --target 0.9 --verify 'bun test'
+```
+
+- **Noise first.** `init` runs the metric `--runs` times on the clean tree. It refuses when no number is printed, when the command fails, or when the spread of those runs is larger than the distance to `--target`: a number that wobbles more than the gap cannot be climbed. Make the metric deterministic (fixed seed, fixed cases) or raise `--runs`. This is the standing rule of running an eval three times before believing a delta.
+- **The bar.** A candidate is kept only when the median of `--runs` runs beats the best value by more than the init spread, and `--verify` is green. Anything else is undone with `git revert --no-edit`, never a hard reset, so the failed attempt stays in history and `decisions.tsv` points at it by sha.
+- **`--min-attempts N`.** Stall and wedge stops wait until N attempts were judged, and the target only ends the loop after N. A reverted attempt leaves the tree where it started, which would otherwise read as no progress.
+- **`--verify` is optional here.** Without it the gate is a command that always passes; give a real one (the test suite) whenever the metric can be improved by breaking something.
+- **Do not commit `.claude/loop/LEARNINGS.md`** in this form. It stays outside every candidate commit so a revert can never undo a learnings entry.
+- **Gaming.** The metric command and the data it reads are the verifier. Keep them out of the task's reach the same way as in §1.2; a loop that edits the scorer to raise the score is the tamper case, not progress.

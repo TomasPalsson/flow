@@ -42,4 +42,4 @@ OUTPUT: <trimmed output — load-bearing lines only>
 For change claims add `BASELINE/TREATMENT: baseline=<...> treatment=<...>`. Numbers (speedups, latency) are judged by `benchmark-checklist`, not here.
 Then one summary line: `N confirmed, N unsupported, N inconclusive, N not-checkable.`
 
-Write these findings to `.claude/claim-check.md` as well as returning them in your response — the caller's context may compact or the report may be lost before it is read.
+Write these findings to `.claude/claim-check.md` (or to the output path the caller gave you instead) as well as returning them in your response — the caller's context may compact or the report may be lost before it is read.

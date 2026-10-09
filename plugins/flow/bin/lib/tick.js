@@ -118,6 +118,27 @@ function resolveSha(root, { id, line, base, head, shaArg, isHuman, by }) {
   };
 }
 
+// hasEvidence(verifyDir, id) -> true when a non-empty file named <id>* exists.
+function hasEvidence(verifyDir, id) {
+  let names;
+  try { names = fs.readdirSync(verifyDir); } catch { return false; }
+  return names.some((n) => {
+    if (!n.startsWith(id)) return false;
+    try { const st = fs.statSync(path.join(verifyDir, n)); return st.isFile() && st.size > 0; } catch { return false; }
+  });
+}
+
+// humanCheck(id, by, tasksPath) -> null, or {error, fix} for a CHK that may not be ticked.
+// Needs --by user AND a non-empty verify/<CHK-id>* file beside TASKS.md: unattended
+// runs tick CHKs as "user", so the file is the only proof the work was done.
+function humanCheck(id, by, tasksPath) {
+  if (by !== 'user') return { error: `${id} is a human checkpoint`, fix: `only a person can answer it: flow tick ${id} --by user` };
+  if (!hasEvidence(path.join(path.dirname(tasksPath), 'verify'), id)) {
+    return { error: `no evidence for ${id}`, fix: `write verify/${id}*.md (or a ${id}-*.png) first, then flow tick ${id} --by user` };
+  }
+  return null;
+}
+
 function run(argv, root, io, env) {
   const { stdout, stderr } = io;
   let dirArg = null;
@@ -162,8 +183,9 @@ function run(argv, root, io, env) {
   if (state === '~') return fail(stderr, `${id} is dropped`, `restore it to '- [ ] ${id}' first if it is back in scope`);
 
   const isHuman = /^CHK/.test(id);
-  if (isHuman && by !== 'user') {
-    return fail(stderr, `${id} is a human checkpoint`, `only a person can answer it: flow tick ${id} --by user`);
+  if (isHuman) {
+    const bad = humanCheck(id, by, tasksPath);
+    if (bad) return fail(stderr, bad.error, bad.fix);
   }
 
   const head = git(root, ['rev-parse', '--short', 'HEAD']);

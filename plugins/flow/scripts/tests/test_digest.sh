@@ -94,3 +94,25 @@ t_digest_finish_off_prints_it() {
 	dg_cli_in "$proj" "$home" finish off
 	assert_not_contains "$OUT" "Attention" "empty digest adds no output"
 }
+
+# One unfiled defer and one filed defer: the --json digest carries exactly one
+# entry of kind discovered (the unfiled one), which the PR body's Left out
+# section is filled from.
+t_digest_json_one_unfiled_defer_is_one_discovered_entry() {
+	local home proj n
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	cat >"$proj/.specs/001-x/NOTES.md" <<'NOTES'
+# Notes
+- Discovered: a.py:4 — swallowed error — defer
+- Discovered: b.py:9 — wrong format string — defer → I-003
+NOTES
+	dg_cli_in "$proj" "$home" digest --json
+	assert_rc 0 "digest --json exits 0"
+	n=$(printf '%s' "$OUT" | grep -c '"kind": "discovered"')
+	assert_eq "1" "$n" "exactly one discovered entry in the digest JSON"
+	assert_contains "$OUT" "a.py:4" "the entry is the unfiled defer"
+	assert_not_contains "$OUT" "b.py" "the filed defer is not listed"
+	rm -rf "$home" "$proj"
+}

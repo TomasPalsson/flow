@@ -149,6 +149,52 @@ t_hyg_three_worktrees_exactly_two_warn() {
 	rm -rf "$repo"
 }
 
+t_hyg_dirty_tracked_edit_reports_count() {
+	local repo wt rows
+	repo=$(tmp_repo)
+	wt="$repo/.claude/worktrees/dirty-tracked"
+	hyg_add_worktree "$repo" hyg-dirty-tracked "$wt"
+	hyg_commit_extra "$wt" 20
+	printf 'edited\n' >>"$wt/extra-dirty-tracked.txt"
+	hyg_age_dir "$wt" 20
+
+	hyg_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" "tracked edits: 1 files" "t_hyg_dirty_tracked tracked-wording"
+	assert_not_contains "$rows" "untracked only" "t_hyg_dirty_tracked not-untracked"
+	assert_not_contains "$rows" "safe to remove" "t_hyg_dirty_tracked no-safe-claim"
+	assert_not_contains "$rows" "base, dirty)" "t_hyg_dirty_tracked no-bare-dirty"
+
+	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
+	rm -rf "$repo"
+}
+
+t_hyg_dirty_untracked_only_names_files() {
+	local repo wt rows i
+	repo=$(tmp_repo)
+	wt="$repo/.claude/worktrees/dirty-untracked"
+	hyg_add_worktree "$repo" hyg-dirty-untracked "$wt"
+	hyg_commit_extra "$wt" 20
+	printf 'new\n' >"$wt/brand-new.txt"
+	hyg_age_dir "$wt" 20
+
+	hyg_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" "untracked only: brand-new.txt" "t_hyg_dirty_untracked names-file"
+	assert_not_contains "$rows" "tracked edits" "t_hyg_dirty_untracked not-tracked"
+	assert_not_contains "$rows" "safe to remove" "t_hyg_dirty_untracked no-safe-claim"
+
+	# More than 5 untracked files: five names, then a +K more tail.
+	for i in 1 2 3 4 5 6 7; do printf 'x\n' >"$wt/many-$i.txt"; done
+	hyg_age_dir "$wt" 20
+	hyg_check "$repo"
+	rows="$OUT"
+	assert_contains "$rows" ", +3 more" "t_hyg_dirty_untracked more-tail"
+
+	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
+	rm -rf "$repo"
+}
+
 t_hyg_cwd_worktree_excluded_yields_pass() {
 	# The same merged+clean+idle fixture that warns in the test above must
 	# yield zero WARNs, and a single PASS row, when cwd IS that worktree.

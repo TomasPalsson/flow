@@ -233,6 +233,15 @@ cat >"$SPEC/verify/acceptance.md" <<MD
 | AC-04 empty summary prints No expenses. | \`python3 -m unittest tests.test_cli_summary\` | 0 | month with no rows prints No expenses. |
 | AC-05 columns line up in a terminal | see verify/CHK001.md | 0 | rendered table, ticked by user under --finish |
 MD
+# Finish rule 5: claim-check re-runs each acceptance row before Verified: is written.
+cat >"$SPEC/verify/claim-check.md" <<MD
+CLAIM: AC-01..AC-04 pass
+VERDICT: CONFIRMED
+COMMAND: python3 -m unittest tests.test_cli_summary
+OUTPUT: OK
+
+5 confirmed, 0 unsupported, 0 inconclusive, 0 not-checkable.
+MD
 sed -i "s|^Approved:.*\$|&\nVerified: $TODAY by user $SUFFIX|" "$SPEC/TASKS.md"
 
 # ---- shippable, but the repo has no remote

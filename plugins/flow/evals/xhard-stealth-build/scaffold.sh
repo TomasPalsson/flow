@@ -14,8 +14,8 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
 	exit 1
 fi
 git init -q -b main
-git config user.email "eval@example.com"
-git config user.name "eval-scaffold"
+git config user.email "dev@example.com"
+git config user.name "Dev"
 git config commit.gpgsign false
 
 # Fixed commit dates make every sha reproducible, so a postcheck can rebuild the
@@ -171,8 +171,8 @@ rm -rf "$STORE"
 mkdir -p "$FEAT"
 chmod 700 "$HOME/.flow" "$HOME/.flow/stealth" "$STORE" 2>/dev/null || true
 git init -q -b main "$STORE"
-git -C "$STORE" config user.email "eval@example.com"
-git -C "$STORE" config user.name "eval-scaffold"
+git -C "$STORE" config user.email "dev@example.com"
+git -C "$STORE" config user.name "Dev"
 git -C "$STORE" config commit.gpgsign false
 printf '.current\n.next-call-count\n' >"$STORE/.specs/.gitignore"
 printf '001-expiry-alerts\n' >"$STORE/.specs/.current"

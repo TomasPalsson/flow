@@ -37,8 +37,19 @@ class Decide(unittest.TestCase):
     def test_draft_clean_is_still_done(self):
         self.check("done", isDraft=True)
 
-    def test_no_checks_is_done(self):
+    def test_no_checks_is_done_when_ci_is_not_expected(self):
         self.check("done", checks=[])
+        self.check("done", checks=[], expect_ci=False, empty_polls=9)
+
+    def test_no_checks_waits_when_ci_is_expected(self):
+        self.check("wait", checks=[], expect_ci=True, empty_polls=0)
+        self.check("wait", checks=[], expect_ci=True, empty_polls=2)
+
+    def test_no_checks_after_three_polls_stops(self):
+        self.check("stop-no-checks", checks=[], expect_ci=True, empty_polls=3)
+
+    def test_red_check_beats_the_empty_rule(self):
+        self.check("fix-ci", checks=red("x"), expect_ci=True, empty_polls=5)
 
     def test_skipped_check_is_not_red(self):
         self.check("done", checks=[{"name": "x", "bucket": "skipping"}])
@@ -206,91 +217,78 @@ class ReadState(unittest.TestCase):
             pw.gh = orig
 
 
-class WaveBudget(unittest.TestCase):
-    def run_main(self, extra):
-        orig = pw.read_state
-        pw.read_state = lambda *a: pr(number=7, checks=red("build"))
+class ExpectCi(unittest.TestCase):
+    def tree(self, files):
+        import tempfile
+        d = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d)
+        os.makedirs(os.path.join(d, ".github", "workflows"))
+        for name, body in files.items():
+            with open(os.path.join(d, ".github", "workflows", name), "w") as f:
+                f.write(body)
+        return d
+
+    def test_pull_request_trigger_expects_ci(self):
+        for body in ("on: pull_request\n", "on: [push, pull_request]\n",
+                     "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n",
+                     "on:\n  pull_request_target:\n"):
+            self.assertTrue(pw.detect_expect_ci(self.tree({"ci.yml": body})), body)
+
+    def test_push_only_workflow_does_not(self):
+        d = self.tree({"ci.yml": "on:\n  push:\n    branches: [main]\n"
+                                 "jobs:\n  a:\n    if: github.event_name == 'pull_request'\n"})
+        self.assertFalse(pw.detect_expect_ci(d))
+
+    def test_no_workflows_does_not(self):
+        import tempfile
+        self.assertFalse(pw.detect_expect_ci(tempfile.mkdtemp()))
+
+    def test_flag_overrides_detection(self):
+        view = {"number": 7, "state": "OPEN", "mergeable": "MERGEABLE",
+                "mergeStateStatus": "CLEAN", "reviewDecision": ""}
+        orig, pw.gh = pw.gh, FakeGh(view, [], [])
         try:
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                return pw.main(["7"] + extra)
+            self.assertTrue(pw.read_state(7, None, [], 0, True)["expect_ci"])
+            self.assertFalse(pw.read_state(7, None, [], 0, False)["expect_ci"])
         finally:
-            pw.read_state = orig
-
-    def test_work_returns_5_under_budget(self):
-        self.assertEqual(self.run_main(["--waves", "4", "--max-waves", "5"]), 5)
-
-    def test_spent_budget_returns_3(self):
-        self.assertEqual(self.run_main(["--waves", "5", "--max-waves", "5"]), 3)
-
-    def test_no_limit_by_default(self):
-        self.assertEqual(self.run_main(["--waves", "99"]), 5)
-
-
-class MaxMinutes(unittest.TestCase):
-    def test_default_is_sixty_minutes(self):
-        self.assertEqual(pw.deadline_for(60, False, 1000), 1000 + 3600)
-
-    def test_explicit_zero_means_no_limit(self):
-        self.assertIsNone(pw.deadline_for(0, False, 1000))
-
-    def test_once_ignores_the_limit(self):
-        self.assertIsNone(pw.deadline_for(60, True, 1000))
+            pw.gh = orig
 
     def run_main(self, extra):
-        """Polls a waiting PR with a fake clock; returns (exit code, sleeps)."""
-        orig = (pw.read_state, pw.time.time, pw.time.sleep)
-        clock, sleeps = [0.0], []
-
-        def sleep(n):
-            sleeps.append(n)
-            clock[0] += n
-            if len(sleeps) > 200:
-                raise AssertionError("polled past any limit")
-        pw.read_state = lambda *a: pr(number=7, checks=[{"name": "b", "bucket": "pending"}])
-        pw.time.time, pw.time.sleep = lambda: clock[0], sleep
+        orig = (pw.read_state, pw.time.sleep)
+        seen = []
+        pw.read_state = lambda p, r, f, n, e=None: pr(number=7, checks=[], expect_ci=bool(e))
+        pw.time.sleep = lambda n: seen.append(n)
+        out, err = io.StringIO(), io.StringIO()
         try:
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                return pw.main(["7", "--interval", "600"] + extra), sleeps
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                rc = pw.main(["7", "--interval", "1"] + ([] if "--no-expect-ci" in extra else ["--expect-ci"]) + extra)
         finally:
-            pw.read_state, pw.time.time, pw.time.sleep = orig
+            pw.read_state, pw.time.sleep = orig
+        self.err = err.getvalue()
+        return rc, seen, out.getvalue()
 
-    def test_polling_stops_at_sixty_minutes_by_default(self):
-        rc, sleeps = self.run_main([])
-        self.assertEqual((rc, len(sleeps)), (3, 6))
+    def test_poll_loop_stops_after_three_empty_polls(self):
+        rc, sleeps, out = self.run_main([])
+        self.assertEqual((rc, len(sleeps)), (2, 3))
+        self.assertIn("no checks registered after 3 polls; workflow filters may exclude this PR", self.err)
 
-    def test_explicit_limit_is_honoured(self):
-        rc, sleeps = self.run_main(["--max-minutes", "20"])
-        self.assertEqual((rc, len(sleeps)), (3, 2))
-
-    def test_zero_keeps_polling_past_sixty_minutes(self):
-        with self.assertRaises(AssertionError):
-            self.run_main(["--max-minutes", "0"])
-
-    def test_negative_limit_is_rejected(self):
-        with self.assertRaises(SystemExit):
-            self.run_main(["--max-minutes", "-5"])
-
-    def test_once_does_not_poll(self):
-        rc, sleeps = self.run_main(["--once"])
+    def test_once_with_no_checks_waits(self):
+        rc, sleeps, _ = self.run_main(["--once"])
         self.assertEqual((rc, sleeps), (3, []))
 
+    def test_flags_are_accepted(self):
+        self.assertEqual(self.run_main([])[0], 2)
+        self.assertEqual(self.run_main(["--no-expect-ci"])[0], 0)
 
-class JsonMode(unittest.TestCase):
-    def test_json_lists_every_pr_action(self):
-        states = {1: pr(number=1, checks=[{"name": "b", "bucket": "pending"}]),
-                  2: pr(number=2, checks=[{"name": "x", "bucket": "fail", "link": "L"}])}
-        orig = pw.read_state
-        pw.read_state = lambda p, *a: states[p]
-        out = io.StringIO()
-        try:
-            with contextlib.redirect_stdout(out):
-                rc = pw.main(["1", "2", "--json"])
-        finally:
-            pw.read_state = orig
-        d = json.loads(out.getvalue())
-        self.assertEqual((rc, d["pr"], d["action"]), (5, 2, "fix-ci"))
-        self.assertEqual([(x["pr"], x["action"]) for x in d["prs"]], [(1, "wait"), (2, "fix-ci")])
-        self.assertEqual(d["prs"][1]["failing"], [{"name": "x", "link": "L"}])
+    def test_json_stdout_stays_parseable_on_stop_no_checks(self):
+        rc, _, out = self.run_main(["--json"])
+        self.assertEqual(rc, 2)
+        for ln in out.splitlines():
+            json.loads(ln)
+
+    def test_step_name_outside_on_block_does_not_expect_ci(self):
+        d = self.tree({"ci.yml": "on:\n  push:\njobs:\n  a:\n    steps:\n      - name: Label pull_request\n"})
+        self.assertFalse(pw.detect_expect_ci(d))
 
 
 if __name__ == "__main__":

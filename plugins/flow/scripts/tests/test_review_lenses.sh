@@ -40,5 +40,37 @@ t_review_md_documents_slop_lens_placement() {
 	local out
 	out=$(cat "$REVIEW_MD")
 	assert_contains "$out" "correctness + gaming + slop" "review.md names correctness + gaming + slop for the per-slice lens set"
-	assert_contains "$out" "all five" "review.md names all five lenses at branch level"
+	assert_contains "$out" "all six" "review.md names all six lenses at branch level (was all five; flipped by M04)"
+}
+
+# ---------------------------------------------------------------------------
+# M04 — review.md: gating runs six lenses with structure advisory; building
+# still runs the three. review-diff.js carries structure in its defaults.
+# M23 — the correctness row carries the rerun / crash / half-applied clause.
+# ---------------------------------------------------------------------------
+
+t_review_diff_defaults_include_structure() {
+	local line
+	line=$(grep -n "^const lenses = " "$REVIEW_DIFF_JS")
+	assert_contains "$line" "'structure'" "review-diff.js default lenses include 'structure'"
+}
+
+t_review_md_documents_structure_advisory() {
+	local out
+	out=$(cat "$REVIEW_MD")
+	assert_contains "$out" "**structure**" "review.md lens table has a structure row"
+	assert_contains "$out" "all six" "review.md names all six lenses at branch level"
+	assert_contains "$out" "advisory" "review.md says structure findings are advisory"
+	assert_contains "$out" "Could be smaller:" "review.md names the PR-body heading for structure findings"
+	assert_not_contains "$out" "all five" "review.md no longer says all five"
+	assert_contains "$out" "correctness + gaming + slop" "review.md still pins the per-task trio"
+}
+
+t_review_md_correctness_row_asks_about_reruns() {
+	local row
+	row=$(grep "^| \*\*correctness\*\*" "$REVIEW_MD")
+	assert_contains "$row" "second run" "review.md correctness row asks what a second run does"
+	assert_contains "$row" "crash" "review.md correctness row asks about a crash after each write"
+	assert_contains "$row" "half-applied" "review.md correctness row flags half-applied writes"
+	assert_contains "$row" "queue consumer" "review.md correctness row names its trigger"
 }

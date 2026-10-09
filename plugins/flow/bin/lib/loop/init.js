@@ -12,6 +12,7 @@ const { countTestFiles, targetSha, envSha } = require('./tamper.js');
 const { appendLog } = require('./log.js');
 const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
 const { cmdStop } = require('./status.js');
+const { initMetric, dirtyOutsideLoop } = require('./metric.js');
 const { EVALS_ROOT } = require('../eval/contract.js');
 
 const DEFAULT_PROMPT = [
@@ -44,6 +45,7 @@ function parseInitArgs(argv) {
     maxIterations: null, maxMinutes: null, maxUsd: null, stallAfter: null, verifyTimeout: 600,
     permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
     target: null, negControlFile: null, yolo: false,
+    metric: null, direction: null, runs: 3, minAttempts: 0, metricTarget: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -66,7 +68,18 @@ function parseInitArgs(argv) {
     else if (a === '--target') out.target = argv[++i];
     else if (a === '--neg-control-file') out.negControlFile = argv[++i];
     else if (a === '--yolo') out.yolo = true;
+    else if (a === '--metric') out.metric = argv[++i];
+    else if (a === '--direction') out.direction = argv[++i];
+    else if (a === '--runs') out.runs = argv[++i];
+    else if (a === '--min-attempts') out.minAttempts = argv[++i];
     else if (!a.startsWith('--') && out.goal === null) out.goal = a;
+  }
+  // In a metric loop --target is the number to reach, not a frozen directory.
+  // With no --verify the regression gate is a no-op that always passes.
+  if (out.metric) {
+    out.metricTarget = out.target;
+    out.target = null;
+    if (!out.verify) out.verify = 'true';
   }
   // --yolo arms these defaults, but only on a cap the operator did
   // not pass explicitly. It sets no money cap; --max-usd still adds one.
@@ -275,6 +288,7 @@ function writeSummary(stdoutW, front) {
       `loop: ${front.slug}`,
       `  goal:   ${front.goal}`,
       `  verify: ${front.verify}`,
+      ...(front.metric ? [`  metric: ${front.metric} (${front.metric_dir}, best ${front.metric_best}, noise ${front.metric_noise}${front.metric_target ? `, target ${front.metric_target}` : ''})`] : []),
       `  shape:  ${front.shape}`,
       `  caps:   max-iterations=${front.max_iterations} max-minutes=${front.max_minutes} ` +
         `max-usd=${front.max_usd} stall-after=${front.stall_after} verify-timeout=${front.verify_timeout}`,
@@ -286,6 +300,15 @@ function writeSummary(stdoutW, front) {
   }
 }
 
+// A metric loop judges every commit, so the ignore lines init adds must be
+// committed first or the tree would look dirty to the first iteration.
+function commitLoopGitignore(toplevel) {
+  ensureLoopGitignore(toplevel);
+  if (!dirtyOutsideLoop(toplevel)) return;
+  spawnSync('git', ['-C', toplevel, 'add', '.gitignore']);
+  spawnSync('git', ['-C', toplevel, 'commit', '-q', '-m', 'loop: ignore .claude/loop state', '--', '.gitignore']);
+}
+
 function cmdInit(argv, toplevel, env) {
   const args = parseInitArgs(argv);
   const refused = refuseIfActive(toplevel, args, (s) => process.stderr.write(s));
@@ -295,7 +318,7 @@ function cmdInit(argv, toplevel, env) {
     return 1;
   }
   if (!args.verify) {
-    process.stderr.write('flow loop init: --verify is required\n');
+    process.stderr.write('flow loop init: --verify is required (or --metric with --direction)\n');
     return 1;
   }
   // F2 (spec.md:17, FR-04): --yolo has nobody watching, so the negative
@@ -306,8 +329,23 @@ function cmdInit(argv, toplevel, env) {
     return 3;
   }
 
+  let metricInit = null;
+  if (args.metric) {
+    metricInit = initMetric(toplevel, args, env);
+    if (metricInit.error) {
+      process.stderr.write(`${metricInit.error}\n`);
+      return metricInit.code;
+    }
+  }
+
   const verifyRun = runVerify(toplevel, args.verify, args.verifyTimeout, env);
-  if (verifyRun.rc === 0 && !args.allowGreen) {
+  if (args.metric) {
+    // --verify is the regression gate of a metric loop: it must be green now.
+    if (verifyRun.rc !== 0) {
+      process.stderr.write('flow loop init: the --verify regression gate is red on the clean tree; fix it before climbing a metric\n');
+      return 1;
+    }
+  } else if (verifyRun.rc === 0 && !args.allowGreen) {
     process.stderr.write('flow loop init: verifier already passes; nothing to loop (use --allow-green to loop anyway)\n');
     return 1;
   }
@@ -315,8 +353,10 @@ function cmdInit(argv, toplevel, env) {
   const negControlExit = runNegControlGate(toplevel, args, env, (s) => process.stderr.write(s), verifyRun);
   if (negControlExit) return negControlExit;
 
+  if (args.metric) commitLoopGitignore(toplevel);
   const base = (spawnSync('git', ['-C', toplevel, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout || '').trim();
   const front = buildInitFront(toplevel, args, base, env);
+  if (metricInit) Object.assign(front, metricInit.front, { metric_head: base });
   const body = initBody(args, base);
   writeContract(toplevel, front, body);
   ensureLoopGitignore(toplevel);

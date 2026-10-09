@@ -244,3 +244,55 @@ t_v8_spec_documents_stealth() {
 	assert_contains "$content" 'NEVER** commit, link or name a spec in a repo where `stealth.active` is true' \
 		"spec/SKILL.md's NEVER list bans naming a spec under stealth"
 }
+
+# ---------------------------------------------------------------------------
+# design.md: USAGE row + shape rule (M20); spec section 3 archived-Ruling lookup (M31)
+# ---------------------------------------------------------------------------
+
+DESIGN_REF="$SCAN_DIR/../skills/spec/references/design.md"
+
+t_spec_contract_usage_is_first_row() {
+	local first
+	first=$(awk '/^## Contract for T007/{f=1;next} f&&NF{print;exit}' "$DESIGN_REF")
+	assert_contains "$first" 'USAGE' "design.md: USAGE is the first row of the Contract block"
+	assert_contains "$(cat "$DESIGN_REF")" 'RED test' \
+		"design.md: the task's RED test starts from the USAGE call"
+	assert_contains "$(cat "$DESIGN_REF")" 'change CALLS' \
+		"design.md: CALLS follows USAGE when they disagree"
+}
+
+t_spec_contract_block_within_25_lines() {
+	local n
+	n=$(awk '/^## Contract for T007/{f=1} f{c++} f&&/^```$/{print c-1; exit}' "$DESIGN_REF")
+	if [ "${n:-99}" -le 25 ]; then
+		_pass "design.md: Contract block is $n lines (<= 25)"
+	else
+		_fail "design.md: Contract block is ${n:-?} lines, over 25"
+	fi
+}
+
+t_spec_rejected_option_differs_in_shape() {
+	local content
+	content=$(cat "$DESIGN_REF")
+	assert_contains "$content" 'different shape' \
+		"design.md: a rejected option must be a different shape"
+	assert_contains "$content" 'not a parameter of the chosen one' \
+		"design.md: a parameter variant is not a rejected option"
+}
+
+t_spec_discovery_cites_archived_rulings() {
+	local content cmd d out
+	content=$(cat "$SPEC_SKILL")
+	assert_contains "$content" '.specs/archive/*/NOTES.md' "spec section 3 names the archive NOTES.md glob"
+	assert_contains "$content" 'stealth.store' "spec section 3 covers the stealth store"
+	cmd=$(printf '%s\n' "$content" | sed -n 's/.*`\(grep -Hn .Ruling:[^`]*\)`.*/\1/p' | head -1)
+	assert_contains "$cmd" 'grep -Hn' "spec section 3 gives a runnable grep for Ruling: lines"
+	d=$(tmp_dir)
+	mkdir -p "$d/.specs/archive/2026-01-01-001-x"
+	printf 'Ruling: src/a.ts keeps the retry guard\nRuling: src/b.ts is unrelated\n' \
+		> "$d/.specs/archive/2026-01-01-001-x/NOTES.md"
+	out=$(cd "$d" && eval "$cmd" | grep 'src/a.ts')
+	assert_contains "$out" 'src/a.ts keeps the retry guard' "the documented grep finds the footprint Ruling"
+	assert_contains "$out" '.specs/archive/2026-01-01-001-x/NOTES.md:1:' "the documented grep prints the archive path and line even for one archive"
+	assert_contains "$content" 'archive path and line' "spec section 3 cites archive path and line"
+}

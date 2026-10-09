@@ -36,6 +36,19 @@ const SUB_HELP = {
 Usage:
   flow loop init "<goal>" --verify "<cmd>"
 `,
+  'init-metric': `flow loop init "<goal>" --metric "<cmd printing one number>" --direction max|min
+  [--runs N] [--min-attempts N] [--target <value>] [--verify "<regression gate>"]
+  [--shape session|fresh] [--max-iterations N] [--max-minutes N] [--max-usd N]
+
+  Hillclimb form: keep a commit only if the median of --runs (default 3) beats
+  the best by more than the noise measured at init and --verify (the optional
+  regression gate) is green; otherwise the commit is undone with a revert
+  commit. Every attempt is a row in .claude/loop/decisions.tsv. Init refuses a
+  dirty tree, a metric that prints no number, and a spread larger than the
+  distance to --target. With --metric, --target is the number to reach.
+  --min-attempts N holds back stall stops and the target finish until N
+  attempts were judged.
+`,
   check: `flow loop check [--json]
 
 Usage:

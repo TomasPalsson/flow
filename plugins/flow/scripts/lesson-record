@@ -5,10 +5,10 @@ set -u
 
 usage() {
   cat <<'HELP'
-Usage: lesson-record --what <text> --mechanism <text> --cost <text> [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
+Usage: lesson-record --what <text> --mechanism <text> --cost <text> --rejected <text> [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
 
 Appends
-  - Ruling: <what> — <mechanism> — <cost> (<YYYY-MM-DD>)
+  - Ruling: <what> — <mechanism> — <cost> — rejected: <rejected> (<YYYY-MM-DD>)
 under "## Rulings" in <PROGRESS.md> (default ./PROGRESS.md), after the
 last ruling of that section (fenced ``` blocks are never headings). The
 date defaults to today (UTC) and may be pinned with --date; an existing
@@ -20,7 +20,10 @@ noted on stderr as superseding. Every write is checked and serialised
 through <PROGRESS.md>.lock. Prints the line written, then a second line
 `marker: lesson(<YYYY-MM-DD>): <what>` to paste on the rung; when the
 file is now over 60 lines, a warning to stderr (exit stays 0).
---what, --mechanism and --cost must each be single-line printable text:
+--rejected is required: '<rung: why>; ...' for each higher rung of the
+ladder that was ruled out, or 'none' at the Unrepresentable rung (nothing
+is higher). It makes the ladder walk visible in the ruling.
+--what, --mechanism, --cost and --rejected must each be single-line printable text:
 a newline, tab, or any other ASCII control character (bytes 0x00-0x1F
 or 0x7F) is rejected.
 
@@ -28,13 +31,14 @@ Exit codes: 0 written · 2 usage, malformed --date, or non-printable text · 3 e
 HELP
 }
 
-WHAT=""; MECH=""; COST=""; FILE="PROGRESS.md"; DATE=""; DATE_SET=0
+WHAT=""; MECH=""; COST=""; REJ=""; FILE="PROGRESS.md"; DATE=""; DATE_SET=0
 while [ $# -gt 0 ]; do
   case "$1" in
   --help | -h) usage; exit 0 ;;
   --what) WHAT=${2:-}; shift 2 ;;
   --mechanism) MECH=${2:-}; shift 2 ;;
   --cost) COST=${2:-}; shift 2 ;;
+  --rejected) REJ=${2:-}; shift; [ $# -gt 0 ] && shift ;;
   --file) FILE=${2:-}; shift 2 ;;
   --date)
     DATE_SET=1
@@ -43,11 +47,11 @@ while [ $# -gt 0 ]; do
   *) printf 'lesson-record: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
-if [ -z "$WHAT" ] || [ -z "$MECH" ] || [ -z "$COST" ]; then
-  printf 'lesson-record: --what, --mechanism and --cost are all required\n' >&2
+if [ -z "$WHAT" ] || [ -z "$MECH" ] || [ -z "$COST" ] || [ -z "$REJ" ]; then
+  printf 'lesson-record: --what, --mechanism, --cost and --rejected are all required (--rejected may be none)\n' >&2
   exit 2
 fi
-_all="$WHAT$MECH$COST"
+_all="$WHAT$MECH$COST$REJ"
 if [ "$_all" != "$(printf '%s' "$_all" | tr -d '\000-\037\177')" ]; then
   printf 'lesson-record: arguments must be single-line printable text\n' >&2
   exit 2
@@ -62,7 +66,7 @@ else
   esac
 fi
 
-LINE="- Ruling: $WHAT — $MECH — $COST ($DATE)"
+LINE="- Ruling: $WHAT — $MECH — $COST — rejected: $REJ ($DATE)"
 
 die() { printf 'lesson-record: %s\n' "$1" >&2; exit 4; }
 

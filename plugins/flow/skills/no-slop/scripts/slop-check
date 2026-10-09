@@ -6,7 +6,7 @@ Usage: slop-check [--base <ref>] [--head <ref>] [--json] [--strict]
        slop-check --prose <file.md>... [--json] [--strict]
 
 --prose scans markdown (code fences and inline code skipped) for the
-script-detectable rows NP-04 to NP-08 of references/prose-rubric.md; same
+script-detectable rows NP-04 to NP-09 and NP-12 of references/prose-rubric.md; same
 output shape and exit behaviour, no git needed.
 
 Only reports on lines *added* between --base and --head. With --all-lines,
@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import slop_diff
+import slop_ts
 
 CODE_EXTS = (".py", ".js", ".jsx", ".ts", ".tsx")
 TS_EXTS = (".ts", ".tsx")
@@ -175,7 +176,7 @@ def _test_weakening_findings(findings, path, lineno, text, stripped, is_test_fil
         add(findings, path, lineno, "NS-13", f"commented-out assertion: {stripped!r}")
 
 def scan_added_lines(path, added, is_test_file):
-    """NS-04/07/08/09/10/13/15: regex checks needing one added line."""
+    """NS-04/07/08/09/10/13/15/30: regex checks needing one added line."""
     findings = []
     is_ts, is_py = path.endswith(TS_EXTS), path.endswith(".py")
     is_js_like = path.endswith((".js", ".jsx", ".ts", ".tsx"))
@@ -188,6 +189,9 @@ def scan_added_lines(path, added, is_test_file):
         _debug_print_findings(findings, path, lineno, text, is_py, is_js_like, debug_ok)
         _type_escape_finding(findings, path, lineno, text, stripped, escape_re)
         _compat_shim_finding(findings, path, lineno, text, stripped)
+        if is_ts and not is_test_file:
+            for msg in slop_ts.ts_partiality(text):
+                add(findings, path, lineno, "NS-30", msg)
         _test_weakening_findings(findings, path, lineno, text, stripped, is_test_file)
     return findings
 

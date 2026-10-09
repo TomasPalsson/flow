@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# select-cases <skill> [repo-root] — list the eval cases and behaviour prompts
+# that exercise <skill>, one path per line. Prints nothing when none exist.
+# A case counts when its prompt invokes /<plugin>:<skill>, or when a grader's
+# input_match names only that skill (a routing case that expects it). Cases
+# that merely list the skill among wrong answers are not selected.
+# For no-slop the quality-* cases are added, since they are graded on its rubric.
+# Credit: adapted from cursor/plugins pstack docs/guide/09-make-it-yours.md (MIT).
+set -u
+skill="${1:-}"
+root="${2:-.}"
+[ -n "$skill" ] || { echo "usage: select-cases <skill> [repo-root]" >&2; exit 2; }
+{
+	for f in "$root"/plugins/*/evals/*/case.yaml; do
+		[ -f "$f" ] || continue
+		if grep -qE "^[[:space:]]*prompt:.*/(flow|flow-extras):$skill([^A-Za-z0-9_-]|\$)" "$f" ||
+			grep -qE "input_match: \"(flow|flow-extras):$skill\\\\\\\\b\"[[:space:]]*\$" "$f"; then
+			echo "$f"
+		fi
+	done
+	if [ "$skill" = "no-slop" ]; then
+		for f in "$root"/plugins/*/evals/quality-*/case.yaml; do
+			[ -f "$f" ] && echo "$f"
+		done
+	fi
+	for f in "$root"/.skill-forge/"$skill"/behaviour/*.md; do
+		[ -f "$f" ] && echo "$f"
+	done
+} | sort -u
+exit 0

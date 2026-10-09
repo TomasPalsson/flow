@@ -9,6 +9,7 @@ const { readContract, writeContract } = require('./contract.js');
 const { tick } = require('./tick.js');
 const { appendLog } = require('./log.js');
 const { cmdStatus } = require('./status.js');
+const { dirtyOutsideLoop } = require('./metric.js');
 const { toInt, toFloat, headSha, gitDirty, fmtCost, resolveOnPath } = require('./util.js');
 
 function parseRunArgs(argv) {
@@ -112,8 +113,10 @@ const CHECKPOINT_EXCLUDES = [
 ];
 
 function checkpointIfDirty(toplevel, front, iterNum, noCheckpoint, durSec) {
-  if (noCheckpoint || !gitDirty(toplevel)) return;
-  spawnSync('git', ['-C', toplevel, 'add', '-A', '--', '.'].concat(CHECKPOINT_EXCLUDES));
+  // A metric loop keeps LEARNINGS.md out of commits so a revert never undoes it.
+  const excludes = front.metric ? CHECKPOINT_EXCLUDES.concat([':(exclude).claude/loop/LEARNINGS.md']) : CHECKPOINT_EXCLUDES;
+  if (noCheckpoint || !(front.metric ? dirtyOutsideLoop(toplevel) : gitDirty(toplevel))) return;
+  spawnSync('git', ['-C', toplevel, 'add', '-A', '--', '.'].concat(excludes));
   spawnSync('git', ['-C', toplevel, 'commit', '-q', '-m', `loop(${front.slug}) iteration ${iterNum}: checkpoint`]);
   appendLog(toplevel, {
     event: 'checkpoint', iter: iterNum, headBefore: front.base, headAfter: headSha(toplevel),
@@ -211,6 +214,11 @@ function cmdRun(argv, toplevel, env) {
   if (!claudePath) {
     process.stderr.write('claude CLI not found; run the loop from an interactive session with shape=session instead\n');
     return 2;
+  }
+
+  if (front.metric && dirtyOutsideLoop(toplevel)) {
+    process.stderr.write('flow loop run: the working tree is dirty; a metric loop judges every commit, so commit or stash first\n');
+    return 1;
   }
 
   runDriver(toplevel, claudePath, env, flags);

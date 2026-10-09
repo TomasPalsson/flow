@@ -37,6 +37,12 @@ description: Grill question bank + SPEC.md template for ultracode Phase 1. The s
 | Unit | Owns (files/dirs) | Depends on | Notes |
 |---|---|---|---|
 
+## Standing orders
+<!-- Numbered, empty by default. A directive the user gives mid-run is appended here
+before the orchestrator acts on it; this whole section is pasted verbatim into every
+brief, respawn and fix-round prompt. -->
+1. (none)
+
 ## Rules for every agent (paste into each prompt)
 - Only touch files your unit owns. BLOCKED > improvised: if you cannot proceed
   without touching another unit's files or an unfrozen decision, stop and report BLOCKED.
@@ -48,6 +54,7 @@ description: Grill question bank + SPEC.md template for ultracode Phase 1. The s
   evidence (oracle command, its real output, test counts).
 
 ## Per-unit prompt packet (fill per unit)
+- Standing orders: <the section above, verbatim>
 - Objective: <unit-specific>
 - Output format + path: <exact>
 - Boundaries: <unit-specific "do NOT">

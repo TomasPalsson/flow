@@ -32,17 +32,22 @@ Scale by adding *units* (pipeline stages, waves), never by widening one unit pas
 
 **Script before fleet.** If one deterministic tool (a codemod, sed, a script) can process every unit in one pass, run it instead of fanning agents out to hand-apply the same edit; the agents then review the tool's output, which is cheaper and consistent.
 
+Prove the tool before the wide run, because a subtle error in a codemod repeats in every unit. Do unit 1 by hand and commit it. Check out the base commit into a scratch worktree (`git worktree add "$(mktemp -d)" <base-sha>`), run the tool on unit 1 there, and diff the result against the hand version. The diff must be empty, or each hunk must be explained in SPEC.md, before the tool touches the other units. Remove the scratch worktree afterwards.
+
 ## Phase 1 — Grill, then freeze a SPEC
 
 Read [`references/spec-template.md`](references/spec-template.md) before writing the spec.
 
 Spec quality is the highest-leverage token you will spend: 41.77% of measured multi-agent failures are specification/design flaws, and ambiguous specs measurably *raise reward-hacking rates* (33-44% on ambiguous vs well-specified tasks) — a vague spec doesn't just get misread, it invites the fleet to game it. Fleet agents cannot ask follow-ups; the SPEC is their only lifeline.
 
+- **Standing orders.** The spec carries a numbered `## Standing orders` section, empty by default. When the user gives a directive mid-run, append it there before acting on it, then paste the section verbatim into every brief, respawn and fix-round prompt. Workflow agents cannot ask follow-ups, so a directive that reached only you never reaches the spawns that come later.
 - Ambiguous or large task → grill the user first: 3-5 load-bearing questions (the template has the bank), batched, answers serialized into `.ultracode/<slug>/SPEC.md`.
 - Small clear task → write SPEC.md directly; don't interrogate for sport.
 - **Adversarially review the spec before fan-out.** A prep artifact consumed by N downstream agents is a single point of failure multiplied by N — spawn one `adversary` (lens: spec) against SPEC.md. The Bun rewrite reviewed PORTING.md harder than most teams review code, *then* let $165k of agents run off it.
 
 ## Phase 2 — Trial run (1-3 units)
+
+When the lever is a script or codemod, the hand-done unit 1 from Phase 0 is the oracle for this trial: the trial does not start until its diff check has passed.
 
 Run the full loop — developer → adversaries → fixes → merge — on 1-3 representative units before the fleet. You are smoke-testing the *orchestration*, not the product: Bun's agents git-stomped each other **2 minutes** into full fan-out; a trial surfaces that class of failure for the price of one unit.
 
@@ -147,3 +152,5 @@ Sonnet-by-default is an economics + oracle argument, not a capability claim — 
 | [`references/spec-template.md`](references/spec-template.md) | Phase 1, every pipeline run | — |
 | [`references/fleet-economics.md`](references/fleet-economics.md) | Sizing/costing a fleet; any non-default tier choice | Posture-only turns |
 | [`references/evidence.md`](references/evidence.md) | User asks "why" / wants citations | Normal runs — the numbers above are already the distillation |
+
+Credit: standing orders, hand-made oracle unit and the script-before-fleet check adapted from cursor/plugins pstack poteto-mode/playbooks/orchestrate.md and principle-build-the-lever (MIT).

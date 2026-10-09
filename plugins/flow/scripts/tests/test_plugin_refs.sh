@@ -54,7 +54,9 @@ t_pref_no_legacy_refs_outside_documented_exceptions() {
 	# skill is not the fix). Same category: flow-extras verify-skill writes a
 	# generated skill into the TARGET project's `.claude/skills/verify-<name>/`,
 	# and shared/verification.md prefers that project-local skill when present;
-	# both name the project's own directory, never this plugin's files.
+	# both name the project's own directory, never this plugin's files. Same
+	# category again: next's done-audit and lesson --retro read the user's own
+	# session transcripts under `~/.claude/projects/`, never plugin files.
 	hits=$(grep -rnE '\.claude/skills/|~/\.claude/|\$HOME/\.claude/' --include='*.md' "$SKILLS_DIR_PREF" "$SKILLS_DIR_EXTRAS" 2>/dev/null |
 		grep -vF "/shared/agent-browser-reference.md:" |
 		grep -vF "/qa/references/agent-prompts.md:" |
@@ -62,6 +64,7 @@ t_pref_no_legacy_refs_outside_documented_exceptions() {
 		grep -vF "/claude-improver/" |
 		grep -vF ".claude/skills/pr-reviewer" |
 		grep -vF ".claude/skills/verify-" |
+		grep -vF "~/.claude/projects/" |
 		grep -vF 'Check for `.claude/skills/` in the project' |
 		grep -vE '/skill-forge/SKILL\.md:[0-9]+:.*`grep -ril`')
 	assert_eq "$hits" "" "no legacy .claude/skills, ~/.claude, or \$HOME/.claude references remain under skills/ (flow or flow-extras) outside the documented exceptions"

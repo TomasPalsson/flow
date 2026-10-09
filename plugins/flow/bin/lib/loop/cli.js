@@ -22,7 +22,7 @@ function run(argv, cwd, env) {
   const cmd = argv[0];
   const rest = argv.slice(1);
   if (rest.includes('--help') || rest.includes('-h')) {
-    printSubHelp(SUBCOMMANDS[cmd] ? cmd : 'init');
+    printSubHelp(cmd === 'init' && rest.includes('--metric') ? 'init-metric' : SUBCOMMANDS[cmd] ? cmd : 'init');
     return 0;
   }
   if (!SUBCOMMANDS[cmd]) {

@@ -109,6 +109,102 @@ Built as 12 slices. Each went to a Sonnet developer with a written spec, then to
 - I-003 in `.specs/ISSUES.md`: 40 eval scaffold files set the git author to "eval-scaffold", which tells the candidate it is graded.
 - I-004: two dead references in `plugins/flow/evals/README.md` (pre-existing on main).
 
+## Round 2: everything worth having, judged on merit
+
+The user asked for every benefit, with cost never a reason to skip, but only where an idea is good. A merit sweep re-judged 71 not-yet-landed ideas from both reviews (every MERGE, ADAPT and ADOPT row, every trick with steal 2 or more, and every earlier decision that had been limited by cost). One Opus agent judged them; six Opus skeptics re-checked every verdict against the code and the user profile. 38 were judged good and built in 11 file-disjoint lanes (developer, adversary, fix round), then a leftovers slice and a final pass by the orchestrator.
+
+### Built
+
+| ID | Idea | Runs | Where |
+|---|---|---|---|
+| M01 | Run babysit automatically after flow opens a PR in a repo with CI (cost-limited decision 1) | automatic | plugins/flow/skills/next/SKILL.md (state table `shipped` row :41, §Finish rules 6 and 8 :1 |
+| M02 | Generate the project's verify skill automatically the first time a UI change needs browser verification (cost-limited decision 2) | automatic | plugins/flow/skills/shared/verification.md:25 |
+| M03 | Run benchmark-checklist automatically when a speed claim appears in a PR body or a perf fix (cost-limited decision 3) | automatic | plugins/flow/skills/no-slop/scripts/slop_prose.py |
+| M04 | Make the structure lens a default in the whole-branch review only, advisory (cost-limited decision 4) | automatic | plugins/flow/workflows/review-diff.js:56-58 and the verified/blocking split at :41 |
+| M05 | A metric (hillclimb) mode for flow loop: keep a change only if the number moves past noise, otherwise revert (cost-limited decision 5) | manual | plugins/flow/bin/lib/loop/init.js, contract.js, driver.js, new plugins/flow/bin/lib/loop/m |
+| M06 | build-slices fix rounds carry every earlier round's findings and what each fixer tried (cost-limited decision 6) | automatic | plugins/flow/workflows/build-slices.js:224-236 |
+| M07 | Run claim-check automatically on the acceptance rows before an unattended run writes its pre-approved Verified line (cost-limited decision 7) | automatic | plugins/flow/skills/next/SKILL.md §Finish rule 5 (:105) |
+| M08 | lesson --retro mines several sessions safely: --since window, mtime order, one subagent per transcript, cited sightings, redaction, transcripts as data (cost-limited decision 8: --since) | manual | plugins/flow/skills/lesson/SKILL.md §--retro (:13-28) |
+| M09 | lesson --retro routes candidates better: skill-was-used filter, missed trigger means tune the description, already-covered means placement only, contradicted tier, plus lucky-path and hand-fed-context categories (cost-limited decision 8: contradicted tier) | automatic | plugins/flow/skills/lesson/SKILL.md §--retro (:17-28) and the Step 3 Skill rung |
+| M11 | build-slices refills a free slot as each task finishes instead of waiting for fixed chunks of four | automatic | plugins/flow/workflows/build-slices.js:290-297 |
+| M12 | build-slices retries a fix agent that returned nothing, and parks with the true reason | automatic | plugins/flow/workflows/build-slices.js:224-254 |
+| M13 | pr-watch treats zero checks right after a push, in a repo with CI, as wait rather than done | automatic | plugins/flow-extras/skills/babysit/scripts/pr-watch (decide :31-61, read_state :93-115, th |
+| M14 | babysit handles failing checks that are not GitHub Actions runs (Vercel and other external checks) | automatic | plugins/flow-extras/skills/babysit/scripts/pr-watch (line() and failing()) |
+| M15 | A safe pause path while --finish is armed | automatic | plugins/flow/skills/next/SKILL.md §Finish (a new rule after 7) |
+| M16 | The PR body lists what the PR leaves out (unfiled defers from flow digest), describes changes functionally, and links logs instead of pasting them | automatic | plugins/flow/skills/shared/pr-body.md |
+| M17 | Mechanically stop eval candidates seeing that they are graded: a case-selfcheck scan plus neutral scaffold identities | automatic | plugins/flow/scripts/case-selfcheck |
+| M18 | flow tick refuses a human checkpoint (CHK) with no evidence file in verify/ | automatic | plugins/flow/bin/lib/tick.js (after the isHuman check, :166-169) |
+| M19 | Behaviour-preserving work (refactor, port) captures a baseline first and diffs against it at the end ('bugs included') | automatic | plugins/flow/skills/next/SKILL.md §Drafting (:46) |
+| M20 | design.md per-task Contract opens with a caller usage snippet that becomes the task's RED test, and a rejected option must differ in shape | automatic | plugins/flow/skills/spec/references/design.md (§The per-task Contract block :66-86, Decisi |
+| M21 | In fix's stuck path, write the premise every failed attempt shared before the 3-developer race, and re-diagnose when the patches diverge | automatic | plugins/flow/skills/fix/SKILL.md:91 |
+| M22 | fix reverts edits from refuted hypotheses; its review adds the slop lens to catch speculative guards | automatic | plugins/flow/skills/fix/SKILL.md §4 (before step 4) and §5.2 |
+| M23 | The adversary's correctness lens asks what happens on a second run, after a crash halfway, and when related writes are left half-applied | automatic | plugins/flow/agents/adversary.md:33 |
+| M24 | Test-strength probes: a test that passes when every call returns nothing, a fixture that asserts only fixture data | automatic | plugins/flow/skills/no-slop/references/rubric.md:56 (NS-26) plus a new advise row |
+| M25 | A constraint comment ('do not remove', 'keep in sync with X') becomes a check, and the comment is then deleted | automatic | plugins/flow/skills/no-slop/references/adversary-lens.md |
+| M26 | Domain-shape tells in review: a second boolean that must stay in sync, a comment explaining which field combinations are valid, one more branch on a type switch | automatic | plugins/flow/skills/no-slop/references/adversary-lens.md |
+| M27 | Advisory slop-check regex for TypeScript partiality tells (`!.`, `as T` after an index, 'should never happen') | automatic | plugins/flow/skills/no-slop/scripts/slop-check (next to TYPE_ESCAPE_RE at :60) |
+| M28 | More prose rubric rows: a jargon-metaphor word list as a detector, plus lens rows for 'mechanism, not feeling', 'could be anyone's docs' and 'don't reword unchanged sentences' | automatic | plugins/flow/skills/no-slop/references/prose-rubric.md |
+| M29 | lesson ladder quality: the error names the replacement, a ratchet for patterns already widespread, delete the old way agents copy, script-rung CLI traits, and 'why each higher rung was rejected' | automatic | plugins/flow/skills/lesson/SKILL.md (Step 3 rules of thumb, Step 4, Step 6) |
+| M30 | At the end of an unattended run, a fresh agent checks the transcript for decisions never logged to NOTES.md | automatic | plugins/flow/skills/next/SKILL.md §Finish rule 8 |
+| M31 | Light design archaeology: spec discovery surfaces archived Rulings that touch the footprint, and fix runs git pickaxe before removing a guard | automatic | plugins/flow/skills/spec/SKILL.md §3 Discovery |
+| M32 | Triage treats the user's guessed cause as one candidate to test, never as the answer | automatic | plugins/flow/agents/triage.md (Protocol step 4 and Output format) |
+| M33 | Research and explore outputs carry unknowns: the queries actually run, null results, a required gaps section, and contradictions reported first | automatic | plugins/flow/workflows/research-sweep.js (RESEARCH_SCHEMA :31 and the synth prompt near :1 |
+| M34 | flow doctor splits a dirty worktree into tracked edits (real work) and untracked-only files (named) | automatic | plugins/flow/bin/lib/doctor-hygiene.js (warningFor, idle >= 14 branch) |
+| M35 | ultracode keeps a numbered Standing orders section that every spawn and respawn carries verbatim | automatic | plugins/flow-extras/skills/ultracode/SKILL.md |
+| M36 | ultracode: do the first unit by hand, run the codemod on it, and diff against the hand version before running it wide | automatic | plugins/flow-extras/skills/ultracode/SKILL.md:33 ('Script before fleet') and Phase 2 (:45) |
+| M37 | After skill-improver edits a skill, it runs that skill's eval cases before and after | automatic | plugins/flow-extras/skills/skill-improver/SKILL.md (new final step after Step 2e, and the  |
+| M38 | Frontend fixes: a two-run discriminating repro with a reset, symptoms only from real user actions, and a fresh agent that checks the screenshots | automatic | plugins/flow/skills/fix/SKILL.md §1 and §5 |
+| M41 | Benchmark vetting and its tricks, including the dual-sided baseline when trunk lacks the feature | automatic | plugins/flow-extras/skills/benchmark-checklist/SKILL.md Step 3 question 2 |
+
+### Judged not good (33)
+
+- M10 TypeScript exhaustive-switch lint in flow init thresholds (cost-limited decision 8): Still a bad fit, but Mr Claude corrected the reason.
+- M39 Settle an empirical fork with a scratch probe before asking (observe before ask; prototype playbook): Confirmed already landed.
+- M40 Same-sentence evidence label, and count claims carry the command that regenerates them: Confirmed already landed: NP-01 (label in the same sentence) and NP-02 (count claims carry their command) are both blocking rows, and pr-body.
+- M42 verify-this: falsifiable restatement, same-command baseline at the merge base, INCONCLUSIVE verdict: Confirmed already landed: claim-check.
+- M43 Look where grep stops (blast-radius cross-file check): Confirmed already landed: the cross-file lens at adversary.
+- M44 Dismissed findings returned with a reason (interrogate lead-judgment): Confirmed already landed: review-diff.
+- M45 Confidence words tied to evidence tiers in research synthesis: Confirmed already landed: synthPrompt ties confirmed, likely and unknown to evidence tiers (primary source read this run, secondary, neither).
+- M46 Squash-merge-aware worktree cleanup: Confirmed already landed: patchesInBase uses git cherry and falls back to patch-id, so squash-merged worktrees are found.
+- M47 Morning audit Attention list, and a decision row with an evidence pointer: Confirmed already landed: flow digest prints unfiled defers, assumptions and rulings, parses an evidence pointer, and runs once at `flow finish off`, so there is no per-turn noise.
+- M48 lesson: unrepresentable rung, repo history (reverts, fixups, workaround comments) as a --retro source, seen-twice thresh: Confirmed already landed: lesson/SKILL.
+- M49 Generated project verify skill (create and maintain) and its tricks: read-only doctor, run it once, kill only what you s: Verdict stands.
+- M50 babysit CI and conflict pieces: failing-check links, --log-failed, background poll, lockfile regeneration, conflict-mark: Verdict stands.
+- M51 PR body: core files apart from generated ones; split a PR that notes cannot make reviewable: Verdict stands.
+- M52 Script before fleet: Verdict stands.
+- M53 Grade lint suppressions by rule class (comment-sicko): Verdict stands.
+- M54 Review-bot triage: the bugbot-triage reference, learned dismissals, bot-pass count, running the contract test first, ske: Verdict stands, on fit rather than cost.
+- M55 Stack and merge automation: tier-major stack blockers, merge-prep overlap check, patch-id verdict carry-over, land the c: Verdict stands.
+- M56 Orchestration bookkeeping: liveness from side effects, expected runtime from the longest past run, account for every chi: Verdict stands.
+- M57 Per-role model config with fallback (setup-pstack, how/why role lines): Verdict stands.
+- M58 Principle library and skill-authoring conventions: 24 principle leaves, 'Distinct from' lines, a 'you skipped this' tell: Verdict stands.
+- M59 CLI/TUI driver: a tmux wait-for-pattern helper, inspector on port 0, env passed with -e, deterministic env (control-cli): Verdict stands on fit.
+- M60 A full 'why' skill: MCP investigators, retention cliffs, a defensive-code incident playbook, archaeology pitfalls, skip : Verdict stands.
+- M61 User-facing help material: prompt anatomy, withhold your theory (README), a help command that hands back a prompt, a run: Verdict upheld after reading 02-poteto-mode.
+- M62 Restate the issue in plain words before touching code (fix intake): Verdict upheld.
+- M63 Issue and automation plumbing: four-tier dedupe, no guessed cause in the title, frozen coordinates, preflight and read-b: Verdict upheld.
+- M64 Generic debugging recipes: load traces into sqlite, an unpaired capture is a hypothesis, a restart bug means stale state: Verdict upheld after reading the sources.
+- M65 Blast-radius proof ladder: one fact it's safe because, five proof rungs, a separate Cleared list: Verdict upheld.
+- M66 Design red flags and structure heuristics: agent-legibility flags, scrap tells, deviation is signal, a repeated workarou: Verdict upheld.
+- M67 Small rules flow already enforces: a skipped step stays visible, a single owner for coupled code, own the subagent's sum: Verdict upheld.
+- M68 Fleet result plumbing: provenance-or-respawn schema fields, two reviewers agreeing means high confidence, keep relayed h: Verdict upheld.
+- M69 Eval judging extras: one judge scores both arms in one pass, suspect the rubric before yourself, number-without-spread i: Verdict upheld.
+- M70 Miscellaneous low-fit habits: candor clause in CLAUDE.md, name the data shape first, closed thread-status vocabulary for: Verdict upheld.
+- M71 Kit reporting and review aids: what-did-i-get-done, weekly-review, preference-atom schema, pr-review-canvas, script-safe: Verdict upheld.
+
+### Round 2 verification
+
+- Scripts suite: 3863 passed, 11 failed. All 11 also fail on main (I-001 class and I-005).
+- Hooks suite: 1313 passed, 0 failed.
+- `skills-lint`: flow-extras and tooling 0 MISSING; flow 2 MISSING, pre-existing (I-004).
+- Integration fixes made by the orchestrator after the lanes:
+  - review.md got the structure row, "all six", and the rerun and crash questions.
+  - pr-body.md and next §Ship got a `Could be smaller` section for advisory structure findings.
+  - The claim-check gate is now applied by the router too (`lint.js` `withClaimCheck`), so `flow next` routes a pre-approved `Verified:` with no claim-check to `invalid`. There is a red-then-green test in test_next.sh.
+  - The xhard-finish eval solution writes `verify/claim-check.md`, and its postcheck now requires it.
+- Not run (needs a real repo): a live `/flow:next --finish` run on a CI repo (babysit drive, the claim-check gate, the transcript audit), and verify-skill generating a skill on a real app.
+- Filed: I-006, router.js is 682 lines, over the size guard (pre-existing).
+
 ## Verification
 
 - Full scripts suite (`bash plugins/flow/scripts/tests/run.sh`):

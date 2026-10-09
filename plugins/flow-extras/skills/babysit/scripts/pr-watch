@@ -3,7 +3,7 @@
 
 usage: pr-watch <pr>... [--repo o/r] [--json] [--once] [--interval S]
                         [--max-minutes M] [--flake CHECK]... [--reruns N]
-                        [--waves N --max-waves M]
+                        [--waves N --max-waves M] [--expect-ci | --no-expect-ci]
 
 Several PRs are independent; one with work to do (conflict, red CI, flake
 rerun) gets the decision, then a waiting one, then a stopped one. Prints one line per state change, and under each failing
@@ -11,7 +11,8 @@ check its link. It keeps polling only while the action is "wait"; any action
 that needs work is printed and returned so the caller can do it, then run
 pr-watch again. --max-minutes defaults to 60; 0 (explicit) means no limit;
 --once ignores it.
-Exit: 0 done, 2 stop (closed, merged, or open review threads for the user),
+Exit: 0 done, 2 stop (closed, merged, open review threads for the user, or no
+checks registered after 3 polls in a repo whose workflows run on pull_request),
 3 out of time or push waves (or --once while waiting), 4 gh failed, 5 work to
 do (the printed action).
 Several PRs print one line per PR (its own action); the exit code follows the
@@ -20,12 +21,18 @@ PR pick() chose.
 Credit: adapted from cursor/plugins pstack watch-pr/policy.ts (MIT).
 """
 import argparse
+import glob
 import json
+import os
+import re
 import subprocess
 import sys
 import time
 
 FAIL = ("fail", "cancel")
+EMPTY_POLLS_MAX = 3
+RUN_LINK = re.compile(r"github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+")
+PR_TRIGGER = re.compile(r"(^|[\s\[,{])pull_request(_target)?\s*($|[:,\]}])")
 
 
 def decide(state):
@@ -34,7 +41,9 @@ def decide(state):
     state keys: state, mergeable, mergeStateStatus, reviewDecision, checks
     ([{name, bucket, link}]), open_threads (unresolved review threads, counted
     only so they can be reported), flaky (check names the caller judged
-    flaky), reruns (flake reruns already spent).
+    flaky), reruns (flake reruns already spent), expect_ci (a workflow runs
+    on pull_request, so an empty check list is not yet an answer) and
+    empty_polls (earlier reads of this PR that found no checks).
     """
     st = state.get("state", "OPEN")
     if st == "MERGED":
@@ -52,6 +61,8 @@ def decide(state):
         return "fix-ci"
     if state.get("open_threads", 0) > 0:
         return "stop-threads"
+    if not checks and state.get("expect_ci"):
+        return "wait" if state.get("empty_polls", 0) < EMPTY_POLLS_MAX else "stop-no-checks"
     if any(c.get("bucket") == "pending" for c in checks):
         return "wait"
     if state.get("mergeable") == "UNKNOWN":
@@ -71,7 +82,7 @@ def pick(states):
     (closed, open threads), so a pending or stopped PR never hides work on an
     independent PR after it. If every PR is merged or done, the last open one.
     """
-    for group in (ACTIONABLE, ("wait",), ("stop-closed", "stop-threads")):
+    for group in (ACTIONABLE, ("wait",), ("stop-closed", "stop-threads", "stop-no-checks")):
         for s in states:
             if decide(s) in group:
                 return s
@@ -88,7 +99,46 @@ THREADS_Q = ("query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r)"
              "{pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved}}}}}")
 
 
-def read_state(pr, repo, flaky, reruns):
+def repo_root():
+    try:
+        return subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True,
+                              text=True, check=True).stdout.strip() or "."
+    except (OSError, subprocess.CalledProcessError):
+        return "."
+
+
+ON_KEY = re.compile(r"""^["']?on["']?\s*:""")
+
+
+def detect_expect_ci(root=None):
+    """True when a workflow in root runs on pull_request or pull_request_target.
+
+    A push-only or branch-filtered workflow never registers checks on a PR, so
+    only pull_request triggers justify waiting for checks to appear.
+    """
+    root = root or repo_root()
+    pats = ("*.yml", "*.yaml")
+    for pat in pats:
+        for f in glob.glob(os.path.join(root, ".github", "workflows", pat)):
+            try:
+                in_on = False
+                with open(f) as fh:
+                    for raw in fh:
+                        ln = raw.split("#", 1)[0].rstrip()
+                        if not ln.strip():
+                            continue
+                        if not ln[0].isspace():
+                            in_on = bool(ON_KEY.match(ln))
+                            if in_on:
+                                ln = " " + ln.split(":", 1)[1]
+                        if in_on and PR_TRIGGER.search(ln):
+                            return True
+            except OSError:
+                continue
+    return False
+
+
+def read_state(pr, repo, flaky, reruns, expect_ci=None):
     rp = ["--repo", repo] if repo else []
     rc, out, err = gh(["pr", "view", str(pr), "--json",
                        "number,state,isDraft,mergeable,mergeStateStatus,reviewDecision,"
@@ -117,6 +167,7 @@ def read_state(pr, repo, flaky, reruns):
     nodes = json.loads(out)["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
     s["open_threads"] = sum(1 for t in nodes if not t["isResolved"])
     s["flaky"], s["reruns"] = flaky, reruns
+    s["expect_ci"] = detect_expect_ci() if expect_ci is None else expect_ci
     return s
 
 
@@ -130,14 +181,26 @@ def line(s, action):
                str(s.get("isDraft", False)).lower(), s.get("mergeStateStatus", "?"),
                count(s, ("pass", "skipping")), count(s, FAIL), count(s, ("pending",)),
                s.get("open_threads", 0)))
-    links = ["  failing %s %s" % (c.get("name"), c.get("link") or "(no link)")
+    links = ["  failing %s %s%s" % (c.get("name"), c.get("link") or "(no link)",
+                                " (external)" if external(c) else "")
              for c in s.get("checks", []) if c.get("bucket") in FAIL]
     return "\n".join([head] + links)
 
 
+def external(check):
+    """True when the check is not a GitHub Actions run (no run id to log or rerun)."""
+    return not RUN_LINK.search(check.get("link") or "")
+
+
 def failing(s):
-    return [{"name": c.get("name"), "link": c.get("link")}
-            for c in s.get("checks", []) if c.get("bucket") in FAIL]
+    out = []
+    for c in s.get("checks", []):
+        if c.get("bucket") in FAIL:
+            e = {"name": c.get("name"), "link": c.get("link")}
+            if external(c):
+                e["external"] = True
+            out.append(e)
+    return out
 
 
 def deadline_for(max_minutes, once, now):
@@ -156,6 +219,9 @@ def main(argv=None):
     ap.add_argument("--interval", type=int, default=60)
     ap.add_argument("--max-minutes", type=float, default=60,
                     help="polling limit in minutes (default 60); 0 means no limit; --once ignores it")
+    ap.add_argument("--expect-ci", dest="expect_ci", action="store_true", default=None,
+                    help="treat an empty check list as not-yet-registered (default: on when a workflow runs on pull_request)")
+    ap.add_argument("--no-expect-ci", dest="expect_ci", action="store_false")
     ap.add_argument("--flake", action="append", default=[], help="check name judged flaky")
     ap.add_argument("--reruns", type=int, default=0, help="flake reruns already spent")
     ap.add_argument("--waves", type=int, default=0, help="push waves already spent")
@@ -165,12 +231,16 @@ def main(argv=None):
         ap.error("--max-minutes must be 0 or more")
     deadline = deadline_for(a.max_minutes, a.once, time.time())
     last = None
+    empty = {}
     while True:
         try:
-            states = [read_state(p, a.repo, a.flake, a.reruns) for p in a.prs]
+            states = [read_state(p, a.repo, a.flake, a.reruns, a.expect_ci) for p in a.prs]
         except (RuntimeError, OSError, ValueError, KeyError) as e:
             print("pr-watch: " + str(e), file=sys.stderr)
             return 4
+        for p, x in zip(a.prs, states):
+            x["empty_polls"] = empty.get(p, 0)
+            empty[p] = empty.get(p, 0) + 1 if not x.get("checks") else 0
         s = pick(states)
         action = decide(s)
         if a.json:
@@ -184,6 +254,10 @@ def main(argv=None):
             last = text
         if action == "done":
             return 0
+        if action == "stop-no-checks":
+            print("pr-watch: no checks registered after %d polls; workflow filters may exclude this PR"
+                  % EMPTY_POLLS_MAX, file=sys.stderr, flush=True)
+            return 2
         if action.startswith("stop-"):
             return 2
         if action != "wait":
