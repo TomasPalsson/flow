@@ -221,7 +221,16 @@ t_v2_tick_checkpoint_needs_a_human() {
 	assert_rc 1 "a CHK checkpoint cannot be ticked by the model"
 	assert_contains "$ERR" "--by user" "the fix: names the flag only a person supplies"
 	v2_cli_in "$proj" "$home" tick CHK003 --by user
-	assert_rc 0 "flow tick CHK003 --by user exits 0"
+	assert_rc 1 "a CHK tick with no evidence in verify/ fails"
+	assert_contains "$ERR" "no evidence for CHK003" "it says there is no evidence"
+	assert_contains "$ERR" "verify/CHK003" "the fix: names the file to write"
+	mkdir -p "$proj/.specs/001-x/verify"
+	: >"$proj/.specs/001-x/verify/CHK003.md"
+	v2_cli_in "$proj" "$home" tick CHK003 --by user
+	assert_rc 1 "an empty evidence file does not count"
+	printf 'opened the page, 375px, chip wraps\n' >"$proj/.specs/001-x/verify/CHK003-screenshot.png"
+	v2_cli_in "$proj" "$home" tick CHK003 --by user
+	assert_rc 0 "flow tick CHK003 --by user exits 0 with a non-empty CHK003-* file"
 	OUT=$(grep '^- \[x\] CHK003' "$proj/.specs/001-x/TASKS.md")
 	assert_contains "$OUT" "by user" "the checkpoint records who answered it"
 	rm -rf "$home" "$proj"

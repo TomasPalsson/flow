@@ -5,12 +5,13 @@
 
 const { toInt, toFloat, lastNLines, capReason, humanDuration } = require('./util.js');
 
-function continuationReason(front, verify, unchanged, body) {
+function continuationReason(front, verify, unchanged, body, extra) {
   const lines = [
     `[flow loop] iteration ${front.iteration} of ${front.max_iterations} — goal: ${front.goal}`,
     `verifier \`${front.verify}\` exited ${verify.rc}; last lines:`,
     lastNLines(verify.output, 40),
   ];
+  if (extra) lines.push(extra);
   if (unchanged >= 1) lines.push('stall warning: no change in the last k iterations');
   lines.push(
     'Read .claude/loop/LEARNINGS.md, then make the ONE smallest change that moves the verifier. Do not claim completion; the loop checks.'

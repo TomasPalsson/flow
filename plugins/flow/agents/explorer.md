@@ -23,6 +23,7 @@ seams: path:line — the boundary this file owns
 reusable: path:line — signature verbatim plus 3-6 lines of surrounding source
 recipe: the grep/glob that relocates each of the above if it moves
 dead_ends: paths that look relevant and are not, with why
+unknowns: could not trace X → Y (what was tried)
 ```
 
 ## After exploring

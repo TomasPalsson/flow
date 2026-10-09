@@ -510,6 +510,7 @@ EOF
 	assert_contains "$OUT" '"diffPath":null' "wf: no diff path leaves diffPath null"
 	assert_contains "$OUT" '"failedLenses":[]' "wf: no diff path means no lens ran, failedLenses stays empty"
 	assert_contains "$OUT" '"incomplete":true' "wf: incomplete is true on this return path too"
+	assert_contains "$OUT" '"dismissed":[]' "wf: no diff path still returns an empty dismissed list"
 }
 
 t_wf_build_slices_failed_relook_all_null_keeps_blocking_finding() {
@@ -675,4 +676,432 @@ EOF
 	if [ -n "$maxflight" ] && [ "$maxflight" -le 4 ]; then verdict="yes"; fi
 	assert_eq "$verdict" "yes" "wf: a 6-task wave never has more than 4 agents in flight (max seen: $maxflight)"
 	assert_eq "$maxflight" "4" "wf: the wave actually dispatches a full chunk of 4 concurrently (not serialized)"
+}
+
+t_wf_review_diff_returns_dismissed_with_reasons() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:correctness') {
+    return { findings: [
+      { predicate: 'keepme', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' },
+      { predicate: 'dropme', severity: 'low', file: 'b.js', line: 2, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:keepme') { return { score: 95, why: 'verified' } }
+  if (opts.label === 'score:b.js:2:dropme') { return { score: 20, why: 'style only' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with one kept and one dismissed finding"
+	assert_contains "$OUT" '"dismissed":[' "wf: review-diff.js returns a dismissed list"
+	assert_contains "$OUT" '"predicate":"dropme"' "wf: the below-threshold finding is in dismissed"
+	assert_contains "$OUT" '"reason":"style only"' "wf: dismissed carries the scorer's reason"
+	assert_contains "$OUT" '"dropped":1' "wf: dropped count is still returned"
+}
+
+# Deliberate behaviour change (M04): structure joins review-diff's default lenses,
+# but its findings are advisory and never enter the blocking `verified` list.
+# The old pin (default list excludes structure) is flipped, not weakened.
+t_wf_review_diff_default_lenses_include_structure() {
+	local line
+	line=$(grep "^const lenses = args.lenses" "$WF_DIR/review-diff.js")
+	assert_contains "$line" "['correctness', 'security', 'gaming', 'cross-file', 'slop', 'structure']" "wf: review-diff default lens list ends with structure"
+}
+
+t_wf_build_slices_per_task_lenses_exclude_structure() {
+	local src
+	src=$(cat "$WF_DIR/build-slices.js")
+	assert_not_contains "$src" "structure" "wf: build-slices never dispatches structure per task"
+	assert_contains "$src" "'correctness'" "wf: build-slices still names correctness"
+	assert_contains "$src" "'gaming'" "wf: build-slices still names gaming"
+	assert_contains "$src" "'slop'" "wf: build-slices still names slop"
+}
+
+# _wf_json_field <json> <js-expr over j> prints the expression's value.
+_wf_json_field() {
+	printf '%s' "$1" | node -e 'let s="";process.stdin.on("data",function(d){s+=d}).on("end",function(){const j=JSON.parse(s);process.stdout.write(String(eval(process.argv[1])))})' "$2"
+}
+
+t_wf_review_diff_structure_finding_is_advisory_not_blocking() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:structure') {
+    return { findings: [
+      { predicate: 'movedcomplexity', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'lens:correctness') {
+    return { findings: [
+      { predicate: 'realbug', severity: 'high', file: 'b.js', line: 2, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:movedcomplexity') { return { score: 95, why: 'verified' } }
+  if (opts.label === 'score:b.js:2:realbug') { return { score: 90, why: 'verified' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness', 'structure'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with correctness and structure"
+	assert_eq "$(_wf_json_field "$OUT" 'j.verified.map(f=>f.predicate).join(",")')" "realbug" "wf: only the non-structure finding is in the blocking list"
+	assert_eq "$(_wf_json_field "$OUT" 'j.advisory.map(f=>f.predicate+":"+f.score).join(",")')" "movedcomplexity:95" "wf: the structure finding scored 95 is advisory"
+	assert_eq "$(_wf_json_field "$OUT" 'j.dismissed.length')" "0" "wf: an advisory finding is not reported as dismissed"
+	assert_contains "$OUT" '"failedLenses":[]' "wf: structure lens did not fail"
+}
+
+t_wf_review_diff_structure_alone_never_blocks() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:structure') {
+    return { findings: [
+      { predicate: 'movedcomplexity', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:movedcomplexity') { return { score: 90, why: 'verified' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['structure'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with the structure lens alone"
+	assert_eq "$(_wf_json_field "$OUT" 'j.verified.length')" "0" "wf: a structure-only review has an empty blocking list"
+	assert_eq "$(_wf_json_field "$OUT" 'j.advisory[0].lens')" "structure" "wf: the structure finding is kept in advisory with its lens"
+}
+
+t_wf_review_diff_advisory_empty_when_no_structure_findings() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  return { findings: [] }
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with the default lenses"
+	assert_contains "$OUT" '"advisory":[]' "wf: advisory is an empty list when structure finds nothing"
+	assert_contains "$OUT" '"failedLenses":[]' "wf: all six default lenses ran"
+}
+
+t_wf_review_diff_unscored_findings_are_dismissed() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:correctness') {
+    return { findings: [
+      { predicate: 'scorerdied', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' },
+      { predicate: 'scorerthrew', severity: 'high', file: 'b.js', line: 2, scenario: 's', receipt: 'r' },
+      { predicate: 'keepme', severity: 'high', file: 'c.js', line: 3, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:scorerdied') { return null }
+  if (opts.label === 'score:b.js:2:scorerthrew') { throw new Error('crash') }
+  if (opts.label === 'score:c.js:3:keepme') { return { score: 95, why: 'verified' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs when scorers return null or throw"
+	assert_contains "$OUT" '"predicate":"scorerdied"' "wf: null-scorer finding is in dismissed"
+	assert_contains "$OUT" '"predicate":"scorerthrew"' "wf: throwing-scorer finding is in dismissed"
+	assert_contains "$OUT" '"reason":"scorer failed; not scored"' "wf: unscored finding carries an honest reason"
+	assert_not_contains "$OUT" 'scored 0' "wf: no invented score of 0"
+	assert_contains "$OUT" '"dropped":2' "wf: dropped counts the unscored findings"
+}
+
+t_wf_research_sweep_synth_prompt_ties_confidence_to_evidence() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'synthesize') { process.stderr.write('SYNTH:' + prompt + '\n'); return 'report' }
+  if (opts.label === 'angles') { return { angles: [{ key: 'a', query: 'q' }] } }
+  if (opts.label === 'research:a') { return { headline: 'h', claims: [] } }
+  if (opts.label === 'check:a') { return { confirmed: [], unsupported: [], notes: '' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { question: 'why?' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function (items, a, b) {
+  const out = []
+  for (const it of items) { const x = await a(null, it); out.push(await b(x)) }
+  return out
+}, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/research-sweep.js" "$stub"
+	assert_rc 0 "wf: research-sweep.js runs under wf-run.js"
+	assert_contains "$ERR" '"confirmed" only when a primary source was read this run' "wf: synth prompt names the confirmed tier"
+	assert_contains "$ERR" 'primary source' "wf: confirmed needs a primary source read this run"
+	assert_contains "$ERR" 'likely' "wf: synth prompt names the likely tier"
+	assert_contains "$ERR" 'unknown' "wf: synth prompt names the unknown tier"
+	assert_contains "$ERR" 'an empty unknowns list must say why it is empty' "wf: synth prompt explains empty unknowns"
+	assert_contains "$ERR" 'contradicts the majority' "wf: synth prompt leads with contradicting data"
+	assert_contains "$ERR" 'absence of a mention is not evidence' "wf: synth prompt rejects absence as evidence"
+}
+
+t_wf_research_sweep_schema_requires_queries_and_unknowns() {
+	local req
+	req=$(awk '/^const RESEARCH_SCHEMA/{f=1} f&&/required: \[/{print; exit}' "$WF_DIR/research-sweep.js")
+	assert_contains "$req" "'queriesRun'" "wf: RESEARCH_SCHEMA requires queriesRun"
+	assert_contains "$req" "'unknowns'" "wf: RESEARCH_SCHEMA requires unknowns"
+}
+
+# ---------------------------------------------------------------------------
+# build-slices fix-ladder memory, null-fix retry, and the worker pool.
+# t_wf_build_slices_fix_* / t_wf_build_slices_pool_* prefix. Stubs log one
+# line per call to stderr ("CALL <label> <prompt>", "START/END <id>"),
+# which run_cmd captures as $ERR.
+# ---------------------------------------------------------------------------
+
+# _wf_bs_tail — the shared end of every stub below: no-op log/phase and the
+# one-wave args for the tasks in $1 (a JS array literal).
+_wf_bs_tail() {
+	cat <<EOT
+function log() {}
+function phase() {}
+const args = { tasks: '/tmp/TASKS.md', base: 'main', testCmd: 'true', waves: [$1], scriptsDir: '/tmp/scripts', reviewDir: '/tmp/review' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOT
+}
+
+t_wf_build_slices_fix_history_carried_to_later_rounds() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+function finding(n) {
+  return { verdict: 'reject', checked: 'full', findings: [{ predicate: 'predicateOf' + n, severity: 'fatal', scenario: 's', receipt: 'x.js:1' }] }
+}
+const clean = { verdict: 'ok', checked: 'full', findings: [] }
+async function agent(prompt, opts) {
+  const label = opts.label
+  let m
+  if (/^fix:/.test(label)) { process.stderr.write('CALL ' + label + ' ' + prompt + '\n') }
+  if (label === 'brief:T1') { return { briefPath: '/tmp/T1-brief.md' } }
+  if (label === 'implement:T1') {
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: '' }
+  }
+  if (/^review:T1/.test(label)) { return { diffPath: '/tmp/T1.diff' } }
+  if (label === 'adv:correctness:T1') { return finding(1) }
+  if (/^adv:(gaming|slop):T1/.test(label)) { return clean }
+  if ((m = /^adv:correctness:T1:r(\d)$/.exec(label))) { return finding(Number(m[1]) + 1) }
+  if ((m = /^fix:T1:r(\d)$/.exec(label))) {
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: 'notesOfRound' + m[1] }
+  }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs a five-round fix ladder"
+	local r1 r2 r3 r4 r5
+	r1=$(printf '%s\n' "$ERR" | grep '^CALL fix:T1:r1 ')
+	r2=$(printf '%s\n' "$ERR" | grep '^CALL fix:T1:r2 ')
+	r3=$(printf '%s\n' "$ERR" | grep '^CALL fix:T1:r3 ')
+	r4=$(printf '%s\n' "$ERR" | grep '^CALL fix:T1:r4 ')
+	r5=$(printf '%s\n' "$ERR" | grep '^CALL fix:T1:r5 ')
+	assert_not_contains "$r1" "notesOfRound" "wf: the round 1 fix prompt has no history"
+	assert_contains "$r2" "predicateOf1" "wf: the round 2 fix prompt carries round 1's finding"
+	assert_contains "$r2" "notesOfRound1" "wf: the round 2 fix prompt carries round 1's notes"
+	assert_contains "$r3" "predicateOf1" "wf: the round 3 fix prompt carries round 1's finding"
+	assert_contains "$r3" "predicateOf2" "wf: the round 3 fix prompt carries round 2's finding"
+	assert_not_contains "$r3" "tried and failed" "wf: rounds 2-3 do not yet use the 'tried and failed' heading"
+	assert_contains "$r4" "tried and failed" "wf: the round 4 fix prompt uses the 'tried and failed' heading"
+	assert_contains "$r4" "notesOfRound1" "wf: the round 4 prompt carries round 1's notes"
+	assert_contains "$r4" "notesOfRound2" "wf: the round 4 prompt carries round 2's notes"
+	assert_contains "$r4" "notesOfRound3" "wf: the round 4 prompt carries round 3's notes"
+	assert_contains "$r5" "tried and failed" "wf: the round 5 fix prompt uses the 'tried and failed' heading"
+	assert_contains "$r5" "notesOfRound4" "wf: the round 5 prompt carries round 4's notes"
+	assert_contains "$OUT" "exhausted after 5 rounds" "wf: the exhausted text is used once round 5 completed"
+}
+
+t_wf_build_slices_fix_null_retried_once_then_continues() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+let fixCalls = 0
+async function agent(prompt, opts) {
+  const label = opts.label
+  if (label === 'brief:T1') { return { briefPath: '/tmp/T1-brief.md' } }
+  if (label === 'implement:T1') {
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: '' }
+  }
+  if (/^review:T1/.test(label)) { return { diffPath: '/tmp/T1.diff' } }
+  if (label === 'adv:correctness:T1') {
+    return { verdict: 'reject', checked: 'full', findings: [{ predicate: 'bug', severity: 'fatal', scenario: 's', receipt: 'x.js:1' }] }
+  }
+  if (/^adv:/.test(label)) { return { verdict: 'ok', checked: 'full', findings: [] } }
+  if (label === 'fix:T1:r1') {
+    fixCalls++
+    process.stderr.write('FIXCALL ' + fixCalls + '\n')
+    if (fixCalls === 1) { return null }
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a', 'b'], files: ['x.js'], notes: 'fixed' }
+  }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs when a fix agent returns nothing once"
+	assert_contains "$ERR" "FIXCALL 2" "wf: the null round-1 fix is retried"
+	assert_not_contains "$ERR" "FIXCALL 3" "wf: the retry happens once"
+	assert_contains "$OUT" '"parked":[]' "wf: nothing is parked after a successful retry"
+	assert_contains "$OUT" '"clean":true' "wf: the run continues to clean"
+}
+
+t_wf_build_slices_fix_null_twice_parks_with_true_reason() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  const label = opts.label
+  if (label === 'brief:T1') { return { briefPath: '/tmp/T1-brief.md' } }
+  if (label === 'implement:T1') {
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: '' }
+  }
+  if (/^review:T1/.test(label)) { return { diffPath: '/tmp/T1.diff' } }
+  if (label === 'adv:correctness:T1') {
+    return { verdict: 'reject', checked: 'full', findings: [{ predicate: 'bug', severity: 'fatal', scenario: 's', receipt: 'x.js:1' }] }
+  }
+  if (/^adv:/.test(label)) { return { verdict: 'ok', checked: 'full', findings: [] } }
+  if (label === 'fix:T1:r1') { return null }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs when a fix agent returns nothing twice"
+	assert_contains "$OUT" "fix agent returned nothing in round 1" "wf: the park reason names round 1"
+	assert_not_contains "$OUT" "5 rounds" "wf: the park reason does not claim five rounds"
+	assert_contains "$OUT" '"predicate":"bug"' "wf: the finding is parked, not dropped"
+}
+
+t_wf_build_slices_pool_refills_slots_in_wave_order() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+let inflight = 0, maxInflight = 0
+const advDone = {}
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms) }) }
+async function agent(prompt, opts) {
+  const label = opts.label
+  let m
+  if ((m = /^brief:(T\d)$/.exec(label))) {
+    inflight++
+    if (inflight > maxInflight) { maxInflight = inflight }
+    process.stderr.write('START ' + m[1] + ' MAX ' + maxInflight + '\n')
+    return { briefPath: '/tmp/' + m[1] + '-brief.md' }
+  }
+  if ((m = /^implement:(T\d)$/.exec(label))) {
+    await sleep(m[1] === 'T1' ? 500 : 20)
+    return { id: m[1], redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: '' }
+  }
+  if ((m = /^review:(T\d)$/.exec(label))) { return { diffPath: '/tmp/' + m[1] + '.diff' } }
+  if ((m = /^adv:\w+:(T\d)$/.exec(label))) {
+    advDone[m[1]] = (advDone[m[1]] || 0) + 1
+    if (advDone[m[1]] === 3) { inflight--; process.stderr.write('END ' + m[1] + '\n') }
+    return { verdict: 'ok', checked: 'full', findings: [] }
+  }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1', 'T2', 'T3', 'T4', 'T5']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs a five-task wave"
+	local order t5 t1end
+	t5=$(printf '%s\n' "$ERR" | grep -n '^START T5' | cut -d: -f1)
+	t1end=$(printf '%s\n' "$ERR" | grep -n '^END T1' | cut -d: -f1)
+	if [ -n "$t5" ] && [ -n "$t1end" ] && [ "$t5" -lt "$t1end" ]; then
+		assert_eq "yes" "yes" "wf: task 5 starts before slow task 1 finishes"
+	else
+		assert_eq "t5=$t5 t1end=$t1end" "t5 before t1end" "wf: task 5 starts before slow task 1 finishes"
+	fi
+	assert_contains "$ERR" "MAX 4" "wf: four tasks were in flight at once"
+	assert_not_contains "$ERR" "MAX 5" "wf: never more than four in flight"
+	order=$(printf '%s' "$OUT" | grep -o '"id":"T[0-9]"' | tr '\n' ' ')
+	assert_eq "$order" '"id":"T1" "id":"T2" "id":"T3" "id":"T4" "id":"T5" ' "wf: results come back in wave order, not finish order"
+}
+
+t_wf_build_slices_pool_survives_throwing_tasks() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  const label = opts.label
+  let m
+  if ((m = /^brief:(T\d)$/.exec(label))) {
+    if (m[1] !== 'T5') { throw new Error('boom ' + m[1]) }
+    return { briefPath: '/tmp/T5-brief.md' }
+  }
+  if ((m = /^implement:(T\d)$/.exec(label))) {
+    return { id: m[1], redExit: 1, greenExit: 0, refactorPassCount: 3, commits: ['a'], files: ['x.js'], notes: '' }
+  }
+  if ((m = /^review:(T\d)$/.exec(label))) { return { diffPath: '/tmp/' + m[1] + '.diff' } }
+  if ((m = /^adv:\w+:(T\d)$/.exec(label))) { return { verdict: 'ok', checked: 'full', findings: [] } }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1', 'T2', 'T3', 'T4', 'T5']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs when four tasks throw"
+	assert_contains "$OUT" '"id":"T5"' "wf: task 5 still runs after tasks 1-4 threw"
 }

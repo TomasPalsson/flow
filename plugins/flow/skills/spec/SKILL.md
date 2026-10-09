@@ -51,6 +51,8 @@ The ratchet is one-way. `/flow:next --escalate` upgrades at any time; a downgrad
 
 Read [`references/question-bank.md`](references/question-bank.md) in full (unless the PREP.md gate above fired). It defines the one batched turn: a numbered list of positions you have already taken, each with its reasoning, closing with *"reply with the numbers you want to change, or 'all good'"*. Silence is acceptance of a stated position, not a skipped question.
 
+**Archived Rulings.** Once the footprint is known (§2), look for earlier decisions that touch it: run `grep -Hn 'Ruling:' .specs/archive/*/NOTES.md 2>/dev/null` (under stealth `.specs/` is a link into the private store and the glob works as written; `flow next --json` → `stealth.store` is the directory holding that store's `.specs`, so use `<store>/.specs/archive/*/NOTES.md` if the glob finds nothing). Keep the lines that name a footprint path or symbol. Each match becomes a pre-answered position in the turn, citing the archive path and line, e.g. `N. Prior ruling — src/a.ts keeps the retry guard (.specs/archive/2026-01-01-001-x/NOTES.md:4). Why: an earlier spec settled it; reply N to reopen.` Skip quietly when there is no archive or no match, and never print the grep output itself. Under stealth, cite the position in the chat turn only, never in anything the repo keeps.
+
 Two items are never dropped: the negative-scope position (what this will NOT do) and a number for every adjective in play. `--interview` restores the serial one-question-per-turn form for a user who wants it. `--unattended` proceeds on the stated positions after one offer, recording each as an Assumption with its confidence.
 
 ## 4. Write only what the route needs

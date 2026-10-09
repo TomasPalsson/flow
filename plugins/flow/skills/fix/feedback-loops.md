@@ -14,7 +14,7 @@ A tight pass/fail signal that goes red on this bug is what finds the cause. Bise
 1. Failing test at whatever seam reaches the bug: unit, integration, e2e.
 2. curl or HTTP script against a running dev server.
 3. CLI invocation with a fixture input, stdout diffed against a known-good snapshot.
-4. Headless browser script that drives the UI and asserts on DOM, console or network.
+4. Headless browser script that drives the UI and asserts on DOM, console or network. Drive it with real UI actions; a fixture may set preconditions but must not inject the symptom, or the loop proves the fixture rather than the bug. Run it twice with a reset between (close the browser, clear storage, reopen), as `/flow:fix` §1 requires for the frontend category.
 5. Replay of a captured trace: save a real request, payload or event log to disk and replay it through the code path in isolation.
 6. Throwaway harness: a minimal subset of the system (one service, mocked deps) exercised by one function call.
 7. Property or fuzz loop: for "sometimes wrong output", run 1000 random inputs and look for the failure.
@@ -58,7 +58,7 @@ Write 3-5 ranked hypotheses before testing any. Each must be falsifiable: "If X 
 - Every probe maps to one prediction; change one variable at a time.
 - Prefer a debugger or REPL over logs, targeted logs over "log everything and grep".
 - Tag every debug log `[DEBUG-<4 hex>]` (for example `[DEBUG-a4f2]`) so cleanup is one grep.
-- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second.
+- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second; vet the baseline and every later number with `/flow-extras:benchmark-checklist`.
 
 ## No correct seam is a finding
 

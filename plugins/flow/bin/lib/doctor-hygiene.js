@@ -71,13 +71,67 @@ function isCandidateWorktree(e, cwdReal) {
   return realpath(e.path) !== cwdReal;
 }
 
-function warningFor(e, base, clean, merged, idle) {
+// A squash-merged branch is never an ancestor of base, but `git cherry` marks
+// each of its commits "-" once an equivalent patch is in base. Local only.
+function patchesInBase(e, base) {
+  const r = git(e.path, ['cherry', base.head, e.head]);
+  if (!r.ok) return false;
+  const lines = r.out.split('\n').filter(Boolean);
+  if (lines.every((l) => l.startsWith('-'))) return true;
+  return squashPatchIdInBase(e, base);
+}
+
+// Stable patch-id of a diff text, or '' (empty diff / failure). Writes no
+// git objects.
+function patchId(dir, diffText) {
+  if (!diffText) return '';
+  const r = spawnSync('git', ['-C', dir, 'patch-id', '--stable'], { encoding: 'utf8', input: diffText, timeout: 15000 });
+  return r.status === 0 ? (r.stdout || '').split(' ')[0].trim() : '';
+}
+
+function gitRaw(dir, args) {
+  const r = spawnSync('git', ['-C', dir].concat(args), { encoding: 'utf8', timeout: 15000, maxBuffer: 64 * 1024 * 1024 });
+  return r.status === 0 ? r.stdout || '' : '';
+}
+
+// A multi-commit branch squashed into one base commit defeats `git cherry`.
+// Compare the stable patch-id of the branch's whole change against each base
+// commit since the merge base. Read-only; unrelated histories -> false.
+function squashPatchIdInBase(e, base) {
+  const mb = git(e.path, ['merge-base', base.head, e.head]);
+  if (!mb.ok || !mb.out) return false;
+  const want = patchId(e.path, gitRaw(e.path, ['diff', mb.out, e.head]));
+  if (!want) return false;
+  const commits = git(e.path, ['rev-list', `${mb.out}..${base.head}`]);
+  if (!commits.ok) return false;
+  return commits.out
+    .split('\n')
+    .filter(Boolean)
+    .some((c) => patchId(e.path, gitRaw(e.path, ['show', '--format=', c])) === want);
+}
+
+// Describes a dirty worktree from `git status --porcelain` text. Tracked edits
+// are counted; untracked-only files are named, because "untracked" is not
+// "scratch" (a new file nobody `git add`ed may be real work), so the user
+// judges from the names. Returns 'clean' for empty status.
+function dirtySummary(statusRaw) {
+  const lines = statusRaw.split('\n').filter(Boolean);
+  if (lines.length === 0) return 'clean';
+  const tracked = lines.filter((l) => !l.startsWith('?? '));
+  if (tracked.length > 0) return `tracked edits: ${tracked.length} files`;
+  const names = lines.map((l) => l.slice(3));
+  const shown = names.slice(0, 5).join(', ');
+  return `untracked only: ${shown}${names.length > 5 ? `, +${names.length - 5} more` : ''}`;
+}
+
+function warningFor(e, base, status, merged, idle) {
+  const clean = status === '';
   if (merged && clean && idle >= 1) {
     return `${e.path} (branch ${e.branch}) is merged and clean, idle ${idle}d — safe to remove: git worktree remove ${e.path}`;
   }
   if (idle >= 14) {
     const ahead = git(e.path, ['rev-list', '--count', `${base.head}..${e.head}`]).out || '0';
-    return `${e.path} idle ${idle}d (${ahead} commits not in base, ${clean ? 'clean' : 'dirty'}) — review, then: git worktree remove ${e.path}`;
+    return `${e.path} idle ${idle}d (${ahead} commits not in base, ${dirtySummary(status)}) — review, then: git worktree remove ${e.path}`;
   }
   return null;
 }
@@ -96,9 +150,9 @@ function worktreeHygieneCheck(push, cwd) {
   const warnings = [];
   for (const e of entries) {
     if (!isCandidateWorktree(e, cwdReal)) continue;
-    const clean = git(e.path, ['status', '--porcelain']).out === '';
-    const merged = git(e.path, ['merge-base', '--is-ancestor', e.head, base.head]).ok;
-    const warning = warningFor(e, base, clean, merged, idleDays(e.path));
+    const status = gitRaw(e.path, ['status', '--porcelain']);
+    const merged = git(e.path, ['merge-base', '--is-ancestor', e.head, base.head]).ok || patchesInBase(e, base);
+    const warning = warningFor(e, base, status, merged, idleDays(e.path));
     if (warning) warnings.push(warning);
   }
 

@@ -151,3 +151,117 @@ t_fix_commit_precedes_the_revert_proof() {
 		_pass "fix commit precedes the revert-proof"
 	fi
 }
+
+# ---------------------------------------------------------------------------
+# pstack borrows, round 2 (M02 M03 M21 M22 M31 M38)
+# ---------------------------------------------------------------------------
+
+FIX_VERIF="$SCAN_DIR/../skills/shared/verification.md"
+FIX_LOOPS="$SCAN_DIR/../skills/fix/feedback-loops.md"
+
+# _fix_section N → the lines of "## N. ..." up to the next "## " heading
+_fix_section() {
+	awk -v n="$1" '/^## /{f=($0 ~ "^## " n "\\.")} f{print}' "$FIX_SKILL"
+}
+
+# M21: stuck path names the shared premise, ties divergence to the entry point
+t_fix_stuck_writes_shared_premise() {
+	local s
+	s=$(_fix_section 4)
+	assert_contains "$s" 'Every failed attempt assumed: <premise>' \
+		"§4 stuck path must write the premise every failed attempt shared before the race"
+	assert_contains "$s" 'do not assume this; verify it first' \
+		"§4 stuck path must hand the premise to each developer as something to verify first"
+}
+
+t_fix_stuck_race_tied_to_the_named_function() {
+	local s
+	s=$(_fix_section 4)
+	assert_contains "$s" 'only if it changes the function the diagnosis names' \
+		"§4 must keep the smallest green patch only when it changes the function the diagnosis names"
+	assert_contains "$s" 'If no green patch touches it, re-diagnose against' \
+		"§4 must re-diagnose when no green patch touches the named function"
+}
+
+# M22: failed-attempt edits are reverted before the commit; review adds slop
+t_fix_reverts_refuted_attempt_edits_before_commit() {
+	local s line_rule line_commit
+	s=$(_fix_section 4)
+	assert_contains "$s" 'revert every edit made for an attempt or hypothesis that failed' \
+		"§4 must revert edits left by failed attempts or refuted hypotheses"
+	line_rule=$(grep -n 'revert every edit made for an attempt' "$FIX_SKILL" | head -1 | cut -d: -f1)
+	line_commit=$(grep -n 'Commit: `fix(<scope>)' "$FIX_SKILL" | head -1 | cut -d: -f1)
+	if [ -n "$line_rule" ] && [ -n "$line_commit" ] && [ "$line_rule" -lt "$line_commit" ]; then
+		_pass "revert rule precedes the fix commit"
+	else
+		_fail "the revert rule must come before the fix commit step (rule $line_rule, commit $line_commit)"
+	fi
+}
+
+t_fix_review_runs_slop_lens() {
+	assert_contains "$(_fix_section 5)" '`correctness`, `gaming` and `slop`' \
+		"§5 review must run the correctness, gaming and slop lenses"
+}
+
+# M31: pickaxe before removing a guard
+t_fix_pickaxe_before_removing_a_guard() {
+	local s
+	s=$(_fix_section 2)
+	assert_contains "$s" "git log -S'<literal>' --oneline -- <file>" \
+		"§2 must run git log -S before changing or removing a guard, check or constant"
+}
+
+# M38: frontend two-run repro and fresh reviewer
+t_fix_frontend_two_run_repro() {
+	local s
+	s=$(_fix_section 1)
+	assert_contains "$s" './bug-before.png' "§1 frontend repro must save ./bug-before.png"
+	assert_contains "$s" 'real UI actions only' "§1 frontend repro must use real UI actions only"
+	assert_contains "$s" 'Only two matching observations count as reproduced' \
+		"§1 frontend repro needs two matching observations around a reset"
+}
+
+t_fix_frontend_fresh_image_reviewer() {
+	local s
+	s=$(_fix_section 5)
+	assert_contains "$s" './bug-after.png' "§5 must save ./bug-after.png"
+	assert_contains "$s" 'fresh read-only agent' "§5 must spawn a fresh read-only reviewer of the screenshots"
+	assert_contains "$s" "'No' or 'uncertain' makes the verdict partial" \
+		"§5 reviewer answers no or uncertain must make the verdict partial"
+}
+
+# M03: reported timing numbers go through benchmark-checklist
+t_fix_timing_after_number_is_vetted() {
+	assert_contains "$(_fix_section 5)" 'benchmark-checklist' \
+		"§5 must load benchmark-checklist before reporting a timing after-number"
+}
+
+# M02: first browser verification generates the project's verify skill
+t_fix_verification_creates_verify_skill_once() {
+	local s
+	s=$(cat "$FIX_VERIF")
+	assert_contains "$s" 'verify-skill` `create`' \
+		"verification.md Step 2 must run verify-skill create when the project has no verify skill"
+	assert_contains "$s" 'chore(verify): add verify-<project> skill' \
+		"verification.md must commit the generated skill alone"
+	assert_contains "$s" 'draft, not run' \
+		"verification.md must degrade to draft, not run when create needs a human input or the app will not start"
+	assert_contains "$s" 'stealth is off' "verification.md must skip creation under stealth"
+	assert_not_contains "$s" 'To create one, use' \
+		"the old 'To create one' pointer must be replaced by the automatic trigger"
+}
+
+t_fix_frontend_points_to_verify_skill() {
+	assert_contains "$(_fix_section 5)" 'verify-*' \
+		"fix §5 step 1 must name the project's verify skill for frontend runs"
+}
+
+t_fix_verification_standard_tier_has_before_after() {
+	assert_contains "$(cat "$FIX_VERIF")" './bug-after.png' \
+		"verification.md Standard tier must capture ./bug-after.png for bug fixes"
+}
+
+t_fix_feedback_loops_browser_rung_matches() {
+	assert_contains "$(cat "$FIX_LOOPS")" 'real UI actions' \
+		"feedback-loops.md browser rung must say symptoms come from real UI actions"
+}

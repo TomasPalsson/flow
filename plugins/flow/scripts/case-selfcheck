@@ -197,6 +197,39 @@ def check_shape(case_dir, name, tags_ok):
     return case, None
 
 
+# Words that tell a candidate it is being graded. Matched as whole words
+# (alphanumeric boundaries, so test_eval.py hits and evaluate/retrieval do not),
+# and only over what the scaffold itself creates: the git identity, the prompt,
+# and the names of files and directories. Plugin files and file contents are not
+# scanned; a fixture app may legitimately say "score".
+META_WORDS = re.compile(r"(?<![A-Za-z0-9])(eval|evals|judge|rubric|grader|graded|benchmark|candidate|arena)"
+                        r"(?![A-Za-z0-9])", re.I)
+
+
+def git_config_value(tree, key, env):
+    rc, out = run(["git", "config", "--get", key], tree, env, 30)
+    return out.strip() if rc == 0 else ""
+
+
+def meta_word_hits(case, tree, env):
+    """Where a scaffolded tree or its prompt names the grading, as `where 'word'` strings."""
+    hits = []
+
+    def scan(where, text):
+        m = META_WORDS.search(text or "")
+        if m:
+            hits.append("%s %r" % (where, m.group(1)))
+
+    for key in ("user.name", "user.email"):
+        scan("git %s" % key, git_config_value(tree, key, env))
+    scan("prompt", (case.get("execution") or {}).get("prompt", ""))
+    for root, dirs, files in os.walk(tree):
+        dirs[:] = [x for x in dirs if x != ".git"]
+        for entry in dirs + files:
+            scan("path %s" % os.path.relpath(os.path.join(root, entry), tree), entry)
+    return hits
+
+
 def check_case(case_dir, name, tags_ok, keep_list):
     case, err = check_shape(case_dir, name, tags_ok)
     if err:
@@ -207,13 +240,16 @@ def check_case(case_dir, name, tags_ok, keep_list):
     skipped = len(graders) - len(file_graders)
     gradeable = bool(file_graders) or has_pc
     solution = os.path.join(case_dir, "solution.sh")
-    if gradeable and not is_exec(solution):
-        return False, "FAIL %s: gradeable case has no executable solution.sh" % name
 
     d, tree = make_tmp(keep_list)
     err = scaffold(case_dir, d, tree)
     if err:
         return False, "FAIL %s: %s" % (name, err)
+    hits = meta_word_hits(case, tree, base_env(d))
+    if hits:
+        return False, "FAIL %s: candidate can see it is graded (%s)" % (name, "; ".join(hits[:5]))
+    if gradeable and not is_exec(solution):
+        return False, "FAIL %s: gradeable case has no executable solution.sh" % name
     if not gradeable:
         return True, "PASS %s (shape+scaffold only)" % name
 

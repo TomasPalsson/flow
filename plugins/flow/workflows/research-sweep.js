@@ -30,9 +30,11 @@ const ANGLES_SCHEMA = {
 
 const RESEARCH_SCHEMA = {
   type: 'object',
-  required: ['headline', 'claims'],
+  required: ['headline', 'claims', 'queriesRun', 'unknowns'],
   properties: {
     headline: { type: 'string' },
+    queriesRun: { type: 'array', items: { type: 'string' } },
+    unknowns: { type: 'array', items: { type: 'string' } },
     claims: {
       type: 'array',
       items: {
@@ -76,7 +78,8 @@ const results = await pipeline(
   function (_prev, a) {
     const prompt = 'Research angle "' + a.key + '" of the question: ' + question +
       '. Query: ' + a.query + '. Use WebSearch/WebFetch to gather up to ' + sourcesPerAngle +
-      ' sources. Return a headline and a list of claims, each with claim, url, date, and kind (PRIMARY or SECONDARY).'
+      ' sources. Return a headline, a list of claims (each with claim, url, date, and kind PRIMARY or SECONDARY), ' +
+      'queriesRun (the searches you actually ran, including ones that found nothing), and unknowns (what you looked for and could not find).'
     return agent(prompt, { model: 'sonnet', agentType: 'general-purpose', label: 'research:' + a.key, phase: 'Search', schema: RESEARCH_SCHEMA })
       .then(function (r) { return { angle: a, research: r } })
   },
@@ -104,7 +107,11 @@ log('researched ' + usable.length + ' of ' + angles.length + ' angles')
 
 const synthPrompt = 'Synthesize a cited report answering: ' + question +
   '. Every angle\'s claims and check results follow as JSON: ' + JSON.stringify(usable) +
-  '. Write a cited report as text with a per-claim confidence note.'
+  '. Write a cited report as text with a per-claim confidence note. Tie each note to the evidence: ' +
+  '"confirmed" only when a primary source was read this run; "likely" when the support is secondary or inferred; ' +
+  '"unknown" when neither holds. Say which tier each claim reached and why. ' +
+  'End with a gaps section built from the unknowns and queriesRun lists; an empty unknowns list must say why it is empty. ' +
+  'When a datum contradicts the majority of sources, report it first. The absence of a mention is not evidence.'
 
 const synthesis = await agent(synthPrompt, { model: 'opus', label: 'synthesize', phase: 'Synthesize' })
 

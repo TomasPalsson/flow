@@ -309,3 +309,267 @@ t_noslop_ns17_flags_growth_in_existing_function_only() {
 	assert_not_contains "$OUT" "shrinks" "NS-17 stays silent on a function that got simpler"
 	assert_not_contains "$OUT" "fresh" "NS-17 stays silent on new functions"
 }
+
+# ---------------------------------------------------------------------------
+# --prose — NP-04 to NP-08 on markdown; code fences and inline code skipped.
+# ---------------------------------------------------------------------------
+
+write_prose_tells() {
+	cat >"$1" <<'MD'
+# Title
+
+It is important to note that the change is small.
+We leverage a pivotal helper here.
+The cache might possibly be stale.
+This is not just a rename, but a rewrite.
+The loader reads the config file and then validates every key against the schema and then writes the merged result to the output directory before it reports success to the caller.
+MD
+}
+
+t_noslop_prose_reports_known_tells() {
+	local f
+	f=$(tmp_dir)/pr.md
+	write_prose_tells "$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_rc 0 "slop-check --prose exits 0 (advisory) despite findings"
+	assert_contains "$OUT" "pr.md:3: NP-07" "NP-07 opener on line 3"
+	assert_contains "$OUT" "pr.md:4: NP-04" "NP-04 AI-tell word on line 4"
+	assert_contains "$OUT" "pr.md:5: NP-05" "NP-05 stacked hedges on line 5"
+	assert_contains "$OUT" "pr.md:6: NP-06" "NP-06 not-just-but on line 6"
+	assert_contains "$OUT" "pr.md:7: NP-08" "NP-08 long sentence on line 7"
+}
+
+t_noslop_prose_clean_fixture_has_no_findings() {
+	local f
+	f=$(tmp_dir)/clean.md
+	printf '# Summary\n\nThe parser rejects a bad date and exits with code 2.\nMeasured: `make test` passes, 12 of 12.\n\n- Use the existing helper.\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_rc 0 "clean prose exits 0"
+	assert_eq "$OUT" "" "clean prose prints no findings"
+	run_cmd "$SLOP_CHECK" --prose "$f" --strict
+	assert_rc 0 "clean prose exits 0 under --strict"
+}
+
+t_noslop_prose_ignores_code() {
+	local f
+	f=$(tmp_dir)/code.md
+	printf 'Run `leverage pivotal` now.\n\n```\nIt is important to note that this might possibly leverage x.\n```\n\n~~~\nIn conclusion, crucial.\n~~~\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_eq "$OUT" "" "fenced and inline code are not scanned"
+}
+
+t_noslop_prose_strict_and_json() {
+	local f
+	f=$(tmp_dir)/pr.md
+	write_prose_tells "$f"
+	run_cmd "$SLOP_CHECK" --prose "$f" --strict
+	assert_rc 1 "slop-check --prose --strict exits 1 on findings"
+	run_cmd "$SLOP_CHECK" --prose "$f" --json
+	assert_rc 0 "slop-check --prose --json exits 0"
+	assert_contains "$OUT" '"findings"' "--prose --json emits findings"
+	assert_contains "$OUT" '"NP-05"' "--prose --json carries NP ids"
+}
+
+t_noslop_prose_list_items_are_separate_sentences() {
+	local f
+	f=$(tmp_dir)/bullets.md
+	printf -- '- one short bullet here\n- another short bullet here\n- a third short bullet here\n- a fourth short bullet here\n- a fifth short bullet here\n- a sixth short bullet here\n- In conclusion the tests pass\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_not_contains "$OUT" "NP-08" "bullets without periods are not one long sentence"
+	assert_contains "$OUT" "bullets.md:7: NP-07" "closer at the start of a bullet is flagged"
+}
+
+t_noslop_prose_heading_is_its_own_boundary() {
+	local f
+	f=$(tmp_dir)/head.md
+	printf '## Summary\nIt is important to note that the fix is small.\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_contains "$OUT" "head.md:2: NP-07" "opener right after a heading is flagged"
+}
+
+t_noslop_prose_fence_char_and_length() {
+	local f
+	f=$(tmp_dir)/nested.md
+	printf '````\n```\nIt is important to note this.\n```\n````\n\n```\n~~~\nIn conclusion, crucial.\n~~~\n```\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_eq "$OUT" "" "nested and mixed fences stay fenced"
+}
+
+t_noslop_prose_bad_input_files() {
+	local d
+	d=$(tmp_dir)
+	run_cmd "$SLOP_CHECK" --prose "$d/nope.md" --strict
+	assert_rc 1 "missing --prose path fails under --strict"
+	printf 'caf\xe9 is fine.\n' >"$d/latin1.md"
+	run_cmd "$SLOP_CHECK" --prose "$d/latin1.md"
+	assert_not_contains "$OUT" "Traceback" "non-UTF-8 file does not crash"
+	assert_rc 0 "non-UTF-8 file exits 0 without --strict"
+}
+
+t_noslop_prose_rubric_present() {
+	assert_file_exists "$SKILL_DIR/references/prose-rubric.md" "references/prose-rubric.md exists"
+	assert_file_exists "$SKILL_DIR/scripts/slop_prose.py" "scripts/slop_prose.py exists"
+}
+
+# ---------------------------------------------------------------------------
+# NP-09 (unvetted perf number), NP-12 (jargon metaphor), NS-30 (TS partiality)
+# and the lens rows NP-10, NP-11, NS-31 to NS-33. Prose cases write one
+# markdown file; TS cases run --all-lines on a plain directory.
+# ---------------------------------------------------------------------------
+
+prose_out_for() {
+	local f
+	f=$(tmp_dir)/p.md
+	printf '%s\n' "$1" >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+}
+
+t_noslop_np09_flags_unvetted_perf_claim() {
+	prose_out_for 'The export is now 40% faster than before.'
+	assert_contains "$OUT" "NP-09" "perf number plus comparison flags NP-09"
+	assert_contains "$OUT" "run benchmark-checklist" "NP-09 names benchmark-checklist"
+	prose_out_for 'Latency went from 120 ms to 80 ms after the change.'
+	assert_contains "$OUT" "NP-09" "'from X to Y' with ms flags NP-09"
+}
+
+t_noslop_np09_passes_vetted_or_non_perf() {
+	prose_out_for 'The p50 went from 41 ms to 33 ms, median of 7 runs per side.'
+	assert_not_contains "$OUT" "NP-09" "run count clears NP-09"
+	prose_out_for 'Export is 40% faster, measured with `./bench.sh --runs 7`.'
+	assert_not_contains "$OUT" "NP-09" "inline command clears NP-09"
+	prose_out_for 'The retry delay is set to 500 ms.'
+	assert_not_contains "$OUT" "NP-09" "number without a comparison passes (config value)"
+	prose_out_for 'This is much faster and cleaner.'
+	assert_not_contains "$OUT" "NP-09" "comparison without a number passes"
+}
+
+t_noslop_np09_rejects_fake_proof() {
+	prose_out_for 'The export now runs 40% faster.'
+	assert_contains "$OUT" "NP-09" "verb 'runs' is not a run count"
+	prose_out_for 'Builds run 3x faster after caching.'
+	assert_contains "$OUT" "NP-09" "verb 'run' is not a run count"
+	prose_out_for '`parseRows` is now 3x faster.'
+	assert_contains "$OUT" "NP-09" "backticked identifier is not a command"
+	prose_out_for 'p95 dropped from 200 ms to 90 ms, see [the dashboard](https://x.y/z).'
+	assert_contains "$OUT" "NP-09" "a link is not proof"
+	prose_out_for 'Export is 40% faster over 7 runs.'
+	assert_not_contains "$OUT" "NP-09" "'7 runs' is a run count"
+}
+
+t_noslop_np09_ignores_fenced_code() {
+	local f
+	f=$(tmp_dir)/f.md
+	printf '```\nexport is now 40%% faster\n```\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_not_contains "$OUT" "NP-09" "fenced code is never flagged by NP-09"
+}
+
+t_noslop_np12_flags_jargon_metaphor() {
+	prose_out_for 'The flywheel keeps spinning after each release.'
+	assert_contains "$OUT" "NP-12" "'flywheel' flags NP-12"
+	assert_contains "$OUT" "flywheel" "NP-12 names the word"
+	prose_out_for 'Our north star is fewer round trips.'
+	assert_contains "$OUT" "NP-12" "'north star' flags NP-12"
+}
+
+t_noslop_np12_misses_code_and_ratchet() {
+	local f
+	f=$(tmp_dir)/f.md
+	printf '```\nthe flywheel substrate\n```\n\nRun `flywheel` now.\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_not_contains "$OUT" "NP-12" "jargon inside code is not flagged"
+	prose_out_for 'The ratchet is one-way, so a passing gate stays passing.'
+	assert_eq "$OUT" "" "'ratchet' is flow's own term and is not flagged"
+}
+
+t_noslop_prose_rubric_new_rows() {
+	local r
+	r=$(cat "$SKILL_DIR/references/prose-rubric.md")
+	for id in NP-09 NP-10 NP-11 NP-12; do
+		assert_contains "$r" "| $id |" "prose-rubric has a $id row"
+	done
+	assert_contains "$r" "makes a sentence worse" "prose-rubric header: fix it another way"
+}
+
+ts_scan() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/src"
+	printf '%s\n' "$1" >"$d/src/a.ts"
+	run_cmd bash -c 'cd "$1" && exec "$2" --all-lines --files src/a.ts --no-tools' _ "$d" "$SLOP_CHECK"
+}
+
+t_noslop_ns30_flags_ts_partiality() {
+	ts_scan 'const u = arr[0] as User;'
+	assert_contains "$OUT" "NS-30" "index then 'as User' flags NS-30"
+	ts_scan 'const id = x!.id;'
+	assert_contains "$OUT" "NS-30" "non-null assertion before '.' flags NS-30"
+	ts_scan "throw new Error('should never happen');"
+	assert_contains "$OUT" "NS-30" "'should never happen' in a throw flags NS-30"
+	ts_scan '// should never happen'
+	assert_contains "$OUT" "NS-30" "'should never happen' in a comment flags NS-30"
+}
+
+t_noslop_ns30_leaves_legitimate_ts_alone() {
+	ts_scan 'const k = ["a"] as const;'
+	assert_not_contains "$OUT" "NS-30" "'as const' is not flagged"
+	ts_scan 'if (a !== b) { run(); }'
+	assert_not_contains "$OUT" "NS-30" "'!==' is not flagged"
+	ts_scan 'inputRef.current!.focus();'
+	assert_not_contains "$OUT" "NS-30" "React ref access is exempt"
+	ts_scan 'const s = "hello!.";'
+	assert_not_contains "$OUT" "NS-30" "'!.' inside a string is not flagged"
+}
+
+t_noslop_rubric_new_rows() {
+	local r l id
+	r=$(cat "$SKILL_DIR/references/rubric.md")
+	l=$(cat "$SKILL_DIR/references/adversary-lens.md")
+	for id in NS-30 NS-31 NS-32 NS-33; do
+		assert_contains "$r" "| $id |" "rubric has a $id row"
+		assert_contains "$l" "$id" "adversary-lens names $id"
+	done
+}
+
+# M24: NS-26 gains the returns-nothing and fixture-asserts-fixture clauses.
+t_noslop_ns26_has_strength_probes() {
+	local row row33
+	row=$(grep '^| NS-26 |' "$SKILL_DIR/references/rubric.md")
+	row33=$(grep '^| NS-33 |' "$SKILL_DIR/references/rubric.md")
+	assert_contains "$row" "returned undefined or None" "NS-26 has the returns-nothing probe"
+	assert_contains "$row" "subject never runs" "NS-26 has the fixture-asserts-fixture clause"
+	assert_contains "$row33" "shipped artifact" "NS-33 exempts skill and prompt text"
+	assert_contains "$row33" "advise" "NS-33 is advise"
+	assert_contains "$(cat "$SKILL_DIR/references/adversary-lens.md")" "returns-nothing probe" "lens carries the returns-nothing probe"
+}
+
+# M25: NS-23 and NS-31 must not contradict.
+t_noslop_ns23_defers_to_ns31() {
+	local row
+	row=$(grep '^| NS-23 |' "$SKILL_DIR/references/rubric.md")
+	assert_contains "$row" "no such check is practical" "NS-23 keeps a constraint comment only when no check is practical"
+	row=$(grep '^| NS-31 |' "$SKILL_DIR/references/rubric.md")
+	assert_contains "$row" "delete the comment" "NS-31 says to delete the comment once the check exists"
+	assert_contains "$row" "advise" "NS-31 is advise"
+	assert_contains "$row" "external" "NS-31 leaves external-behaviour constraints alone"
+}
+
+# M26: the domain-shape row names the finding and the fix.
+t_noslop_ns32_domain_shape_row() {
+	local row
+	row=$(grep '^| NS-32 |' "$SKILL_DIR/references/rubric.md")
+	assert_contains "$row" "discriminated union" "NS-32 suggests a discriminated union"
+	assert_contains "$row" "must agree" "NS-32 names the must-agree field"
+	assert_contains "$row" "advise" "NS-32 is advise"
+}
+
+# M03/M16: the PR body shape carries the new lines.
+t_noslop_pr_body_new_lines() {
+	local b
+	b=$(cat "$SCAN_DIR/../skills/shared/pr-body.md")
+	assert_contains "$b" "## Left out" "pr-body has a Left out section"
+	assert_contains "$b" "flow digest --json" "pr-body names flow digest --json"
+	assert_contains "$b" "link long logs" "pr-body says to link long logs"
+	assert_contains "$b" "NP-09" "pr-body ties NP-09 to benchmark-checklist"
+	assert_contains "$b" "benchmark-checklist" "pr-body names benchmark-checklist"
+}

@@ -793,3 +793,87 @@ t_flowlint_git_missing_exits_nonzero_with_message() {
 	assert_contains "$ERR" "git not found on PATH" "flow-lint names git as missing on stderr"
 	rm -rf "$fakebin"
 }
+
+# ---------------------------------------------------------------------------
+# flow lint (CLI) — an unattended `Verified:` needs a clean claim-check file
+# ---------------------------------------------------------------------------
+
+# _cc_feature <verified-line> — a tmp feature dir holding tasks-good.md with the
+# given Verified: line appended to its header. Echoes the dir.
+_cc_feature() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/001-x"
+	awk -v v="$1" '{print} NR==3{print v}' "$FIX/tasks-good.md" >"$d/001-x/TASKS.md"
+	printf '%s' "$d"
+}
+
+_cc_lint() { # <dir> [flags] — runs the real `flow lint` CLI on the feature
+	local d=$1
+	shift
+	run_cmd node "$SCAN_DIR/../bin/flow" lint "$d/001-x/TASKS.md" "$@"
+}
+
+t_flowlint_claimcheck_new_date_missing_file_errors() {
+	local d
+	d=$(_cc_feature 'Verified: 2026-10-09 by user (pre-approved: /flow:next --finish)')
+	_cc_lint "$d"
+	assert_rc 1 "a new-dated pre-approved Verified: with no claim-check file is an ERROR"
+	assert_contains "$OUT" "verify/claim-check.md" "the ERROR names the missing file"
+	assert_contains "$OUT" "fix:" "the ERROR carries a fix:"
+	_cc_lint "$d" --json
+	assert_contains "$OUT" '"ok":false' "--json reports ok:false"
+	assert_contains "$OUT" "claim-check" "--json carries the claim-check error"
+	rm -rf "$d"
+}
+
+t_flowlint_claimcheck_zero_unsupported_clean() {
+	local d
+	d=$(_cc_feature 'Verified: 2026-10-09 by user (pre-approved: /flow:next --finish)')
+	mkdir -p "$d/001-x/verify"
+	printf 'CLAIM: x\nVERDICT: CONFIRMED\n3 confirmed, 0 unsupported, 0 inconclusive, 0 not-checkable.\n' >"$d/001-x/verify/claim-check.md"
+	_cc_lint "$d"
+	assert_rc 0 "a claim-check file reporting 0 unsupported is clean"
+	assert_not_contains "$OUT" "ERROR" "no ERROR with 0 unsupported"
+	printf '2 confirmed, 1 unsupported, 0 inconclusive, 0 not-checkable.\n' >"$d/001-x/verify/claim-check.md"
+	_cc_lint "$d"
+	assert_rc 1 "a claim-check file reporting 1 unsupported is an ERROR"
+	assert_contains "$OUT" "unsupported" "the ERROR names the unsupported count"
+	rm -rf "$d"
+}
+
+t_flowlint_claimcheck_summary_line_wins_over_quoted_zero() {
+	local d
+	d=$(_cc_feature 'Verified: 2026-10-09 by user (pre-approved: /flow:next --finish)')
+	mkdir -p "$d/001-x/verify"
+	printf 'CLAIM: lint says 0 unsupported is clean\nVERDICT: UNSUPPORTED\n0 confirmed, 1 unsupported, 0 inconclusive, 0 not-checkable.\n' >"$d/001-x/verify/claim-check.md"
+	_cc_lint "$d"
+	assert_rc 1 "an earlier quoted '0 unsupported' does not hide the summary line"
+	assert_not_contains "$OUT" "OK TASKS.md" "no OK line beside the claim-check ERROR"
+	rm -rf "$d"
+}
+
+t_flowlint_claimcheck_resolves_from_subdir() {
+	local d
+	d=$(_cc_feature 'Verified: 2026-10-09 by user (pre-approved: /flow:next --finish)')
+	mkdir -p "$d/001-x/verify" "$d/sub"
+	printf '3 confirmed, 0 unsupported, 0 inconclusive, 0 not-checkable.\n' >"$d/001-x/verify/claim-check.md"
+	git -C "$d" init -q
+	cd "$d/sub" || return 1
+	run_cmd node "$SCAN_DIR/../bin/flow" lint 001-x/TASKS.md
+	cd - >/dev/null || return 1
+	assert_not_contains "$OUT" "claim-check-missing" "a root-relative path from a subdir finds the claim-check file"
+	rm -rf "$d"
+}
+
+t_flowlint_claimcheck_old_date_missing_file_clean() {
+	local d d2
+	d=$(_cc_feature 'Verified: 2026-10-08 by user (pre-approved: /flow:next --finish)')
+	_cc_lint "$d"
+	assert_rc 0 "an older-dated pre-approved Verified: with no file stays clean"
+	assert_not_contains "$OUT" "claim-check" "no claim-check complaint on an older line"
+	d2=$(_cc_feature 'Verified: 2026-10-09 by user')
+	_cc_lint "$d2"
+	assert_rc 0 "a hand Verified: line (not pre-approved) needs no claim-check file"
+	rm -rf "$d" "$d2"
+}

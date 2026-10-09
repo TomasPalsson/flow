@@ -121,6 +121,7 @@ One-paragraph orientation: **AgentCore Observability** emits OTEL traces (GenAI 
 - **Never leave the judge model or temperature unpinned** — silent provider updates shift scores 3–8 points; you'll chase phantom regressions.
 - **Never rigidly match a single reference trajectory** for agents — frontier agents find valid alternate paths; grade the end state.
 - **Never accept the agent's *claim* of completion** — verify the environment actually changed (tests pass, record written).
+- **Never let a candidate see that it is graded, and never score chain-following from its own account.** Nothing the candidate can see (paths, file names, prompts, commit author) may contain eval, test-harness, judge, rubric, score, benchmark, candidate or arena, because an agent that knows it is graded behaves differently. Grade whether it followed a skill or instruction chain from the files the transcript shows it opened, not from what it says it applied.
 - **Never test only happy paths** — your worst-experience users already left the dataset; construct adversarial, edge, multi-turn, and tool-failure cases.
 - **Never chase 100% pass rate** — it means the eval is too easy. 70% on hard, adversarial cases is more informative.
 - **Never treat the eval score as the goal** (Goodhart). When the score and user signals diverge, trust the users and fix the eval.

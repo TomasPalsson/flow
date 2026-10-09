@@ -111,7 +111,7 @@ function runLint(root, tasksPath, env) {
     return { crash: `flow-lint produced no output: ${why}` };
   }
   try {
-    return { json: JSON.parse(out) };
+    return { json: require('./lint.js').withClaimCheck(JSON.parse(out), root) };
   } catch {
     return { crash: `flow-lint emitted unparseable JSON (${out.slice(0, 120)})` };
   }

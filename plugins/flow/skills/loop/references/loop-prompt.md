@@ -97,3 +97,17 @@ Then: `flow loop init "<spec goal>" --verify "./init.sh && node -e '<all items p
 ## 6. Regenerate, do not patch
 
 When the task list stops matching reality (duplicate work, items done but unmarked, clutter), run one planning iteration whose body is "compare the spec to the code with subagents and rewrite tasks.json from scratch; implement nothing", then resume. Huntley: "I have deleted the TODO list multiple times."
+
+## Metric loops: body template
+
+In the metric form (`flow loop init --metric`), the continuation already carries the best value, the noise, the last five attempts and a pivot note. The body names the search space:
+
+```markdown
+First read .claude/loop/decisions.tsv: every earlier attempt, its before and after, and whether it was kept.
+Do not repeat a rejected idea. After 3 rejects in a row, change category (a different kind of change,
+not another variation of the last one).
+Make ONE change aimed at the metric, commit it with a message that states the hypothesis (the message
+becomes the hypothesis column), and stop. The loop measures, then keeps or reverts the commit itself.
+Do not commit .claude/loop/LEARNINGS.md and do not run `git reset`; append learnings as usual.
+Out of scope: <the scorer, its data, the regression gate>.
+```

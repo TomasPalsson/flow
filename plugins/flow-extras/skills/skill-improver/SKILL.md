@@ -118,6 +118,15 @@ After the edit, run through this checklist:
 
 If any box is unchecked, revert and re-plan.
 
+### Step 2f: Measure the edit against the skill's eval cases
+
+Last step of every Directed pass, so a prose check is never the only evidence. It runs once per pass and prints nothing until it has something to report.
+
+1. Select: `scripts/select-cases <skill> <repo-root>` (in this skill's directory) lists the eval cases whose prompt invokes `/<plugin>:<skill>` or whose grader expects only that skill, the `quality-*` cases when the skill is `no-slop` (they are graded on its rubric), and `.skill-forge/<skill>/behaviour/*.md` when present. A case's name is its directory name.
+2. If nothing is selected, print one line, `no eval cases for <skill>`, and stop. The with/without run from Minimum Viable Output still applies.
+3. Otherwise run `flow eval --case <name>... --runs 3` twice: once in a temporary worktree of the pre-edit commit (`git worktree add "$(mktemp -d)" <pre-edit-sha>`, removed with `git worktree remove` afterwards), once at the edit. Three runs, because one run cannot tell a drop from noise.
+4. Print `base=<score> edit=<score>` for each case. A drop larger than the run-to-run range means the edit is not done: revert or re-plan. Behaviour prompts have no scorer, so run them with and without the edit and report what changed.
+
 ---
 
 ## Phase 2 (Creative Mode): Explore → Diverge → Converge → Present
@@ -246,4 +255,4 @@ Never apply feedback that contradicts a prior round without flagging the conflic
 
 ## Minimum Viable Output
 
-Before reporting complete, verify: mode was explicit, failure class was diagnosed, voice was preserved, all changes were in-budget, regression check ran on all 8 dimensions, body ≤ 500 lines, behavioural evidence for content changes (with/without on 2-3 prompts), or "Behavioral evidence: NONE" stated. Creative mode also needs: Trade-off field on every idea, ≥1 compression/subtraction idea, all ideas grounded in quoted SKILL.md sources (not generic advice). Any scope creep → flagged as separate opportunity, not silently applied.
+Before reporting complete, verify: mode was explicit, failure class was diagnosed, voice was preserved, all changes were in-budget, regression check ran on all 8 dimensions, body ≤ 500 lines, behavioural evidence for content changes: the `base=` / `edit=` lines from Step 2f, or `no eval cases for <skill>` plus a with/without run on 2-3 prompts, or "Behavioral evidence: NONE" stated. Creative mode also needs: Trade-off field on every idea, ≥1 compression/subtraction idea, all ideas grounded in quoted SKILL.md sources (not generic advice). Any scope creep → flagged as separate opportunity, not silently applied.

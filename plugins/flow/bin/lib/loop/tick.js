@@ -11,6 +11,7 @@ const { tamperCheck } = require('./tamper.js');
 const { fingerprint } = require('./fingerprint.js');
 const { appendLog } = require('./log.js');
 const { continuationReason, finishReason } = require('./reasons.js');
+const { metricStep, stallSuppressed, metricNote } = require('./metric.js');
 const { toInt, toFloat, headSha, fmtCost } = require('./util.js');
 
 function terminalFinish(toplevel, front, body, now) {
@@ -85,7 +86,7 @@ function logEvent(toplevel, front, event, verify, changed, note) {
 function tickFailPath(toplevel, front, body, verify, now) {
   const { unchanged, stopReason: stallStopReason } = tickStallWedge(toplevel, front, verify.sig);
   front.iteration = String(toInt(front.iteration) + 1);
-  const stopReason = stallStopReason || tickCapReason(front, now);
+  const stopReason = (stallSuppressed(front) ? null : stallStopReason) || tickCapReason(front, now);
   if (stopReason) {
     front.status = 'stopped';
     front.stop_reason = stopReason;
@@ -96,7 +97,7 @@ function tickFailPath(toplevel, front, body, verify, now) {
   writeContract(toplevel, front, body);
   return {
     action: 'continue',
-    reason: continuationReason(front, verify, unchanged, body),
+    reason: continuationReason(front, verify, unchanged, body, front.metric ? metricNote(toplevel, front) : ''),
     status: front.status,
     iteration: toInt(front.iteration),
   };
@@ -115,7 +116,19 @@ function tickCheckPath(toplevel, front, body, now, env) {
     logEvent(toplevel, front, 'stop', verify, true, front.stop_reason);
     return terminalFinish(toplevel, front, body, now);
   }
-  const verdict = verify.rc === 0 ? (tamper.length ? 'suspect' : 'pass') : 'fail';
+  let passed = verify.rc === 0;
+  if (front.metric) {
+    const step = metricStep(toplevel, front, verify, env);
+    if (step.stopReason) {
+      front.status = 'stopped';
+      front.stop_reason = step.stopReason;
+      logEvent(toplevel, front, 'stop', verify, true, step.stopReason);
+      return terminalFinish(toplevel, front, body, now);
+    }
+    verify.sig = step.sig;
+    passed = step.reached;
+  }
+  const verdict = passed ? (tamper.length ? 'suspect' : 'pass') : 'fail';
   if (verdict === 'fail') return tickFailPath(toplevel, front, body, verify, now);
   front.status = verdict === 'pass' ? 'done' : 'suspect';
   if (verdict === 'suspect') front.tamper_note = tamper.join('; ');

@@ -197,3 +197,55 @@ t_finish_extra_files_do_not_trip_flow_lint() {
 	assert_rc 0 "flow lint ignores FINISH.md and .finish-blocks"
 	rm -rf "$home" "$proj"
 }
+
+# --- --finish rules 5, 8 and 9 in skills/next/SKILL.md ----------------------
+FIN_SKILL_MD="${NX_SKILL_PATH:-$SCAN_DIR/../skills/next/SKILL.md}"
+
+t_finish_pause_rule_names_finish_off_and_excludes_keep_going() {
+	local txt rule
+	txt=$(cat "$FIN_SKILL_MD")
+	rule=$(printf '%s\n' "$txt" | grep '^8\. \*\*Pause on request')
+	assert_contains "$rule" "\`flow finish off\`" "pause disarms with flow finish off"
+	assert_contains "$rule" "\"keep going\" and \"I'm leaving\" are not pauses" "keep going and leaving are not pauses"
+	assert_contains "$rule" "wip: <task> (tree may be red)" "wip commit message"
+	assert_contains "$rule" "Do not push and do not open a PR" "no push, no PR"
+	assert_contains "$rule" "- Ruling: paused at <state> by user — resume with /flow:next --finish" "ruling line"
+	assert_contains "$rule" "\`stop-gate\`" "states which gate still fires"
+	assert_contains "$rule" "CC_NO_STOP_GATE=1" "and its escape"
+}
+
+t_finish_acceptance_rows_go_through_claim_check_before_verified() {
+	local rule
+	rule=$(grep '^5\. `unverified`' "$FIN_SKILL_MD")
+	assert_contains "$rule" "spawn the \`claim-check\` agent" "claim-check is spawned"
+	assert_contains "$rule" "verify/claim-check.md" "output path is named"
+	assert_contains "$rule" "UNSUPPORTED is unmet" "unsupported row is unmet"
+	assert_contains "$rule" "INCONCLUSIVE and NOT-CHECKABLE rows go into the final report" "inconclusive rows reported"
+}
+
+t_finish_done_rule_audits_the_transcript_before_finish_off() {
+	local rule
+	rule=$(grep '^9\. \*\*Done' "$FIN_SKILL_MD")
+	assert_contains "$rule" "before \`flow finish off\`" "audit precedes disarm"
+	assert_contains "$rule" "model: sonnet" "audit agent model"
+	assert_contains "$rule" "~/.claude/projects/<cwd-slug>/*.jsonl" "transcript location"
+	assert_contains "$rule" "every character that is not a letter or digit" "slug replaces dots and underscores too"
+	assert_contains "$rule" "no transcript is found" "missing transcript is reported, not silent"
+	assert_contains "$rule" "- Assumption: <what> — evidence: transcript:<line> (audit)" "audit line format"
+	assert_contains "$rule" "never edit an existing line" "append-only"
+}
+
+t_finish_audit_assumption_line_reaches_the_digest() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	fin_building "$proj"
+	printf '# Notes\n- Assumption: picked left-pad over a hand-rolled pad — evidence: transcript:412 (audit)\n' >"$proj/.specs/001-x/NOTES.md"
+	fin_cli_in "$proj" "$home" digest
+	assert_rc 0 "digest exits 0"
+	assert_contains "$OUT" "NOTES.md:2 Assumption: picked left-pad over a hand-rolled pad [evidence: transcript:412 (audit)]" "audit line shows in the Attention list"
+	fin_cli_in "$proj" "$home" finish on
+	fin_cli_in "$proj" "$home" finish off
+	assert_contains "$OUT" "transcript:412 (audit)" "finish off carries it too"
+	rm -rf "$home" "$proj"
+}

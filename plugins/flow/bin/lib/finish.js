@@ -106,6 +106,8 @@ function cmdOff(root, o, io, env) {
   const rel = path.relative(root, f.dir) || f.dir;
   if (!disarm(f.dir)) { io.stdout.write('finish: not armed\n'); return 0; }
   io.stdout.write(`finish: disarmed ${rel}\n`);
+  const { digestFor, render } = require('./digest.js');
+  io.stdout.write(render(digestFor(f.dir)));
   return 0;
 }
 
@@ -166,4 +168,4 @@ function run(argv, root, io, env) {
   return 2;
 }
 
-module.exports = { run };
+module.exports = { run, feature };

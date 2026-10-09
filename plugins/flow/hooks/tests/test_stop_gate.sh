@@ -950,3 +950,48 @@ t_stop_r6_manifest_removed_from_the_index_only_is_not_gone() {
 	rm -f "$(_stop_state_path "$repo" gates)" "$(_stop_state_path "$repo" baseline)"
 	rm -rf "$repo"
 }
+
+# --- pause path (/flow:next --finish rule 8): what Stop does after a wip commit
+# _stop_pause_repo <repo> <test-script> <sid> — a node repo with an approved
+# feature that still has an open task, then a `wip:` pathspec commit made this turn.
+_stop_pause_repo() {
+	local repo=$1 sid=$3
+	_stop_node_repo "$repo" "$2"
+	_stop_tasks "$repo"
+	git -C "$repo" add .specs >/dev/null 2>&1
+	git -C "$repo" -c user.email=t@t -c user.name=t commit -qm "tasks" >/dev/null 2>&1
+	_stop_stamp "$sid" "$repo"
+	printf 'module.exports = 1;\n' >"$repo/util.js"
+	git -C "$repo" add util.js >/dev/null 2>&1
+	git -C "$repo" -c user.email=t@t -c user.name=t commit -qm "wip: T001 (tree may be red)" -- util.js >/dev/null 2>&1
+}
+
+t_stop_pause_wip_commit_on_a_red_tree_still_blocks() {
+	local repo sid
+	repo=$(tmp_repo)
+	sid="stop-pause-red-$$"
+	_stop_pause_repo "$repo" "exit 1" "$sid"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_pause_wip_commit_on_a_red_tree_still_blocks rc"
+	assert_contains "$OUT" '"decision":"block"' "t_stop_pause_wip_commit_on_a_red_tree_still_blocks stop-gate-blocks"
+	assert_contains "$OUT" "CC_NO_STOP_GATE=1" "t_stop_pause_wip_commit_on_a_red_tree_still_blocks names-its-escape-hatch"
+	# The escape the pause rule relies on really escapes.
+	_stop_run "$sid" "$repo" CC_NO_STOP_GATE=1
+	assert_not_contains "$OUT" '"decision"' "t_stop_pause_wip_commit_on_a_red_tree_still_blocks env-hatch-really-escapes"
+	_stop_forget "$sid"
+	rm -f "$(_stop_state_path "$repo" baseline)" "$(_stop_state_path "$repo" gates)"
+	rm -rf "$repo"
+}
+
+t_stop_pause_an_open_task_alone_does_not_block() {
+	local repo sid
+	repo=$(tmp_repo)
+	sid="stop-pause-open-$$"
+	_stop_pause_repo "$repo" "exit 0" "$sid"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "t_stop_pause_an_open_task_alone_does_not_block rc"
+	assert_not_contains "$OUT" '"decision"' "t_stop_pause_an_open_task_alone_does_not_block open-task-is-not-a-gate"
+	_stop_forget "$sid"
+	rm -f "$(_stop_state_path "$repo" baseline)" "$(_stop_state_path "$repo" gates)"
+	rm -rf "$repo"
+}

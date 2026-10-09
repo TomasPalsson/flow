@@ -17,6 +17,12 @@ Budget: 4 items on `bounded`, 5–7 on `oneshot`, 7–10 on `dispatch`. Cap at 1
 
 > `N. <Category> — <the position>. Why: <one clause from the description, the domain, or this repo>.`
 
+## Observe before you take a position
+
+Before writing the turn, sort each position by what settles it. An **empirical fork** is one a run can answer: behaviour, timing, layout, output, performance, whether a library does X. Run a scratch probe for it (a throwaway script in the job's tmp dir, never in the repo) and quote the result as the `Why:` of that position, so the user corrects an observation rather than a guess. Only product or preference calls that no run can settle stay open positions.
+
+If the probe would take more than a few minutes, do not run it here: state the position as an assumption and route the question to a `/flow:prep` spike.
+
 ## The categories, in order of impact-if-missed
 
 Cover each one that carries real risk for this idea; skip a category only when the description already settles it, and say which you skipped.

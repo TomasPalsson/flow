@@ -250,6 +250,25 @@ t_next_row1d_lint_error_is_invalid() {
 	rm -rf "$home" "$proj"
 }
 
+t_next_row1d_preapproved_verified_without_claim_check_is_invalid() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" \
+		$'Approved: 2026-10-09 by user\nVerified: 2026-10-09 by user (pre-approved: /flow:next --finish)' \
+		'- [x] T001 a — files: a.py — verify: `true`'
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "invalid"' "a pre-approved Verified: with no claim-check file routes to invalid"
+	assert_contains "$OUT" 'claim-check.md' "the router names the missing claim-check file"
+	mkdir -p "$proj/.specs/001-x/verify"
+	printf '1 confirmed, 0 unsupported, 0 inconclusive, 0 not-checkable.\n' >"$proj/.specs/001-x/verify/claim-check.md"
+	nx_cli_in "$proj" "$home" next --json
+	assert_not_contains "$OUT" 'claim-check' "a clean claim-check file clears the gate"
+	rm -rf "$home" "$proj"
+}
+
 t_next_row1e_lying_tick() {
 	local home proj base sha
 	home=$(tmp_dir)
@@ -1014,4 +1033,90 @@ t_next_a_genuinely_empty_active_feature_still_says_so() {
 	assert_contains "$OUT" '"state": "no-project"' "a truly empty dir is still row 2"
 	assert_contains "$OUT" "no PREP.md" "and the why says which files are missing"
 	rm -rf "$home" "$proj"
+}
+
+# --- babysit triggers in skills/next/SKILL.md (text assertions) -------------
+NX_SKILL_MD="${NX_SKILL_PATH:-$SCAN_DIR/../skills/next/SKILL.md}"
+
+t_next_babysit_finish_trigger_is_foreground_and_before_finish_off() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" "run the \`flow-extras:babysit\` skill in \`drive\` mode before rule 9's \`flow finish off\`" "finish trigger names drive and the finish-off ordering"
+	assert_contains "$txt" "--max-minutes 9" "foreground chunk size"
+	assert_contains "$txt" "timeout 600000" "Bash timeout raised so a 9 minute chunk is not killed at 2 minutes" # portable-ok: asserts prose, not a command
+	assert_contains "$txt" "finish-gate Stop hook re-prompt in a loop" "the reason for foreground polling"
+	assert_contains "$txt" "re-run the gates on \`stale-pass\`" "gates re-run after a push"
+}
+
+t_next_babysit_skips_quietly_without_ci_gh_or_flow_extras() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" "\`gh\` works" "skip when gh fails"
+	assert_contains "$txt" ".github/workflows/*.yml" "skip when the head has no workflows"
+	assert_contains "$txt" "\`flow-extras:babysit\` skill is available" "skip when flow-extras is absent"
+	assert_contains "$txt" "skip it without a word" "the skip is quiet"
+}
+
+t_next_babysit_attended_shipped_prints_one_line_and_never_readies() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" "one \`pr-watch --once\` and print its single line" "attended shipped row"
+	assert_contains "$txt" "/flow-extras:babysit <pr>" "Next: names babysit"
+	assert_contains "$txt" "only when that line's action is \`fix-ci\` or \`resolve-conflict\`" "Next: only on a fix action"
+	assert_contains "$txt" "never runs \`gh pr ready\`" "no gh pr ready"
+}
+
+t_next_babysit_exception_is_in_the_babysit_skill() {
+	local txt
+	txt=$(cat "$SCAN_DIR/../../flow-extras/skills/babysit/SKILL.md")
+	assert_contains "$txt" "called from \`/flow:next --finish\`" "foreground exception heading"
+	assert_contains "$txt" "--max-minutes 9" "chunk size in babysit"
+	assert_contains "$txt" "timeout 600000" "babysit foreground chunk raises the Bash timeout" # portable-ok: asserts prose, not a command
+}
+
+t_next_ship_left_out_comes_from_flow_digest_json() {
+	local home proj txt body
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-x
+	printf '# Notes\n- Discovered: a.py:4 — swallowed error — defer\n- Discovered: b.py:9 — typo — defer → I-003\n' >"$proj/.specs/001-x/NOTES.md"
+	nx_cli_in "$proj" "$home" digest --json
+	assert_rc 0 "flow digest --json exits 0"
+	assert_contains "$OUT" '"kind": "discovered"' "the unfiled defer is in the digest JSON"
+	assert_contains "$OUT" "swallowed error" "with its NOTES.md text"
+	assert_not_contains "$OUT" "typo" "a filed defer is left out"
+	txt=$(cat "$NX_SKILL_MD")
+	body=$(cat "$SCAN_DIR/../skills/shared/pr-body.md")
+	assert_contains "$txt" 'run `flow digest --json` yourself' "Ship names the digest call"
+	assert_contains "$txt" '`## Left out`' "Ship names the Left out section"
+	assert_contains "$txt" "Before \`gh pr create\`" "the digest runs before the PR is written"
+	assert_contains "$txt" "rule 9's \`flow finish off\` prints the digest only after the PR is written" "Finish rule 6 explains the ordering"
+	assert_contains "$body" '`flow digest --json`' "pr-body.md names the digest call"
+	assert_contains "$body" "## Left out" "pr-body.md has the section"
+	rm -rf "$home" "$proj"
+}
+
+t_next_checkpoints_name_evidence_by_chk_id() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" 'each named `verify/<CHK-id>*`' "Checkpoints name the evidence prefix"
+	assert_contains "$txt" "no evidence for CHK011" "and the refusal it avoids"
+}
+
+t_next_checkpoints_generate_verify_skill_once_without_stopping() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" '`verify-skill` `create` once' "create runs once"
+	assert_contains "$txt" "draft, not run" "a human-only input or dead app is a draft"
+	assert_contains "$txt" "It never stops the run" "and never stops the run"
+}
+
+t_next_drafting_declares_parity_baseline_at_base() {
+	local txt tpl
+	txt=$(cat "$NX_SKILL_MD")
+	tpl=$(cat "$SCAN_DIR/../flow-templates/TASKS.md")
+	assert_contains "$txt" '`**Behaviour-preserving**: yes`' "keyed on the declaration"
+	assert_contains "$txt" 'runs it at Base, before any other task commits, into `verify/baseline.txt`' "T000 captures at Base"
+	assert_contains "$txt" '`<cmd> | diff verify/baseline.txt -`' "the gate diffs against the baseline"
+	assert_contains "$tpl" "Parity: <cmd>" "the template documents the header field"
 }

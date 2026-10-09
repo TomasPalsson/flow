@@ -14,8 +14,8 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
 	exit 1
 fi
 git init -q -b flow/orders-export
-git config user.email "eval@example.com"
-git config user.name "eval-scaffold"
+git config user.email "dev@example.com"
+git config user.name "Dev"
 git config commit.gpgsign false
 
 # Fixed commit dates make every sha reproducible, so a postcheck can rebuild the

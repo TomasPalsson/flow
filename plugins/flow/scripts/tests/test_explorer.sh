@@ -115,6 +115,12 @@ t_explorer_verbatim_return_shape() {
   assert_contains "$content" "≤ 40 lines. Every line carries a path:line receipt you opened this run. No receipt, no line." "explorer.md: return shape cap sentence"
 }
 
+t_explorer_return_shape_has_unknowns() {
+  local content
+  content=$(cat "$EXPLORER_MD")
+  assert_contains "$content" "unknowns: could not trace X → Y (what was tried)" "explorer.md: return shape unknowns line"
+}
+
 t_explorer_verbatim_after_exploring() {
   local content
   content=$(cat "$EXPLORER_MD")

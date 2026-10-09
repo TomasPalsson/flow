@@ -44,6 +44,14 @@ Write the test yourself and prove it is a real oracle — **both sides**:
 1. It **fails on HEAD**, and fails with the *reported* error — assert the specific wrong value or message from the bug report, not merely that something raises. A test that is red for the wrong reason (import error, over-broad `assertRaises`) becomes a verifier that can never go green.
 2. Commit it red: `test(<scope>): failing test for <bug>`, and **paste the failing run's output and exit code into the commit body**. On the direct path nothing external checks that this test was ever red — `flow loop init`'s green-verifier refusal only guards the `--loop` path — so this observation *is* the contract. This commit is the reproduction; nothing downstream may edit it.
 
+**Frontend category: reproduce in the browser twice before the test.** Leftover state can fake a symptom, and a model that judges its own screenshots grades itself, so the repro is built to be checked:
+
+1. Write one line naming the correct final state and the broken final state. The reviewer in §5 gets these two lines and nothing else to go on.
+2. Drive the path with real UI actions only. A fixture may set preconditions but never injects the symptom. Save `./bug-before.png` at the end.
+3. Reset (close the browser, clear storage, reopen) and drive the path again. Only two matching observations count as reproduced; if they differ, the cause is state or timing, so treat the bug as intermittent (below).
+
+The committed red test still comes next and is still the contract; the browser observations are its input, not a substitute.
+
 **Never edit a non-test file before the failing test has been run and its red output is in front of you** — writing the test is not reproducing; the run is. The first tool call that touches source is an edit only after a Bash call has executed the test and shown the reported failure.
 
 **Prose steps are input to writing that test, never a substitute for it.** If a plain test will not reproduce the bug, load [`feedback-loops.md`](feedback-loops.md) and walk its ladder; the red-capable command it yields is the reproduction, committed beside the test. Only when every rung fails, say so and stop: *"I can't turn this into a failing test. Here's what I tried: [list]. What am I missing about the environment, steps or input?"*
@@ -52,7 +60,7 @@ Write the test yourself and prove it is a real oracle — **both sides**:
 
 ## 2. Diagnose
 
-Run `git log --oneline -10 -- <files>` yourself — it is ten lines you want verbatim, not a subagent round-trip. When triage gave a minimal failing command and a known-good ref exists, prefer `git bisect run <that command>`: it returns a named commit instead of a ranked guess.
+Run `git log --oneline -10 -- <files>` yourself — it is ten lines you want verbatim, not a subagent round-trip. When the fix changes or removes a guard, check or constant, also run `git log -S'<literal>' --oneline -- <file>` and read that commit's message: it says why the guard was added, and removing it blind reintroduces that bug. When triage gave a minimal failing command and a known-good ref exists, prefer `git bisect run <that command>`: it returns a named commit instead of a ranked guess.
 
 When the trace does not explain the failure, minimise the reproduction and write ranked falsifiable hypotheses per [`feedback-loops.md`](feedback-loops.md) before probing.
 
@@ -76,6 +84,8 @@ The smallest change that turns the red test green — at the shared entry point 
 
 Read only the ranges the diagnosis names. Widen only when a read fails to explain the failure, and say why.
 
+Before the commit, revert every edit made for an attempt or hypothesis that failed (an extra null guard, a retry, a probe left from §2), then re-run steps 1-3 on what remains. A guard that was never needed passes every test and ships as noise.
+
 Then, in order:
 
 1. The reproduction test passes.
@@ -88,12 +98,15 @@ Then, in order:
 
 **Paste the command and its exit code for each of 1, 2, 3 and 5.** A step whose output was never shown did not run, and on this path there is no harness to catch that for you.
 
-**Stuck?** Same failure after **2** attempts: stop editing in this context. A third attempt conditioned on the first two inherits their wrong frame. Instead dispatch 3 `developer` agents in parallel (`model: sonnet`), each given the diagnosis and the failing test and **no prior transcript**; keep the patches that go green with zero new failures, take the smallest. Still nothing after that: re-diagnose against triage's *second* candidate cause. Still nothing: stop and report the three approaches and what each produced.
+**Stuck?** Same failure after **2** attempts: stop editing in this context. A third attempt conditioned on the first two inherits their wrong frame. First write one line, `Every failed attempt assumed: <premise>`, naming what both attempts took for granted. Then dispatch 3 `developer` agents in parallel (`model: sonnet`), each given the diagnosis, the failing test and that line as "do not assume this; verify it first", and **no prior transcript**. Keep the smallest green patch with zero new failures, only if it changes the function the diagnosis names: §4 puts the fix at that entry point, so patches that all miss it mean the diagnosis is wrong. If no green patch touches it, re-diagnose against triage's *second* candidate cause. Still nothing: stop and report the three approaches and what each produced.
 
 ## 5. Verify and ship
 
-1. **backend · infrastructure — do not load `verification.md` at all.** Its entire quick path for a no-UI change is: skip the browser, run the tests, grep a running server's logs for `[VERIFY]` lines, done. That sentence *is* the tier. Load [`verification.md`](../shared/verification.md) only for a frontend or integration bug, at the standard tier. Either way, a verification claim with no artefact on disk does not count.
-2. Review the diff with the `correctness` and `gaming` lenses from [`review.md`](../next/review.md); keep findings scoring ≥80; the fix ladder caps at 5 rounds. It has no tiers — do not ask it for one.
+1. **backend · infrastructure — do not load `verification.md` at all.** Its entire quick path for a no-UI change is: skip the browser, run the tests, grep a running server's logs for `[VERIFY]` lines, done. That sentence *is* the tier. Load [`verification.md`](../shared/verification.md) only for a frontend or integration bug, at the standard tier; it follows the project's `.claude/skills/verify-*/SKILL.md` when one exists and generates one the first time (its Step 2), so the generated skill rides in its own commit and the PR body lists it. Either way, a verification claim with no artefact on disk does not count.
+
+   **Frontend, before the verdict:** drive the same path again and save `./bug-after.png`. Spawn a fresh read-only agent (`model: sonnet`, Read only) given the two images and the two state lines from §1, asking: does before show the broken state and after the correct one? 'No' or 'uncertain' makes the verdict partial, so the PR stays draft, and its answer goes in the report. This adds no stop.
+2. Review the diff with the `correctness`, `gaming` and `slop` lenses from [`review.md`](../next/review.md); keep findings scoring ≥80; the fix ladder caps at 5 rounds. It has no tiers — do not ask it for one. The `slop` lens is there for the speculative guard on a value that was already guaranteed.
+   If the reproduction was a timing measurement, load `/flow-extras:benchmark-checklist` before reporting the after number, and report it with its run count and command. Skip quietly when flow-extras is not installed.
 3. Re-run the reproduction command one last time, at submit time, and grep the diff for `[VERIFY]` strings and test-file edits, and for `[DEBUG-`: remove every hit.
 4. `gh pr create --draft` → title `fix(<scope>): <description>`; body follows [`pr-body.md`](../shared/pr-body.md) and carries what was broken, the root cause (which hypothesis proved correct), the fix, and the revert-proof exit codes from §4. **`gh pr ready` only on a `verified` verdict** — on `partial` the PR stays draft and you say which check did not run. A ready PR with an unrun check looks reviewed and is not.
 5. Issue runs: moment 2 per [`issue-refs.md`](../shared/issue-refs.md) §4 at merge, marker checked first.

@@ -22,6 +22,10 @@ Place logs at: entry points of new/modified functions, branch conditions the fea
 
 ## Step 2: Dev Server Lifecycle
 
+**Tool selection**: If the project has `.claude/skills/verify-*/SKILL.md`, follow that skill for launch, driving and evidence instead of the generic steps below; fall back to them when it is absent or fails its doctor check.
+
+**First browser verification in a project**: when the tier is standard or full, no `.claude/skills/verify-*/SKILL.md` exists, stealth is off and flow-extras is installed, run the `verify-skill` `create` mode before driving the browser, once. Commit the generated skill alone (`chore(verify): add verify-<project> skill`) and list it in the PR body. Skip quietly when flow-extras is absent or stealth is active (a committed skill would show in a repo that must stay clean). If create needs an input only a human has (a test-account secret) under `--finish` or `--unattended`, or the app will not start, write the skill as "draft, not run", fall back to the generic steps below, and say so in the report; the fix or feature does not stop for it.
+
 **Starting**: If `.claude/scripts/start-dev-server.sh` exists, use it (parse JSON output for port/pid). Otherwise run `$DEV_CMD` in background. Store port as `$PORT`.
 
 **Stopping**: If `.claude/scripts/stop-dev-server.sh` exists, use it. Otherwise kill the background process.
@@ -47,7 +51,7 @@ agent-browser console && agent-browser close
 
 ### Standard (medium features / frontend/integration bugs)
 
-1. **Functional check**: Navigate to the feature/fix area, interact with it, verify expected behavior. Screenshot.
+1. **Functional check**: Navigate to the feature/fix area, interact with it, verify expected behavior. Screenshot. For a bug fix, drive the path recorded as the repro and save `./bug-after.png` beside the earlier `./bug-before.png`; the fix skill's reviewer compares the two.
 2. **Console check**: `agent-browser console` — no errors or warnings
 3. **Accessibility snapshot**: `agent-browser snapshot` — semantic HTML, ARIA labels present
 4. Close browser
@@ -72,6 +76,6 @@ agent-browser console && agent-browser close
 
 1. **Remove debug logs**: Search for `[VERIFY]` strings across all source files, remove those lines
 2. **Stop dev server**
-3. **Remove artifacts**: `rm -f ./verify-*.png ./bug-before.png ./bug-after.png .claude/verification-audit.local.md`
+3. **Keep evidence, remove scratch**: move `./verify-*.png`, `./bug-before.png`, `./bug-after.png` into `<Feature>/verify/` (a verification claim with no artefact on disk does not count); delete only `.claude/verification-audit.local.md`, which is scratch
 4. **Run CI checks**: `$LINT_CMD`, `$FORMAT_CMD`, `$TYPECHECK_CMD`, `$TEST_CMD` — fix any failures from cleanup
 5. **Commit**: `chore: remove verification artifacts`

@@ -23,7 +23,12 @@ A finding without a receipt is not a finding. A receipt is `path:line` plus the 
 - NS-22: the type annotation, constructor, or prior check (`path:line`) that already guarantees the value.
 - NS-23: the comment and the line it restates, quoted together.
 - NS-24: the added symbol and the sentence of the brief it was supposed to trace to, with "none".
-- NS-26: the assertion and the change to the implementation that would not make it fail.
+- NS-26: the assertion and the change to the implementation that would not make it fail. Include the returns-nothing probe: if every function the test imports returned undefined or None, would it still pass? And does any assertion read only data the test built itself?
+- NS-31: the added constraint comment and the cheapest check that would enforce it (a test name, a type, a lint rule). Skip constraints about external behaviour.
+- NS-32: the two fields that must agree, or the branch added to a kind switch, and the union or lookup table that would replace them.
+- NS-33: the test line and the constant it restates. Skip tests whose subject text is the shipped artifact.
+
+Rows NS-31 to NS-33 are advise: they never block and never rewrite code. NS-30 arrives through `slop-check`; confirm or dismiss it like any mechanical finding.
 
 If you cannot produce the receipt, the most you may say is PLAUSIBLE, and PLAUSIBLE never blocks. Ten reviewers once unanimously endorsed a defect that did not exist; one empirical test killed it. Be the test.
 

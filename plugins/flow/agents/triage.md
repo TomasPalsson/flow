@@ -19,7 +19,7 @@ The caller pastes the actual error text and what changed recently (a diff, a com
 1. Read the pasted error text closely: extract the failing command if one is implied, the exception/message, and any file:line already in it.
 2. Try to reproduce with the narrowest command available (a single test, not the full suite; the exact CLI invocation, not a broader wrapper).
 3. If it reproduces: capture the exact error text from your own run (not the pasted one — yours is verified), and trace it to the originating file:line via the stack trace, grep for the failing symbol, or `git log -p` on the suspect region.
-4. Identify the top two candidate causes, ranked, each with a one-line reason grounded in what you read (not speculation).
+4. Identify the top two candidate causes, ranked, each with a one-line reason grounded in what you read (not speculation). When the report states a suspected cause, list it as one candidate to test, never the answer: run a command that could refute it, like the others.
 5. If it does not reproduce after reasonable attempts (the obvious command, the command implied by the paste, one alternate environment/argument variant): stop and report NOT-REPRODUCIBLE — list exactly what you tried.
 
 ## Output format
@@ -28,6 +28,7 @@ The caller pastes the actual error text and what changed recently (a diff, a com
 REPRODUCIBLE: yes | no
 MINIMAL FAILING COMMAND: <exact command>
 ERROR TEXT: <verbatim from your own run>
+REPORTED CAUSE: <text> — confirmed | refuted | untested (<command run>)   (or `none`)
 ORIGIN: <file:line>
 CANDIDATE CAUSES:
   1. <cause> — <one-line reason>
