@@ -1451,3 +1451,20 @@ t_shared_check_all_since_format_ratchet_still_formats_files_clean_at_ref_and_new
 	assert_eq "$(cat "$d/fresh.py")" 'n = "c"' "format ratchet: --fix still formats a new file"
 	rm -rf "$d"
 }
+
+t_shared_start_dev_server_kill_without_port_leaves_the_spawned_server_alive() {
+	local d port pid
+	d=$(tmp_dir)
+	port=$((20000 + $$ % 20000))
+	printf "require('http').createServer((q, s) => s.end('ok')).listen(%s, () => console.log('listening on http://localhost:%s'));\n" "$port" "$port" >"$d/srv.js"
+	_ss_in "$d" start-dev-server --kill --timeout 6 --cmd "node $d/srv.js"
+	pid=$(printf '%s' "$OUT" | "$SS_NODE" -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).pid||""))}catch(e){}})')
+	assert_contains "$OUT" '"url"' "start-dev-server --kill without --port: reports the server ready, not an error"
+	if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+		_pass "start-dev-server --kill without --port: the spawned server is still alive"
+	else
+		_fail "start-dev-server --kill without --port: the spawned server is still alive" "pid '$pid' not running; out: $OUT"
+	fi
+	[ -n "$pid" ] && kill "$pid" 2>/dev/null
+	rm -rf "$d"
+}

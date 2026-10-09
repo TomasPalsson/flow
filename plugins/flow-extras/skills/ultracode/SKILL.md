@@ -30,6 +30,8 @@ You can't measure "45% solo-success" mid-flight — use proxies: the change live
 
 Scale by adding *units* (pipeline stages, waves), never by widening one unit past **3-4 agents** — per-agent reasoning capacity thins out beyond that regardless of model tier. A 40-file migration is 40 small units through a pipeline, not 40 agents in one barrier.
 
+**Script before fleet.** If one deterministic tool (a codemod, sed, a script) can process every unit in one pass, run it instead of fanning agents out to hand-apply the same edit; the agents then review the tool's output, which is cheaper and consistent.
+
 ## Phase 1 — Grill, then freeze a SPEC
 
 Read [`references/spec-template.md`](references/spec-template.md) before writing the spec.

@@ -53,6 +53,8 @@ function dedupeKey(f) {
 
 const base = args.base
 const head = args.head || 'HEAD'
+// 'structure' is an opt-in lens: pass it in args.lenses. It stays out of the default
+// list so the default review cost does not change.
 const lenses = args.lenses || ['correctness', 'security', 'gaming', 'cross-file', 'slop']
 const threshold = (args.threshold !== undefined) ? args.threshold : 80
 const reviewMd = args.reviewMd
@@ -67,7 +69,7 @@ const diffPath = packaged ? packaged.diffPath : null
 
 if (!diffPath) {
   log('review-package produced no diff path; stopping')
-  return { verified: [], dropped: 0, diffPath: null, failedLenses: [], incomplete: true }
+  return { verified: [], dismissed: [], dropped: 0, diffPath: null, failedLenses: [], incomplete: true }
 }
 
 const lensResults = await parallel(lenses.map(function (lens) {
@@ -111,13 +113,24 @@ const scored = await parallel(unique.map(function (f) {
     const prompt = 'Re-score this finding from 0-100 against these fixed anchors: ' + anchors +
       ' Re-open and read the diff yourself at ' + diffPath + '. Finding: ' + JSON.stringify(f) + '.'
     return agent(prompt, { model: 'sonnet', label: 'score:' + dedupeKey(f), phase: 'Score', schema: SCORE_SCHEMA })
-      .then(function (s) { return Object.assign({}, f, { score: s ? s.score : 0 }) })
+      .then(function (s) { return s ? Object.assign({}, f, { score: s.score, why: s.why ? s.why : '' }) : null })
   }
 }))
 
 const verified = scored.filter(Boolean).filter(function (f) { return f.score >= threshold })
 const dropped = unique.length - verified.length
+// Map by index: a scorer that returned null or threw leaves scored[i] null;
+// that finding is dismissed as unscored, never as an invented score of 0.
+const dismissed = []
+unique.forEach(function (f, i) {
+  const s = scored[i]
+  if (!s) { dismissed.push({ finding: f, reason: 'scorer failed; not scored' }); return }
+  if (s.score >= threshold) { return }
+  const finding = Object.assign({}, s)
+  delete finding.why
+  dismissed.push({ finding: finding, reason: s.why || ('scored ' + s.score + ', below threshold ' + threshold) })
+})
 
 log(dropped + ' of ' + unique.length + ' unique findings dropped below threshold ' + threshold)
 
-return { verified: verified, dropped: dropped, diffPath: diffPath, failedLenses: failedLenses, incomplete: failedLenses.length > 0 }
+return { verified: verified, dismissed: dismissed, dropped: dropped, diffPath: diffPath, failedLenses: failedLenses, incomplete: failedLenses.length > 0 }

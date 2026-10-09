@@ -1,6 +1,6 @@
 ---
 name: no-slop
-description: "Stop AI slop in the code Claude writes: no re-implemented helpers, no premature abstractions, no guards on impossible states, no comments that restate code, no unrequested scope, no test slop. Parts: a verbatim developer block for briefs, a `slop` adversary lens, and `scripts/slop-check`. Use WHENEVER you are about to add or change code in an existing repo — 'add a property/field/method/endpoint to X', 'implement X in file Y', including when the request names the exact file to edit — a brief for a developer agent (spec, next, fix, build-slices, ultracode) — search the repo for an existing helper first, whenever an adversary reviews a diff, whenever the user says slop, duplicate code, reinvented the wheel, over-engineered, too defensive, comment noise, scope creep, 'keep it minimal', 'this looks AI-generated', or asks how to make Claude write cleaner code. Do NOT use for whole-repo debt sweeps (/flow-extras:audit), post-merge deepening (/flow-deepen), or fixing a specific bug (/fix)."
+description: "Stop AI slop in the code Claude writes: no re-implemented helpers, no premature abstractions, no guards on impossible states, no comments that restate code, no unrequested scope, no test slop. Parts: developer block, `slop` lens, `slop-check`; secondary: AI tells in PR bodies and docs (`--prose`). Use WHENEVER you are about to add or change code in an existing repo — 'add a property/field/method/endpoint to X', 'implement X in file Y', including when the request names the exact file to edit — a brief for a developer agent (spec, next, fix, build-slices, ultracode) — search the repo for an existing helper first, whenever an adversary reviews a diff, whenever the user says slop, duplicate code, reinvented the wheel, over-engineered, too defensive, comment noise, scope creep, 'keep it minimal', 'this looks AI-generated', or asks for cleaner Claude code. Do NOT use for whole-repo debt sweeps (/flow-extras:audit), post-merge deepening (/flow-deepen), or fixing a specific bug (/fix)."
 ---
 
 # no-slop
@@ -55,6 +55,12 @@ What it cannot see, by measurement: comments that restate code (near-zero recall
 ## The rubric
 
 **Load [`references/rubric.md`](references/rubric.md)** when scoring a diff, when writing an eval grader, or when someone asks "is this slop?". Every row is a PASS condition, a detector, a severity, and a false-positive guard. NS-01 to NS-17 are mechanical; NS-20 to NS-29 are lens or pipeline. The "What is not slop" list is binding: boundaries keep their guards, entry points keep their broad catch, public APIs keep their docstrings, three similar lines stay three lines.
+
+## Prose: PR bodies and docs
+
+A secondary use: the same tells show up in the prose a human reads. **Load [`references/prose-rubric.md`](references/prose-rubric.md)** before you write or review a PR body, a final report or a doc page. It is a separate rubric (NP-01 to NP-08), because its rows judge claims and phrasing, not diffs. Its main rule: each factual claim says measured, inferred or guess, or carries its command or `path:line` in the same sentence.
+
+Run `scripts/slop-check --prose <file.md>...` on the draft to catch the script-detectable rows (NP-04 to NP-08; code fences and inline code are skipped). It is advisory like the rest; the evidence rows (NP-01 to NP-03) are for the reader or the lens. Do not load the code rubric for this.
 
 ## Wiring it into a pipeline
 

@@ -17,6 +17,8 @@ The smallest view that makes the point. Pick one, rarely two, never all:
 - a mermaid diagram of a flow or state change
 - a diff-sketch: a few lines of the change, not the whole diff
 
+Separate core files from generated or mechanical ones. If notes cannot make the PR reviewable, split it.
+
 ## Evidence
 
 Before and after.
@@ -28,5 +30,7 @@ Before and after.
 
 - Door: one-way or two-way. One-way means it cannot be undone by reverting (a migration, a published API, deleted data).
 - Blast radius: one word (`none`, `module`, `service`, `users`), plus optional ramifications if the word hides something.
+
+Before opening the PR, read `../no-slop/references/prose-rubric.md` (claims carry a label or their command) and run `../no-slop/scripts/slop-check --prose` on the body.
 
 Credit: adapted from mattpocock/skills `pr` (MIT), itself from humanlayer `show-me`.

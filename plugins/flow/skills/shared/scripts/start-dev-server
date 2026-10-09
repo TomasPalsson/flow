@@ -33,7 +33,9 @@ Usage: start-dev-server [options]
 Options:
   --port N       Port to poll (auto-detected if omitted)
   --timeout N    Seconds to wait for ready (default: 30)
-  --kill         Kill existing process on port before starting
+  --kill         Kill existing process on --port before starting (needs --port;
+                 without it nothing is killed, as the port is unknown until the
+                 new server has started)
   --cmd "..."    Override dev command
   --dir <path>   Project directory (default: cwd)
   -h, --help     Show this help
@@ -289,12 +291,6 @@ async function main() {
   if (!targetPort) {
     // Default to first candidate and hope for the best
     targetPort = portCandidates[0];
-  }
-
-  if (killFirst && !port) {
-    // We didn't kill earlier because we didn't know the port
-    killPort(targetPort);
-    await new Promise(r => setTimeout(r, 500));
   }
 
   // Poll until ready

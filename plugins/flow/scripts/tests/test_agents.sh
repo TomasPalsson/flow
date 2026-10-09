@@ -172,6 +172,21 @@ t_agents_claim_check_body_has_required_content() {
 	assert_contains "$body" "adversary" "claim-check.md: body says it complements adversary"
 }
 
+t_agents_claim_check_baseline_treatment_and_inconclusive() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/claim-check.md")
+	assert_contains "$body" "INCONCLUSIVE" "claim-check.md: INCONCLUSIVE verdict present"
+	assert_contains "$body" "baseline=<...> treatment=<...>" "claim-check.md: prints baseline and treatment"
+	assert_contains "$body" "merge base" "claim-check.md: change claims run at the merge base"
+}
+
+t_agents_adversary_structure_lens_is_opt_in() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "**structure** — opt-in" "adversary.md: structure lens declared opt-in"
+	assert_contains "$body" "restructuring under which branches disappear" "adversary.md: structure lens asks about disappearing branches"
+}
+
 # ---------------------------------------------------------------------------
 # triage.md
 # ---------------------------------------------------------------------------

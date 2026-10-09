@@ -309,3 +309,104 @@ t_noslop_ns17_flags_growth_in_existing_function_only() {
 	assert_not_contains "$OUT" "shrinks" "NS-17 stays silent on a function that got simpler"
 	assert_not_contains "$OUT" "fresh" "NS-17 stays silent on new functions"
 }
+
+# ---------------------------------------------------------------------------
+# --prose — NP-04 to NP-08 on markdown; code fences and inline code skipped.
+# ---------------------------------------------------------------------------
+
+write_prose_tells() {
+	cat >"$1" <<'MD'
+# Title
+
+It is important to note that the change is small.
+We leverage a pivotal helper here.
+The cache might possibly be stale.
+This is not just a rename, but a rewrite.
+The loader reads the config file and then validates every key against the schema and then writes the merged result to the output directory before it reports success to the caller.
+MD
+}
+
+t_noslop_prose_reports_known_tells() {
+	local f
+	f=$(tmp_dir)/pr.md
+	write_prose_tells "$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_rc 0 "slop-check --prose exits 0 (advisory) despite findings"
+	assert_contains "$OUT" "pr.md:3: NP-07" "NP-07 opener on line 3"
+	assert_contains "$OUT" "pr.md:4: NP-04" "NP-04 AI-tell word on line 4"
+	assert_contains "$OUT" "pr.md:5: NP-05" "NP-05 stacked hedges on line 5"
+	assert_contains "$OUT" "pr.md:6: NP-06" "NP-06 not-just-but on line 6"
+	assert_contains "$OUT" "pr.md:7: NP-08" "NP-08 long sentence on line 7"
+}
+
+t_noslop_prose_clean_fixture_has_no_findings() {
+	local f
+	f=$(tmp_dir)/clean.md
+	printf '# Summary\n\nThe parser rejects a bad date and exits with code 2.\nMeasured: `make test` passes, 12 of 12.\n\n- Use the existing helper.\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_rc 0 "clean prose exits 0"
+	assert_eq "$OUT" "" "clean prose prints no findings"
+	run_cmd "$SLOP_CHECK" --prose "$f" --strict
+	assert_rc 0 "clean prose exits 0 under --strict"
+}
+
+t_noslop_prose_ignores_code() {
+	local f
+	f=$(tmp_dir)/code.md
+	printf 'Run `leverage pivotal` now.\n\n```\nIt is important to note that this might possibly leverage x.\n```\n\n~~~\nIn conclusion, crucial.\n~~~\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_eq "$OUT" "" "fenced and inline code are not scanned"
+}
+
+t_noslop_prose_strict_and_json() {
+	local f
+	f=$(tmp_dir)/pr.md
+	write_prose_tells "$f"
+	run_cmd "$SLOP_CHECK" --prose "$f" --strict
+	assert_rc 1 "slop-check --prose --strict exits 1 on findings"
+	run_cmd "$SLOP_CHECK" --prose "$f" --json
+	assert_rc 0 "slop-check --prose --json exits 0"
+	assert_contains "$OUT" '"findings"' "--prose --json emits findings"
+	assert_contains "$OUT" '"NP-05"' "--prose --json carries NP ids"
+}
+
+t_noslop_prose_list_items_are_separate_sentences() {
+	local f
+	f=$(tmp_dir)/bullets.md
+	printf -- '- one short bullet here\n- another short bullet here\n- a third short bullet here\n- a fourth short bullet here\n- a fifth short bullet here\n- a sixth short bullet here\n- In conclusion the tests pass\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_not_contains "$OUT" "NP-08" "bullets without periods are not one long sentence"
+	assert_contains "$OUT" "bullets.md:7: NP-07" "closer at the start of a bullet is flagged"
+}
+
+t_noslop_prose_heading_is_its_own_boundary() {
+	local f
+	f=$(tmp_dir)/head.md
+	printf '## Summary\nIt is important to note that the fix is small.\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_contains "$OUT" "head.md:2: NP-07" "opener right after a heading is flagged"
+}
+
+t_noslop_prose_fence_char_and_length() {
+	local f
+	f=$(tmp_dir)/nested.md
+	printf '````\n```\nIt is important to note this.\n```\n````\n\n```\n~~~\nIn conclusion, crucial.\n~~~\n```\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_eq "$OUT" "" "nested and mixed fences stay fenced"
+}
+
+t_noslop_prose_bad_input_files() {
+	local d
+	d=$(tmp_dir)
+	run_cmd "$SLOP_CHECK" --prose "$d/nope.md" --strict
+	assert_rc 1 "missing --prose path fails under --strict"
+	printf 'caf\xe9 is fine.\n' >"$d/latin1.md"
+	run_cmd "$SLOP_CHECK" --prose "$d/latin1.md"
+	assert_not_contains "$OUT" "Traceback" "non-UTF-8 file does not crash"
+	assert_rc 0 "non-UTF-8 file exits 0 without --strict"
+}
+
+t_noslop_prose_rubric_present() {
+	assert_file_exists "$SKILL_DIR/references/prose-rubric.md" "references/prose-rubric.md exists"
+	assert_file_exists "$SKILL_DIR/scripts/slop_prose.py" "scripts/slop_prose.py exists"
+}

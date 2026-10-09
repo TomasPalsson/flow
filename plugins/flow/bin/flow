@@ -171,6 +171,8 @@ ${C.accent}Commands:${C.reset}
                                                      answers a task whose files live outside this repo
   finish <on|off|status|check>                      Arm /flow:next --finish for the active spec (FINISH.md);
                                                      (check --hook is the Stop hook body)
+  digest [--feature <d>] [--json]                   List what needs a human after an unattended run, from
+                                                     NOTES.md: unfiled defers, assumptions, rulings
   use <NNN-slug>                                    Point .specs/.current at one feature
   pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
                                                      for the active feature, 1 otherwise
@@ -3140,7 +3142,7 @@ function cmdStatusline(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'finish', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline', 'pass'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'finish', 'digest', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline', 'pass'];
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3226,6 +3228,7 @@ function main() {
   else if (cmd === 'lint') process.exit(require('./lib/lint.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'tick') process.exit(require('./lib/tick.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'finish') process.exit(require('./lib/finish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
+  else if (cmd === 'digest') process.exit(require('./lib/digest.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'use') process.exit(require('./lib/use.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }));
   else if (cmd === 'stealth') {
     const stealthRoot = gitToplevel(process.cwd());

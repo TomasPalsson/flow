@@ -25,7 +25,7 @@ Severity is one of `block` (an adversary reports it as a finding that must be fi
 |---|---|---|---|---|
 | NS-03 | No added `except:` / `except Exception:` / empty `catch` whose body only passes, continues, returns a default, or logs without re-raising | `slop-check` (stdlib; ruff BLE001/E722 when present) | advise | A top-level entry point, request handler, or worker loop that must not die is a boundary; it keeps the broad catch but logs with context. |
 | NS-22 | No added guard (`is not None`, `hasattr`, `isinstance`, `if not x`, `?.`, `\|\| {}`) on a value the type signature, constructor, prior validation, or non-null schema already guarantees | lens | block | Values from user input, external APIs, files, environment, or optional fields are boundaries; guard them. |
-| NS-09 | No added `as any`, `as unknown as`, `@ts-ignore`, `# type: ignore`, `cast(Any, …)` | `slop-check` | advise | An escape hatch with a same-line reason naming the upstream type bug is allowed. |
+| NS-09 | No added `as any`, `as unknown as`, `@ts-ignore`, `# type: ignore`, `cast(Any, …)` | `slop-check` | advise | An escape hatch with a same-line reason naming the upstream type bug is allowed. The same holds for lint suppressions (`eslint-disable`, `noqa`): fine only when the silenced rule is style-only or provably wrong here; suppressing a correctness or safety rule is a finding. |
 
 ## C. Comments and documentation
 

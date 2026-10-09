@@ -104,7 +104,9 @@ log('researched ' + usable.length + ' of ' + angles.length + ' angles')
 
 const synthPrompt = 'Synthesize a cited report answering: ' + question +
   '. Every angle\'s claims and check results follow as JSON: ' + JSON.stringify(usable) +
-  '. Write a cited report as text with a per-claim confidence note.'
+  '. Write a cited report as text with a per-claim confidence note. Tie each note to the evidence: ' +
+  '"confirmed" only when a primary source was read this run; "likely" when the support is secondary or inferred; ' +
+  '"unknown" when neither holds. Say which tier each claim reached and why.'
 
 const synthesis = await agent(synthPrompt, { model: 'opus', label: 'synthesize', phase: 'Synthesize' })
 

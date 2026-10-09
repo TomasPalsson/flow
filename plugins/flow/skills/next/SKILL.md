@@ -105,7 +105,7 @@ Read `stealth` from `flow next --json`; when `active`:
 5. `unverified` → before writing `Verified:`, write `.specs/<NNN-slug>/verify/acceptance.md`: one row per acceptance criterion / Behavior in `spec.md` and `TASKS.md ## Behaviors` — criterion, the command you ran NOW, its exit code, what it showed. The exit-code column is the integer from `<cmd>; echo $?` — never "pass", "ok", "n/a" or blank; a human-only row says `human` there and points at its `verify/<CHK>.md`. Any row unmet → append new task(s) per the converge rule and keep building; never write `Verified:` over an unmet row. All met → write `Verified: <YYYY-MM-DD> by user (pre-approved: /flow:next --finish)`.
 6. `shippable` → `gh pr create --draft`. The PR stays draft: never `gh pr ready`, never merge. The PR body carries the `Ruling:` lines, as in §Ship. No git remote or `gh` fails → write one `NOTES.md` line `- Discovered: no PR opened — <reason>` and run `flow finish off`; the spec is done locally.
 7. **Hard stops** (`blocked`, `lying`, `looping`, `scan-failed`, `disagreement`, `ambiguous`, `loop-active`, `prep-interviewing`, `prep-ready`) still stop: print the reason and the router's line; `FINISH.md` stays armed.
-8. **Done** (`shipped`/`idle`, or rule 6's no-PR path) → `flow finish off`, then a final report: tasks done, gates and their exit codes, acceptance rows, PR link or why none. The last line is then the router's `Next:` line.
+8. **Done** (`shipped`/`idle`, or rule 6's no-PR path) → `flow finish off` (it prints the `flow digest` Attention list: unfiled defers, assumptions, rulings; carry it into the report), then a final report: tasks done, gates and their exit codes, acceptance rows, PR link or why none. The last line is then the router's `Next:` line.
 
 ## Flags
 

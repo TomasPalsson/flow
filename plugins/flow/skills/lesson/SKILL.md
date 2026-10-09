@@ -1,6 +1,6 @@
 ---
 name: lesson
-description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson, or /lesson --retro after a build, especially one that went sideways. Walks a fixed ladder — regression test, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/flow-extras:skill-improver), or a one-off preference that only applies to this conversation."
+description: "Turn one observed mistake into a guardrail that makes it impossible, not discouraged. Use WHENEVER the user corrects Claude ('don't do that', 'you did X again', 'that was wrong', 'stop doing X', 'why did you delete…'), whenever a hook blocks or flags the same thing a second time in a session, after a review finding that an existing rule already covered, or when the user says /lesson, or /lesson --retro after a build, especially one that went sideways. Walks a fixed ladder — unrepresentable state, regression test, hook or lint rule, script, skill edit, CLAUDE.md line — picks the most deterministic rung that fits, writes it red-then-green, has an adversary try to bypass it, and records the ruling in PROGRESS.md. Do NOT use for: fixing the bug itself (/fix), logging a note without acting (/aside), general skill polish (/flow-extras:skill-improver), or a one-off preference that only applies to this conversation."
 argument-hint: "[what went wrong] | --retro [session]"
 ---
 
@@ -21,6 +21,9 @@ Finish the interrupted task's current step first if one is mid-flight. **This sk
 - **Tool economy:** expensive or repeated tool calls.
 - **No-ops:** steering lines that do not change behaviour.
 - **Information access:** logs or read-only access the agent lacked.
+- **Repo history:** the session is one view; the repo remembers more. Read `git log` for reverts and fixup commits on the current branch and recent history, and code comments that explain a workaround (`grep -rn "workaround\|hack\|XXX"`, narrowed to the paths in question).
+
+A mistake class counts only when it shows up at least twice, across sessions, commits or comments. A one-off makes a noise rule: it costs reading time on every run and guards against something that may never recur. Cite the two sightings in the proposal; a single sighting is listed as watch-only, not proposed.
 
 Present at most 5, ranked by severity, each in the three-line proposal shape (mistake, rung, what would be written). Write nothing before the user picks. Each picked candidate runs Steps 1–6 unchanged.
 
@@ -52,6 +55,7 @@ Ask the questions in this order and stop at the first yes. Pair any lower rung w
 
 | Rung | Question | Site |
 |---|---|---|
+| **Unrepresentable** | Can the language make the bad state impossible to build (a type, a data shape, a schema constraint, one owner for the state)? Skip when it does not allow it. | The type or schema definition; a state that cannot be built needs no test |
 | **Test** | Can the exact input be written as a test that fails right now? | Project suite; the harness hook or script test suites (`t_<unit>_*`) |
 | **Hook / lint** | Must the action never run (PreToolUse deny), always be corrected (PostToolUse exit 2), or never end a turn (Stop block)? Is it a threshold? | Harness hook when it applies to every project; project `.claude/settings.json` hooks or `.claude/flow.config.json` when it is local |
 | **Script** | Was the model doing bookkeeping, counting, path assembly or formatting by hand? | A script with `--help`, tests, bash 3.2 / BSD safe |

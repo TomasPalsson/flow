@@ -58,7 +58,7 @@ Write 3-5 ranked hypotheses before testing any. Each must be falsifiable: "If X 
 - Every probe maps to one prediction; change one variable at a time.
 - Prefer a debugger or REPL over logs, targeted logs over "log everything and grep".
 - Tag every debug log `[DEBUG-<4 hex>]` (for example `[DEBUG-a4f2]`) so cleanup is one grep.
-- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second.
+- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second; vet the baseline and every later number with `/flow-extras:benchmark-checklist`.
 
 ## No correct seam is a finding
 

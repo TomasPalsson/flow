@@ -27,9 +27,11 @@
 - investment
 - portfolio
 
-## flow-extras (16 skills)
+## flow-extras (19 skills)
 
 - audit
+- babysit
+- benchmark-checklist
 - better-plan
 - brainstorm
 - claude-improver
@@ -45,6 +47,7 @@
 - skill-improver
 - skill-judge
 - ultracode
+- verify-skill
 
 ## flow (12 skills + shared)
 

@@ -359,3 +359,68 @@ process.stdout.write(JSON.stringify(rows));
 	assert_not_contains "$rows" '"status":"WARN"' "t_doctor_reference_docs_real_repo_root_pass no-warn"
 	assert_contains "$rows" '"status":"PASS"' "t_doctor_reference_docs_real_repo_root_pass pass-row"
 }
+
+t_hyg_squash_merged_clean_worktree_is_safe_to_prune() {
+	# A squash-merged branch is not an ancestor of base, but its changes are
+	# already there; git cherry sees that without network or gh.
+	local repo wt rows rel
+	repo=$(tmp_repo)
+	wt="$repo/.claude/worktrees/squashed"
+	hyg_add_worktree "$repo" hyg-squashed "$wt"
+	hyg_commit_extra "$wt" 2
+	(cd "$repo" && git merge -q --squash hyg-squashed && git commit -q -m "squash hyg-squashed") >/dev/null 2>&1
+	hyg_age_dir "$wt" 2
+
+	hyg_check "$repo"
+	rows="$OUT"
+	rel=${wt#"$repo"}
+	assert_contains "$rows" "$rel (branch hyg-squashed) is merged and clean" "t_hyg_squash_merged safe-to-prune"
+	assert_contains "$rows" "safe to remove: git worktree remove" "t_hyg_squash_merged fix-command"
+
+	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
+	rm -rf "$repo"
+}
+
+t_hyg_multi_commit_squash_merged_is_safe_to_prune() {
+	# Several branch commits squashed into one base commit (plus an unrelated
+	# base commit afterwards): per-commit git cherry sees nothing, the whole
+	# branch diff's patch-id still matches the squash commit.
+	local repo wt rows rel
+	repo=$(tmp_repo)
+	wt="$repo/.claude/worktrees/multisq"
+	hyg_add_worktree "$repo" hyg-multisq "$wt"
+	hyg_commit_extra "$wt" 2
+	printf 'second\n' >"$wt/second.txt"
+	(cd "$wt" && git add second.txt && GIT_AUTHOR_DATE="$(hyg_days_ago_git_date 2)" GIT_COMMITTER_DATE="$(hyg_days_ago_git_date 2)" git commit -q -m "second commit") >/dev/null 2>&1
+	(cd "$repo" && git merge -q --squash hyg-multisq && git commit -q -m "squash hyg-multisq") >/dev/null 2>&1
+	printf 'unrelated\n' >"$repo/unrelated.txt"
+	(cd "$repo" && git add unrelated.txt && git commit -q -m "unrelated main work") >/dev/null 2>&1
+	hyg_age_dir "$wt" 2
+
+	hyg_check "$repo"
+	rows="$OUT"
+	rel=${wt#"$repo"}
+	assert_contains "$rows" "$rel (branch hyg-multisq) is merged and clean" "t_hyg_multi_commit_squash safe-to-prune"
+
+	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
+	rm -rf "$repo"
+}
+
+t_hyg_squash_merged_but_extra_commit_is_not_safe() {
+	local repo wt rows
+	repo=$(tmp_repo)
+	wt="$repo/.claude/worktrees/partial"
+	hyg_add_worktree "$repo" hyg-partial "$wt"
+	hyg_commit_extra "$wt" 2
+	(cd "$repo" && git merge -q --squash hyg-partial && git commit -q -m "squash hyg-partial") >/dev/null 2>&1
+	printf 'later\n' >"$wt/later.txt"
+	(cd "$wt" && git add later.txt && git commit -q -m "later work") >/dev/null 2>&1
+	hyg_age_dir "$wt" 2
+
+	hyg_check "$repo"
+	rows="$OUT"
+	assert_not_contains "$rows" "is merged and clean" "t_hyg_squash_partial not-reported-safe"
+
+	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
+	rm -rf "$repo"
+}

@@ -3,6 +3,11 @@
 
 Usage: slop-check [--base <ref>] [--head <ref>] [--json] [--strict]
                    [--no-tools] [--files <path>...] [--all-lines]
+       slop-check --prose <file.md>... [--json] [--strict]
+
+--prose scans markdown (code fences and inline code skipped) for the
+script-detectable rows NP-04 to NP-08 of references/prose-rubric.md; same
+output shape and exit behaviour, no git needed.
 
 Only reports on lines *added* between --base and --head. With --all-lines,
 every line of each --files path is treated as added and no git repository
@@ -362,7 +367,14 @@ def main():
     ap.add_argument("--no-tools", action="store_true")
     ap.add_argument("--files", nargs="+", default=None)
     ap.add_argument("--all-lines", action="store_true")
+    ap.add_argument("--prose", nargs="+", metavar="FILE", default=None)
     args = ap.parse_args()
+
+    if args.prose:
+        import slop_prose
+        statuses = {p: "modified" for p in args.prose}
+        rc = emit(slop_prose.scan_files(args.prose), statuses, {}, args)
+        return 1 if args.strict and slop_prose.UNREADABLE else rc
 
     if args.all_lines:
         root, base = os.getcwd(), None

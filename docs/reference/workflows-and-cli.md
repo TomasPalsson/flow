@@ -121,6 +121,8 @@ Commands:
                                                      (or --sha), never a claim
   finish <on|off|status|check>                      Arm /flow:next --finish for the active spec (FINISH.md);
                                                      (check --hook is the Stop hook body)
+  digest [--feature <d>] [--json]                   List what needs a human after an unattended run, from
+                                                     NOTES.md: unfiled defers, assumptions, rulings
   use <NNN-slug>                                    Point .specs/.current at one feature
   pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
                                                      for the active feature, 1 otherwise

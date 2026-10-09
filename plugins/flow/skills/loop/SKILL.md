@@ -89,7 +89,7 @@ The loop ends in one of four states; the log line says which, and `flow loop sta
 
 | Status | Meaning | What you do |
 |---|---|---|
-| `done` | verifier green, tamper clean | summarise `git log --oneline <base>..HEAD`, final learnings entry, `/wrap` |
+| `done` | verifier green, tamper clean | summarise `git log --oneline <base>..HEAD`, final learnings entry, `flow digest` (what needs a human), `/wrap` |
 | `suspect` | verifier green but the test layer changed for the worse | do **not** fix it in the loop; report the findings verbatim; a human decides |
 | `stopped: cap|time|budget` | caps hit | report what was attempted and what remains; the cap is a wedge signal, not a budget to raise — investigate before re-arming |
 | `stopped: stall|wedge|blocked|error` | no change N×, same failure N× with churn, BLOCKED.md, or 3 child errors | read the last verifier output and `BLOCKED.md`; the fix is a better task split or a better verifier, not more iterations |

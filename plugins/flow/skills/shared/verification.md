@@ -22,6 +22,8 @@ Place logs at: entry points of new/modified functions, branch conditions the fea
 
 ## Step 2: Dev Server Lifecycle
 
+**Tool selection**: If the project has `.claude/skills/verify-*/SKILL.md`, follow that skill for launch, driving and evidence instead of the generic steps below; fall back to them when it is absent or fails its doctor check. To create one, use the `verify-skill` skill (flow-extras).
+
 **Starting**: If `.claude/scripts/start-dev-server.sh` exists, use it (parse JSON output for port/pid). Otherwise run `$DEV_CMD` in background. Store port as `$PORT`.
 
 **Stopping**: If `.claude/scripts/stop-dev-server.sh` exists, use it. Otherwise kill the background process.
@@ -72,6 +74,6 @@ agent-browser console && agent-browser close
 
 1. **Remove debug logs**: Search for `[VERIFY]` strings across all source files, remove those lines
 2. **Stop dev server**
-3. **Remove artifacts**: `rm -f ./verify-*.png ./bug-before.png ./bug-after.png .claude/verification-audit.local.md`
+3. **Keep evidence, remove scratch**: move `./verify-*.png`, `./bug-before.png`, `./bug-after.png` into `<Feature>/verify/` (a verification claim with no artefact on disk does not count); delete only `.claude/verification-audit.local.md`, which is scratch
 4. **Run CI checks**: `$LINT_CMD`, `$FORMAT_CMD`, `$TYPECHECK_CMD`, `$TEST_CMD` — fix any failures from cleanup
 5. **Commit**: `chore: remove verification artifacts`

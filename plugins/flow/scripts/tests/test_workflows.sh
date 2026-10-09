@@ -510,6 +510,7 @@ EOF
 	assert_contains "$OUT" '"diffPath":null' "wf: no diff path leaves diffPath null"
 	assert_contains "$OUT" '"failedLenses":[]' "wf: no diff path means no lens ran, failedLenses stays empty"
 	assert_contains "$OUT" '"incomplete":true' "wf: incomplete is true on this return path too"
+	assert_contains "$OUT" '"dismissed":[]' "wf: no diff path still returns an empty dismissed list"
 }
 
 t_wf_build_slices_failed_relook_all_null_keeps_blocking_finding() {
@@ -675,4 +676,140 @@ EOF
 	if [ -n "$maxflight" ] && [ "$maxflight" -le 4 ]; then verdict="yes"; fi
 	assert_eq "$verdict" "yes" "wf: a 6-task wave never has more than 4 agents in flight (max seen: $maxflight)"
 	assert_eq "$maxflight" "4" "wf: the wave actually dispatches a full chunk of 4 concurrently (not serialized)"
+}
+
+t_wf_review_diff_returns_dismissed_with_reasons() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:correctness') {
+    return { findings: [
+      { predicate: 'keepme', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' },
+      { predicate: 'dropme', severity: 'low', file: 'b.js', line: 2, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:keepme') { return { score: 95, why: 'verified' } }
+  if (opts.label === 'score:b.js:2:dropme') { return { score: 20, why: 'style only' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with one kept and one dismissed finding"
+	assert_contains "$OUT" '"dismissed":[' "wf: review-diff.js returns a dismissed list"
+	assert_contains "$OUT" '"predicate":"dropme"' "wf: the below-threshold finding is in dismissed"
+	assert_contains "$OUT" '"reason":"style only"' "wf: dismissed carries the scorer's reason"
+	assert_contains "$OUT" '"dropped":1' "wf: dropped count is still returned"
+}
+
+t_wf_review_diff_default_lenses_exclude_structure() {
+	local line
+	line=$(grep "^const lenses = args.lenses" "$WF_DIR/review-diff.js")
+	assert_contains "$line" "['correctness', 'security', 'gaming', 'cross-file', 'slop']" "wf: review-diff default lens list is unchanged"
+	case "$line" in
+	*structure*) _fail "wf: structure is not a default lens" "$line" ;;
+	*) _pass "wf: structure is not a default lens" ;;
+	esac
+}
+
+t_wf_review_diff_accepts_structure_lens_via_args() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:structure') {
+    return { findings: [
+      { predicate: 'movedcomplexity', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:movedcomplexity') { return { score: 90, why: 'verified' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['structure'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs with the structure lens"
+	assert_contains "$OUT" '"lens":"structure"' "wf: a structure finding is kept when the lens is passed"
+	assert_contains "$OUT" '"failedLenses":[]' "wf: structure lens did not fail"
+}
+
+t_wf_review_diff_unscored_findings_are_dismissed() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:correctness') {
+    return { findings: [
+      { predicate: 'scorerdied', severity: 'high', file: 'a.js', line: 1, scenario: 's', receipt: 'r' },
+      { predicate: 'scorerthrew', severity: 'high', file: 'b.js', line: 2, scenario: 's', receipt: 'r' },
+      { predicate: 'keepme', severity: 'high', file: 'c.js', line: 3, scenario: 's', receipt: 'r' }
+    ] }
+  }
+  if (opts.label === 'score:a.js:1:scorerdied') { return null }
+  if (opts.label === 'score:b.js:2:scorerthrew') { throw new Error('crash') }
+  if (opts.label === 'score:c.js:3:keepme') { return { score: 95, why: 'verified' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness'], scriptsDir: '/tmp/scripts' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$stub"
+	assert_rc 0 "wf: review-diff.js runs when scorers return null or throw"
+	assert_contains "$OUT" '"predicate":"scorerdied"' "wf: null-scorer finding is in dismissed"
+	assert_contains "$OUT" '"predicate":"scorerthrew"' "wf: throwing-scorer finding is in dismissed"
+	assert_contains "$OUT" '"reason":"scorer failed; not scored"' "wf: unscored finding carries an honest reason"
+	assert_not_contains "$OUT" 'scored 0' "wf: no invented score of 0"
+	assert_contains "$OUT" '"dropped":2' "wf: dropped counts the unscored findings"
+}
+
+t_wf_research_sweep_synth_prompt_ties_confidence_to_evidence() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'synthesize') { process.stderr.write('SYNTH:' + prompt + '\n'); return 'report' }
+  if (opts.label === 'angles') { return { angles: [{ key: 'a', query: 'q' }] } }
+  if (opts.label === 'research:a') { return { headline: 'h', claims: [] } }
+  if (opts.label === 'check:a') { return { confirmed: [], unsupported: [], notes: '' } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { question: 'why?' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function (items, a, b) {
+  const out = []
+  for (const it of items) { const x = await a(null, it); out.push(await b(x)) }
+  return out
+}, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/research-sweep.js" "$stub"
+	assert_rc 0 "wf: research-sweep.js runs under wf-run.js"
+	assert_contains "$ERR" '"confirmed" only when a primary source was read this run' "wf: synth prompt names the confirmed tier"
+	assert_contains "$ERR" 'primary source' "wf: confirmed needs a primary source read this run"
+	assert_contains "$ERR" 'likely' "wf: synth prompt names the likely tier"
+	assert_contains "$ERR" 'unknown' "wf: synth prompt names the unknown tier"
 }
