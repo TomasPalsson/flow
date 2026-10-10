@@ -252,3 +252,13 @@ t_prep_header_status_not_last_field() {
 	assert_eq "$OUT" "OK" "Status before other header fields still parses (OK)"
 	rm -rf "$d"
 }
+
+# An A-NN backed by a logic demo (evidence: proto/<slug>:<path>) and a
+# trailing ## Not yet specified section (any bullet count) both pass.
+t_prep_proto_evidence_and_not_yet_specified() {
+	f=$(_prep_base_file)
+	sed -i.bak 's|^- A-02 .*|- A-02 Illegal transition is rejected — evidence: proto/cart:demo/reducer.js — confidence: high — confirmed Q3|' "$f"
+	printf '\n## Not yet specified\n- one\n- two\n- three\n- four\n' >>"$f"
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 0 "prep-lint passes a proto/ evidence line and a Not yet specified section"
+}

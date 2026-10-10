@@ -586,3 +586,78 @@ DESIGN
 	assert_contains "$(cat "$d/review/T007-brief.md")" "USAGE" "flow: the brief carries the Contract's USAGE row"
 	rm -rf "$d"
 }
+
+# Prior art: the brief names an existing test file to copy fixtures and style from.
+_flow_prior_art_brief() { # <repo> <files-value>; prints the brief text
+	local d=$1
+	cat >"$d/TASKS.md" <<TASKS
+# Tasks — Prior art
+Spec: spec.md · Design: design.md · Base: HEAD · Route: dispatch · Test: \`true\`
+
+## Phase 1 — Core
+Goal: a thing works.
+Independent test: \`true\`
+- [ ] T001 Add the thing — files: $2 — verify: \`true\`
+TASKS
+	(cd "$d" && "$SCAN_DIR/task-brief" TASKS.md T001 >/dev/null) && cat "$d/review/T001-brief.md"
+}
+
+_flow_commit_file() { # <repo> <path>
+	mkdir -p "$1/$(dirname "$2")"
+	printf 'x\n' >"$1/$2"
+	(cd "$1" && git add "$2" && git commit -q -m "add $2")
+}
+
+t_flow_task_brief_prior_art_matches_stem() {
+	local d out
+	d=$(tmp_repo)
+	_flow_commit_file "$d" tests/test_tags.py
+	_flow_commit_file "$d" tests/test_other.py
+	out=$(_flow_prior_art_brief "$d" src/api/tags.py)
+	assert_contains "$out" "Prior art: tests/test_tags.py" "flow: brief names the test whose stem matches the file"
+	assert_not_contains "$out" "tests/test_other.py" "flow: an unrelated test is not named when the stem matches"
+	assert_contains "$out" "copy its fixtures and style" "flow: prior art line says what to copy"
+	rm -rf "$d"
+}
+
+t_flow_task_brief_prior_art_other_patterns_cap_two() {
+	local d out n
+	d=$(tmp_repo)
+	_flow_commit_file "$d" web/tags_test.go
+	_flow_commit_file "$d" web/tags.test.ts
+	_flow_commit_file "$d" web/tags.spec.ts
+	out=$(_flow_prior_art_brief "$d" web/tags.ts)
+	n=$(printf '%s\n' "$out" | grep -c '^Prior art: ')
+	assert_eq "$n" "2" "flow: at most two prior art lines"
+	assert_contains "$out" "Prior art: web/tags.spec.ts" "flow: <stem>.spec.* matches"
+	rm -rf "$d"
+}
+
+t_flow_task_brief_prior_art_falls_back_to_recent_test() {
+	local d out
+	d=$(tmp_repo)
+	_flow_commit_file "$d" src/test_old.py
+	_flow_commit_file "$d" src/test_new.py
+	_flow_commit_file "$d" lib/test_elsewhere.py
+	out=$(_flow_prior_art_brief "$d" src/zzz.py)
+	assert_contains "$out" "Prior art: src/test_new.py" "flow: no stem match falls back to the newest test under the same top dir"
+	assert_not_contains "$out" "lib/test_elsewhere.py" "flow: fallback stays inside the top-level dir"
+	rm -rf "$d"
+}
+
+t_flow_task_brief_prior_art_none_found() {
+	local d out
+	d=$(tmp_repo)
+	out=$(_flow_prior_art_brief "$d" src/api/tags.py)
+	assert_contains "$out" "Prior art: none found" "flow: a repo with no tests says none found"
+	rm -rf "$d"
+}
+
+t_flow_task_brief_prior_art_skips_test_paths() {
+	local d out
+	d=$(tmp_repo)
+	_flow_commit_file "$d" tests/test_tags.py
+	out=$(_flow_prior_art_brief "$d" tests/test_tags.py)
+	assert_not_contains "$out" "Prior art: tests/test_tags.py" "flow: a test path in files: is not its own prior art"
+	rm -rf "$d"
+}

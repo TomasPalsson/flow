@@ -153,4 +153,4 @@ Sonnet-by-default is an economics + oracle argument, not a capability claim — 
 | [`references/fleet-economics.md`](references/fleet-economics.md) | Sizing/costing a fleet; any non-default tier choice | Posture-only turns |
 | [`references/evidence.md`](references/evidence.md) | User asks "why" / wants citations | Normal runs — the numbers above are already the distillation |
 
-Credit: standing orders, hand-made oracle unit and the script-before-fleet check adapted from cursor/plugins pstack poteto-mode/playbooks/orchestrate.md and principle-build-the-lever (MIT).
+Credit: standing orders, hand-made oracle unit and the script-before-fleet check adapted from cursor/plugins pstack poteto-mode/playbooks/orchestrate.md and principle-build-the-lever @ ccb5507 (MIT).

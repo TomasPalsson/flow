@@ -229,3 +229,11 @@ t_pref_pr_reviewer_uses_plugin_root_for_post_review() {
 	run_cmd test -x "$resolved"
 	assert_rc 0 "post-review.sh is executable through the symlinked plugin root"
 }
+
+t_pref_skill_tool_pointer_form() {
+	local f
+	for f in "$SKILLS_DIR_PREF/no-slop/SKILL.md" "$SKILLS_DIR_PREF/shared/pr-body.md" "$SKILLS_DIR_PREF/fix/SKILL.md"; do
+		run_cmd grep -Eq 'call the Skill tool with "[a-z0-9-]+:[a-z0-9-]+"' "$f"
+		assert_rc 0 "$(basename "$(dirname "$f")")/$(basename "$f") uses the Skill-tool pointer form with a plugin:skill name"
+	done
+}

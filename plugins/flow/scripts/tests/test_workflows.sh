@@ -1105,3 +1105,137 @@ EOS
 	assert_rc 0 "wf: build-slices.js runs when four tasks throw"
 	assert_contains "$OUT" '"id":"T5"' "wf: task 5 still runs after tasks 1-4 threw"
 }
+
+# ---------------------------------------------------------------------------
+# P06 — an empty diff is refused by review-package, and build-slices never
+# reads a missing diff as a clean review. (The review-package case lives here,
+# not in test_flow.sh, because this lane does not own that file.)
+# ---------------------------------------------------------------------------
+
+t_wf_review_package_refuses_empty_diff() {
+	local repo prevdir out
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "wf: review-package empty-diff setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	out="$repo/empty.diff"
+	run_cmd "$SCAN_DIR/review-package" HEAD HEAD --out "$out"
+	assert_rc 1 "wf: review-package refuses BASE==HEAD"
+	assert_contains "$ERR" "review-package: empty diff" "wf: review-package names the empty diff on stderr"
+	assert_file_missing "$out" "wf: review-package writes no file for an empty diff"
+	run_cmd "$SCAN_DIR/review-package" "HEAD..HEAD" --out "$out"
+	assert_rc 1 "wf: review-package refuses an empty BASE..HEAD range too"
+	printf 'x\n' >f.txt
+	git add f.txt
+	git commit -q -m "add f"
+	run_cmd "$SCAN_DIR/review-package" "HEAD~1" HEAD --out "$out"
+	assert_rc 0 "wf: review-package still accepts a non-empty range"
+	assert_file_exists "$out" "wf: review-package writes the non-empty diff"
+	cd "$prevdir" || true
+}
+
+t_wf_build_slices_no_diff_parks_and_is_not_clean() {
+	local d stub
+	d=$(tmp_dir)
+	stub="$d/stub.js"
+	_wf_parallel_stub >"$stub"
+	cat >>"$stub" <<'EOS'
+async function agent(prompt, opts) {
+  const label = opts.label
+  if (label === 'brief:T1') { return { briefPath: '/tmp/T1-brief.md' } }
+  if (label === 'implement:T1') {
+    return { id: 'T1', redExit: 1, greenExit: 0, refactorPassCount: 3, commits: [], files: [], notes: '' }
+  }
+  if (label === 'review:T1') { return null }
+  throw new Error('unexpected label ' + label)
+}
+EOS
+	_wf_bs_tail "['T1']" >>"$stub"
+	run_cmd node "$WF_RUN" "$WF_DIR/build-slices.js" "$stub"
+	assert_rc 0 "wf: build-slices.js runs when review-package yields no diff"
+	assert_contains "$OUT" 'no diff to review' "wf: the task notes say there was no diff to review"
+	assert_contains "$OUT" '"ruling":"parked"' "wf: the task is parked"
+	assert_contains "$OUT" '"clean":false' "wf: a missing diff is never a clean review"
+}
+
+# ---------------------------------------------------------------------------
+# P04 — at gating, review-diff hands each lens the repo's REVIEW.md and tells it
+# to cite file and rule for a documented rule the diff breaks. Without reviewMd
+# the lens prompt never mentions REVIEW.md.
+# ---------------------------------------------------------------------------
+
+_wf_review_md_stub() {
+	_wf_parallel_stub
+	cat <<EOS
+async function agent(prompt, opts) {
+  if (opts.label === 'package') { return { diffPath: '/tmp/fake.diff' } }
+  if (opts.label === 'lens:correctness') { process.stderr.write('LENS:' + prompt + '\\n'); return { findings: [] } }
+  return null
+}
+function log() {}
+function phase() {}
+const args = { base: 'main', lenses: ['correctness'], scriptsDir: '/tmp/scripts'$1 }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function () { return [] }, log: log, phase: phase, args: args, budget: budget }
+EOS
+}
+
+t_wf_review_diff_review_md_rule_when_set() {
+	local d
+	d=$(tmp_dir)
+	_wf_review_md_stub ", reviewMd: '/repo/guide.md'" >"$d/stub.js"
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$d/stub.js"
+	assert_rc 0 "wf: review-diff.js runs with reviewMd set"
+	assert_contains "$ERR" "/repo/guide.md" "wf: the lens prompt carries the reviewMd path"
+	assert_contains "$ERR" "If REVIEW.md or the repo CLAUDE.md states a rule this diff breaks, report it citing the file and the rule" "wf: the lens prompt asks for file and rule on a documented-rule violation"
+	assert_contains "$ERR" "skip rules a linter or hook already enforces" "wf: the lens prompt skips rules a linter or hook enforces"
+}
+
+t_wf_review_diff_no_review_md_when_unset() {
+	local d
+	d=$(tmp_dir)
+	_wf_review_md_stub "" >"$d/stub.js"
+	run_cmd node "$WF_RUN" "$WF_DIR/review-diff.js" "$d/stub.js"
+	assert_rc 0 "wf: review-diff.js runs with reviewMd unset"
+	assert_contains "$ERR" "LENS:" "wf: the lens prompt was captured"
+	assert_not_contains "$ERR" "REVIEW.md" "wf: the lens prompt never mentions REVIEW.md when reviewMd is unset"
+}
+
+# ---------------------------------------------------------------------------
+# P23 — research-sweep treats local code, installed packages and local docs as
+# primary sources, lets a claim cite path:line, and has the checker re-read it.
+# ---------------------------------------------------------------------------
+
+t_wf_research_sweep_local_sources_are_primary() {
+	local d
+	d=$(tmp_dir)
+	_wf_parallel_stub >"$d/stub.js"
+	cat >>"$d/stub.js" <<'EOS'
+async function agent(prompt, opts) {
+  if (opts.label === 'angles') { return { angles: [{ key: 'a', query: 'q' }] } }
+  if (opts.label === 'research:a') { process.stderr.write('ANGLE:' + prompt + '\n'); return { headline: 'h', claims: [{ claim: 'c', url: 'x', date: 'd', kind: 'PRIMARY' }], queriesRun: [], unknowns: [] } }
+  if (opts.label === 'check:a') { process.stderr.write('CHECK:' + prompt + '\n'); return { confirmed: [], unsupported: [], notes: '' } }
+  return 'report'
+}
+function log() {}
+function phase() {}
+const args = { question: 'why?' }
+const budget = { total: null, spent: function () { return 0 }, remaining: function () { return Infinity } }
+module.exports = { agent: agent, parallel: parallel, pipeline: async function (items, a, b) {
+  const out = []
+  for (const it of items) { const x = await a(null, it); out.push(await b(x)) }
+  return out
+}, log: log, phase: phase, args: args, budget: budget }
+EOS
+	run_cmd node "$WF_RUN" "$WF_DIR/research-sweep.js" "$d/stub.js"
+	assert_rc 0 "wf: research-sweep.js runs under wf-run.js"
+	assert_contains "$ERR" "Read/Grep/Glob" "wf: the angle prompt allows reading local sources"
+	assert_contains "$ERR" "node_modules" "wf: the angle prompt names installed packages"
+	assert_contains "$ERR" "PRIMARY when they own the claim" "wf: local sources count as PRIMARY when they own the claim"
+	assert_contains "$ERR" "path:line" "wf: a local claim cites path:line"
+	assert_contains "$ERR" "re-read" "wf: the checker re-reads path:line claims"
+	assert_contains "$(grep "url: {" "$WF_DIR/research-sweep.js")" "path:line" "wf: the claim schema lets url hold a path:line"
+}

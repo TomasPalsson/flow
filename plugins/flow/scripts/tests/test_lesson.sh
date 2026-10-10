@@ -343,6 +343,14 @@ t_lesson_skill_M08_retro_since_and_safety() {
 	assert_contains "$s" "secrets, credentials, customer data" "M08: redaction rule"
 }
 
+t_lesson_skill_P30_noops_run_to_settle() {
+	local line
+	line=$(grep -F '**No-ops:**' "$SCAN_DIR/../skills/lesson/SKILL.md")
+	assert_contains "$line" "Settle a disputed one by running" "P30: a disputed no-op is settled by running with and without it"
+	assert_contains "$line" "whole sentence" "P30: the proposal deletes the whole sentence, not words"
+	assert_contains "$line" "model default" "P30: no-op is judged against the model default"
+}
+
 t_lesson_skill_M09_retro_routing() {
 	local s
 	s=$(cat "$SCAN_DIR/../skills/lesson/SKILL.md")

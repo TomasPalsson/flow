@@ -50,4 +50,4 @@ Measure each attempt with Steps 1 to 4 before trying the next.
 
 For an eval score, the same questions hold (did every trial do the task, does the gap hold across trials). Sample size, paired tests and intervals live in the `agent-evals` skill (Decision 3); use it there instead of repeating them here.
 
-Credit: adapted from cursor/plugins pstack skills/benchmark-checklist, principle-explain-the-number and poteto-mode/playbooks/perf-issue.md (MIT).
+Credit: adapted from cursor/plugins pstack skills/benchmark-checklist, principle-explain-the-number and poteto-mode/playbooks/perf-issue.md @ ccb5507 (MIT).

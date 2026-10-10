@@ -18,7 +18,7 @@ One turn of discovery, one route decision, the smallest set of files that route 
 If a `.specs/NNN-*/PREP.md` exists with `Status: ready for spec` and no `spec.md` beside it, that directory is the spec directory, the interview already happened, and you **do NOT load `references/question-bank.md` at all**. Consolidate instead:
 
 - every `D-NN` under `## Decisions` is copied verbatim and **never re-asked**; if the spec must contradict one, write `[NEEDS CLARIFICATION: conflicts with D-NN]` rather than asking again
-- `## Not this` becomes §2.2 Non-goals verbatim · `## Discretion` items you decide silently · `## Assumptions` land in §7 with their confidence · `## Verify` seeds §6 launch criteria · `## Open` items become Open Questions and already count toward the cap of 3
+- `## Not this` becomes §2.2 Non-goals verbatim · `## Not yet specified` lines go to §2.2 Non-goals as "deferred: <line>", never into scope · `## Discretion` items you decide silently · `## Assumptions` land in §7 with their confidence · `## Verify` seeds §6 launch criteria · `## Open` items become Open Questions and already count toward the cap of 3
 - PREP.md's own route line is an input to §2, not a verdict — recompute and say so if you differ
 
 Ask only about a category PREP.md left genuinely empty. `Status: interviewing` means prep is unfinished: tell the user to finish `/flow:prep` and stop.
@@ -63,7 +63,7 @@ Two items are never dropped: the negative-scope position (what this will NOT do)
 
 - `dispatch` only: write `spec.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/spec.md`](../../flow-templates/spec.md) — ~110 lines, every placeholder filled from the discovery turn or recorded as an Assumption. When the PREP.md gate fired, **write `spec.md` beside** that `PREP.md`, in its directory. No technology names in §4; those belong in `design.md`.
 - `dispatch` only, and only when the seam trigger fires — two or more tasks share a name, an id type, an error shape, a module boundary or a resource — read [`references/design.md`](references/design.md) in full and write `design.md`. One task, or no shared seam: skip it and write `Design: none` in the header. Never paste any of `design.md` into a task agent but its own `## Contract` block.
-- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it (itself, when `autoApprove` is `true` in `.claude/flow.config.json`).
+- both routes: write `TASKS.md` from [`${CLAUDE_PLUGIN_ROOT}/flow-templates/TASKS.md`](../../flow-templates/TASKS.md). The header carries `Spec: · Design: · Base: <sha> · Route: · Test: <cmd>`, plus `Issue: #143` when this run came from an issue reference; every task line carries `files:` (a comma list, no globs) and `verify:` (a runnable command, or `human: <observable>` for a `CHK###`). `after:` is what computes the waves; two `[P]` tasks in one wave may not share a file. Each phase is a vertical slice through every layer the feature touches, demoable on its own, and its `Independent test:` exercises those layers together; a phase that is one layer (all the schema, then all the API, then all the UI) proves nothing until the last one lands. A prefactor, a change that makes the real change easy, is its own first task. Size each task so one fresh developer context can finish it. Do **not** write `Approved:` — that line is the user's, and only `/flow:next` records it (itself, when `autoApprove` is `true` in `.claude/flow.config.json`).
 
 ## 4a. Stealth — specs this repo must never see
 
@@ -74,7 +74,7 @@ Two items are never dropped: the negative-scope position (what this will NOT do)
 
 ## 5. Judge — dispatch only, one pass
 
-On `dispatch`, spawn one spec-judge subagent (`general-purpose`, `sonnet`) against the spec, **capped at one iteration**. Apply its ship-blockers, carry the rest as Assumptions, and report the score once. `oneshot` and `bounded` never invoke it. If spec-judge is not installed at `${CLAUDE_PLUGIN_ROOT}/skills/spec-judge/SKILL.md`, say so in one line and continue — never self-score, that defeats the independent judge.
+On `dispatch`, spawn one spec-judge subagent (`general-purpose`, `sonnet`) against the spec, **capped at one iteration**. Apply its ship-blockers, carry the rest as Assumptions, and report the score once. Then spawn spec-judge once more (same agent type and model) with `MODE: issue-breakdown` on `TASKS.md` and read only D-Slice and the issues it names; ignore D-AFK, because flow marks human work as `CHK###`, not AFK/HITL. The judge scores task lines, so map each named task to its `## Phase` and re-cut a phase only when the whole phase is one layer or its `Independent test:` skips a layer the phase touches; a layer-named task inside a phase that spans every layer is not a trigger. Re-cut such phases once and re-lint. Add `slices: D-Slice X/35` to the score line you already print. `oneshot` and `bounded` never invoke it. If spec-judge is not installed at `${CLAUDE_PLUGIN_ROOT}/skills/spec-judge/SKILL.md`, say so in one line and continue — never self-score, that defeats the independent judge.
 
 ## 6. Hand off
 
@@ -85,7 +85,8 @@ In this order, every run that wrote a directory:
 3. print **What will happen** — the plan in plain words, so the user can approve without opening `TASKS.md`: one numbered line per phase saying what exists once that phase is done (from its `Goal:`), no task IDs, no file paths
 4. print the truthful gate manifest: **"This run will stop for you N times"** — count them for real (the approval gate, every `CHK###`, the verification gate, and the PR), and name each one in plain words — what the user is asked to look at, never a bare ID or file name
 5. **issue runs only** — post the "picked up" comment per `shared/issue-refs.md` §4 moment 1, after checking the marker so a re-run or an `--amend` updates it instead of posting twice. A `gh` failure here is one clause of output, never a stop.
-6. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`
+6. **only when an Open Question's `owner:` is not the user** — offer once, in a single line, to write `.specs/<NNN-slug>/questionnaire-<owner>.md` from [`references/questionnaire.md`](references/questionnaire.md); write it only on a yes (under stealth, offer in chat only and write no file). Answers come back through `--amend`. Skip quietly when every owner is the user.
+7. end with the router's own line: run `flow next` and print its `Next:` verbatim, e.g. `Next: reply "approved" — full plan: .specs/003-entry-tagging/TASKS.md`
 
 ## 7. `--amend "<change>"`
 

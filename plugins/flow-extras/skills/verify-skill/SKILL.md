@@ -39,4 +39,4 @@ Read [`references/maintain.md`](references/maintain.md) before starting; it hold
 
 A "please verify" line is advisory and agents skip it silently. The generated skill makes the done-state concrete: a named evidence file, and a rule that "could not verify" is reported, not omitted. Enforcement beyond that (a hook or CI gate) is the user's call; offer it, do not add it.
 
-Credit: adapted from cursor/plugins pstack create-verification-skill and maintain-verification-skill (MIT).
+Credit: adapted from cursor/plugins pstack create-verification-skill and maintain-verification-skill @ ccb5507 (MIT).

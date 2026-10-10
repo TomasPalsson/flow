@@ -310,3 +310,19 @@ tool_used, llm (headless judge), file graders and postcheck.sh. One
 <out>/results.json. --ledger appends one line to evals/ledger.jsonl.
 Exit 0 iff every run passed, 1 otherwise, 2 on setup errors. Spends money.
 ```
+
+## version-drift
+
+```
+Usage: version-drift <repo>
+
+For each plugin in <repo>/.claude-plugin/marketplace.json, read at HEAD:
+  (a) its plugin.json version must equal its marketplace entry;
+  (b) when files under the plugin changed since the merge-base with main,
+      its version must be semver-greater than main's.
+(b) is skipped on main, with no main, or for a plugin new on this branch.
+git-guard runs it before `gh pr create` / `gh pr ready` in a repo that has
+.claude-plugin/marketplace.json.
+
+Exit codes: 0 clean · 1 drift (one line per plugin) · 2 usage or unreadable input
+```

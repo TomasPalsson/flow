@@ -210,6 +210,16 @@ async function runTask(id) {
   )
   ctx = Object.assign({}, ctx, { diffPath: diffRes ? diffRes.diffPath : null })
 
+  // No diff means nothing was reviewed. An empty findings list here would read as a
+  // clean review, so the task parks with the true reason instead.
+  if (!ctx.diffPath) {
+    log('parked: task ' + id + ' - no diff to review')
+    return {
+      result: { id: id, redExit: ctx.redExit, greenExit: ctx.greenExit, refactorPassCount: ctx.refactorPassCount, commits: ctx.commits || [], files: ctx.files || [], notes: 'no diff to review', failedLenses: [] },
+      parked: [{ task: id, finding: { predicate: 'no diff to review', severity: 'significant', scenario: 'review-package produced no diff path, so the task was never reviewed', receipt: reviewCmd }, ruling: 'parked', why: 'review-package yielded no diff (empty diff or packaging failed); the task was not reviewed' }],
+    }
+  }
+
   let current = [], taskFailedLenses = []
   if (ctx.diffPath) {
     const lenses = await parallel([

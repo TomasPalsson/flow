@@ -34,6 +34,8 @@ For each stage, write the precise path a human follows: which URL to open, what 
 
 Copy `template.sh` to the target path. Replace the example stage with one `stage` per step, in dependency order. Use the library helpers: `stage`, `say`/`step`, `open_url`, `ask`/`ask_secret`, `write_env`, `set_secret`/`set_var`, `pause`/`confirm`. Set `TOTAL_STAGES` to the number of stages you wrote.
 
+Keep every authored stage inside `run_wizard` and leave the last line as `run_wizard "$@"; exit`: bash then parses the whole file before the first prompt, so an edit made while the wizard runs cannot break it.
+
 Hold the bar the template sets: open the URL before asking for its value, use `ask_secret` for anything secret, `write_env` every persisted value, `set_secret` only the values CI actually needs, and `confirm` before any irreversible action. Each `stage` clears the screen so only the current step is visible. Keep a stage to one focused task so nothing the human needs scrolls away.
 
 **Done when:** the script has one stage per step from steps 1 and 2, `TOTAL_STAGES` matches, and the library above the marker is unchanged.
@@ -42,9 +44,10 @@ Hold the bar the template sets: open the URL before asking for its value, use `a
 
 - Run `bash -n <script>`, and `shellcheck` if available.
 - Run `chmod +x <script>`.
+- When you change `template.sh` itself, run [scripts/test_template.sh](scripts/test_template.sh).
 - Do not run it end to end yourself: it opens browsers and blocks on human input. Trace it statically instead. Every value from step 1 is captured and lands where step 1 said, and every `set_secret` name exactly matches a `secrets.*` reference in CI.
 - Tell the user how to run it. If it is a repeatable setup path, commit it and link it from the README so the next person runs the script instead of asking an AI.
 
 **Done when:** `bash -n` passes, the trace finds no missing or misplaced value, and the user has the run command.
 
-Adapted from mattpocock/skills wizard (MIT).
+Adapted from mattpocock/skills wizard @ f3fc563 (MIT).

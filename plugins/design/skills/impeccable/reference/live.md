@@ -318,6 +318,17 @@ node ${CLAUDE_PLUGIN_ROOT}/skills/impeccable/scripts/live-server.mjs stop
 
 Stops the helper and runs `live-inject.mjs --remove` to strip the injected script (use `stop --keep-inject` to keep it for a quick restart; `.impeccable/live/config.json` persists as project config). Then search for and remove any leftover `impeccable-variants-start` wrappers and `impeccable-carbonize-start` blocks.
 
+## Whole-page variants
+
+Use this on demand, when the user wants to compare whole pages on a real route with real data. The element-level loop above cannot do that, and a showcase mockup uses a mocked shell.
+
+1. Render 2 or 3 structurally different variants in the existing route, chosen by `?variant=` (`?variant=a`, `?variant=b`). Keep the route's real data fetching and auth, so each variant shows what the user will ship. With no `?variant=`, the route renders the current page.
+2. Add a small switcher. Gate it so a production build drops it: put the check inside the module that holds the switcher code, as `export default process.env.NODE_ENV === 'development' ? Switcher : () => null`. A check written where the switcher is rendered does not work: with an imported `'use client'` component, Next.js still ships the switcher code to the browser. Left and right arrow keys move between variants. The switcher ignores keys while an input, textarea or contenteditable element has focus, because the user is typing there.
+3. After the user picks one, say the branch name first. Then commit the losing variants and the switcher to `proto/<slug>-variants`, and remove them from the working branch, leaving the chosen variant as the page. Move nothing before the pick: the user may still want to compare.
+4. Check before finishing: a production build holds no switcher code. Pick a distinctive string in the switcher and confirm `grep -r` finds nothing under the build output (`.next` for Next.js). If the grep finds the string, move the check into the switcher module.
+
+Credit: adapted from mattpocock/skills skills/engineering/prototype/UI.md @ 49dd158 (MIT).
+
 ## First-time setup
 
 Only when `live.mjs` reports `config_missing` / `config_invalid`, or `configDrift` needs explaining, or the config lacks `cspChecked`: read [live-setup.md](live-setup.md). It owns the config schema, the per-framework `files` table, injection adapters, drift healing, and the CSP detection and consent flow.

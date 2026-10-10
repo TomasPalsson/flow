@@ -67,6 +67,12 @@ JSON
 	rm -rf "$repo"
 }
 
+t_core_project_template_names_review_md_only_for_reviewers() {
+	local tpl="$SCAN_DIR/../flow-templates/CLAUDE.project.md"
+	assert_contains "$(cat "$tpl")" "REVIEW.md is read by reviewers at gating." "t_core_project_template_names_review_md_only_for_reviewers sentence"
+	assert_not_contains "$(cat "$tpl")" "See REVIEW.md" "t_core_project_template_names_review_md_only_for_reviewers no-implementer-pointer"
+}
+
 t_core_session_context_progress_review_and_harness_override() {
 	local repo
 	repo=$(tmp_repo)
@@ -78,7 +84,7 @@ t_core_session_context_progress_review_and_harness_override() {
 	assert_rc 0 "t_core_session_context_progress_review_and_harness_override rc"
 	assert_contains "$OUT" "## PROGRESS.md" "t_core_session_context_progress_review_and_harness_override progress-heading"
 	assert_contains "$OUT" "first line" "t_core_session_context_progress_review_and_harness_override progress-content"
-	assert_contains "$OUT" "note: REVIEW.md present" "t_core_session_context_progress_review_and_harness_override review-note"
+	assert_not_contains "$OUT" "REVIEW.md present" "t_core_session_context_progress_review_and_harness_override review-note-absent"
 	assert_contains "$OUT" "note: harness override: maxFileLines=200" "t_core_session_context_progress_review_and_harness_override maxFileLines-override"
 	assert_contains "$OUT" "note: harness override: sizeGuard=false" "t_core_session_context_progress_review_and_harness_override sizeGuard-override"
 	rm -rf "$repo"

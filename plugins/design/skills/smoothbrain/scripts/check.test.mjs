@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,6 +94,20 @@ test('file names and IDs are not acronyms, and code counts as a use', () => {
 test('a step caption over 20 words fails', () => {
   const s = Array.from({ length: 22 }, (_, i) => `w${i}`).join(' ') + '.';
   fails({ moves: SECTIONS.moves.replace('A job arrives.', s) }, /FAIL.*step.*22 words/);
+});
+
+// Text rules in SKILL.md: the grounding ledger (section 3) and its check bullet.
+const SKILL = readFileSync(join(dirname(SCRIPT), '..', 'SKILL.md'), 'utf8');
+
+test('SKILL.md section 3 carries the grounding rule', () => {
+  const s3 = SKILL.slice(SKILL.indexOf('## 3. The zoom ladder'), SKILL.indexOf('## 4. Pictures'));
+  assert.match(s3, /Before writing, list the concepts the reader brings/);
+  assert.match(s3, /only those concepts and the ones earlier rungs showed/);
+});
+
+test('SKILL.md "It is working if" has the grounding bullet', () => {
+  const w = SKILL.slice(SKILL.indexOf('## It is working if'));
+  assert.match(w, /No card or step needs an idea the page has not shown above it\./);
 });
 
 test('a plural on the page counts as a use of the term', () => {

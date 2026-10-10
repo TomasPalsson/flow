@@ -4,7 +4,7 @@ Flags, on an added .ts/.tsx line: a non-null assertion followed by `.`, `(`
 or `[`; `as <Type>` directly after `]`; and "should never happen" in a throw
 or a comment. React ref access (`ref.current!`) is exempt.
 
-Credit: adapted from cursor/plugins pstack skills/typescript-best-practices/references/patterns.md (MIT).
+Credit: adapted from cursor/plugins pstack skills/typescript-best-practices/references/patterns.md @ ccb5507 (MIT).
 """
 import re
 

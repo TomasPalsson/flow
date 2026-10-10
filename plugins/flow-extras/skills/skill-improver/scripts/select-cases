@@ -5,7 +5,7 @@
 # input_match names only that skill (a routing case that expects it). Cases
 # that merely list the skill among wrong answers are not selected.
 # For no-slop the quality-* cases are added, since they are graded on its rubric.
-# Credit: adapted from cursor/plugins pstack docs/guide/09-make-it-yours.md (MIT).
+# Credit: adapted from cursor/plugins pstack docs/guide/09-make-it-yours.md @ ccb5507 (MIT).
 set -u
 skill="${1:-}"
 root="${2:-.}"

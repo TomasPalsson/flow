@@ -85,4 +85,4 @@ Merge-ready means `pr-watch` returned `done` on the final push, stated with that
 
 - `scripts/pr-watch` policy, from this skill's directory: `python3 -B -I scripts/test_pr_watch.py` (`decide`, `pick`, `read_state` with `gh` faked) and `python3 -B -I scripts/test_pr_watch_budget.py` (external checks, the wave budget, `--max-minutes`, `--json`)
 
-Credit: adapted from cursor/plugins pstack playbooks/babysit.md and watch-pr/policy.ts (MIT); external-check guidance adapted from cursor-team-kit fix-ci and ci-watcher.
+Credit: adapted from cursor/plugins pstack playbooks/babysit.md and watch-pr/policy.ts @ ccb5507 (MIT); external-check guidance adapted from cursor-team-kit fix-ci and ci-watcher @ ccb5507.

@@ -58,6 +58,9 @@ no sleeps, no snapshot as the only assertion. Never skip, weaken, or delete a te
 Test through the public interface; mock only at system boundaries (network, clock,
 randomness, third-party APIs), never your own modules; verify through the interface,
 never through a side channel such as querying the database the code just wrote.
+A new external call gets its own named function (getUser, createOrder) beside the
+existing ones, and a test mocks that function. A mock never branches on URL or
+endpoint. Never refactor an existing generic client inside this task; report it instead.
 
 Write a high-quality, general-purpose solution. Do not hard-code values or special-case
 the test inputs. If the task is unreasonable or a test is wrong, say so in the report

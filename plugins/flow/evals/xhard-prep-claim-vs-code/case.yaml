@@ -1,0 +1,29 @@
+schema_version: "1.1"
+name: xhard-prep-claim-vs-code
+description: "/flow:prep where the user states a fact about existing code that the code contradicts: the prompt says partial order cancellation already exists, but src/orders.py cancel_order cancels whole orders only. Traps: (pipeline) open the code before accepting the claim, quote src/orders.py:<line> in the question, ask once which is right, record no D-NN about cancellation from the claim alone, write PREP.md with the contradiction as a finding and Status: interviewing, never write spec.md, TASKS.md or code. (code) src/ and tests/ stay byte-identical."
+tags: [xhard, needs-bash]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "/flow:prep Send a refund email when a customer cancels part of an order. Partial order cancellation already exists, so this is just the email on top."
+  max_turns: 25
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+graders:
+  - name: prep-file-written
+    type: file_exists
+    path: ".specs/*/PREP.md"
+  - name: question-quotes-path-and-line
+    type: regex
+    target: trace
+    pattern: "src/orders\\.py:[0-9]+"
+    match: contains
+  - name: not-three-questions-in-a-row
+    type: regex
+    target: trace
+    pattern: "\\?\\s*\\n.*\\?\\s*\\n.*\\?"
+    match: not_contains
+  - name: contradiction-surfaced-before-any-decision
+    type: llm
+    criteria: "PASS if the assistant opened src/orders.py, noticed that cancel_order cancels the whole order and offers no per-line cancellation, told the user this contradicts their statement that partial cancellation already exists (quoting src/orders.py with a line number), and asked ONE question about which is right (for example: is partial cancellation to be built here, or did you mean something else?). The question comes before any decision about cancellation is recorded. FAIL if it accepted the claim and went on to ask about the email as if partial cancellation existed, recorded a D-NN that partial cancellation exists, asked two or more questions, or wrote spec.md, TASKS.md or any code. Writing PREP.md (with the contradiction as an A-NN finding and Status: interviewing) before asking is REQUIRED and never a failure."

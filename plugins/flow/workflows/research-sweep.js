@@ -42,7 +42,7 @@ const RESEARCH_SCHEMA = {
         required: ['claim', 'url', 'date', 'kind'],
         properties: {
           claim: { type: 'string' },
-          url: { type: 'string' },
+          url: { type: 'string' }, // a URL, or path:line for a claim read from a local file
           date: { type: 'string' },
           kind: { type: 'string' },
         },
@@ -78,7 +78,9 @@ const results = await pipeline(
   function (_prev, a) {
     const prompt = 'Research angle "' + a.key + '" of the question: ' + question +
       '. Query: ' + a.query + '. Use WebSearch/WebFetch to gather up to ' + sourcesPerAngle +
-      ' sources. Return a headline, a list of claims (each with claim, url, date, and kind PRIMARY or SECONDARY), ' +
+      ' sources. Use Read/Grep/Glob over the repo, node_modules, site-packages and local docs too: these are ' +
+      'PRIMARY when they own the claim (the package source over a blog post about it). Each claim names the source that owns it. ' +
+      'Return a headline, a list of claims (each with claim, url, date, and kind PRIMARY or SECONDARY; url is a URL, or path:line for a local file), ' +
       'queriesRun (the searches you actually ran, including ones that found nothing), and unknowns (what you looked for and could not find).'
     return agent(prompt, { model: 'sonnet', agentType: 'general-purpose', label: 'research:' + a.key, phase: 'Search', schema: RESEARCH_SCHEMA })
       .then(function (r) { return { angle: a, research: r } })
@@ -86,7 +88,7 @@ const results = await pipeline(
   function (prev) {
     if (!prev || !prev.research) { return prev }
     const claims = prev.research.claims || []
-    const prompt = 'Refetch and verify the 4 most load-bearing claims below; report which are confirmed, ' +
+    const prompt = 'Refetch and verify the 4 most load-bearing claims below (re-read a path:line claim from the file instead of fetching it); report which are confirmed, ' +
       'which are unsupported, and notes. Claims: ' + JSON.stringify(claims)
     return agent(prompt, { model: 'sonnet', label: 'check:' + prev.angle.key, phase: 'Check', schema: CHECK_SCHEMA })
       .then(function (c) { return Object.assign({}, prev, { check: c }) })

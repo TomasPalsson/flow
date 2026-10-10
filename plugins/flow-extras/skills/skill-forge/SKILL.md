@@ -33,9 +33,9 @@ Step 0 (reuse check, below) runs before Research — look before you build.
 
 ## Step 0: Reuse check — before any research
 
-Derive 3–6 keywords and synonyms from the request. `grep -ril` them over `plugins/*/skills/*/SKILL.md` (when in a plugin repo), `~/.claude/skills/*/SKILL.md`, and `~/.claude/skills/*/skills/*/SKILL.md`, then read each hit's frontmatter `description`.
+Derive 3–6 keywords and synonyms from the request. `grep -ril` them over `plugins/*/skills/*/SKILL.md` (when in a plugin repo), `~/.claude/skills/*/SKILL.md`, and `~/.claude/skills/*/skills/*/SKILL.md`, then read each hit's frontmatter `description`. A name or description match decides nothing: read the body of each candidate's SKILL.md before calling it a close match or ruling it out.
 
-A close match — its description covers the request's core trigger — STOPS before Step 1 and offers exactly three choices: use the existing skill, improve it with `skill-improver`, or build fresh anyway.
+A close match — the body covers the request's core trigger — STOPS before Step 1 and offers exactly three choices: use the existing skill, improve it with `skill-improver`, or build fresh anyway. Quote the `path:line` that covers the core trigger in that prompt.
 
 No close match: print one receipt line and continue — `reuse check: searched <terms> in <dirs>; nothing close`
 

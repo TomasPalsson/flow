@@ -39,7 +39,8 @@ settled. Prep posts no comment — `/flow:spec` owns moment 1.
 Then classify the idea into one of four routes and say it in one line; the
 user may override with one word:
 
-- **spike** — a feasibility question whose output is an answer, not code.
+- **spike** — a feasibility question whose output is an answer, not code;
+  a throwaway logic demo may back the answer (rule 3).
 - **bounded** — a well-scoped change to code that already exists in this
   repo, touching ≤2 files, nothing irreversible.
 - **oneshot** — 0 intent gaps, 0 irreversibles, ≤5 tasks.
@@ -96,16 +97,32 @@ interview. Print the path once.
 3. **Only ask what is answerable** in 2–5 options or ≤5 words. Interaction
    feel, aesthetics, "does this look right" are ungrillable — say so and
    route them to a prototype or `/design:vary`; talking through them is
-   where sessions balloon.
+   where sessions balloon. When the open question is whether a state model
+   holds (illegal transitions, budgets, agent steps), offer a logic demo,
+   and build it only after the user says yes: a reducer module with no DOM,
+   a thin HTML shell, one tab per scenario (happy path, tricky edge,
+   should-be-illegal), each tab resetting to a known state, committed on
+   branch `proto/<slug>`. Record the answer as an `A-NN` with
+   `evidence: proto/<slug>:<path>`; a spike still ends `done in chat`.
+   Credit: adapted from mattpocock/skills skills/engineering/prototype/LOGIC.md @ 49dd158 (MIT).
 4. **Two mandatory probes**: "what should this explicitly NOT do?" (fills
    **Not this**) and the quantification probe on every adjective ("fast",
    "simple", "robust" → a number or a comparison).
 5. **Explicit confirmation only.** A decision becomes a `D-NN` on a number, a
    name or a specific. "Sure", "agreed", silence → restate once; if still
    vague, record an `A-NN` with `confidence: low`, never a `D-NN`.
+   When an answer states how existing code behaves, open the code first. On a
+   contradiction, quote path:line and ask once which is right; record the
+   `D-NN` only from that reply. No contradiction, no extra words.
+   Credit: adapted from mattpocock/skills skills/engineering/domain-modeling/SKILL.md @ 49dd158 (MIT).
 6. **Checkpoint at 6**: print the Decisions / Open counts and ask "continue
    or write?". Hard cap 12. More than 3 **Open** lines is the split signal —
    offer to run prep once per piece; never widen the spec to fit the doubt.
+   Before counting, resolve any Open line the tree can answer as an `A-NN`
+   with evidence (Step 1). When the split fires, an Open line you can phrase
+   as one precise question now becomes its own prep in the offer; the rest go
+   under `## Not yet specified` and are not pre-sliced.
+   Credit: adapted from mattpocock/skills skills/engineering/wayfinder/SKILL.md @ 49dd158 (MIT).
 7. **The last question is always Verify**:
    "what single check would convince you this shipped" — the spec inherits
    it instead of inventing one.

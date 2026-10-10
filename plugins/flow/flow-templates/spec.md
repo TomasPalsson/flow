@@ -89,6 +89,7 @@
 - [ ] [Every MUST in §4.1 has a passing test]
 - [ ] [The error path of each journey is exercised]
 - [ ] [The NFR numbers in §5 are measured, not assumed]
+- [ ] Test seam(s): [seam] — catches: [what it proves] / misses: [what it cannot see]  <!-- at most 2; the highest existing seam -->
 
 ## 7. Assumptions
 
@@ -100,7 +101,7 @@
 
 > Cap: 3. More than 3 unknowns is not a buildability contract, it is a wishlist with placeholders.
 
-1. [NEEDS CLARIFICATION: question]
+1. [NEEDS CLARIFICATION: question — owner: user|<name/role>]
 
 ## Appendix A — Glossary
 

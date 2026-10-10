@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""version-drift <repo>: fail when a plugin's version is out of step.
+
+Versions are read from HEAD (what a PR publishes), not the working tree.
+For each plugin in <repo>/.claude-plugin/marketplace.json:
+  (a) the version in its plugin.json must equal its marketplace entry;
+  (b) when files under the plugin changed since the merge-base with main, the
+      version must be semver-greater than main's plugin.json version.
+(b) is skipped when HEAD is main, when there is no main, or when the plugin is
+new on this branch. Exit 1 prints one line per failing plugin, 0 when clean,
+2 on a usage or unreadable-input error.
+"""
+import json
+import subprocess
+import sys
+
+
+def git(repo, *args):
+    p = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def parse(v):
+    try:
+        return tuple(int(x) for x in str(v).split("-")[0].split("+")[0].split("."))
+    except ValueError:
+        return None
+
+
+def main_ref(repo):
+    refs = [r for r in ("main", "origin/main") if git(repo, "rev-parse", "--verify", "-q", r + "^{commit}")]
+    if len(refs) == 2 and git(repo, "merge-base", "--is-ancestor", "main", "origin/main") is not None:
+        return "origin/main"  # local main is stale behind origin/main
+    return refs[0] if refs else None
+
+
+def load(text):
+    try:
+        return json.loads(text)
+    except (TypeError, ValueError):
+        return {}
+
+
+def check(repo):
+    head = git(repo, "rev-parse", "HEAD")
+    text = git(repo, "show", "HEAD:.claude-plugin/marketplace.json")
+    if head is None or text is None:
+        raise OSError("cannot read .claude-plugin/marketplace.json at HEAD of %s" % repo)
+    market = load(text)
+    base = main_ref(repo)
+    mb = git(repo, "merge-base", base, "HEAD") if base else None
+    check_b = bool(mb) and head != git(repo, "rev-parse", base + "^{commit}")
+    problems = []
+    for entry in market.get("plugins", []):
+        name = entry.get("name", "?")
+        src = entry.get("source", "./plugins/" + name).lstrip("./").rstrip("/")
+        pj = src + "/.claude-plugin/plugin.json"
+        fix = "bump %s and .claude-plugin/marketplace.json" % pj
+        text = git(repo, "show", "HEAD:" + pj)
+        if text is None:
+            problems.append("%s: %s is missing; %s" % (name, pj, fix))
+            continue
+        ver = load(text).get("version")
+        if ver != entry.get("version"):
+            problems.append("%s: plugin.json says %s but marketplace.json says %s; %s" % (name, ver, entry.get("version"), fix))
+            continue
+        if not check_b or not git(repo, "diff", "--name-only", mb + "..HEAD", "--", src + "/"):
+            continue
+        old = load(git(repo, "show", "%s:%s" % (base, pj))).get("version")
+        if old is None:
+            continue
+        a, b = parse(ver), parse(old)
+        if a is None or b is None or a <= b:
+            problems.append("%s: files changed since main but version %s is not above main's %s; %s" % (name, ver, old, fix))
+    return problems
+
+
+USAGE = """Usage: version-drift <repo>
+
+For each plugin in <repo>/.claude-plugin/marketplace.json, read at HEAD:
+  (a) its plugin.json version must equal its marketplace entry;
+  (b) when files under the plugin changed since the merge-base with main,
+      its version must be semver-greater than main's.
+(b) is skipped on main, with no main, or for a plugin new on this branch.
+git-guard runs it before `gh pr create` / `gh pr ready` in a repo that has
+.claude-plugin/marketplace.json.
+
+Exit codes: 0 clean · 1 drift (one line per plugin) · 2 usage or unreadable input"""
+
+if __name__ == "__main__":
+    if sys.argv[1:] in (["--help"], ["-h"]):
+        print(USAGE)
+        sys.exit(0)
+    if len(sys.argv) != 2:
+        print("usage: version-drift <repo>", file=sys.stderr)
+        sys.exit(2)
+    try:
+        out = check(sys.argv[1])
+    except Exception as e:  # any failure to judge is exit 2, never the drift code 1
+        print("version-drift: %s: %s" % (type(e).__name__, e), file=sys.stderr)
+        sys.exit(2)
+    if out:
+        print("\n".join(out))
+        sys.exit(1)

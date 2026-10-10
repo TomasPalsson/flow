@@ -573,3 +573,32 @@ t_noslop_pr_body_new_lines() {
 	assert_contains "$b" "NP-09" "pr-body ties NP-09 to benchmark-checklist"
 	assert_contains "$b" "benchmark-checklist" "pr-body names benchmark-checklist"
 }
+
+# P13: boundary mocks are one named function per external call.
+t_noslop_developer_block_named_boundary_calls() {
+	local f="$SKILL_DIR/references/developer-block.md" b
+	b=$(cat "$f")
+	assert_contains "$b" "never branches on URL" "developer block: a mock never branches on URL"
+	assert_contains "$b" "Never refactor an existing generic client" "developer block: leave existing generic clients alone"
+	assert_eq "$(grep -c 'never branches on URL' "$f")" "1" "boundary sentence appears once"
+}
+
+# P38: NP-13 is a lens row in the prose rubric, with no script detector.
+t_noslop_np13_is_a_lens_row() {
+	local f="$SKILL_DIR/references/prose-rubric.md" b
+	b=$(cat "$f")
+	assert_contains "$b" "| NP-13 |" "prose rubric has an NP-13 row"
+	assert_contains "$b" "NP-01 to NP-03, NP-10, NP-11, NP-13" "grader mapping lists NP-13 as llm"
+	assert_eq "$([ "$(grep -c 'NP-13' "$f")" -ge 2 ] && echo yes || echo no)" "yes" "NP-13 appears at least twice in prose-rubric.md"
+	assert_not_contains "$(cat "$SKILL_DIR/scripts/slop_prose.py")" "NP-13" "slop_prose.py has no NP-13 detector"
+}
+
+# The prose section's row ranges in SKILL.md match prose-rubric.md's real ids.
+t_noslop_prose_ranges_match_rubric() {
+	local skill last
+	skill=$(cat "$SKILL_DIR/SKILL.md")
+	last=$(grep -o '^| NP-[0-9]*' "$SKILL_DIR/references/prose-rubric.md" | grep -o '[0-9]*$' | sort -n | tail -1)
+	assert_eq "$last" "13" "prose-rubric.md's last row is NP-13"
+	assert_contains "$skill" '(NP-01 to NP-13)' "SKILL.md names the full prose range NP-01 to NP-13"
+	assert_contains "$skill" 'the lens rows NP-10, NP-11 and NP-13' "SKILL.md lists NP-13 among the lens rows"
+}

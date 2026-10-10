@@ -28,7 +28,7 @@ Look for:
 - **Review rules:** a mechanical violation becomes a deterministic check; a judgement call becomes a reviewer rule.
 - **Steering bloat:** CLAUDE.md lines that should be checks.
 - **Tool economy:** expensive or repeated tool calls.
-- **No-ops:** steering lines that do not change behaviour.
+- **No-ops:** steering lines whose deletion would not change behaviour versus the model default. Settle a disputed one by running with and without it, not by debate, and propose deleting the whole sentence, not trimming words.
 - **Information access:** logs or read-only access the agent lacked.
 - **Lucky path:** a right result reached through a check the agent only reported on itself ("tests pass" with no run in the log). The guardrail is a check that runs, not a better sentence.
 - **Hand-fed context:** the user pasted what the agent could have fetched (a log, an error, a file path, a ticket). The rung is access or a pointer, as in Information access.
@@ -44,7 +44,7 @@ Before proposing, route each candidate through three checks:
 
 Present at most 5, ranked by severity, each in the three-line proposal shape (mistake, rung, what would be written). Write nothing before the user picks. Each picked candidate runs Steps 1–6 unchanged.
 
-Retro categories adapted from mattpocock/skills retro (MIT).
+Retro categories adapted from mattpocock/skills retro @ f3fc563 (MIT).
 
 ## Step 1 — Pin the mistake
 

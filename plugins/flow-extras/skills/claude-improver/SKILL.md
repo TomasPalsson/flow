@@ -84,7 +84,7 @@ The orchestrator reads **every artifact file from disk** — never synthesize fr
 For each finding across all 5 artifacts, apply these filters in order:
 
 1. **Grounding check**: Does it cite file:line? If not, drop it.
-2. **Duplication check**: Does an equivalent exist in `inventory.md`? If yes, drop it.
+2. **Duplication check**: Does an equivalent exist in `inventory.md`? Before dropping a finding as a duplicate (or keeping it as a gap), open the matching item's SKILL.md, script or target and record the path:line of the overlap in the drop reason; a name match in `inventory.md` alone decides nothing, because a stale or misleading name can drop a real gap or keep a duplicate.
 3. **Signal check**: Apply the signal vs anti-signal filters from `references/signal-patterns.md`. Drop anti-signals (one-time setup, pleasurably manual, rarely-triggered, framework-handled).
 4. **Frequency check**: Is there evidence this pain recurs? (Shell history cluster, multiple co-changes, TODO emotional language, README gotcha, CI retry directive). Without evidence of recurrence, drop it.
 5. **Artifact-type calibration**: For surviving findings, determine which artifact type fits using `references/artifact-decision-matrix.md`. Quick heuristics: deterministic/blocking → **hook**, LLM-judgment automation → **skill**, delegation with own context → **subagent**, always-needed short rule → **CLAUDE.md**, filetype-scoped rule → **skill with `paths:`**.
@@ -190,7 +190,7 @@ See `references/swarm-prompts.md` for the exact agent prompt templates to use (t
 ## Anti-Patterns (Things the Skill Itself Must Avoid)
 
 1. Never produce more than 5 recommendations per run. Decision fatigue destroys adoption. If the swarm surfaces 30 candidates, filter to 5.
-2. Never recommend something that duplicates existing tooling. Check `inventory.md` before every recommendation. Duplication destroys trust faster than anything else.
+2. Never recommend something that duplicates existing tooling. Check `inventory.md` before every recommendation, and open the matching item (path:line) rather than trusting its name. Duplication destroys trust faster than anything else.
 3. Never recommend generic "best practices" like "add a linter hook" without checking the user doesn't already lint. Generic suggestions score zero knowledge delta.
 4. Never skip the deletion category. LLMs have addition bias — if you don't force "what to remove", you won't see it.
 5. Never generate an artifact without file:line grounding in its justification. Without grounding, the skill is confabulating — surfacing "plausible improvements" from training data rather than this repo. "Your shell history shows `docker compose down && docker compose up --build` ran 15 times in the last month — a `/rebuild` command would save ~30s × 15 = 7.5 min/month" is grounded. "You should add a deploy skill because deployment exists" is not.

@@ -85,7 +85,7 @@ New surface or redesign only; inside an existing system skip this phase (extend 
    - `utility`: the tool or document itself is the first screen; no art.
    - `pattern`: a generated or drawn pattern from the trade's own artefacts.
    - `scene`: a drawn scene, only when the concept calls for it and the client has no better material; never chosen by default.
-   - Native platform (ios/android): hand the platform layer to the `mobile-design` skill; evidence is device screenshots.
+   - Native platform (ios/android): call the Skill tool with "design:mobile-design" for the platform layer (skip quietly when absent); evidence is device screenshots.
 
    Simple and clean is a legitimate choice when the client asks for it or the surface is a dense tool; for a business, brand or event homepage, clean is the floor, not the goal: give it one memorable idea and the small custom details that make it this client's own. Usable and uninspired is a failure too.
 
