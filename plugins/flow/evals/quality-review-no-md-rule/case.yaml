@@ -1,0 +1,20 @@
+schema_version: "1.1"
+name: quality-review-no-md-rule
+description: Without a REVIEW.md the review cites no documented rule (P04 negative sibling)
+tags: [quality]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Review this change. It is the gating review of a whole branch: the change is in change.diff and the working tree holds the post-change files. Review it the way flow's gating review does: read the diff yourself, apply the correctness and structure lenses, and write the result to review-out.md with two headings, `Verified:` (blocking findings) and `Could be smaller:` (advisory structure notes). Write nothing else."
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Write, Skill]
+graders:
+  - name: review-written
+    type: file_exists
+    path: "review-out.md"
+  - name: no-invented-rule
+    type: regex
+    target: { source: file, path: review-out.md }
+    pattern: "(per|violat\\w*|breaks?|against|states)[^.\\n]{0,30}REVIEW\\.md"
+    match: not_contains

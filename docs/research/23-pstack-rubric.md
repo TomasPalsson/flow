@@ -22,7 +22,7 @@ Craft tells you how much rewriting a borrow needs. It does not tell you whether 
 | B3 Mechanism | Is the idea carried by something that runs (script, schema, gate, hook, test), or only by prose that asks the model to behave? | prose only | a check that fails loudly |
 | B4 Evidence | Does it produce something a reviewer can re-run or read later (a log, a test, a report with commands)? | self-report | re-runnable artifact |
 | B5 Portability | Does it survive the move to Claude Code and flow? Minus points for Cursor modes, a model panel of non-Anthropic models, MCPs we do not have, or a team process. | host-locked | drops in unchanged |
-| B6 Cost | Tokens, wall clock, and how much it adds to flow's surface. Higher is cheaper. Watch the user's rule: no per-turn output noise. | big, always on | free or on demand |
+| B6 Cost | Tokens, wall clock, and how much it adds to flow's surface. Higher is cheaper. Watch the user's rule: no per-turn output noise. Feeds ranking, never SKIP. | big, always on | free or on demand |
 | B7 Fit | Does the user's own work ever hit this situation? Score it from the evidence profile (their repos: CI, PR habits, reviewers and bots, stacks, team size, UI vs agents vs infra, perf work), never from what a generic team would need. | never happens in their work | happens most weeks |
 
 B7 gates everything else. A clever idea for a situation the user never meets is still a SKIP. Write the profile fact that sets the score (for example "no repo has a review bot", "most repos have no CI") next to it.
@@ -33,7 +33,7 @@ Verdict from Layer B:
 - **ADOPT** (copy close to as-is): B1 >= 4, B2 >= 3, B5 >= 4.
 - **ADAPT** (take the idea, rewrite it in flow's shape): B1 >= 3 and B2 >= 3, but B5 or B3 is low, or the craft score says it needs a rewrite.
 - **MERGE** (fold a piece into an existing flow skill): B1 is 2-3 and the piece that is new is small.
-- **SKIP**: B1 <= 1, or B2 <= 1, or B6 <= 1 with B2 < 4. Always give the one-line reason and the flow file that already covers it.
+- **SKIP**: B1 <= 1, or B2 <= 1. A SKIP reason must be durable (fit, gap, leverage). Cost, "later" and "not now" are deferrals: score them, never skip on them. Always give the one-line reason and the flow file that already covers it.
 
 A skill can be SKIP while one of its tricks is ADOPT (Layer D). Score the trick, not just the file.
 
@@ -81,4 +81,5 @@ Three questions, answered in prose, with a verdict each:
 - Score against flow as it is on `main` today. Open the flow file before saying "flow already covers it".
 - A score of 4 or 5 needs a quote. A score of 0 or 1 needs the reason.
 - Do not reward length. A 15-line principle that changes behaviour beats a 150-line playbook that restates defaults.
+- For each attribution line in flow, run `git -C <upstream> diff <sha>..HEAD -- <cited path>`; each upstream fix to a borrowed file becomes an item. Every new credit line records the upstream short SHA it was taken from (`@ <sha>`).
 - The user's standing rules apply to anything borrowed: no per-turn output noise, surface on demand only; no speculative features; mechanism over prose.

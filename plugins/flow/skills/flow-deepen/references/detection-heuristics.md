@@ -11,7 +11,8 @@ Run the grep signals — do not eyeball. Thresholds are starting heuristics from
 
 | Signal | Detection | Deepening move (before → after) |
 |---|---|---|
-| **Ratio heuristic** | `(total LOC ÷ public method count) < 20` → likely shallow. Count: `grep -c 'public ' src/Foo.ts` vs `wc -l`. | Consolidate one-liner wrappers into fewer, deeper methods. |
+| **Deletion test** | Imagine deleting the module. If its complexity would reappear across N callers, it is deep: keep it. If the complexity would vanish, it is shallow and a candidate. | Collapse into its callers, or give it real behavior. |
+| **Ratio heuristic** (hint only, never sufficient alone; confirm with the deletion test) | `(total LOC ÷ public method count) < 20` → possibly shallow. Count: `grep -c 'public ' src/Foo.ts` vs `wc -l`. | Consolidate one-liner wrappers into fewer, deeper methods. |
 | **Classitis chain** | One logical op needs 3+ classes composed in a required order. | `new ObjectInputStream(new BufferedInputStream(new FileInputStream(path)))` → `Deserializer.fromFile(path)` — one entry point, buffering defaulted, composition hidden. |
 | **Anemic class** | `grep -E 'public (get\|set)[A-Z]'` > 80% of public methods, no action verbs (validate/compute/render/merge). | `address.getZip().startsWith('9')` → `address.isWestCoast()` — pull the external computation inside. |
 | **Shallow class size** | total LOC ≤ (public method count × 3) → ~3-line methods, all wrappers. | Collapse into the caller or give real behavior. |
@@ -47,8 +48,17 @@ Run the grep signals — do not eyeball. Thresholds are starting heuristics from
 
 | Signal | Detection | Deepening move |
 |---|---|---|
-| **Structural mirroring** | One test class per production class; tests break on behavior-preserving restructure. | Rewrite tests against the public seam's observable behavior; internal helpers then need no new test classes. |
+| **Structural mirroring** | One test class per production class; tests break on behavior-preserving restructure. | Rewrite tests against the public seam's observable behavior; internal helpers then need no new test classes. A shallow-internals test may be deleted only as the task line's `(replaces: <test path>)` allows (see the test-count guardrail). |
 | **Over-mocking** | `find . -name '*.test.ts' \| xargs grep -l 'mock\|jest.fn\|vi.fn' \| wc -l` > 60% of test files; or tests import `__internal`/`internals/` or touch `module._private`. | Characterize at the public seam; mock only true external boundaries (network, clock, fs). |
+
+**Dependency category.** Sort each dependency of the module under test into one of four categories. The category decides how the characterization test reaches the dependency:
+
+- **in-process** (pure code, no I/O): call it directly.
+- **local stand-in** (a database, a filesystem): use a stand-in such as sqlite or a tmp dir.
+- **owned remote** (a service the team runs): use an in-memory adapter at the seam.
+- **true external** (a third-party service): use a mocked port.
+
+The category never changes the command: `verify:` stays the characterization test's own command (see SKILL.md Phase 4).
 
 ---
 
@@ -62,7 +72,7 @@ Apply as a hard filter in Phase 2. Each is a documented way AI refactors destroy
 - **Speculative generality** (Fowler/YAGNI). Plugin hooks, strategy registries, factories "for the future." WHY: the more abstract a design looks, the higher its surface-quality score to a model — but the plugin system has no plugins and every future reader must learn the extension mechanism. Filter: no current consumer → drop.
 - **Rewrite disguised as refactor** (Fowler). Wholesale replacement under a "refactor" label. WHY: a model has no hard line between restructure and rewrite; the output that looks most "improved" is often a rewrite that diverges on edge cases and destroys git blame. Filter: a slice whose blast radius is > ~5 files or rewrites a working module → it is not a deepening.
 - **Refactoring without tests** (Feathers). Restructuring code with no coverage or with structural-mirror tests. WHY: a green type-check is not behavioral preservation — types describe shape, not value; structural tests pass because file layout is preserved, not because behavior is. Filter: no seam to characterize at → characterize first or drop.
-- **Test deletion to go green** (Beck, observed in agents). An agent deletes a failing test to get a green bar. WHY: the model has a green-bar reward signal and deletion is the shortest path. Guard: the characterization-test commit gate makes test count monotonic — a slice that reduces the suite is rejected.
+- **Test deletion to go green** (Beck, observed in agents). An agent deletes a failing test to get a green bar. WHY: the model has a green-bar reward signal and deletion is the shortest path. Guard: the characterization-test commit gate keeps test count monotonic. The one exception is a shallow-internals test that the approved task line names (`(replaces: <test path>)`); it may be deleted in a commit after the slice's characterization test (written first, at the public interface) is green and covers the same behaviour. Any other slice that shrinks the suite is rejected.
 - **Scope creep**. Expanding from one module to adjacent subsystems. WHY: models optimize for thoroughness and see "related improvements" as helpful. Filter: keep each slice to the modules named in `## What ships`.
 
 ---
@@ -84,7 +94,7 @@ A HITL rationale names the decision: *"Needs a human for: interface shape — Op
 
 Every deepening slice's `## Acceptance criteria` has exactly these three, and **no AC may require a NEW test case to pass** (that is feature work — split it):
 
-1. **Characterization test first** — `Given the module at its current public interface, When the full suite runs, Then all tests stay green, AND a characterization test pinning current observable output is committed BEFORE the structural change.`
+1. **Characterization test first** — `Given the module at its current public interface, When the full suite runs, Then all tests stay green, AND a characterization test pinning current observable output is committed BEFORE the structural change.` A test the slice replaces is deleted only after this one is green (see the test-count guardrail).
 2. **Seam observability** — `Given the deepened module, When the seam is exercised through its public interface, Then the output is byte-for-byte identical to the pre-refactor output for every input in the characterization fixture.`
 3. **Measurable interface reduction** — `Given a caller of the new interface, When it uses the deepened method/class, Then it requires [N fewer parameters / N fewer constructor calls / N fewer imports] than before.` This is what makes it a deepening, not a rename — it must be measurable at the call site.
 
@@ -100,7 +110,7 @@ section to the spec's `TASKS.md`, then one line per deepening under it:
 Goal: <the anti-pattern family + the detection signal that found it + the before→after at the call site>.
 Independent test: `<the suite>` — green byte-for-byte with no new test case added.
 - [ ] T014 Caller deserializes a file with one factory call, not 3 — files: src/io/deserializer.ts, tests/io/deserializer.char.test.ts — verify: `npm test -- tests/io/deserializer.char.test.ts`
-- [ ] T015 UserStore returns StoreError, callers drop the db import — files: src/store/user.ts, tests/store/user.char.test.ts — verify: `npm test -- tests/store/user.char.test.ts` — after: T014
+- [ ] T015 UserStore returns StoreError, callers drop the db import (replaces: tests/store/user.internal.test.ts) — files: src/store/user.ts, tests/store/user.char.test.ts, tests/store/user.internal.test.ts — verify: `npm test -- tests/store/user.char.test.ts` — after: T014
 - [ ] CHK016 human-decide — client shape: one method + options object (recommended) vs two methods — verify: human: user picks a shape
 ```
 
@@ -108,10 +118,11 @@ Line rules that `flow lint` enforces, so get them right in the draft:
 
 - The **description** states call-site-observable behavior ("caller creates a user with one method call
   instead of three"), never a layer ("extract the repository interface") — that is horizontal.
-- **`files:`** is a comma-separated list with no globs, and it must include the characterization test file.
+- **`files:`** is a comma-separated list with no globs, and it must include the characterization test file and, when `(replaces: <test path>)` is present, that replaced path too, so the pathspec commit can land the deletion.
   Two `[P]` tasks in the same wave whose `files:` intersect are an ERROR.
 - **`verify:`** is the characterization test's own command. A `verify:` that requires a NEW behavioral
   test case to pass is feature work, not a deepening.
+- **`(replaces: <test path>)`** goes in the description, before the first em dash (`flow lint` has no `replaces:` field). Name it only when a shallow-internals test is to be deleted after the characterization test is green; the user approves it with the table.
 - **`after:`** serializes same-module tasks so the earlier one pins the seam. Only tag `[P]` when the
   `files:` are genuinely disjoint.
 - **HITL** deepenings are `CHK###` lines with `verify: human: <observable>`, placed before the `T###`

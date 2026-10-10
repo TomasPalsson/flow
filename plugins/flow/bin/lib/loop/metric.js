@@ -6,7 +6,7 @@
 // gate is green. Otherwise it is undone with `git revert --no-edit`, which
 // keeps the attempt in history; the loop never discards work with a hard
 // reset. Every attempt is one row in .claude/loop/decisions.tsv.
-// Idea adapted from cursor/plugins pstack playbooks/hillclimb.md (MIT).
+// Idea adapted from cursor/plugins pstack playbooks/hillclimb.md @ ccb5507 (MIT).
 
 const fs = require('node:fs');
 const path = require('node:path');

@@ -18,7 +18,7 @@ do (the printed action).
 Several PRs print one line per PR (its own action); the exit code follows the
 PR pick() chose.
 
-Credit: adapted from cursor/plugins pstack watch-pr/policy.ts (MIT).
+Credit: adapted from cursor/plugins pstack watch-pr/policy.ts @ ccb5507 (MIT).
 """
 import argparse
 import glob

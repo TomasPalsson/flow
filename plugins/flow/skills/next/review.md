@@ -9,7 +9,7 @@ One protocol, two callers: the `building` state reviews a single task's diff, th
 
 ## Lenses
 
-Each reviewer gets the brief path and the diff path, and nothing else. It must **re-open the diff itself** — a finding built from another agent's summary is a rumor.
+Each reviewer gets the brief path, the diff path, and at `gating` the repo's `REVIEW.md` when one exists at the repo root (with `review-diff`, the `reviewMd` argument; inline, hand each lens the path) — nothing else. A rule that file or the repo `CLAUDE.md` states and the diff breaks is a finding that cites the file and the rule; a rule a linter or hook already enforces is skipped. It must **re-open the diff itself** — a finding built from another agent's summary is a rumor.
 
 | Lens | Asks |
 |---|---|
@@ -18,7 +18,7 @@ Each reviewer gets the brief path and the diff path, and nothing else. It must *
 | **security** | Untrusted input reaching a sink, authz checked in the wrong layer, a secret in the diff, an injection or traversal path. |
 | **cross-file** | Does this agree with the rest of the branch? Duplicated concept under a second name, a contract from `design.md` drifted, two tasks owning one file. |
 | **slop** | Is this generic, duplicated, or plausible-looking but unproven? See `skills/no-slop/references/adversary-lens.md` for the checklist and evidence rule. |
-| **structure** | Did the diff move complexity or remove it? Is there a restructuring under which branches, helpers or layers disappear? Whole-branch only, and advisory: its findings never block, they go into the PR body under `Could be smaller:`. |
+| **structure** | Did the diff move complexity or remove it? Is there a restructuring under which branches, helpers or layers disappear? Whole-branch only, and advisory: its findings never block, they go into the PR body under `Could be smaller:`. Also match five smells, each phrased "possible <smell>": Feature Envy, Shotgun Surgery, Divergent Change, Message Chains, Refused Bequest (full definitions in `agents/adversary.md`); a standard the repo documents wins. |
 
 **Which lenses run where is fixed, never a per-run choice**: `building` runs exactly **correctness + gaming + slop** on each task diff — the trio the saved `build-slices` workflow is pinned to, so every mode reviews a task identically. `gating` runs **all six** on the branch diff, matching `review-diff`'s defaults; `structure` is advisory there, returned in `advisory` and never in the blocking `verified` list. A task-level security or cross-file worry is not dropped, it is caught at `gating` where the whole branch is visible.
 

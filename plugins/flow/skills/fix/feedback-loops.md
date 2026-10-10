@@ -58,10 +58,10 @@ Write 3-5 ranked hypotheses before testing any. Each must be falsifiable: "If X 
 - Every probe maps to one prediction; change one variable at a time.
 - Prefer a debugger or REPL over logs, targeted logs over "log everything and grep".
 - Tag every debug log `[DEBUG-<4 hex>]` (for example `[DEBUG-a4f2]`) so cleanup is one grep.
-- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second; vet the baseline and every later number with `/flow-extras:benchmark-checklist`.
+- Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second; vet the baseline and every later number by calling the Skill tool with "flow-extras:benchmark-checklist" (skip quietly when flow-extras is not installed).
 
 ## No correct seam is a finding
 
 A correct seam exercises the real bug pattern as it occurs at the call site. If the only seam for a regression test is too shallow (a single-caller test when the bug needs several callers), a test there gives false confidence. Say so at the §3 gate and park the missing seam with `/flow:issue`.
 
-Adapted from mattpocock/skills diagnosing-bugs (MIT).
+Adapted from mattpocock/skills diagnosing-bugs @ f3fc563 (MIT).

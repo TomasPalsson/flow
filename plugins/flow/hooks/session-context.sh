@@ -79,10 +79,6 @@ EOF
 fi
 
 # --- Mismatch / override notes (each 1 line) ----------------------------
-if [ -f "$dir/REVIEW.md" ]; then
-	_sc_print "note: REVIEW.md present"
-fi
-
 harness_json="$dir/.claude/flow.config.json"
 if [ -f "$harness_json" ] && have jq; then
 	for key in maxFileLines maxFuncLines stopGate stopGateBudgetSec sizeGuard formatOnEdit ignore; do

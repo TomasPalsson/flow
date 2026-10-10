@@ -125,3 +125,12 @@ t_forge_improver_select_cases() {
 		"a case that lists fix among wrong answers is not selected"
 	assert_eq "$("$sel" no-such-skill-xyz "$root")" "" "a skill with no cases prints nothing"
 }
+
+t_forge_close_match_reads_body_and_quotes_path_line() {
+	local step0
+	step0=$(awk '/^## Step 0/{f=1;next} /^## Step 1/{exit} f' "$FORGE_SKILL")
+	assert_contains "$step0" "body of each candidate's SKILL.md" \
+		"Step 0 reads each candidate's SKILL.md body before declaring a close match"
+	assert_contains "$step0" 'path:line' \
+		"Step 0 quotes the path:line that covers the core trigger in the three-choice prompt"
+}

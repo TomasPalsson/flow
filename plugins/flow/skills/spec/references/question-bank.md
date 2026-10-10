@@ -36,7 +36,7 @@ Cover each one that carries real risk for this idea; skip a category only when t
 | 5 | **Failure paths** | what the user sees when the main action fails, and what state survives | the error journeys the happy path hides |
 | 6 | **Integration** | what this reads from and writes to that it does not own | contracts with systems you cannot change |
 | 7 | **Constraints & maintenance** | stack, deadline, and *who maintains this after launch and what they know* | architecture the description never mentions |
-| 8 | **Acceptance** | how a reviewer other than the author proves it works | untestable ACs, caught before they ship |
+| 8 | **Acceptance** | how a reviewer other than the author proves it works, and the test seam: an existing one, the highest available, ideally one; each with what it catches and misses | untestable ACs, caught before they ship |
 
 ## The two probes that are never optional
 

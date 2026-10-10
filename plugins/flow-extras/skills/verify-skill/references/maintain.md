@@ -24,4 +24,4 @@ description: The maintain-mode pass for a project's verify skill.
 
 Load this file only in maintain mode; create mode never needs it.
 
-Credit: adapted from cursor/plugins pstack maintain-verification-skill (MIT).
+Credit: adapted from cursor/plugins pstack maintain-verification-skill @ ccb5507 (MIT).

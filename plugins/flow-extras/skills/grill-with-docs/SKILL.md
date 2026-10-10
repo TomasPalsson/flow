@@ -31,7 +31,7 @@ Facts are your job, decisions are mine. If a question can be answered by explori
 
 The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until I confirm we have reached a shared understanding.
 
-Rounds-over-the-frontier approach adapted from the `grilling` skill in mattpocock/skills (MIT).
+Rounds-over-the-frontier approach adapted from the `grilling` skill in mattpocock/skills @ f3fc563 (MIT).
 
 </what-to-do>
 

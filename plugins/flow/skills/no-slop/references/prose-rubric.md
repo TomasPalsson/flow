@@ -15,6 +15,8 @@ Style is not scored. Long dashes and colons are the author's choice and have no 
 
 ## A. Claims and evidence
 
+Examples count as claims: NP-13 covers a made-up case, number or sample that the reader could take for real.
+
 | ID | PASS condition | Detector | Severity | False-positive guard |
 |---|---|---|---|---|
 | NP-01 | Each factual claim says measured, inferred, or guess, or carries the command or `path:line` that shows it, in the same sentence. A prediction or an unseen cause is a guess. | lens | block | A claim that restates the task or a quoted requirement needs no label. |
@@ -23,6 +25,7 @@ Style is not scored. Long dashes and colons are the author's choice and have no 
 | NP-09 | A sentence that pairs a perf number (N%, Nx, N ms/s, req/s, p50/p95/p99) with a comparison (faster, slower, reduced, "from X to Y", `->`) also names a run count (runs, median, n=) or an inline command. Otherwise run `benchmark-checklist` and fix the claim before `gh pr create` | `slop-check --prose` | advise | A number with no comparison ("timeout set to 500 ms") passes. Fenced code is never scored. |
 | NP-10 | A feeling is replaced by the mechanism or a number, and no sentence could sit unchanged in another project's docs | lens | advise | A sentence that frames a decision the reader must make is content. |
 | NP-11 | A doc edit does not reword a sentence whose meaning did not change | lens (reads the diff) | advise | A rewording that fixes an error or a term the rest of the edit renames passes. |
+| NP-13 | Every example, sample value or case in the doc comes from the repo, this session or the user. Where none exists, the doc says what is missing or cuts the section. | lens | block | An example labelled hypothetical or "sample data" passes. |
 
 ## B. Phrasing that carries nothing
 
@@ -47,6 +50,6 @@ Style is not scored. Long dashes and colons are the author's choice and have no 
 | Rubric row | Grader type | Target |
 |---|---|---|
 | NP-04 to NP-09, NP-12 | `regex` `not_contains` on the script's `--json` output, or the tell's own pattern on the file | file |
-| NP-01 to NP-03, NP-10, NP-11 | `llm` with the row's PASS condition as the criteria, `focus: {source: file, path}` | file |
+| NP-01 to NP-03, NP-10, NP-11, NP-13 | `llm` with the row's PASS condition as the criteria, `focus: {source: file, path}` | file |
 
-Credit: adapted from cursor/plugins pstack skills/unslop/SKILL.md (MIT).
+Credit: adapted from cursor/plugins pstack skills/unslop/SKILL.md @ ccb5507 (MIT).

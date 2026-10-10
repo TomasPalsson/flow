@@ -17,7 +17,9 @@ Writes to --out (default .claude/review/<base-short>..<head-short>.diff):
   git diff -U10 base..head
 
 Prints the output path, then the line count of the written file.
-Exit 1 if a ref does not resolve. The diff is never printed to stdout.
+Exit 1 if a ref does not resolve, or if base..head changes nothing (an empty diff has
+nothing to review; "empty diff BASE..HEAD" goes to stderr and no file is written).
+The diff is never printed to stdout.
 EOF
 }
 
@@ -82,6 +84,11 @@ if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
 fi
 if ! git rev-parse --verify "$HEAD_REF" >/dev/null 2>&1; then
   printf 'review-package: ref does not resolve: %s\n' "$HEAD_REF" >&2
+  exit 1
+fi
+
+if git diff --quiet "$BASE..$HEAD_REF"; then
+  printf 'review-package: empty diff %s..%s\n' "$BASE" "$HEAD_REF" >&2
   exit 1
 fi
 

@@ -27,7 +27,7 @@
 - investment
 - portfolio
 
-## flow-extras (19 skills)
+## flow-extras (20 skills)
 
 - audit
 - babysit
@@ -39,6 +39,7 @@
 - find-skills
 - grill-me
 - grill-with-docs
+- handoff
 - overkill
 - prompt-engineer
 - pr-reviewer

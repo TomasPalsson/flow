@@ -39,6 +39,8 @@ Simplified Technical English (ASD-STE100) sets the register. The project supplie
 4. **The detail.** Closed sections the reader opens if they want them. Put the real terms, `path:line` references, numbers, edge cases and "why it is built this way" here. Real detail is welcome. Plain words still apply.
 5. **Words on this page.** A picture glossary: each term, its icon, and one line. It uses the same spelling as the rest of the page.
 
+Before writing, list the concepts the reader brings. Each rung uses only those concepts and the ones earlier rungs showed. A step can lean on an idea the reader lacks even when no hard word is in sight, so check ideas, not only terms. When a step needs an unshown idea, add it to an earlier rung or move the step to the detail section.
+
 Add these when they help: **Where the comparison breaks** (see below), and **Check yourself** (2 or 3 questions with tap-to-show answers).
 
 ## 4. Pictures
@@ -66,6 +68,9 @@ The chat reply is three lines: the big-picture sentence, the link, and "Which pa
 
 - A reader who sees only the first screen can say what the thing does, and is right.
 - Every term on the page is in the words card, with the same spelling.
+- No card or step needs an idea the page has not shown above it.
 - Project nouns appear. Invented names do not.
 - The detail sections have real substance: paths, numbers, edge cases. The top is simple; the page is not shallow.
 - Used twice in a row, it goes one step simpler or one fold deeper, as asked. It does not get blunter.
+
+Credit: grounding rule adapted from mattpocock/skills skills/in-progress/writing-beats/SKILL.md @ 49dd158 (MIT).

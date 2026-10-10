@@ -1,6 +1,6 @@
 # Writing for agents
 
-Adapted from mattpocock/skills writing-for-agents (MIT).
+Adapted from mattpocock/skills writing-for-agents @ f3fc563 (MIT).
 
 Reference for writing any document an agent consumes: a skill, a `CLAUDE.md` / `AGENTS.md`, a doc reached by a pointer. The packaging differs; the writing does not: the same levers make each one predictable, since the agent takes the same _process_ every run rather than producing the same output.
 

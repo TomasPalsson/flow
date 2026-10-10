@@ -296,3 +296,82 @@ t_spec_discovery_cites_archived_rulings() {
 	assert_contains "$out" '.specs/archive/2026-01-01-001-x/NOTES.md:1:' "the documented grep prints the archive path and line even for one archive"
 	assert_contains "$content" 'archive path and line' "spec section 3 cites archive path and line"
 }
+
+# ---------------------------------------------------------------------------
+# mattpocock borrows: vertical slices, slice judging, seams, questionnaire,
+# external-contract design, sibling-isolation template
+# ---------------------------------------------------------------------------
+
+t_spec_vertical_slice_rule_in_both_drafting_paths() {
+	local tpl
+	assert_contains "$(cat "$SPEC_SKILL")" 'vertical slice' "spec/SKILL.md tells TASKS.md drafting to cut vertical slices"
+	assert_contains "$(cat "$NEXT_SKILL")" 'vertical slice' "next/SKILL.md Drafting tells TASKS.md drafting to cut vertical slices"
+	assert_contains "$(cat "$SPEC_SKILL")" 'is its own first task' "spec/SKILL.md makes a prefactor its own first task"
+	assert_contains "$(cat "$NEXT_SKILL")" 'one fresh developer context' "next/SKILL.md sizes a task to one fresh context"
+	tpl=$(cat "$SCAN_DIR/../flow-templates/TASKS.md")
+	assert_not_contains "$tpl" 'untouched' "the TASKS.md template has no layer-only phase"
+	assert_contains "$tpl" 'A tag can be added and seen' "the TASKS.md template phase 1 is a vertical slice"
+}
+
+t_spec_judges_slices_with_d_slice_only() {
+	local content
+	content=$(cat "$SPEC_SKILL")
+	assert_contains "$content" 'MODE: issue-breakdown' "spec section 5 runs spec-judge in issue-breakdown mode"
+	assert_contains "$content" 'D-Slice' "spec section 5 reads D-Slice"
+	assert_contains "$content" 'ignore D-AFK' "spec section 5 ignores D-AFK"
+	assert_contains "$content" 'slices: D-Slice X/35' "spec section 5 reports the slice score on the score line"
+}
+
+t_spec_test_seam_position_and_template_line() {
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")" 'highest available' \
+		"question-bank category 8 takes the highest available seam"
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'catches:' \
+		"spec.md section 6 carries a seam line with catches:"
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'misses:' \
+		"spec.md section 6 carries a seam line with misses:"
+}
+
+t_spec_questionnaire_offer_needs_a_non_user_owner() {
+	local content
+	content=$(cat "$SPEC_SKILL")
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'owner: user|<name/role>' \
+		"spec.md Open Questions carry an owner field"
+	assert_contains "$content" "owner:\` is not the user" "the questionnaire offer is conditioned on a non-user owner"
+	assert_contains "$content" 'references/questionnaire.md' "spec/SKILL.md loads the questionnaire reference"
+	assert_contains "$content" 'only on a yes' "the questionnaire is written only on a yes"
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/questionnaire.md")" 'icelandic-professor' \
+		"the questionnaire reference routes Icelandic through icelandic-professor"
+}
+
+t_spec_design_it_twice_for_external_contracts() {
+	local content
+	content=$(cat "$DESIGN_REF")
+	assert_contains "$content" 'external contract' "design.md: the trigger is a decision with outside callers"
+	assert_contains "$content" 'model: sonnet' "design.md: the three designers are pinned to sonnet"
+	assert_contains "$content" 'fewest entry points' "design.md: constraint 1"
+	assert_contains "$content" 'most common caller made trivial' "design.md: constraint 2"
+	assert_contains "$content" 'ports and adapters at the seam' "design.md: constraint 3"
+}
+
+t_spec_depcruise_template_and_bite_proof() {
+	local content tpl
+	content=$(cat "$DESIGN_REF")
+	tpl=$(cat "$SCAN_DIR/../skills/spec/references/depcruise.template.cjs")
+	assert_contains "$content" 'depcruise.template.cjs' "design.md row 4 points at the template"
+	assert_contains "$content" 'never overwrite' "design.md: merge into an existing config"
+	assert_contains "$content" 'a deliberate violation' "design.md: the confirmation field requires a bite-proof receipt"
+	assert_contains "$tpl" '$1' "the template uses the sibling back-reference"
+	assert_contains "$tpl" 'never overwrite' "the template header says merge, never overwrite"
+	assert_contains "$tpl" 'mattpocock/skills' "the template credits its source"
+	if node -e 'require(process.argv[1])' "$SCAN_DIR/../skills/spec/references/depcruise.template.cjs" 2>/dev/null; then
+		_pass "the depcruise template loads as CommonJS"
+	else
+		_fail "the depcruise template loads as CommonJS"
+	fi
+}
+
+t_spec_prep_not_yet_specified_is_deferred_nongoal() {
+	assert_contains "$(cat "$SPEC_SKILL")" \
+		'`## Not yet specified` lines go to §2.2 Non-goals as "deferred: <line>", never into scope' \
+		"spec/SKILL.md §1 sends PREP.md's Not yet specified lines to §2.2 Non-goals as deferred"
+}

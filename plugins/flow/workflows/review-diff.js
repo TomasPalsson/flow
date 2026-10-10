@@ -76,7 +76,11 @@ if (!diffPath) {
 const lensResults = await parallel(lenses.map(function (lens) {
   return function () {
     let prompt = 'Lens=' + lens + '. Read the diff at ' + diffPath + '. Find real issues from this lens only.'
-    if (reviewMd) { prompt += ' Also read the review guide at ' + reviewMd + '.' }
+    if (reviewMd) {
+      prompt += ' Also read the review guide at ' + reviewMd + '.' +
+        ' If REVIEW.md or the repo CLAUDE.md states a rule this diff breaks, report it citing the file and the rule; ' +
+        'skip rules a linter or hook already enforces.'
+    }
     prompt += ' Return findings with predicate, severity, file, line, scenario, receipt for each.'
     return agent(prompt, { agentType: 'adversary', label: 'lens:' + lens, phase: 'Find', schema: LENS_FINDINGS })
   }

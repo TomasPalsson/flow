@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # git-guard.sh — PreToolUse/Bash hook. C22 budget: <= 160 lines with comments.
-# This is a regex blocklist over a command string. It raises the bar against an
-# ordinary mistake; it is not a security boundary — `bash -c`, `eval`, variable
+# This is a regex blocklist over a command string. It raises the bar against an ordinary mistake; it is not a security boundary — `bash -c`, `eval`, variable
 # construction and a helper script written via Edit all evade it. CI is the real backstop.
 set -u
 export LC_ALL=C
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 # shellcheck source=lib/hookout.sh
 . "$HERE/lib/hookout.sh"
-# C-B: .claude/flow.off does NOT silence this hook. Its switches are CC_NO_GIT_GUARD=1
-# (one session) and .claude/flow.unsafe (`flow off --unsafe`, here or in any ancestor).
+# C-B: .claude/flow.off does NOT silence this hook. Its switches are CC_NO_GIT_GUARD=1 (one session) and .claude/flow.unsafe (`flow off --unsafe`, here or in any ancestor).
 [ "${CC_NO_GIT_GUARD:-}" = "1" ] && hook_ok
 gg_dir=$(hook_project_dir)
 while :; do
@@ -30,7 +28,7 @@ gg_denylist() {
 	done <<<"$GG_DENY"
 }
 # gg_coarse <cmd> <why>: >20000-char / >200-part cap (C22 1/3), and the fallback when the awk pass below emits no well-formed "N" record. <why> states the condition observed.
-GG_BIG='git[[:space:]]+.*push[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*reset[^;&|]*--hard|git[[:space:]]+.*clean[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*checkout[^;&|]*--[[:space:]]*\.|git[[:space:]]+.*restore[^;&|]*\.|git[[:space:]]+.*branch[^;&|]*(-D|--delete)|git[[:space:]]+.*commit[^;&|]*(-[a-zA-Z]*n|--no-verify)|rm[[:space:]]+.*-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])[a-zA-Z]*|chmod.*(-R|--recursive).*777'
+GG_BIG='git[[:space:]]+.*push[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*reset[^;&|]*--hard|git[[:space:]]+.*clean[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*checkout[^;&|]*([[:space:]](-[a-zA-Z]*f|--force|\.|\./|\.\.|\.\./|:/|:/\.)([[:space:]]|$)|--[[:space:]]*\.)|git[[:space:]]+.*restore[^;&|]*\.|git[[:space:]]+.*branch[^;&|]*(-D|--delete)|git[[:space:]]+.*commit[^;&|]*(-[a-zA-Z]*n|--no-verify)|rm[[:space:]]+.*-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])[a-zA-Z]*|chmod.*(-R|--recursive).*777'
 gg_coarse() {
 	[ -n "$GG_DENY" ] && gg_denylist "$1" '*' # GG_BIG holds the builtin rules only, so the project deny list is checked separately here or it would fail open on this path
 	printf '%s' "$1" | grep -Eq "$GG_BIG" && gg_deny "$2; matched a denied pattern (git push --force/-f, reset --hard, clean -f, checkout -- ., restore ., branch -D, commit --no-verify/-n, rm -rf on a root-like target, or chmod -R 777)"
@@ -66,6 +64,12 @@ gg_rule_rm() {
 	gg_scan tgt '' "$s" && gg_deny "rm -rf ${T[$GG_IDX]} is a catastrophic delete target; scope the path narrowly and confirm with ls first"
 }
 gg_rule_chmod() { { gg_scan eq --recursive "$1" || gg_scan short R "$1"; } && gg_scan eq 777 "$1" && gg_deny "chmod -R 777 makes every file world-writable recursively; set the minimum permission actually needed"; }
+gg_rule_gh() { # P02: `gh pr create|ready` waits until plugin versions are in step; silent unless it denies
+	local top msg v="$HERE/../scripts/version-drift"
+	{ gg_scan eq pr "$1" && case "${T[$((GG_IDX + 1))]:-}" in create | ready) true ;; *) false ;; esac; } || return 0
+	top=$(git -C "$(hook_project_dir)" rev-parse --show-toplevel 2>/dev/null) && [ -f "$top/.claude-plugin/marketplace.json" ] && [ -x "$v" ] || return 0
+	msg=$("$v" "$top" 2>/dev/null) || { [ $? -eq 1 ] && gg_deny "$msg"; }
+}
 gg_rule_git() {
 	local sub s
 	gg_scan sub '' "$GG_START" || return 0
@@ -74,7 +78,7 @@ gg_rule_git() {
 	push) { gg_scan eq --force "$s" || gg_scan short f "$s" || gg_scan pre --force= "$s"; } && gg_deny "git push --force/-f can overwrite remote history destructively; use --force-with-lease instead" ;;
 	reset) gg_scan eq --hard "$s" && gg_deny "git reset --hard discards uncommitted work irrecoverably; use plain git reset or git stash instead" ;;
 	clean) { gg_scan eq --force "$s" || gg_scan short f "$s"; } && gg_deny "git clean -f permanently deletes untracked files, and with -x the ignored build output too; git clean -n lists what it would delete" ;;
-	checkout) gg_scan eq -- "$s" && [ "${T[$((GG_IDX + 1))]:-}" = . ] && gg_deny "git checkout -- . discards all uncommitted changes in the tree; use git stash or commit first" ;;
+	checkout) { gg_scan eq . "$s" || gg_scan eq ./ "$s" || gg_scan eq :/ "$s" || gg_scan eq :/. "$s" || gg_scan eq .. "$s" || gg_scan eq ../ "$s" || gg_scan eq "*" "$s" || gg_scan eq ":/*" "$s" || gg_scan pre ":(top" "$s" || gg_scan eq --force "$s" || gg_scan short f "$s"; } && gg_deny "git checkout -- . discards all uncommitted changes in the tree; use git stash or commit first" ;;
 	restore) gg_scan eq . "$s" && ! { gg_scan eq --staged "$s" || gg_scan short S "$s"; } && gg_deny "git restore . discards all uncommitted changes in the tree; use git restore --staged . if you only meant to unstage" ;;
 	branch) { gg_scan short D "$s" || { gg_scan eq --delete "$s" && gg_scan eq --force "$s"; }; } && gg_deny "git branch -D force-deletes a branch even if unmerged; use git branch -d to be warned first" ;;
 	commit) { gg_scan eq --no-verify "$s" || gg_scan short n "$s"; } && gg_deny "git commit --no-verify/-n skips pre-commit hooks (format/lint/tests); fix what the hook flags instead" ;;
@@ -95,22 +99,18 @@ gg_check_part() {
 	git | */git) GG_START=$((h + 1)) ;;
 	rm) gg_rule_rm $((h + 1)) ;;
 	chmod) gg_rule_chmod $((h + 1)) ;;
+	gh) gg_rule_gh $((h + 1)) ;;
 	esac
 	# A wrapper can leave git deeper in the part: `case x in a) git …`, `env -i git …`.
 	[ "$GG_START" -lt 0 ] && [ "$w" -eq 1 ] && gg_scan git '' "$h" && GG_START=$((GG_IDX + 1))
 	[ "$GG_START" -ge 0 ] && gg_rule_git
 	return 0
 }
-# One awk pass: excise heredoc bodies (B16) so a script the model is WRITING is never
-# read as commands, normalise quoting/backslashes, then split unquoted, unescaped
-# ; && || | into parts, printing "N<norm>" then one "P<part>" per part. "\;" "\&" "\|"
-# are inert in bash so both passes keep them atomic; any other "\X" unescapes to "X".
-# RS is \004 (never in a command) so the WHOLE command is one record: paragraph mode
-# split at a blank line INSIDE a heredoc body and read the rest of it as commands.
-# hdopen() opens a body only for a real redirection — outside quotes, not `<<<`,
-# delimiter followed by whitespace > | ; & or EOL, so `echo "cat <<EOF"` and
-# `$((1 << N))` are not openers — with no interpreter anywhere on the line (`bash <<EOF`,
-# `source /dev/stdin <<EOF`, `cat <<EOF | bash` EXECUTE it) and a terminator; without one the rest is scanned. A delimiter may be bare, '..', ".." or \EOF. An unquoted `#` that starts a word ends the line scan, so a `<<EOF` inside a comment opens no body (bash does not either).
+# One awk pass: excise heredoc bodies (B16) so a script the model is WRITING is never read as commands, normalise quoting/backslashes, then split unquoted, unescaped
+# ; && || | into parts, printing "N<norm>" then one "P<part>" per part. "\;" "\&" "\|" are inert in bash so both passes keep them atomic; any other "\X" unescapes to "X".
+# RS is \004 (never in a command) so the WHOLE command is one record: paragraph mode split at a blank line INSIDE a heredoc body and read the rest of it as commands.
+# hdopen() opens a body only for a real redirection — outside quotes, not `<<<`, delimiter followed by whitespace > | ; & or EOL, so `echo "cat <<EOF"` and
+# `$((1 << N))` are not openers — with no interpreter anywhere on the line (`bash <<EOF`, `source /dev/stdin <<EOF`, `cat <<EOF | bash` EXECUTE it) and a terminator; without one the rest is scanned. A delimiter may be bare, '..', ".." or \EOF. An unquoted `#` that starts a word ends the line scan, so a `<<EOF` inside a comment opens no body (bash does not either).
 PARTS=() saw_n=0
 if have awk; then
 	awk_out=$(printf '%s\n' "$cmd" | awk '

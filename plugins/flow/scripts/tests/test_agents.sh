@@ -190,6 +190,27 @@ t_agents_adversary_structure_lens_is_whole_branch_advisory() {
 	assert_contains "$body" "restructuring under which branches disappear" "adversary.md: structure lens asks about disappearing branches"
 }
 
+t_agents_adversary_structure_lens_has_smell_baseline() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "Feature Envy" "adversary.md: structure lens names Feature Envy"
+	assert_contains "$body" "Shotgun Surgery" "adversary.md: structure lens names Shotgun Surgery"
+	assert_contains "$body" "Divergent Change" "adversary.md: structure lens names Divergent Change"
+	assert_contains "$body" "Message Chains" "adversary.md: structure lens names Message Chains"
+	assert_contains "$body" "Refused Bequest" "adversary.md: structure lens names Refused Bequest"
+	assert_contains "$body" 'phrase each as "possible <smell>"; never Fatal or Significant' "adversary.md: smells are hedged and never blocking"
+	assert_contains "$body" "skip a smell the repo's CLAUDE.md or REVIEW.md permits" "adversary.md: a documented repo standard suppresses a smell"
+	assert_contains "$body" "Credit: adapted from mattpocock/skills skills/engineering/code-review/SKILL.md @ 49dd158 (MIT)." "adversary.md: smell baseline credits its source"
+}
+
+t_agents_adversary_cites_repo_standards() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "the repo's REVIEW.md or its CLAUDE.md" "adversary.md: reviewer reads repo standards when handed them"
+	assert_contains "$body" "cite the file and the rule" "adversary.md: a standards violation cites file and rule"
+	assert_contains "$body" "a linter or hook already enforces" "adversary.md: enforced rules are skipped"
+}
+
 t_agents_adversary_correctness_asks_about_reruns() {
 	local body
 	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")

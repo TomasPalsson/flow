@@ -26,7 +26,7 @@ make it buildable months later:
 | **Problem** | one sentence, the wrong behaviour — not the fix you have in mind |
 | **Whose** | who hits this. `internal: the build` is a real answer; "users" alone is not |
 | **Today** | the workaround, or `nothing — it just breaks` |
-| **Evidence** | `path:line` you actually opened this session. No evidence → say so and stop |
+| **Evidence** | `path:line (symbol)` you actually opened this session; symbol = the enclosing function, type or config key, or `(top level)`. No evidence → say so and stop |
 | **Verify** | the one check that would prove it fixed. `human: <observable>` when no command can |
 
 Plus a title, the date, `severity: critical｜major｜minor`, and `found during
@@ -65,7 +65,7 @@ existing `I-` + 1, `001` if none. Entry:
 ```
 ## I-003 — token refresh races on parallel requests
 Found: 2026-09-09 · during 004-flow-v2 · severity: major
-Evidence: src/auth/refresh.ts:88
+Evidence: src/auth/refresh.ts:88 (refreshToken)
 Problem: two in-flight 401s each start their own refresh; the second overwrites the first token
 Whose: any user with two or more tabs open
 Today: they log in again
@@ -78,11 +78,23 @@ Status: open
 
 ## 3. Dedupe before writing
 
-Check for the same problem already recorded — `grep` the open entries in
-`.specs/ISSUES.md`, or `gh issue list --search "<3-4 distinctive words>"`.
-A match means **append one line to the existing record** (`Also: <new
-evidence> — <date>`, or a GitHub comment) and print that ref. Two issues for
-one problem is the failure mode that makes the list untrustworthy.
+Check for the same problem already recorded, by concept rather than wording.
+Search with the request's 3-4 distinctive words plus 2-3 synonyms for the
+domain concept (for example "night theme" and "dark mode"), one query per
+phrasing, because GitHub search ANDs the terms in a single query: `grep` the
+open entries in `.specs/ISSUES.md`, or `gh issue list --search "<words>"`.
+
+- **A match on the request's own words** means **append one line to the
+  existing record** (`Also: <new evidence> — <date>`, or a GitHub comment) and
+  print that ref.
+- **A match found only through a synonym** is shown by title and confirmed
+  first: `same problem as <ref> "<title>"? y/n`. Ask before any append or
+  `gh` comment, because a comment cannot be quietly undone. On `y`, append
+  the `Also:` line as above, with no new `I-NNN`. On `n`, file a new record.
+
+The printed ref line ends with `— searched: <queries> in <ISSUES.md|gh>`, so
+the reader can see where you looked. Two issues for one problem is the failure
+mode that makes the list untrustworthy.
 
 ## 4. Cross-reference, then get out of the way
 
@@ -99,7 +111,8 @@ problem.
 
 End with two lines and nothing else:
 
-- `Filed: I-003 — <title>` (or the GitHub URL)
+- `Filed: I-003 — <title> — searched: <queries> in <ISSUES.md|gh>` (or the
+  GitHub URL in place of `I-003`)
 - `Next: <the thing that was in flight>` — verbatim what you were doing.
   When nothing was in flight: `Next: /flow:spec I-003` when it should be
   built now, otherwise `Next: nothing — I-003 is parked.`

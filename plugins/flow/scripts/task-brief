@@ -18,6 +18,8 @@ Writes a one-task brief containing:
   the task's phase heading with its Goal: and Independent test: lines
   the task's own line, verbatim
   "## Tests": the RED rule, one assertion per boundary / negative case
+  "## Prior art": up to 2 existing tests matching the task's files: by
+  stem (else the newest test under the same top-level dir, else "none found")
   "## Before you write" plus the no-slop developer block's fenced
   instructions (verbatim, from skills/no-slop/references/developer-block.md),
   then the slop-check command with this plugin's absolute path
@@ -154,6 +156,58 @@ if [ -n "$DESIGN" ] && [ -f "$DESIGN" ]; then
   ' "$DESIGN")
 fi
 
+# Prior art: existing tests the task can copy fixtures and style from. Up to 2
+# stem matches for the task's non-test files:, else the newest committed test
+# file under the same top-level dir, else "none found".
+is_test_path() {
+  case "$1" in
+  test_* | */test_* | *_test.* | *.test.* | *.spec.* | tests/* | test/* | */tests/* | */test/*) return 0 ;;
+  esac
+  return 1
+}
+
+prior_art() {
+  local files path stem base top found n listing m first
+  files=$(printf '%s\n' "$1" | awk -F' \xe2\x80\x94 ' '
+    { for (i = 1; i <= NF; i++) if ($i ~ /^files:/) { sub(/^files:[ \t]*/, "", $i); print $i; exit } }')
+  listing=$(git ls-files 2>/dev/null) || listing=""
+  found=""
+  n=0
+  first=""
+  for path in $(printf '%s\n' "$files" | tr ',' ' '); do
+    is_test_path "$path" && continue
+    [ -z "$first" ] && first=$path
+    base=${path##*/}
+    stem=${base%.*}
+    [ -n "$stem" ] || continue
+    for m in $(printf '%s\n' "$listing" | awk -v s="$stem" '
+      { b = $0; sub(/.*\//, "", b) }
+      index(b, "test_" s ".") == 1 || index(b, s "_test.") == 1 || index(b, s ".test.") == 1 || index(b, s ".spec.") == 1 { print }'); do
+      [ "$n" -ge 2 ] && break
+      case " $found " in *" $m "*) continue ;; esac
+      found="$found $m"
+      n=$((n + 1))
+    done
+  done
+  if [ "$n" -eq 0 ] && [ -n "$first" ]; then
+    case "$first" in */*) top=${first%%/*} ;; *) top=. ;; esac
+    for m in $(git log --name-only --format= --diff-filter=AM -- "$top" 2>/dev/null); do
+      is_test_path "$m" || continue
+      printf '%s\n' "$listing" | grep -Fxq -- "$m" || continue
+      found=" $m"
+      n=1
+      break
+    done
+  fi
+  if [ "$n" -eq 0 ]; then
+    printf 'Prior art: none found\n'
+  else
+    for m in $found; do printf 'Prior art: %s \xe2\x80\x94 copy its fixtures and style\n' "$m"; done
+  fi
+}
+
+PRIOR_ART=$(prior_art "$BODY")
+
 {
   printf '# Brief — %s\n' "$ID"
   printf 'Base: %s\n' "$BASE"
@@ -169,6 +223,7 @@ fi
   printf "helper's plausible wrong versions. Beside each assertion name the wrong implementation it\n"
   printf 'catches (swallow the error, startswith with no separator, > for >=, a running total from\n'
   printf 'zero); an assertion that would still pass against that version is not a RED test.\n'
+  printf '\n## Prior art\n%s\n' "$PRIOR_ART"
   if [ -n "$DEV_BLOCK_TEXT" ]; then
     printf '\n\n## Before you write\n%s\n' "$DEV_BLOCK_TEXT"
     printf '\nThe slop-check command above lives at an absolute path; run it as:\n'

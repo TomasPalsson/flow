@@ -27,4 +27,4 @@ page.
 - Commit secrets, tokens, or credentials.
 - Touch {{PROTECTED_PATHS}} without being asked.
 
-See REVIEW.md for review standards and PROGRESS.md for current state.
+PROGRESS.md holds current state. REVIEW.md is read by reviewers at gating.

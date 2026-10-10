@@ -5,10 +5,10 @@
 # are already set.
 #
 # The marketplace repo lives outside the dotfiles tree per C21
-# ("~/Desktop/Projects/flow"); override with FLOW_REPO for testing
-# against a different checkout.
+# ("~/Desktop/Projects/flow"); REPO defaults to the checkout this file sits in
+# (so a worktree tests itself); override with FLOW_REPO for a different checkout.
 
-REPO="${FLOW_REPO:-$HOME/Desktop/Projects/flow}"
+REPO="${FLOW_REPO:-$(git -C "$HERE" rev-parse --show-toplevel 2>/dev/null || printf %s "$HOME/Desktop/Projects/flow")}"
 MKT_JSON="$REPO/.claude-plugin/marketplace.json"
 
 # bundle<space>skill pairs, per C21's target layout.
@@ -182,4 +182,92 @@ t_mkt_claude_plugin_validate_each_plugin() {
 		run_cmd claude plugin validate "$REPO/plugins/$p"
 		assert_rc 0 "t_mkt_claude_plugin_validate_each_plugin:$p rc"
 	done
+}
+
+# --- P02: plugin version drift (scripts/version-drift) ---------------------
+
+# _mkt_drift_repo: temp repo shaped like the marketplace, on main.
+_mkt_drift_repo() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/.claude-plugin" "$d/plugins/tooling/.claude-plugin"
+	printf '{"name":"tooling","version":"1.0.0"}\n' >"$d/plugins/tooling/.claude-plugin/plugin.json"
+	printf '{"plugins":[{"name":"tooling","source":"./plugins/tooling","version":"1.0.0"}]}\n' >"$d/.claude-plugin/marketplace.json"
+	git -C "$d" add -A >/dev/null 2>&1
+	git -C "$d" commit -q -m base
+	git -C "$d" branch -M main
+	printf '%s' "$d"
+}
+
+_mkt_set_version() { # <repo> <plugin.json version> <marketplace version>
+	printf '{"name":"tooling","version":"%s"}\n' "$2" >"$1/plugins/tooling/.claude-plugin/plugin.json"
+	printf '{"plugins":[{"name":"tooling","source":"./plugins/tooling","version":"%s"}]}\n' "$3" >"$1/.claude-plugin/marketplace.json"
+}
+
+_mkt_commit_version() { # <repo> <version>: set both files and commit (version-drift reads HEAD)
+	_mkt_set_version "$1" "$2" "$2"
+	git -C "$1" commit -q -am "version $2"
+}
+
+t_mkt_version_drift_cases() {
+	local repo
+	repo=$(_mkt_drift_repo)
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 0 "t_mkt_version_drift_cases on-main-skips-b"
+	git -C "$repo" checkout -q -b feat
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 0 "t_mkt_version_drift_cases no-change"
+	printf 'x\n' >"$repo/plugins/tooling/x"
+	git -C "$repo" add -A >/dev/null 2>&1
+	git -C "$repo" commit -q -m change
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 1 "t_mkt_version_drift_cases unbumped"
+	assert_contains "$OUT" "tooling: " "t_mkt_version_drift_cases names-plugin"
+	assert_contains "$OUT" "bump plugins/tooling/.claude-plugin/plugin.json and .claude-plugin/marketplace.json" "t_mkt_version_drift_cases message"
+	_mkt_set_version "$repo" 1.0.0 1.0.1
+	git -C "$repo" commit -q -am mismatch
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 1 "t_mkt_version_drift_cases entry-mismatch"
+	_mkt_set_version "$repo" 1.0.1 1.0.1
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 1 "t_mkt_version_drift_cases uncommitted-bump-not-counted"
+	git -C "$repo" commit -q -am bump
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 0 "t_mkt_version_drift_cases bumped"
+	_mkt_commit_version "$repo" 0.9.9
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 1 "t_mkt_version_drift_cases lower-than-main"
+	_mkt_commit_version "$repo" 1.0.0
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 1 "t_mkt_version_drift_cases equal-to-main"
+	run_cmd "$SCAN_DIR/version-drift"
+	assert_rc 2 "t_mkt_version_drift_cases usage-exits-2"
+	run_cmd "$SCAN_DIR/version-drift" "$repo/nonexistent"
+	assert_rc 2 "t_mkt_version_drift_cases missing-repo-exits-2"
+	printf '{"plugins":[{"name":"tooling","source":{"source":"github","repo":"o/r"},"version":"1.0.0"}]}\n' >"$repo/.claude-plugin/marketplace.json"
+	git -C "$repo" commit -q -am objsource
+	run_cmd "$SCAN_DIR/version-drift" "$repo"
+	assert_rc 2 "t_mkt_version_drift_cases object-source-exits-2"
+	rm -rf "$repo"
+}
+
+t_mkt_version_drift_help() {
+	run_cmd "$SCAN_DIR/version-drift" --help
+	assert_rc 0 "version-drift --help exits 0"
+	assert_contains "$OUT" "Usage: version-drift <repo>" "version-drift --help prints its usage"
+}
+
+t_mkt_version_drift_this_checkout() {
+	run_cmd "$SCAN_DIR/version-drift" "$REPO"
+	assert_rc 0 "t_mkt_version_drift_this_checkout rc ($OUT)"
+}
+
+t_mkt_repo_defaults_to_this_checkout() {
+	local top
+	top=$(git -C "$HERE" rev-parse --show-toplevel)
+	if [ -z "${FLOW_REPO:-}" ]; then
+		assert_eq "$REPO" "$top" "t_mkt_repo_defaults_to_this_checkout REPO"
+	else
+		assert_eq "$REPO" "$FLOW_REPO" "t_mkt_repo_defaults_to_this_checkout FLOW_REPO override"
+	fi
 }

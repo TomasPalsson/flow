@@ -64,6 +64,17 @@ t_review_md_documents_structure_advisory() {
 	assert_contains "$out" "Could be smaller:" "review.md names the PR-body heading for structure findings"
 	assert_not_contains "$out" "all five" "review.md no longer says all five"
 	assert_contains "$out" "correctness + gaming + slop" "review.md still pins the per-task trio"
+	assert_contains "$out" "Feature Envy" "review.md structure row names the smells so the Skill-only eval can reach them"
+	assert_contains "$out" "possible <smell>" "review.md says smells are hedged"
+}
+
+t_review_md_gating_hands_over_repo_review_md() {
+	local out
+	out=$(cat "$REVIEW_MD")
+	assert_contains "$out" "the repo's \`REVIEW.md\` when one exists at the repo root" "review.md hands reviewers the repo REVIEW.md at gating"
+	assert_contains "$out" "\`reviewMd\` argument" "review.md names review-diff's reviewMd argument"
+	assert_contains "$out" "cites the file and the rule" "review.md: a standards violation cites file and rule"
+	assert_contains "$out" "a linter or hook already enforces is skipped" "review.md: enforced rules are skipped"
 }
 
 t_review_md_correctness_row_asks_about_reruns() {

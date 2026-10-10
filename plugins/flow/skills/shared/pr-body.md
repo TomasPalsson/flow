@@ -41,6 +41,6 @@ Optional; omit it when the gating review's `advisory` list is empty. List each `
 
 Describe what changed, not the diff line by line, and link long logs and SHA lists instead of pasting them: the reader can open a link, and a pasted log buries the point.
 
-Before opening the PR, read `../no-slop/references/prose-rubric.md` (claims carry a label or their command) and run `../no-slop/scripts/slop-check --prose` on the body. When it reports NP-09 (a perf number with a comparison and no run count), load `benchmark-checklist` from flow-extras and fix the claim before `gh pr create`; skip quietly if flow-extras is absent.
+Before opening the PR, read `../no-slop/references/prose-rubric.md` (claims carry a label or their command) and run `../no-slop/scripts/slop-check --prose` on the body. When it reports NP-09 (a perf number with a comparison and no run count), call the Skill tool with "flow-extras:benchmark-checklist" and fix the claim before `gh pr create`; skip quietly if flow-extras is absent.
 
-Credit: adapted from mattpocock/skills `pr` (MIT), itself from humanlayer `show-me`.
+Credit: adapted from mattpocock/skills `pr` @ f3fc563 (MIT), itself from humanlayer `show-me`.

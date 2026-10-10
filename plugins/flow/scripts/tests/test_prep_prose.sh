@@ -78,6 +78,44 @@ t_prep_prose_template_sections() {
 }
 
 # ---------------------------------------------------------------------------
+# borrows from mattpocock/skills (logic demo, split signal, claim check)
+# ---------------------------------------------------------------------------
+
+t_prep_prose_logic_demo_offer() {
+	local c
+	c=$(cat "$PREP_SKILL")
+	assert_contains "$c" 'offer a logic demo' \
+		"SKILL.md offers a logic demo when the question is whether a state model holds"
+	assert_contains "$c" 'proto/<slug>' "SKILL.md names the proto/<slug> branch"
+	assert_contains "$c" 'evidence: proto/<slug>:<path>' \
+		"SKILL.md records the demo answer as an A-NN with evidence: proto/<slug>:<path>"
+	assert_contains "$c" 'a throwaway logic demo may back the answer' \
+		"SKILL.md lets a throwaway logic demo back a spike answer"
+	assert_contains "$c" 'only after the user says yes' \
+		"SKILL.md builds the demo only after an explicit yes"
+}
+
+t_prep_prose_split_rule() {
+	local c
+	c=$(cat "$PREP_SKILL")
+	assert_contains "$c" 'Before counting, resolve any Open line the tree can answer' \
+		"SKILL.md resolves tree-answerable Open lines before counting"
+	assert_contains "$c" '## Not yet specified' \
+		"SKILL.md sends the remaining Open lines under ## Not yet specified"
+	assert_contains "$(cat "$PREP_TEMPLATE")" '## Not yet specified' \
+		"prep-template.md carries the ## Not yet specified heading"
+}
+
+t_prep_prose_claim_vs_code() {
+	local c
+	c=$(cat "$PREP_SKILL")
+	assert_contains "$c" 'When an answer states how existing code behaves, open the code first' \
+		"SKILL.md opens the code before recording a claim about it"
+	assert_contains "$c" 'quote path:line and ask once which is right' \
+		"SKILL.md quotes path:line on a contradiction and asks once"
+}
+
+# ---------------------------------------------------------------------------
 # line-budget cap
 # ---------------------------------------------------------------------------
 

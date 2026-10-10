@@ -7,6 +7,8 @@ description: "Create a realistic in-context HTML mockup showing how a proposed U
 
 Create a realistic HTML mockup of a proposed component or feature, embedded in a page shell that looks like the actual project, with 2-4 distinct design variations the user can toggle between. The mockup is a decision tool: its job is to help someone say "I want Variation 2" or "none of these, try again" — not to be a prototype.
 
+To compare whole pages on a real route with real data, use the "Whole-page variants" section of `impeccable/reference/live.md` instead.
+
 ## Core Mindset
 
 **Match the project, never look generically good.** A polished mockup that doesn't match the project's design language is worse than a rough one that does. Stakeholders who use the product daily will immediately notice "this isn't us" and mentally discard the idea — even if the layout was sound. The #1 failure mode is generating shadcn/ui + Inter + purple accent regardless of what the project actually uses.

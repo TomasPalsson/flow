@@ -69,6 +69,13 @@ function isDir(p) {
   }
 }
 
+// A human reads the why line, so a task is named first and its id wraps
+// after the name ("Tag filter chip (T004)"). Commands keep bare ids.
+function named(t) {
+  const title = String(t.description || '').trim().slice(0, 40).trim();
+  return title ? `${title} (${t.id})` : t.id;
+}
+
 function git(root, args) {
   const r = spawnSync('git', ['-C', root].concat(args), { encoding: 'utf8', timeout: 15000 });
   return { ok: r.status === 0, out: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
@@ -588,7 +595,7 @@ function route(root, ctx, opts) {
     const parallelWave = inWave.length > 1 && inWave.every((t) => t.parallel);
     const verify = inWave[0] ? inWave[0].verify : '';
     return done(mk('building', '/flow:next',
-      `wave ${nextWave.join(', ')} — verify: ${verify} (${doneWork} of ${totalWork} done)${mainBranchWarning(st, branch, activeSlug)}`,
+      `wave ${inWave.length ? inWave.map(named).join(', ') : nextWave.join(', ')} — verify: ${verify} (${doneWork} of ${totalWork} done)${mainBranchWarning(st, branch, activeSlug)}`,
       { feature, wave: { ids: nextWave, parallel: parallelWave } }));
   }
 
@@ -604,7 +611,7 @@ function route(root, ctx, opts) {
         `${cover.pass} is not HEAD (${cover.since !== null ? cover.since : 'some'} commits since) — the gates have to run again`,
         { feature }));
     }
-    const gateList = openGates.length ? openGates.map((g) => g.id).join(', ') : 'none unchecked';
+    const gateList = openGates.length ? openGates.map(named).join(', ') : 'none unchecked';
     const tickList = openGates.length ? openGates.map((g) => g.id).join(' ') : '<gate ids>';
     return done(mk('gating', '/flow:next',
       `${doneWork} of ${totalWork} tasks done, gates open: ${gateList} — run them, write PASS-${headSha || '<sha>'}.md, then flow tick ${tickList}`,

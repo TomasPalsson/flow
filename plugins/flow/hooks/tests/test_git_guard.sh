@@ -254,6 +254,15 @@ t_gg_coarse_deny_list_still_ends_on_a_word_boundary() {
 	rm -rf "$repo"
 }
 
+t_gg_checkout_whole_tree_denied_on_coarse_path() {
+	# over 20000 chars the parser is skipped; the coarse pattern must still catch the new forms
+	local pad
+	pad=$(_t_gg_repeat_char x 20100)
+	_t_gg_checkout_case coarse_dot "git checkout . ; echo $pad" deny
+	_t_gg_checkout_case coarse_force "git checkout -f ; echo $pad" deny
+	_t_gg_checkout_case coarse_branch "git checkout main ; echo $pad" allow
+}
+
 t_gg_coarse_without_a_deny_list_leaves_big_commands_alone() {
 	local repo pad
 	repo=$(tmp_repo)
@@ -620,4 +629,91 @@ t_gg_heredoc_with_trailing_comment_still_opens() {
 	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"cat > f.sh <<EOF # write it\ngit push --force origin main\nEOF"}}'
 	assert_rc 0 "t_gg_heredoc_with_trailing_comment_still_opens rc"
 	assert_eq "$OUT" "" "t_gg_heredoc_with_trailing_comment_still_opens allowed"
+}
+
+# --- P03: every whole-tree `git checkout` discard is denied ----------------
+
+_t_gg_checkout_case() { # <name> <command> <deny|allow>
+	run_hook "$SCAN_DIR/git-guard.sh" "{\"tool_input\":{\"command\":\"$2\"}}"
+	assert_rc 0 "t_gg_checkout_$1 rc"
+	if [ "$3" = deny ]; then
+		assert_contains "$OUT" '"permissionDecision":"deny"' "t_gg_checkout_$1 denied"
+	else
+		assert_eq "$OUT" "" "t_gg_checkout_$1 allowed"
+	fi
+}
+
+t_gg_checkout_whole_tree_forms() {
+	_t_gg_checkout_case dot "git checkout ." deny
+	_t_gg_checkout_case dashc_dot "git -C /x checkout ." deny
+	_t_gg_checkout_case head_dot "git checkout HEAD ." deny
+	_t_gg_checkout_case dot_slash "git checkout ./" deny
+	_t_gg_checkout_case dashdash_root "git checkout -- :/" deny
+	_t_gg_checkout_case dashdash_root_dot "git checkout -- :/." deny
+	_t_gg_checkout_case head_dashdash_dot "git checkout HEAD -- ." deny
+	_t_gg_checkout_case force_short "git checkout -f" deny
+	_t_gg_checkout_case force_long "git checkout --force main" deny
+	_t_gg_checkout_case star "git checkout -- *" deny
+	_t_gg_checkout_case parent "git checkout .." deny
+	_t_gg_checkout_case parent_slash "git checkout -- ../" deny
+	_t_gg_checkout_case root_star "git checkout -- :/*" deny
+	_t_gg_checkout_case top_magic "git checkout -- :(top)" deny
+}
+
+t_gg_checkout_ordinary_forms_allowed() {
+	_t_gg_checkout_case branch "git checkout main" allow
+	_t_gg_checkout_case new_branch "git checkout -b feat" allow
+	_t_gg_checkout_case one_file "git checkout -- src/a.ts" allow
+	_t_gg_checkout_case rev_file "git checkout HEAD~1 -- src/a.ts" allow
+	_t_gg_checkout_case dotfile "git checkout -- .gitignore" allow
+}
+
+# --- P02: gh pr create/ready is denied on plugin version drift -------------
+
+# _t_gg_drift_repo: temp repo shaped like the marketplace, on branch feat with
+# an unbumped change under plugins/tooling.
+_t_gg_drift_repo() {
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/.claude-plugin" "$d/plugins/tooling/.claude-plugin"
+	printf '{"name":"tooling","version":"1.0.0"}\n' >"$d/plugins/tooling/.claude-plugin/plugin.json"
+	printf '{"plugins":[{"name":"tooling","source":"./plugins/tooling","version":"1.0.0"}]}\n' >"$d/.claude-plugin/marketplace.json"
+	git -C "$d" add -A >/dev/null 2>&1
+	git -C "$d" commit -q -m base
+	git -C "$d" branch -M main
+	git -C "$d" checkout -q -b feat
+	printf 'x\n' >"$d/plugins/tooling/x"
+	git -C "$d" add -A >/dev/null 2>&1
+	git -C "$d" commit -q -m change
+	printf '%s' "$d"
+}
+
+t_gg_pr_create_denied_on_version_drift() {
+	local repo
+	repo=$(_t_gg_drift_repo)
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr create --draft"}}' CLAUDE_PROJECT_DIR="$repo"
+	assert_rc 0 "t_gg_pr_create_denied_on_version_drift rc"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_gg_pr_create_denied_on_version_drift denied"
+	assert_contains "$OUT" "tooling" "t_gg_pr_create_denied_on_version_drift names-plugin"
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr ready 5"}}' CLAUDE_PROJECT_DIR="$repo"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_gg_pr_ready_denied_on_version_drift denied"
+	rm -rf "$repo"
+}
+
+t_gg_pr_create_allowed_after_bump_and_elsewhere() {
+	local repo plain
+	repo=$(_t_gg_drift_repo)
+	printf '{"name":"tooling","version":"1.0.1"}\n' >"$repo/plugins/tooling/.claude-plugin/plugin.json"
+	printf '{"plugins":[{"name":"tooling","source":"./plugins/tooling","version":"1.0.1"}]}\n' >"$repo/.claude-plugin/marketplace.json"
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr create --draft"}}' CLAUDE_PROJECT_DIR="$repo"
+	assert_contains "$OUT" '"permissionDecision":"deny"' "t_gg_pr_create_allowed_after_bump_and_elsewhere uncommitted-bump-denied"
+	git -C "$repo" commit -q -am bump
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr create --draft"}}' CLAUDE_PROJECT_DIR="$repo"
+	assert_eq "$OUT" "" "t_gg_pr_create_allowed_after_bump_and_elsewhere bumped"
+	plain=$(tmp_repo)
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr create --draft"}}' CLAUDE_PROJECT_DIR="$plain"
+	assert_eq "$OUT" "" "t_gg_pr_create_allowed_after_bump_and_elsewhere no-marketplace"
+	run_hook "$SCAN_DIR/git-guard.sh" '{"tool_input":{"command":"gh pr view 5"}}' CLAUDE_PROJECT_DIR="$repo"
+	assert_eq "$OUT" "" "t_gg_pr_create_allowed_after_bump_and_elsewhere other-gh-command"
+	rm -rf "$repo" "$plain"
 }

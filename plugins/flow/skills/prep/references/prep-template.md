@@ -13,6 +13,9 @@ user, via /flow:develop-idea`; keep it on every rewrite. Each section's job:
 - **Verify** — the one end-to-end check the user accepts as proof this
   shipped.
 - **Open** — ≤3 lines; more than that is the split signal, not a bigger spec.
+- **Not yet specified** — optional, after Open: what the split left unsliced.
+  `/flow:spec` carries each line to §2.2 Non-goals as "deferred: <line>".
+  An `A-NN` backed by a logic demo reads `evidence: proto/<slug>:<path>`.
 
 ## Empty template
 
@@ -32,6 +35,8 @@ Gathered: YYYY-MM-DD · Questions: N of 12 · Route: spike|bounded|oneshot|dispa
 - <text>
 ## Open
 - Q: <question> → deferred to spec
+## Not yet specified
+- <only when the split fired; omit otherwise>
 ```
 
 ## Filled example (entry tagging, 7 of 12 questions, dispatch route)

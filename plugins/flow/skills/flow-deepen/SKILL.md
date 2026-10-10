@@ -38,7 +38,7 @@ Before Phase 2, **read `references/detection-heuristics.md` in full.** It carrie
 Ground the hunt in *intended* boundaries before judging *accidental* structure. Friction that is a documented trade-off is not a smell.
 
 1. **Resolve the spec.** Default to the **highest-numbered** `.specs/<NNN>-*/` dir (the freshest /flow:spec output), or the path the user passed. If none exists, stop: *"No `.specs/` context found. flow-deepen deepens a shipped spec's modules — for a whole-repo debt sweep run `/flow-extras:audit` instead."*
-2. **Read the intent layer first**: the spec's domain glossary, any ADRs, and `.out-of-scope/`. These tell you which boundaries are deliberate. A pass-through layer an ADR explicitly mandates is not a candidate.
+2. **Read the intent layer first**: the spec's domain glossary, any ADRs, and `.out-of-scope/`. These tell you which boundaries are deliberate. A pass-through layer an ADR explicitly mandates is not a candidate. A matching `.out-of-scope/deepen-*` entry (written by Phase 5 when a candidate was refused) means drop the candidate.
 3. **Read the merged diffs.** `git log --oneline --merges` since the spec's first issue, and the diffs of the merged issue branches (`flow/<slug>/issue-*`). The deepening targets are the modules the feature work actually touched and grew.
 4. **Mine the repeated-agent-mistake signal.** `git log --follow` on the spec's hot files — if multiple issue branches edited the same file repeatedly, or the agent kept landing changes in the wrong place, that is a first-class structural signal (missing seam / locality failure), more reliable than human code review because agents expose navigability under load. One mistake is noise; *repeated* mistakes at the same location are signal.
 
@@ -63,7 +63,7 @@ For every surviving candidate, fill the four-dimension frame (vague "this is mes
 1. **Modules involved** — the named files/types and the seam between them.
 2. **Friction today** — the concrete cost, with the detection signal that found it.
 3. **Proposed deepening** — the before→after at the call site (e.g. "caller goes from 3 constructor calls to 1 factory call").
-4. **Win** — measurable gain in **locality + leverage + testability**, plus a churn note (high-churn = high payoff).
+4. **Win** — the AC-3 call-site number from `references/detection-heuristics.md` (for example, "callers pass 1 param, not 4"), plus the property gained (locality, leverage or fewer seams) and a churn note (high-churn = high payoff). "Easier to maintain", "cleaner" and "more readable" are not wins.
 
 Then **rank them and recommend the top ones** — do not dump every candidate on the user. State a cutoff and the reasoning: *"Mr Claude recommends shipping the top 3 (highest churn × leverage) and parking the rest — confirm or correct?"* The always-recommend-an-answer rule holds for every choice surfaced here.
 
@@ -73,9 +73,9 @@ Draft each recommended deepening as a task line in the K-B `TASKS.md` grammar `f
 
 - **Location**: a new `## Phase N — Deepening` section appended to the EXISTING spec's `TASKS.md`. IDs continue from the highest existing `T###`. Append-only: never renumber, reorder or delete a line that is already there, and never open a new `.specs/` dir.
 - **Vertical, not horizontal**: the task description states call-site-observable behavior ("caller creates a user with one method call instead of three"), never a layer ("extract the repository interface").
-- **ID kind**: AFK by default — behavior-preserving + test-gated — so it is a `T###` task. Escalate to HITL only on the four triggers (interface-shape choice, external-contract change, public-symbol deletion, or a characterization test that reveals a possible bug); a HITL deepening is a `CHK###` checkpoint line that names the decision, placed before the `T###` that depends on it.
+- **ID kind**: AFK by default — behavior-preserving + test-gated — so it is a `T###` task. Escalate to HITL only on the four triggers (interface-shape choice, external-contract change, public-symbol deletion, or a characterization test that reveals a possible bug); a HITL deepening is a `CHK###` checkpoint line that names the decision, placed before the `T###` that depends on it. For an interface-shape `CHK###`, spawn 3 subagents (`model: sonnet`), each designing the same interface under one constraint: fewest entry points; the most common caller made trivial; ports and adapters at the seam. Write the three designs to the spec's `NOTES.md` under the CHK id, for the human who resolves it. Mr Claude does not pick the design here.
 - **`after:`**: serialize same-module tasks with `— after: T0NN` — the earlier task pins the seam, the later one refactors through that pin. Two tasks may only carry `[P]` when their `files:` lists are disjoint, or `flow lint` fails them. A single straight chain across every task means they are too coupled; split into per-module chains.
-- **`verify:`**: mandatory on every line (`flow lint` ERRORs without it) and it must be the characterization test's own command. The three-part behavior-preserving pattern (characterization-test-first → byte-for-byte seam observability → measurable interface reduction) goes in the description and the phase `Goal:`. No `verify:` may require a NEW test case to pass — that would be feature work.
+- **`verify:`**: mandatory on every line (`flow lint` ERRORs without it) and it must be the characterization test's own command. The three-part behavior-preserving pattern (characterization-test-first → byte-for-byte seam observability → measurable interface reduction) goes in the description and the phase `Goal:`. No `verify:` may require a NEW test case to pass — that would be feature work. When a shallow-internals test is to be deleted, name it in the description as `(replaces: <test path>)` and list that path in `files:` too, so the pathspec commit lands the deletion; the deletion follows the characterization test going green (see the test-count guardrail in the reference).
 - **Trace**: the phase `Goal:` line names the detected anti-pattern + detection signal (deepenings derive from smell detection, not spec FRs — this lets spec-judge grade without false-penalizing an absent spec trace).
 
 Use `references/detection-heuristics.md` for the full task template and the worked example.
@@ -94,7 +94,7 @@ CHK017 Choose options-object vs two-method client shape     —        interface
 Top 3 by churn × leverage recommended  •  N tasks / M checkpoints  •  every task characterization-test-gated
 ```
 
-Then ask exactly: *"Append these to `<SPEC-DIR>/TASKS.md` as a deepening phase? Reply 'yes', 'no', or edits."* Wait. **Silence is not consent** — `TASKS.md` is the build state /flow:next acts on. Ambiguous replies get the question again.
+Then ask exactly: *"Append these to `<SPEC-DIR>/TASKS.md` as a deepening phase? Reply 'yes', 'no', or edits."* Wait. A reply that removes a candidate is an edit. When it gives a reason that is not about timing ('not now', 'later' and 'after X' are timing), write `.out-of-scope/deepen-<module-slug>.md` with the module path, the reason and the date, and name the path in the reply. Timing replies write nothing. **Silence is not consent** — `TASKS.md` is the build state /flow:next acts on. Ambiguous replies get the question again.
 
 On approval: append the `## Phase N — Deepening` section (with its `Goal:` and `Independent test:` lines) and its task lines to `<SPEC-DIR>/TASKS.md`, **delete the `Verified:` line and clear `Approved:`** so the new work cannot ride on the old approval, and run `flow lint <SPEC-DIR>/TASKS.md` — it must exit 0 before you stop. Mirroring to GitHub is a separate, optional `flow publish`; this skill never calls `gh`.
 

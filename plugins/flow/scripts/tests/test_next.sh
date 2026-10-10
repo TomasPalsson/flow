@@ -389,6 +389,35 @@ t_next_row6_building_names_the_wave() {
 	rm -rf "$home" "$proj"
 }
 
+t_next_why_names_before_ids() {
+	local home proj proj2 base sha
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		'- [ ] T004 [P] Tag filter chip — files: a.py — verify: `true`' \
+		'- [ ] T005 [P] A very long title that goes well past forty characters for sure — files: b.py — verify: `true`' \
+		'' '## Gates' '- [ ] G001 project gates clean — verify: `true`'
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" 'wave Tag filter chip (T004), A very long title that goes well past f' "building why wraps each name around its id"
+	assert_contains "$OUT" '(T005)' "the truncated title still carries its id"
+	assert_not_contains "$OUT" 'wave T004, T005' "no bare id list in the building why"
+	assert_contains "$OUT" '"ids": [' "the wave ids stay machine-readable"
+	proj2=$(tmp_repo)
+	base=$(git -C "$proj2" rev-parse --short HEAD)
+	nx_feature "$proj2" 001-x
+	sha=$(nx_commit "$proj2" a.py)
+	nx_tasks "$proj2/.specs/001-x/TASKS.md" "$base" "Approved: 2026-09-08 by user" \
+		"- [x] T001 a — files: a.py — verify: \`true\` — done: $sha" \
+		'' '## Gates' '- [ ] G001 project gates clean — verify: `true`' '- [ ] G002 branch review clean — verify: `true`'
+	nx_cli_in "$proj2" "$home" next --json
+	assert_contains "$OUT" 'gates open: project gates clean (G001), branch review clean (G002)' "gating why wraps each gate name around its id"
+	assert_not_contains "$OUT" 'gates open: G001' "no bare gate id list"
+	assert_contains "$OUT" 'flow tick G001 G002' "the tick command keeps bare ids"
+	rm -rf "$home" "$proj" "$proj2"
+}
+
 t_next_row6_parallel_wave_is_flagged() {
 	local home proj base
 	home=$(tmp_dir)

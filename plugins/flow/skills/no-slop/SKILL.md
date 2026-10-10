@@ -58,9 +58,9 @@ What it cannot see, by measurement: comments that restate code (near-zero recall
 
 ## Prose: PR bodies and docs
 
-A secondary use: the same tells show up in the prose a human reads. **Load [`references/prose-rubric.md`](references/prose-rubric.md)** before you write or review a PR body, a final report or a doc page. It is a separate rubric (NP-01 to NP-08), because its rows judge claims and phrasing, not diffs. Its main rule: each factual claim says measured, inferred or guess, or carries its command or `path:line` in the same sentence.
+A secondary use: the same tells show up in the prose a human reads. **Load [`references/prose-rubric.md`](references/prose-rubric.md)** before you write or review a PR body, a final report or a doc page. It is a separate rubric (NP-01 to NP-13), because its rows judge claims and phrasing, not diffs. Its main rule: each factual claim says measured, inferred or guess, or carries its command or `path:line` in the same sentence.
 
-Run `scripts/slop-check --prose <file.md>...` on the draft to catch the script-detectable rows (NP-04 to NP-09 and NP-12; code fences and inline code are skipped). It is advisory like the rest; the evidence rows (NP-01 to NP-03) and the lens rows NP-10 and NP-11 are for the reader or the lens. When NP-09 fires, load `benchmark-checklist` from flow-extras (skip quietly when it is absent) and fix the claim before the PR opens. Do not load the code rubric for this.
+Run `scripts/slop-check --prose <file.md>...` on the draft to catch the script-detectable rows (NP-04 to NP-09 and NP-12; code fences and inline code are skipped). It is advisory like the rest; the evidence rows (NP-01 to NP-03) and the lens rows NP-10, NP-11 and NP-13 are for the reader or the lens. When NP-09 fires, call the Skill tool with "flow-extras:benchmark-checklist" (skip quietly when flow-extras is absent) and fix the claim before the PR opens. Do not load the code rubric for this.
 
 ## Wiring it into a pipeline
 
