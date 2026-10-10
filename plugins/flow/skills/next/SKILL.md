@@ -9,7 +9,7 @@ description: "The only build verb. Reads `flow next --json`, does exactly the on
 flow next --json  →  one state  →  one action  →  "Next: /clear, then /flow:next"
 ```
 
-**Read `flow next --json` FIRST, every turn, before reading anything else — including any plan you think you remember.** Its `state` decides what you do; you do that and nothing else. Nothing about your position lives in this transcript: `/clear`, a crash, a compaction and a `git checkout` all self-heal because the router recomputes from disk. That is why the turn ends with the `/clear` line.
+**Read `flow next --json` FIRST, every turn, before reading anything else — including any plan you think you remember.** Its `state` decides what you do; you do that and nothing else. Nothing about your position lives in this transcript: `/clear`, a crash, a compaction and a `git checkout` all self-heal because the router recomputes from disk. That is why the turn ends with the `/clear` line. Never schedule a wakeup, cron or loop that re-runs `/flow:next`: continuing past a turn belongs to `--finish` (its Stop hook) or to the user; waiting on background developers means waiting for their notifications, and a stray wakeup re-enters the router and starts the next wave unasked.
 
 ## The state table — one row fires per turn
 

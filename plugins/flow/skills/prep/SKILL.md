@@ -111,9 +111,11 @@ interview. Print the path once.
 5. **Explicit confirmation only.** A decision becomes a `D-NN` on a number, a
    name or a specific. "Sure", "agreed", silence → restate once; if still
    vague, record an `A-NN` with `confidence: low`, never a `D-NN`.
-   When an answer states how existing code behaves, open the code first. On a
-   contradiction, quote path:line and ask once which is right; record the
-   `D-NN` only from that reply. No contradiction, no extra words.
+   When an answer states how existing code behaves, open the code first.
+   On a contradiction, quote path:line in the question; a
+   contradiction question still follows rule 2 (your hypothesis with a
+   confidence word, ending "— confirm or correct?"), and the `D-NN` is
+   recorded only from that reply. No contradiction, no extra words.
    Credit: adapted from mattpocock/skills skills/engineering/domain-modeling/SKILL.md @ 49dd158 (MIT).
 6. **Checkpoint at 6**: print the Decisions / Open counts and ask "continue
    or write?". Hard cap 12. More than 3 **Open** lines is the split signal —

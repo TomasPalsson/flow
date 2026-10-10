@@ -1149,3 +1149,10 @@ t_next_drafting_declares_parity_baseline_at_base() {
 	assert_contains "$txt" '`<cmd> | diff verify/baseline.txt -`' "the gate diffs against the baseline"
 	assert_contains "$tpl" "Parity: <cmd>" "the template documents the header field"
 }
+
+t_next_no_self_scheduled_reinvocation() {
+	local txt
+	txt=$(cat "$NX_SKILL_MD")
+	assert_contains "$txt" "Never schedule a wakeup, cron or loop that re-runs" \
+		"next forbids self-scheduled re-invocation (a stray wakeup started wave 2 in a live eval)"
+}
