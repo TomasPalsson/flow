@@ -41,6 +41,23 @@ Also: a defect sweep (Quick fix slot, 4 cards), a whole-repo reader and a whole-
 
 The installed plugin ran every SKILL.md step on a repo it had never seen: mine, roll, workflow (82 agents, ~9.5 min), assemble + check (2 fails fixed in final.json), blind read (the reader restated all 9 cards correctly; its confusions led to three skill fixes: an `about` line under the title, kind words that never break on phones, plain-word first tests). Old skill on the same repo: 15 ideas, mostly fixes. Judges: taste v2 both orders ("noticed billing is now the real job"), maintainer tie. First page judgement: v2 still needed an ELI5 (Icelandic screen words, two contradicting cards, a puzzle title, "600s", the left-out wall, repeated glosses). Fixed in the skill (twin check also catches contradictions, effect-first titles, human units, left-out list folded, each gloss once) and re-run: clarity 7 vs 5, pictures 7 vs 3, no ELI5 needed.
 
+## Picking fixes and keeper count (10ee94d)
+
+Two picking bugs found by the maintainer judge: a defect merged into a group whose best member was a feature idea lost its fix status (meal-planner's biggest bug vanished), and the removal slot was filled by a fix or dropped by the twin check with nothing refilling it. Fixed in 10ee94d. Re-judged meal-planner and granted: taste judge v2 2/2 on both; maintainer judge meal-planner v1 2/0 -> tie 1-1, granted v2 2/0.
+
+Per-idea scoring (2 Opus judges per list, new and useful 1-10, keeper = both >= 7), latest lists before the use check:
+
+| Repo | v1 keepers | v2 keepers | v2 mean new (v1) | v2 mean useful (v1) |
+|---|---|---|---|---|
+| meal-planner | 0 | 4 | 6.2 (4.7) | 6.1 (5.8) |
+| worklog | 0 | 1 | 5.6 (4.6) | 5.5 (5.5) |
+| prr | 0 | 0 | 5.8 (5.4) | 5.2 (5.2) |
+| granted-tab-groups | 0 | 0 | 6.0 (5.5) | 4.9 (4.4) |
+
+Bold ideas lose on usefulness for three repeated reasons: an existing command already covers most of it, the pain is rare for the real users, or a big build with unproven demand.
+
+Tried and not shipped: a per-idea "use check" (an agent plays the person, answers how often / what they do instead / would they switch, gate below 5). It judged everything as the repo's single current user and dropped every bold idea on prr and granted (pages became all fixes). Softened once (judge for whoever the idea serves, gate below 4); granted still lost its bold ideas. Stopped at the user's request to save usage; the draft change lives only in `.skill-forge/`, not in the plugin.
+
 ## Open
 
 - prr lost rounds 1-5a: three picks rested on false premises; fixed by the Opus refuter (4 dead vs 1), after which prr flipped to v2 under the taste judge.
