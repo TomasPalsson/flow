@@ -28,7 +28,7 @@ Also: a defect sweep (Quick fix slot, 4 cards), a whole-repo reader and a whole-
 | 2 (c) | 6/6 clear | v1 6/6 | - |
 | 4 (fair format) | 6/6 clear | v1 6/6 | v2 4/6 (meal-planner, granted both orders); prr v1 |
 | 5 (fresh dice, big bets, Opus refuter on prr) | 6/6 (2 "huge") | v1 4/6, prr tie 1-1 | **v2 6/6: all 3 fixtures, both orders** |
-| Unseen repo (worklog), installed plugin run end to end incl. blind read | see below | tie 1-1 | **v2 2/2** (novelty 7 vs 4) |
+| Unseen repo (worklog), installed plugin run end to end incl. blind read | 2/2 clear; ELI5 needed: v2 no, v1 yes | tie 1-1 | **v2 2/2** (novelty 7 vs 4) |
 
 - Tired-reader page scores, round 4: clarity v2 7-8 vs v1 4-6; pictures helped v2 7-8 vs v1 2-5; "would still need an ELI5": v2 0/3, v1 3/3.
 - User-taste judge novelty, round 5: v2 7/6.5/7 vs v1 4/4/5.5.
@@ -38,7 +38,7 @@ Also: a defect sweep (Quick fix slot, 4 cards), a whole-repo reader and a whole-
 
 ## Unseen-repo check (worklog)
 
-The installed plugin ran every SKILL.md step on a repo it had never seen: mine, roll, workflow (82 agents, ~9.5 min), assemble + check (2 fails fixed in final.json), blind read (the reader restated all 9 cards correctly; its confusions led to three skill fixes: an `about` line under the title, kind words that never break on phones, plain-word first tests). Old skill on the same repo: 15 ideas, mostly fixes. Judges: taste v2 both orders ("noticed billing is now the real job"), maintainer tie.
+The installed plugin ran every SKILL.md step on a repo it had never seen: mine, roll, workflow (82 agents, ~9.5 min), assemble + check (2 fails fixed in final.json), blind read (the reader restated all 9 cards correctly; its confusions led to three skill fixes: an `about` line under the title, kind words that never break on phones, plain-word first tests). Old skill on the same repo: 15 ideas, mostly fixes. Judges: taste v2 both orders ("noticed billing is now the real job"), maintainer tie. First page judgement: v2 still needed an ELI5 (Icelandic screen words, two contradicting cards, a puzzle title, "600s", the left-out wall, repeated glosses). Fixed in the skill (twin check also catches contradictions, effect-first titles, human units, left-out list folded, each gloss once) and re-run: clarity 7 vs 5, pictures 7 vs 3, no ELI5 needed.
 
 ## Open
 
