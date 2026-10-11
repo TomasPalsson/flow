@@ -13,7 +13,7 @@
       "name": "flow-extras",
       "source": "./plugins/flow-extras",
       "description": "Optional companions to flow: audits, PR review, idea critique, grilling, skill authoring and judging, prompt and CLAUDE.md tooling, and ultracode fleets.",
-      "version": "0.5.0"
+      "version": "0.6.0"
     },
     {
       "name": "design",

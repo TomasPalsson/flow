@@ -1,0 +1,25 @@
+{
+  "_note": "Ordinary people with a concrete moment, never famous or senior-expert personas (Deng 2026: ordinary 57.0 vs creative-celebrity 50.4 unique combinations; Chen 2026: expertise plus authority collapses diversity). 'role' = a relation to this project; 'outsider' = an ordinary person dropped into it. roll.mjs alternates the pools.",
+  "role": [
+    { "id": "first-install", "line": "someone installing this for the first time", "moment": "they followed the README and the first command did something they did not expect" },
+    { "id": "future-self", "line": "the author, back after nine months away", "moment": "they forgot how this works and need to change one thing today" },
+    { "id": "fork-reader", "line": "a contributor who forked this and only reads error messages", "moment": "something failed and the message is all they have" },
+    { "id": "daily-user", "line": "the person who uses this every day", "moment": "the tenth time today they do the same steps" },
+    { "id": "on-call", "line": "the person on call who did not write this", "moment": "it broke at 3am and they must explain what happened" },
+    { "id": "reviewer", "line": "a reviewer reading a pull request against this code", "moment": "they must decide in five minutes whether a change is safe" },
+    { "id": "integrator", "line": "someone wiring this into another tool or script", "moment": "they need its output in a shape a machine can read" },
+    { "id": "demo-giver", "line": "someone demoing this live to a room", "moment": "they have thirty seconds to show why it is good" }
+  ],
+  "outsider": [
+    { "id": "nurse-dev", "line": "a nurse who became a developer last month", "moment": "day one at a new job, told to 'just run it'" },
+    { "id": "support", "line": "a support person who answers user complaints", "moment": "they must explain a failure to a customer in one sentence" },
+    { "id": "teacher", "line": "a teacher showing this to thirty students", "moment": "half the class is stuck on the same step" },
+    { "id": "slow-laptop", "line": "someone on an old laptop and a slow hotel network", "moment": "every step that waits feels twice as long" },
+    { "id": "locale", "line": "a user who works in another language and time zone", "moment": "dates, words and defaults all assume someone else" },
+    { "id": "auditor", "line": "an auditor asking who changed what and why", "moment": "they need a trail and there is none" },
+    { "id": "manager", "line": "a manager who reads only release notes", "moment": "deciding whether this is worth a team's week" },
+    { "id": "shop-owner", "line": "a small shop owner who hires one developer", "moment": "they pay per hour and want fewer surprises" },
+    { "id": "bus-driver", "line": "a retired bus driver learning to code as a hobby", "moment": "they read every word and take every instruction literally" },
+    { "id": "student", "line": "a first-year student copying this for a project", "moment": "they will copy whatever the README shows, mistakes included" }
+  ]
+}

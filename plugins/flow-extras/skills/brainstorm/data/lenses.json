@@ -1,0 +1,29 @@
+{
+  "_note": "A lens fixes the SHAPE of an idea, not its topic. `shape` goes verbatim into the generator prompt. `pairs_with` lists slice ids the lens suits ('*' = any). Sources: wave-2/generator-cell-design.md D2.",
+  "lenses": [
+    { "id": "subtract", "pairs_with": ["*"],
+      "shape": "an idea whose body is something that stops existing: a step, flag, file, feature, prompt or rule is deleted, merged, or replaced by a default. Name what disappears, what breaks, and who notices." },
+    { "id": "make-visible", "pairs_with": ["workarounds", "docs-vs-code", "env-and-config", "fix-chains", "first-ten-minutes", "test-gaps", "*"],
+      "shape": "an idea that lets a person SEE something that is hidden today: a view, a message, a preview, a report, a warning at the right moment. Name the question it answers and when the person asks it." },
+    { "id": "automate-by-hand", "pairs_with": ["workarounds", "first-ten-minutes", "history-chain", "todo-age", "*"],
+      "shape": "an idea that removes a thing a human does by hand today (found in the evidence: a README step, a script, a ritual, a copy-paste). Name who stops doing what, and how often they do it now." },
+    { "id": "ten-x", "pairs_with": ["hotspot", "first-ten-minutes", "workarounds", "big-files", "*"],
+      "shape": "an idea that does the same job in a tenth of the steps, time or config. Show today's path step by step and the new path, side by side." },
+    { "id": "contradiction", "pairs_with": ["docs-vs-code", "env-and-config", "fix-chains", "hotspot", "test-gaps"],
+      "shape": "an idea that resolves two things in the evidence that cannot both be true (the doc says X and the code does Y; two parts disagree; a fix keeps being undone). Quote both sides, then the resolution." },
+    { "id": "borrow", "pairs_with": ["*"],
+      "shape": "an idea borrowed from a neighbouring kind of tool that already solved this exact friction. Name the source tool and what it does, map its parts onto this project (this -> that), and say what does NOT carry over." },
+    { "id": "flip-default", "pairs_with": ["env-and-config", "first-ten-minutes", "hotspot", "unused-surface", "*"],
+      "shape": "an idea that inverts one default the code assumes (opt-in becomes opt-out, ask becomes act, act becomes ask, global becomes per-project). Name the default, the flipped behaviour, and who loses." },
+    { "id": "unlock", "pairs_with": ["todo-age", "workarounds", "fix-chains", "history-chain", "hotspot"],
+      "shape": "an idea for ONE change that makes three or more existing TODOs, workarounds or pains cheap or gone. List the three by file and line." },
+    { "id": "internal-tool", "pairs_with": ["workarounds", "unused-surface", "test-gaps", "history-chain", "*"],
+      "shape": "an idea that promotes something built to build this project (a script, debug flag, fixture, test helper, dev mode) into a feature users get. Name the thing and the user who would want it." },
+    { "id": "zoom-in", "pairs_with": ["hotspot", "first-ten-minutes", "history-chain", "big-files", "*"],
+      "shape": "an idea that finds the one behaviour users actually repeat and makes the product about that, cutting or hiding the rest. Name the behaviour, the evidence that it repeats, and what gets cut." },
+    { "id": "time-shift", "pairs_with": ["history-chain", "fix-chains", "hotspot", "todo-age"],
+      "shape": "an idea read off the project's trajectory: the next step the history implies, or the step every commit worked around but none made. Cite the commits." },
+    { "id": "guard-the-moment", "pairs_with": ["fix-chains", "workarounds", "env-and-config", "first-ten-minutes", "*"],
+      "shape": "an idea that lowers fear at the moment a person hesitates: a dry run, an undo, a preview, a safe default, a confirm that shows exactly what will happen. Name the moment and what the person fears." }
+  ]
+}
