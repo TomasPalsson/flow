@@ -239,8 +239,10 @@ log(`${ideas.length} ideas -> ${groups.length} groups; ${groups.filter(g => g.an
 // ---------- 3. refute each group's best member ----------
 const refuted = await pipeline(groups, g =>
   agent(refutePrompt(byId[g.best]), { label: `refute:${g.best}`, phase: 'Refute', schema: REFUTE, model: READ_MODEL }).then(r => ({ g, r })))
-const dead = refuted.filter(j => j && (!j.r || j.r.verdict === 'dead'))
-const alive = refuted.filter(j => j && j.r && j.r.verdict !== 'dead')
+// A refuter that errored (rate limit, crash) proves nothing: keep the idea, marked unchecked, instead of killing it.
+refuted.forEach(j => { if (j && !j.r) j.r = { exists: 'no', deliberate: 'maybe', premise_holds: true, verdict: 'survives', quotes: [], note: 'not checked: the checker failed' } })
+const dead = refuted.filter(j => j && j.r.verdict === 'dead')
+const alive = refuted.filter(j => j && j.r.verdict !== 'dead')
 log(`refuted: ${dead.length} dead; ${alive.length} alive`)
 if (!alive.length) return { error: 'every idea was refuted', dead: dead.map(d => d.r?.note) }
 
