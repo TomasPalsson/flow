@@ -180,7 +180,7 @@ CHECKER: ${r ? r.note + (r.verdict === 'rewrite' ? ' (It partly exists: make the
 WHY IT WAS PICKED: ${SLOT_WHY[slot]}.${notes.length ? ' Judges said: ' + notes.join(' / ') : ''}
 
 Write:
-- title: 8 words or fewer, starts with a verb, says what changes for a person. No function, file or flag names.
+- title: 8 words or fewer, starts with a verb, says ONE change for a person (no "and", no "maybe"). No function, file or flag names.
 - sentence: 20 words or fewer, active voice, what changes for whom. Everyday words; no function, file or flag names (those go in evidence).
 - words: at most 3 terms the title and sentence cannot avoid (the project's real names, tools), glossed in 6 words or fewer. Never invent a new name for a thing.
 - why_here: one plain sentence a friend would say ("This is the one most people would feel every day"). Never mention scores, ranks, judges, slots or evidence numbers.
@@ -300,14 +300,18 @@ else if (!picks.some(isSub)) picks.push(...PICK.remove(1))
 
 // Themes are coarse labels from one agent and miss some twins; one reader checks the picks as a set.
 const pairsSchema = { type: 'object', required: ['same'], properties: { same: { type: 'array', items: { type: 'array', items: { type: 'string' } } } } }
-const twins = await agent(`These are the ideas picked for one page. List every pair a reader would see as the same idea, or one idea containing the other (same problem for the same people, even if the change differs). Return pairs of ids; return none if none.\n\n${picks.map(p => `[${p.g.best}] ${byId[p.g.best].move} | who notices: ${byId[p.g.best].user_sees}`).join('\n')}`, { label: 'twins', phase: 'Judge', schema: pairsSchema, model: GEN_MODEL })
-for (const pair of twins?.same || []) {
-  const inPage = pair.map(id => picks.findIndex(p => p.g.best === id)).filter(i => i >= 0)
-  if (inPage.length < 2) continue
-  const drop = Math.max(...inPage)          // keep the earlier, stronger slot
-  const gone = picks.splice(drop, 1)[0]
-  picks.push(...(PICK[gone.slot] || PICK.safe)(1))
-  log(`twin: kept ${picks[Math.min(...inPage)]?.g.best}, dropped ${gone.g.best} (${gone.slot})`)
+// Two passes: a replacement pick can itself be a twin of something already on the page.
+for (let pass = 0; pass < 2; pass++) {
+  const twins = await agent(`These are the ideas picked for one page. List every pair a reader would see as the same idea, or one idea containing the other (same problem for the same people, even if the change differs). Return pairs of ids; return none if none.\n\n${picks.map(p => `[${p.g.best}] ${byId[p.g.best].move} | who notices: ${byId[p.g.best].user_sees}`).join('\n')}`, { label: `twins:${pass + 1}`, phase: 'Judge', schema: pairsSchema, model: GEN_MODEL })
+  for (const pair of twins?.same || []) {
+    const inPage = pair.map(id => picks.findIndex(p => p.g.best === id)).filter(i => i >= 0)
+    if (inPage.length < 2) continue
+    const drop = Math.max(...inPage)          // keep the earlier, stronger slot
+    const gone = picks.splice(drop, 1)[0]
+    picks.push(...(PICK[gone.slot] || PICK.safe)(1))
+    log(`twin: kept ${picks[Math.min(...inPage)]?.g.best}, dropped ${gone.g.best} (${gone.slot})`)
+  }
+  if (!(twins?.same || []).length) break
 }
 log(`picked ${picks.length}: ${picks.map(p => `${p.slot}:${p.g.best}`).join(', ')}`)
 
