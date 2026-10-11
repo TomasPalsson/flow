@@ -56,7 +56,7 @@ Per-idea scoring (2 Opus judges per list, new and useful 1-10, keeper = both >= 
 
 Bold ideas lose on usefulness for three repeated reasons: an existing command already covers most of it, the pain is rare for the real users, or a big build with unproven demand.
 
-Tried and not shipped: a per-idea "use check" (an agent plays the person, answers how often / what they do instead / would they switch, gate below 5). It judged everything as the repo's single current user and dropped every bold idea on prr and granted (pages became all fixes). Softened once (judge for whoever the idea serves, gate below 4); granted still lost its bold ideas. Stopped at the user's request to save usage; the draft change lives only in `.skill-forge/`, not in the plugin.
+Use check, shipped after the user approved its pages: a per-idea "use check" (an agent plays the person, answers how often / what they do instead / would they switch, gate below 5). It judged everything as the repo's single current user and dropped every bold idea on prr and granted (pages became all fixes). Softened once (judge for whoever the idea serves, gate below 4); granted still lost its bold ideas. Stopped at the user's request to save usage. The softened version's pages (prr: pre-push gates, one-command ship, per-client review account, Claude-written summary; worklog: unbilled-days list, Icelandic invoice text, repo-to-ticket rule) were checked by the user by eye and approved, so it ships; it was not re-scored by the judges.
 
 ## Open
 

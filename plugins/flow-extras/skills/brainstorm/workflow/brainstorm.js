@@ -57,6 +57,11 @@ const REFUTE = { type: 'object', required: ['exists', 'deliberate', 'premise_hol
   exists: { enum: ['yes', 'partial', 'no'] }, deliberate: { enum: ['yes', 'maybe', 'no'] }, premise_holds: { type: 'boolean' },
   verdict: { enum: ['dead', 'rewrite', 'survives'] }, quotes: { type: 'array', maxItems: 5, items: str(260) },
   note: str(300, 'one plain sentence: what you found') } }
+const USE = { type: 'object', required: ['how_often', 'today_instead', 'covered_already', 'would_switch', 'useful', 'why'], properties: {
+  how_often: { enum: ['daily', 'weekly', 'monthly', 'rarely', 'never'] },
+  today_instead: str(200, 'what the person does today instead: a command, flag, tool, habit, or nothing'),
+  covered_already: { enum: ['no', 'partly', 'yes'], description: 'does something the person already has do most of this?' },
+  would_switch: { type: 'boolean' }, useful: { type: 'integer', minimum: 1, maximum: 10 }, why: str(220, 'one plain sentence') } }
 const RANK = { type: 'object', required: ['order', 'top'], properties: {
   order: { type: 'array', items: { type: 'string' }, description: 'every card id, best first' },
   top: { type: 'array', maxItems: 6, items: { type: 'object', required: ['id', 'why'], properties: { id: { type: 'string' }, why: str(200, 'one plain sentence, no scores') } } } } }
@@ -148,6 +153,23 @@ Do all four, in order, with real commands:
 4. Premise: open each cited location and check it says what the idea claims. Then trace the code path the idea talks about and look for code that ALREADY does what the idea says is missing (a message already printed, an error already handled, a value already shown). Also check every claim about how an outside tool behaves (git, gh, the framework, the browser): if the idea needs a tool to behave in a way it does not, the premise is false.
 Rules: premise false, or it already exists with the same mechanism = dead. Deliberate with a stated reason that still applies = dead. Exists partly = rewrite. Otherwise survives. Quote what you found. If you found nothing after an honest search, say so; never invent.`
 
+// Judges found bold ideas fresh but often unused: covered by a command people already have, rare for the real
+// users, or a big build nobody asked for. One reader plays the person and checks those three things.
+// Judging only as today's user base (often one person) zeroed every bold idea, so the reader plays whoever the idea serves.
+const usePrompt = x => `You are the person this idea is for. Decide honestly whether you would use it. ${DATA_RULE}
+Repo: ${A.repo}. Read ${PROJECT} and the README to learn who uses this project and how (their time zone, language, the tools around it). If the idea serves people beyond today's users, be one of those people and judge whether such people exist and would want it; a small user base today is not by itself a reason to score low.
+YOUR COMPLAINT: ${x.seen_through}
+THE IDEA: ${x.move}
+WHAT YOU WOULD NOTICE: ${x.user_sees}
+WHAT IT COSTS: ${x.gives_up}
+
+Answer as that person, after checking:
+1. how_often: how often you really hit this problem, given who uses the project today (a bug that only bites outside the users' time zone is "rarely" when every user lives in one).
+2. today_instead: what you do now instead. Look for an existing command, flag or tool that already does most of it (run its --help, check the project's own commands, the framework, git, gh). Name it.
+3. covered_already: yes if something you already have does most of it; partly if it does some.
+4. would_switch: would you change your habit for this, given what it costs?
+5. useful 1-10: 10 = you hit this every week and would use the change at once; 7 = a clear real benefit worth its cost; 4 = nice to have, or you would not notice; 1 = you would never use it. A bold change can score high when the person would really adopt it. Be cold and honest; inflating or deflating to look rigorous are the same failure.`
+
 const plainCard = (x, r) => `CHANGE: ${x.move}
 WHERE: ${x.observed_in.map(o => o.where).join(', ')}
 WHO NOTICES: ${x.user_sees}
@@ -174,7 +196,7 @@ const SLOT_WHY = {
   remove: 'it takes something away, which people rarely think of, and judges found it useful',
   fix: 'it is a real bug someone will hit, found and checked in the code, and small to fix',
 }
-const writerPrompt = (x, slot, notes, r) => `Turn this idea into a card for a tired reader who is new to the project. ${DATA_RULE}
+const writerPrompt = (x, slot, notes, r, u) => `Turn this idea into a card for a tired reader who is new to the project. ${DATA_RULE}
 Repo: ${A.repo}. Page rules: read ${A.skill}/references/page.md (fields, picture catalog). Project card: ${PROJECT}.
 
 IDEA: ${x.move}
@@ -183,7 +205,7 @@ GIVES UP: ${x.gives_up}
 FIRST TEST: ${x.first_test}
 EVIDENCE: ${x.observed_in.map(o => `${o.where}: "${o.quote}"`).join(' | ')}
 CHECKER: ${r ? r.note + (r.verdict === 'rewrite' ? ' (It partly exists: make the card about the missing part.)' : '') : 'not checked'}
-WHY IT WAS PICKED: ${SLOT_WHY[slot]}.${notes.length ? ' Judges said: ' + notes.join(' / ') : ''}
+WHY IT WAS PICKED: ${SLOT_WHY[slot]}.${notes.length ? ' Judges said: ' + notes.join(' / ') : ''}${u ? `\nUSE CHECK (the person it is for): hits this ${u.how_often}; today they ${u.today_instead}; ${u.why} Let why_here say honestly how often it matters.` : ''}
 
 Write:
 - title: 8 words or fewer, starts with a verb, says ONE change for a person (no "and", no "maybe"). No function, file or flag names. It must make sense to someone who has not seen the bug or the code: say the effect ("Keep personal work out of invoices"), not the trigger ("...when prompts mention UTF-8").
@@ -245,13 +267,17 @@ ideas.filter(x => !seen.has(x.id)).forEach(x => groups.push({ ids: [x.id], share
 log(`${ideas.length} ideas -> ${groups.length} groups; ${groups.filter(g => g.anchor_hit).length} match a typical idea`)
 
 // ---------- 3. refute each group's best member ----------
-const refuted = await pipeline(groups, g =>
-  agent(refutePrompt(byId[g.best]), { label: `refute:${g.best}`, phase: 'Refute', schema: REFUTE, model: GEN_MODEL }).then(r => ({ g, r })))
+const refuted = await pipeline(groups,
+  g => agent(refutePrompt(byId[g.best]), { label: `refute:${g.best}`, phase: 'Refute', schema: REFUTE, model: GEN_MODEL }).then(r => ({ g, r })),
+  j => j.r?.verdict === 'dead' ? j
+    : agent(usePrompt(byId[j.g.best]), { label: `use:${j.g.best}`, phase: 'Refute', schema: USE, model: GEN_MODEL }).then(u => ({ ...j, u })))
 // A refuter that errored (rate limit, crash) proves nothing: keep the idea, marked unchecked, instead of killing it.
 refuted.forEach(j => { if (j && !j.r) j.r = { exists: 'no', deliberate: 'maybe', premise_holds: true, verdict: 'survives', quotes: [], note: 'not checked: the checker failed' } })
 const dead = refuted.filter(j => j && j.r.verdict === 'dead')
-const alive = refuted.filter(j => j && j.r.verdict !== 'dead')
-log(`refuted: ${dead.length} dead; ${alive.length} alive`)
+// Fresh but unused is not worth a card: drop what the person would not bother with, or already has.
+const unused = refuted.filter(j => j && j.r.verdict !== 'dead' && j.u && (j.u.useful < 4 || j.u.covered_already === 'yes'))
+const alive = refuted.filter(j => j && j.r.verdict !== 'dead' && !unused.includes(j))
+log(`refuted: ${dead.length} dead; not useful: ${unused.length} (${unused.map(j => `${j.g.best} ${j.u.useful}/10 ${j.u.how_often}`).join(', ')}); ${alive.length} alive`)
 if (!alive.length) return { error: 'every idea was refuted', dead: dead.map(d => d.r?.note) }
 
 // ---------- 4. rank survivors on plain cards: 2 axes x 2 orders, list-wise ----------
@@ -267,7 +293,7 @@ for (const run of runs.filter(x => x && x.r)) {
   for (const id of Object.keys(pct)) { const i = order.indexOf(id); pct[id][run.axis].push(i < 0 ? 1 : i / n) }
   run.r.top.forEach(t => { if (notes[t.id] && notes[t.id].length < 2) notes[t.id].push(t.why) })
 }
-alive.forEach(j => { const p = pct[j.g.best]; j.s = { surprise: +(1 - mean(p.surprise)).toFixed(2), value: +(1 - mean(p.value)).toFixed(2), fit: +(1 - mean(p.fit)).toFixed(2) } })
+alive.forEach(j => { const p = pct[j.g.best]; j.s = { surprise: +(1 - mean(p.surprise)).toFixed(2), value: +(1 - mean(p.value)).toFixed(2), fit: +(1 - mean(p.fit)).toFixed(2), useful: j.u ? j.u.useful / 10 : 0.5 } })
 
 // ---------- 5. portfolio (deterministic): 3 safe, 2 wild, 2 stretch, 4 quick fixes, >= 1 remove ----------
 // One idea per theme across the whole page: two cards on the same problem read as padding.
@@ -296,11 +322,12 @@ const pickFresh = (n, slot, key, minFit) => {
   return out.length < n ? out.concat(take(ideasOnly.filter(fresh).sort(by(key)), n - out.length, slot)) : out
 }
 const PICK = {
-  safe: n => take([...ideasOnly].sort(by(j => j.s.value + j.s.fit / 4 + j.s.surprise / 10)), n, 'safe'),
-  wild: n => pickFresh(n, 'wild', j => j.s.surprise + (appetite(bet(j)) === 'bet' || byId[j.g.best].lens === 'bet' ? 0.15 : 0) - j.g.hits / 20, 0.3),
-  stretch: n => pickFresh(n, 'stretch', j => j.s.surprise + j.s.value, 0.4),
-  fix: n => take(alive.filter(isFix).sort(by(j => j.s.value + j.s.fit / 2)), n, 'fix'),
-  remove: n => take(ideasOnly.filter(isSub).sort(by(j => j.s.value + j.s.surprise)), n, 'remove'),
+  // useful is the person's own answer (use check); value is the judges' "if it worked perfectly" rank.
+  safe: n => take([...ideasOnly].sort(by(j => j.s.useful + j.s.value / 2 + j.s.fit / 4 + j.s.surprise / 10)), n, 'safe'),
+  wild: n => pickFresh(n, 'wild', j => j.s.surprise + j.s.useful / 2 + (appetite(bet(j)) === 'bet' || byId[j.g.best].lens === 'bet' ? 0.15 : 0) - j.g.hits / 20, 0.3),
+  stretch: n => pickFresh(n, 'stretch', j => j.s.surprise + j.s.useful + j.s.value / 2, 0.4),
+  fix: n => take(alive.filter(isFix).sort(by(j => j.s.useful + j.s.value / 2 + j.s.fit / 4)), n, 'fix'),
+  remove: n => take(ideasOnly.filter(isSub).sort(by(j => j.s.useful + j.s.surprise)), n, 'remove'),
 }
 let picks = [...PICK.safe(3), ...PICK.wild(2), ...PICK.stretch(2), ...PICK.fix(4)]
 // A fix that deletes a stale value is not the bold removal readers look for.
@@ -335,9 +362,9 @@ const drawNotes = []
 const cards = await pipeline(picks,
   async p => {
     const x = byId[p.g.best]
-    let c = await agent(writerPrompt(x, p.slot, notes[p.g.best], p.r), { label: `card:${p.g.best}`, phase: 'Explain', schema: CARD, model: GEN_MODEL })
+    let c = await agent(writerPrompt(x, p.slot, notes[p.g.best], p.r, p.u), { label: `card:${p.g.best}`, phase: 'Explain', schema: CARD, model: GEN_MODEL })
     const bad = c ? lint(c) : ['no card']
-    if (bad.length) c = await agent(`${writerPrompt(x, p.slot, notes[p.g.best], p.r)}\n\nYour last card broke these limits: ${bad.join('; ')}. Fix them.`, { label: `card2:${p.g.best}`, phase: 'Explain', schema: CARD, model: GEN_MODEL })
+    if (bad.length) c = await agent(`${writerPrompt(x, p.slot, notes[p.g.best], p.r, p.u)}\n\nYour last card broke these limits: ${bad.join('; ')}. Fix them.`, { label: `card2:${p.g.best}`, phase: 'Explain', schema: CARD, model: GEN_MODEL })
     return c
   },
   async (c, p, i) => {
