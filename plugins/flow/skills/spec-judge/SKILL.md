@@ -452,6 +452,12 @@ Total = D1 + D2 + D3 + D4 + D5 + D6 + D7 + D8
 Max = 120 points
 ```
 
+Emit the eight scores as one JSON object (`{"D1":15,"D2":14,...}`) and compute the total with this command, never by hand; a hand-summed total moves a grade boundary:
+
+```bash
+node -e 'const s=JSON.parse(process.argv[1]);const t=Object.values(s).reduce((a,b)=>a+b,0);console.log(String(Math.min(t,Number(process.argv[2]||Infinity))))' '<dimension scores as JSON>' [cap]
+```
+
 **Grade Scale**:
 
 | Grade | Score | Meaning |
@@ -664,6 +670,12 @@ Litmus test for every issue: *"If we merged ONLY this issue and stopped, could a
 | **D-Dep — Dependency Soundness** | 15 | Does every `depends-on` resolve to a real issue? Is the order acyclic and shippable incrementally? |
 | **D-Trace — Spec Coverage** | 20 | Does every spec journey/requirement map to ≥1 issue, and every issue's ACs trace back to the spec? No orphans either direction. |
 | **D-Gran — Granularity (INVEST)** | 10 | Is each issue Independent, Negotiable, Valuable, Estimable, Small, Testable? Flag mega-issues (>~7 ACs) and trivial fragments. |
+
+Compute the total with the same command over the five D-Slice, D-AFK, D-Dep, D-Trace and D-Gran scores, passing `50` as the cap when the horizontal-masquerade detector fired, so the cap is applied by the command and not remembered:
+
+```bash
+node -e 'const s=JSON.parse(process.argv[1]);const t=Object.values(s).reduce((a,b)=>a+b,0);console.log(String(Math.min(t,Number(process.argv[2]||Infinity))))' '<dimension scores as JSON>' [cap]
+```
 
 Report format mirrors the spec report: total `X/100`, per-dimension scores with **quoted offending issue titles**, and **Top 3 Improvements** (verbatim, actionable). Name every horizontal issue explicitly — the caller will re-slice them.
 

@@ -202,6 +202,12 @@ Custom fonts loading with default browser behavior. Blank text areas for 0-3 sec
 Hero image loads after below-fold content. Above-fold skeleton. Poor LCP.
 **Fix:** `fetchpriority="high"` on hero. `loading="lazy"` on below-fold. Preload critical CSS/fonts. Defer non-critical JS. `<link rel="preconnect">` for third-party domains.
 
+### P-5: Wrong-theme flash
+The light theme paints first, then flips to dark after hydration, because the theme is read from storage in `useEffect`. Dark-mode users see a white flash on every load.
+**Fix:** Put a blocking inline `<script>` in `<head>` that sets the `html` class or `data-theme` from `localStorage`, falling back to `prefers-color-scheme`, before first paint. Add `suppressHydrationWarning` on `<html>` (the script changes the attribute the server rendered). Set `color-scheme` (CSS or `<meta name="color-scheme">`) so native controls and the canvas match.
+
+Credit: adapted from vercel-labs/agent-skills skills/react-best-practices/rules/rendering-hydration-no-flicker.md @ 063bee9 (MIT).
+
 ---
 
 ## Top 15 "Instant Fail" Anti-Patterns

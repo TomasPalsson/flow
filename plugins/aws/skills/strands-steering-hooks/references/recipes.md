@@ -127,14 +127,16 @@ from strands.hooks import HookProvider, HookRegistry, BeforeModelCallEvent
 import datetime
 
 class ClockContext(HookProvider):
+    def __init__(self, base_prompt: str):
+        self.base_prompt = base_prompt          # the agent's fixed system prompt
     def register_hooks(self, registry: HookRegistry, **kw):
         registry.add_callback(BeforeModelCallEvent, self.inject)
     def inject(self, event: BeforeModelCallEvent):
-        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        event.messages.append({"role": "user",
-                               "content": [{"text": f"[context] now={now}"}]})
+        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")  # date precision keeps the prompt-cache prefix stable
+        event.agent.system_prompt = f"{self.base_prompt}\n\n[context] now={now}"
 ```
-Mutating `event.messages` here is per-call only; it does not pollute `agent.messages`.
+Per-turn context goes in the system prompt, as above. A standalone `role: user` message appended before every model call is the wrong place: right after a tool result, current models read that extra user text as injected instructions. Keep harness text out of tool results and out of the slot right after them.
+The hook rebuilds the prompt from `base_prompt` on every call, so the clock never accumulates and nothing is written to `agent.messages`.
 
 ## 7. Dry-run tool swap (shadow mode)
 

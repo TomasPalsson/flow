@@ -41,6 +41,8 @@ Read [`references/spec-template.md`](references/spec-template.md) before writing
 Spec quality is the highest-leverage token you will spend: 41.77% of measured multi-agent failures are specification/design flaws, and ambiguous specs measurably *raise reward-hacking rates* (33-44% on ambiguous vs well-specified tasks) — a vague spec doesn't just get misread, it invites the fleet to game it. Fleet agents cannot ask follow-ups; the SPEC is their only lifeline.
 
 - **Standing orders.** The spec carries a numbered `## Standing orders` section, empty by default. When the user gives a directive mid-run, append it there before acting on it, then paste the section verbatim into every brief, respawn and fix-round prompt. Workflow agents cannot ask follow-ups, so a directive that reached only you never reaches the spawns that come later.
+- **Unit gate.** The spec states the units and the agents per unit, and for each parallel agent the one kind of finding only it looks for (for example correctness, authz, gaming, cross-file). Two agents with the same kind get merged: identical lenses share blind spots and only add cost.
+- **One ORDERS constant.** The workflow script reads the numbered lines of SPEC.md `## Standing orders` into one `ORDERS` constant and every prompt builder (`devPrompt`, `reviewPrompt`, fix and respawn prompts) interpolates it. Retyping the orders per builder is how one prompt ends up without them.
 - Ambiguous or large task → grill the user first: 3-5 load-bearing questions (the template has the bank), batched, answers serialized into `.ultracode/<slug>/SPEC.md`.
 - Small clear task → write SPEC.md directly; don't interrogate for sport.
 - **Adversarially review the spec before fan-out.** A prep artifact consumed by N downstream agents is a single point of failure multiplied by N — spawn one `adversary` (lens: spec) against SPEC.md. The Bun rewrite reviewed PORTING.md harder than most teams review code, *then* let $165k of agents run off it.
@@ -48,6 +50,10 @@ Spec quality is the highest-leverage token you will spend: 41.77% of measured mu
 ## Phase 2 — Trial run (1-3 units)
 
 When the lever is a script or codemod, the hand-done unit 1 from Phase 0 is the oracle for this trial: the trial does not start until its diff check has passed.
+
+Have the script write every rendered prompt to `.ultracode/<slug>/prompts/<label>.md` before it calls `agent()`. Then run `scripts/check-orders .ultracode/<slug>/SPEC.md .ultracode/<slug>/prompts/`. It exits 1 and names each prompt file missing a numbered order, so a builder that dropped the orders is caught before the fleet inherits it. Check the rendered files, not the script: the orders are interpolated at run time and never appear literally in the script text.
+
+Read the plan before fan-out on four points: a phase that depends on a list that can be empty; how the prompts define words like "passed" or "confirmed"; values one phase returns that no later phase uses; and agents meant to judge independently whose prompts do not keep them out of each other's files.
 
 Run the full loop — developer → adversaries → fixes → merge — on 1-3 representative units before the fleet. You are smoke-testing the *orchestration*, not the product: Bun's agents git-stomped each other **2 minutes** into full fan-out; a trial surfaces that class of failure for the price of one unit.
 
@@ -151,6 +157,10 @@ Sonnet-by-default is an economics + oracle argument, not a capability claim — 
 |---|---|---|
 | [`references/spec-template.md`](references/spec-template.md) | Phase 1, every pipeline run | — |
 | [`references/fleet-economics.md`](references/fleet-economics.md) | Sizing/costing a fleet; any non-default tier choice | Posture-only turns |
+| [`scripts/check-orders`](scripts/check-orders) | Phase 2, after the trial logged its prompts (run it, do not read it) | — |
+| [`scripts/analyze-sessions.mjs`](scripts/analyze-sessions.mjs) | The user asks what a fleet or a week of sessions cost, or whether the cache broke (on demand only, never per turn) | Routine runs |
 | [`references/evidence.md`](references/evidence.md) | User asks "why" / wants citations | Normal runs — the numbers above are already the distillation |
 
 Credit: standing orders, hand-made oracle unit and the script-before-fleet check adapted from cursor/plugins pstack poteto-mode/playbooks/orchestrate.md and principle-build-the-lever @ ccb5507 (MIT).
+Credit: unit gate and the four-point plan read adapted from anthropics/skills skills/claude-api/shared/managed-agents-multiagent.md @ dbd4588 (Apache-2.0) and addyosmani/agent-skills orchestration-patterns.md @ 1be8e34 (MIT).
+Credit: analyze-sessions.mjs adapted from anthropics/claude-plugins-official plugins/session-report/skills/session-report/analyze-sessions.mjs @ a9fd216 (Apache-2.0).

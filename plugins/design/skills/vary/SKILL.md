@@ -1,6 +1,6 @@
 ---
 name: vary
-description: Design frontend UI that is specific to THIS project and different every run: read the project into a fact dossier, write grounded concepts, and let an external roll (scripts/roll.mjs) assign a concept, a signature-graphic technique, a fitting visual world, a skeleton, a palette seed and fonts; then build the concept's treatment (the client's photography, product UI, typography, a data visual, a pattern, a drawn scene or a plain, very usable layout), with usability first and a project-specific direction second; custom graphics (icon sets, spot illustrations, diagrams, brand objects such as price tags or coupons) come from the design:graphics skill when the page needs them. The catalogs hold 47 worlds, 18 archetypes, 120 hue-balanced seeds and 160+ verified faces; the model commits fully, a mechanical craft floor (scripts/check.mjs) and a separate evaluator subagent judge distinctiveness and contract-keeping. Use WHENEVER building, redesigning, mocking up or restyling any UI — landing page, marketing site, dashboard, admin, docs, portfolio, app screen, component set, email, artifact — and whenever the user says design, UI, frontend, make it look good, not generic, not AI slop, something different, new vibe, new palette, new fonts, surprise me, bold, distinctive, or complains that designs look the same. Also use for "give me another direction", "re-roll", "safer", "bolder", "play it straight". Not for backend-only work or pure copy edits.
+description: 'Design frontend UI that is specific to THIS project and different every run: read the project into a fact dossier, write grounded concepts, and let an external roll (scripts/roll.mjs) assign a concept, technique, visual world, skeleton, palette seed and fonts; then build the concept''s treatment (the client''s photography, product UI, typography, a data visual, a pattern, a drawn scene or a plain, usable layout), usability first. Custom graphics come from the design:graphics skill. A mechanical craft floor (scripts/check.mjs) and a separate evaluator subagent judge distinctiveness and contract-keeping. Use WHENEVER building, redesigning, mocking up or restyling any UI (landing page, marketing site, dashboard, docs, portfolio, app screen, component set, email) and whenever the user says make it look good, not generic, not AI slop, something different, surprise me, or complains that designs look the same. Also for "another direction", "re-roll", "safer", "bolder". Not for backend-only work or pure copy edits.'
 user-invocable: true
 argument-hint: "[brief] [--mode persuade|operate|read|experience] [--reroll] [--safer|--bolder|--canon]"
 ---
@@ -178,6 +178,14 @@ Mandatory for anything the user will ship; skippable only when the user said "ju
 4. The builder never marks its own SHIP. If no subagent tool exists, run `check.mjs`, re-read only the contract and source in a fresh turn, cap the outcome at FIX, and tell the user an independent review did not happen.
 
 Report to the user: the SEED KEY (so the roll is reproducible), the concept name and signature device, the world and skeleton in one line, the disposition, and the re-roll command.
+
+Then list what the user can steer, taken from the printed contract (THESIS, SIGNATURE GRAPHIC, WORLD) so no new choice is invented for the list:
+
+- **Safe (category baseline):** 2-3 choices in this build that any peer in the category would also make.
+- **Risks (this build's own face):** 2-3 departures from the category, each with what it gains and what it costs.
+- Steer with `--register safer|bolder` or `--lock concept=<id>`.
+
+Credit: adapted from garrytan/gstack design-consultation/sections/proposal-and-preview.md.tmpl @ 5b9b837 (MIT).
 
 ---
 

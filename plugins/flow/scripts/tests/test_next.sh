@@ -1156,3 +1156,162 @@ t_next_no_self_scheduled_reinvocation() {
 	assert_contains "$txt" "Never schedule a wakeup, cron or loop that re-runs" \
 		"next forbids self-scheduled re-invocation (a stray wakeup started wave 2 in a live eval)"
 }
+
+# ---------------------------------------------------------------------------
+# Prose rules in skills/next/SKILL.md, pinned (F61, F104, F120, F121, F124, F125)
+# ---------------------------------------------------------------------------
+
+NX_SKILL="$SCAN_DIR/../skills/next/SKILL.md"
+
+t_next_skill_assumption_tags_rule() {
+	assert_contains "$(cat "$NX_SKILL")" "Assumption: [mechanical|taste|challenge]" "tagged Assumption format"
+	assert_contains "$(cat "$NX_SKILL")" "keeps the user's direction" "challenge keeps the user's direction"
+}
+
+t_next_skill_removal_proven_by_old_entry_point() {
+	assert_contains "$(cat "$NX_SKILL")" "old entry point" "removal criteria exercise the old entry point"
+}
+
+t_next_skill_hedge_is_not_approval_at_both_gates() {
+	local n
+	assert_contains "$(cat "$NX_SKILL")" "looks reasonable" "hedge rule names a hedge"
+	n=$(grep -c 'Hedge rule' "$NX_SKILL")
+	[ "$n" -ge 3 ] || _fail "hedge rule defined once and referenced at unapproved and unverified (found $n)" "check failed"
+}
+
+t_next_skill_never_reverts_human_edits() {
+	local line
+	line=$(grep -n '^- Never restore' "$NX_SKILL")
+	assert_contains "$line" '`TASKS.md`, `PREP.md` or `NOTES.md`' "NEVER line names the plan files"
+	assert_contains "$line" "flow lint" "NEVER line names the lint error path"
+}
+
+t_next_skill_casual_entry_without_specs_answers_normally() {
+	local row never
+	row=$(grep -n '^| `no-project`' "$NX_SKILL")
+	never=$(grep -n 'NEVER\*\* end a turn' "$NX_SKILL")
+	assert_contains "$row" "keep going" "no-project row has the casual carve-out"
+	assert_contains "$never" "keep going" "NEVER Next: line has the casual carve-out"
+}
+
+# F121: flow finish on refuses when a tracked dirty file is in an open task.
+nx_finish_repo() {
+	local proj base
+	proj=$(tmp_repo)
+	printf 'v1\n' >"$proj/a.py"
+	printf 'v1\n' >"$proj/other.py"
+	git -C "$proj" add -A >/dev/null 2>&1
+	git -C "$proj" commit -qm "files" >/dev/null 2>&1
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-01-01 by user" \
+		'- [ ] T001 a — files: a.py — verify: `true`'
+	printf '%s\n' "$proj"
+}
+
+t_next_finish_on_refuses_dirty_file_of_open_task() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(nx_finish_repo)
+	printf 'edited\n' >"$proj/a.py"
+	nx_cli_in "$proj" "$home" finish on
+	assert_rc 1 "finish on refuses"
+	assert_contains "$ERR" "a.py" "names the overlapping file"
+	assert_contains "$ERR" "fix: commit or stash these, then flow finish on" "prints the fix"
+	[ ! -e "$proj/.specs/001-x/FINISH.md" ] || _fail "FINISH.md must not be written" "check failed"
+	nx_cli_in "$proj" "$home" next --json
+	assert_contains "$OUT" '"state": "building"' "dirty tree mid-wave still routes building"
+	rm -rf "$home" "$proj"
+}
+
+t_next_finish_on_refuses_dirty_non_ascii_file() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	printf 'v1\n' >"$proj/þing.py"
+	git -C "$proj" add -A >/dev/null 2>&1
+	git -C "$proj" commit -qm "files" >/dev/null 2>&1
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_feature "$proj" 001-x
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-01-01 by user" \
+		'- [ ] T001 a — files: þing.py — verify: `true`'
+	printf 'edited\n' >"$proj/þing.py"
+	nx_cli_in "$proj" "$home" finish on
+	assert_rc 1 "finish on refuses a dirty non-ASCII path"
+	assert_contains "$ERR" "þing.py" "names the non-ASCII file"
+	[ ! -e "$proj/.specs/001-x/FINISH.md" ] || _fail "FINISH.md must not be written" "check failed"
+	rm -rf "$home" "$proj"
+}
+
+t_next_finish_on_ignores_dirty_tracked_specs_file() {
+	local home proj base
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	nx_feature "$proj" 001-x
+	printf 'v1\n' >"$proj/.specs/001-x/spec.md"
+	git -C "$proj" add -A -f >/dev/null 2>&1
+	git -C "$proj" commit -qm "specs" >/dev/null 2>&1
+	base=$(git -C "$proj" rev-parse --short HEAD)
+	nx_tasks "$proj/.specs/001-x/TASKS.md" "$base" "Approved: 2026-01-01 by user" \
+		'- [ ] T001 a — files: .specs/001-x/spec.md — verify: `true`'
+	printf 'edited\n' >"$proj/.specs/001-x/spec.md"
+	nx_cli_in "$proj" "$home" finish on
+	assert_rc 0 "finish on ignores .specs/ paths"
+	rm -rf "$home" "$proj"
+}
+
+t_next_finish_on_arms_when_dirty_file_is_in_no_task() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(nx_finish_repo)
+	printf 'edited\n' >"$proj/other.py"
+	printf 'note\n' >>"$proj/.specs/001-x/spec.md"
+	nx_cli_in "$proj" "$home" finish on
+	assert_rc 0 "finish on arms"
+	[ -e "$proj/.specs/001-x/FINISH.md" ] || _fail "FINISH.md written" "check failed"
+	rm -rf "$home" "$proj"
+}
+
+# --- Z3 (F59, F60, F72, F76, F81, F84): the gating step and the saved workflows agree ----
+# The digest reads "- Minor: T### <finding>" lines into kind "minor" (F60).
+t_next_z3_digest_parses_minor_lines() {
+	local js out
+	js="$SCAN_DIR/../bin/lib/digest.js"
+	out=$(node -e '
+const d = require(process.argv[1])
+const items = d.collect("# Notes\n- Minor: T003 rename x (a.js:4)\n- Ruling: parked bugA\n- Minor: T004 stray blank line (b.js:9) — evidence: lint\n")
+process.stdout.write(items.map(function (i) { return i.kind + "@" + i.line + "=" + i.text + "|" + i.evidence }).join(";"))
+console.log("")
+process.stdout.write(JSON.stringify(d.render(items)))
+' "$js")
+	assert_contains "$out" "minor@2=T003 rename x (a.js:4)|null" "z3: a Minor line is collected as kind minor with its NOTES.md line"
+	assert_contains "$out" "minor@4=T004 stray blank line (b.js:9)|lint" "z3: a Minor line keeps an evidence field"
+	assert_contains "$out" "ruling@3" "z3: rulings are still collected beside minors"
+	assert_not_contains "$out" "Minor" "z3: minors stay out of the printed Attention text"
+}
+
+t_next_z3_digest_minor_sorts_last_and_json_keeps_it() {
+	local js out
+	js="$SCAN_DIR/../bin/lib/digest.js"
+	out=$(node -e '
+const d = require(process.argv[1])
+const items = d.collect("- Minor: T001 nit\n- Assumption: [taste] a\n- Ruling: r\n- Discovered: x.js:1 — bug — defer\n")
+process.stdout.write(items.map(function (i) { return i.kind }).join(","))
+' "$js")
+	assert_eq "$out" "discovered,assumption,ruling,minor" "z3: minors sort after rulings"
+}
+
+t_next_z3_skill_gating_text() {
+	local s
+	s=$(cat "$SCAN_DIR/../skills/next/SKILL.md")
+	assert_contains "$s" "review not run: nested" "z3: SKILL.md gating names the nested stop"
+	assert_contains "$s" "no PASS" "z3: SKILL.md gating forbids a PASS file when the review did not run"
+	assert_contains "$s" "incomplete" "z3: SKILL.md gating acts on incomplete:true"
+	assert_contains "$s" "incompleteLenses" "z3: SKILL.md gating re-runs only the incomplete lenses"
+	assert_contains "$s" "repoRoot" "z3: SKILL.md passes repoRoot to the workflows"
+	assert_contains "$s" "started:false" "z3: SKILL.md tells the caller what started:false means"
+	assert_contains "$s" "- Minor: T###" "z3: SKILL.md has the caller write Minor lines"
+	assert_contains "$s" "predates change — defer" "z3: SKILL.md has the caller write predates as Discovered lines"
+	assert_contains "$s" "wave breaker" "z3: SKILL.md names the wave breaker stop"
+	assert_not_contains "$s" "degraded: self-review" "z3: no degraded self-review path"
+}

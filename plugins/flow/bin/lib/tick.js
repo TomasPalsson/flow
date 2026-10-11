@@ -2,6 +2,9 @@
 
 // tick.js — `flow tick <ID> [--dir <spec-dir>] [--by user] [--sha <commit>]`.
 // `--by user` answers a CHK, or a T whose files: all live outside this repo.
+// A T### is ticked only after its own verify: command exits 0 (runVerify below):
+// the tick is the one place every task passes through, so it is where "the
+// orchestrator re-runs the verify" stops being prose.
 //
 // K-D: the ONLY writer of `[x]`. It measures the sha rather than trusting a
 // claim, which is what makes flow-lint's [x] → sha → files: join meaningful.
@@ -139,6 +142,40 @@ function humanCheck(id, by, tasksPath) {
   return null;
 }
 
+// verifyOf(line) -> the task's verify: command with its surrounding backticks
+// removed, or '' when it is missing or is a `human:` observation.
+function verifyOf(line) {
+  const seg = line.split('—').map((x) => x.trim()).find((x) => x.startsWith('verify:'));
+  if (!seg) return '';
+  let cmd = seg.slice('verify:'.length).trim();
+  if (cmd.length > 1 && cmd.startsWith('`') && cmd.endsWith('`')) cmd = cmd.slice(1, -1).trim();
+  return /^human:/i.test(cmd) ? '' : cmd;
+}
+
+// runVerify(root, featureDir, id, cmd) -> {rc, log}. Runs cmd with bash from
+// the repo root, stdout and stderr interleaved into <featureDir>/verify/<id>.log
+// (featureDir is the store's when stealth is on, since .specs is a symlink).
+function runVerify(root, featureDir, id, cmd) {
+  const dir = path.join(featureDir, 'verify');
+  fs.mkdirSync(dir, { recursive: true });
+  const log = path.join(dir, `${id}.log`);
+  const fd = fs.openSync(log, 'w');
+  let r;
+  try {
+    r = spawnSync('bash', ['-c', cmd], { cwd: root, stdio: ['ignore', fd, fd], timeout: 30 * 60 * 1000 });
+  } finally {
+    fs.closeSync(fd);
+  }
+  const rc = r.status === null ? (r.signal ? `signal ${r.signal}` : 'no status') : r.status;
+  return { rc, log };
+}
+
+function tailOf(file, n) {
+  let text = '';
+  try { text = fs.readFileSync(file, 'utf8'); } catch { return ''; }
+  return text.replace(/\n+$/, '').split('\n').slice(-n).join('\n');
+}
+
 function run(argv, root, io, env) {
   const { stdout, stderr } = io;
   let dirArg = null;
@@ -201,6 +238,21 @@ function run(argv, root, io, env) {
   const r = resolveSha(root, { id, line: lines[hit], base, head: head.out, shaArg, isHuman, by });
   if (r.error) return fail(stderr, r.error, r.fix);
   const sha = r.sha;
+
+  // A T### ticks only when its own verify: exits 0. An external task answered
+  // --by user (files live outside this repo) is a person's call, so it is not run.
+  if (/^T/.test(id) && !r.byUser) {
+    const cmd = verifyOf(lines[hit]);
+    if (!cmd) return fail(stderr, `${id} has no runnable verify:`, 'give the line a verify: `<command>` (human: is for a CHK), then flow tick again');
+    const v = runVerify(root, featureDir, id, cmd);
+    if (v.rc !== 0) {
+      const shown = path.relative(root, v.log);
+      const logRef = shown.startsWith('..') ? v.log : shown;
+      const tail = tailOf(v.log, 20);
+      if (tail) stderr.write(`${tail}\n`);
+      return fail(stderr, `verify exited ${v.rc}; ${id} NOT ticked (log: ${logRef})`, `fix the code (not the test), run ${id}'s verify: yourself, then flow tick ${id}`);
+    }
+  }
 
   const suffix = isHuman || r.byUser ? ` — done: ${sha} by user` : ` — done: ${sha}`;
   lines[hit] = lines[hit].replace(/^- \[ \]/, '- [x]').replace(/\s*$/, '') + suffix;

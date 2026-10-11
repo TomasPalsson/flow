@@ -262,3 +262,65 @@ t_prep_proto_evidence_and_not_yet_specified() {
 	run_cmd "$PREP_LINT" "$f"
 	assert_rc 0 "prep-lint passes a proto/ evidence line and a Not yet specified section"
 }
+
+# _prep_split_file <rows...> — base PREP.md plus a ## Split table whose data
+# rows are the arguments (each "id|capability|depends-on|order").
+_prep_split_file() {
+	local f r
+	f=$(_prep_base_file)
+	{
+		printf '\n## Split\n| id | capability | depends-on | order |\n|----|------------|------------|-------|\n'
+		for r in "$@"; do
+			printf '| %s |\n' "$(printf '%s' "$r" | sed 's/|/ | /g')"
+		done
+	} >>"$f"
+	printf '%s' "$f"
+}
+
+t_prep_split_valid_table_passes() {
+	f=$(_prep_split_file 'S1|auth|-|1' 'S2|billing|S1|2' 'S3|reports|S1, S2|3')
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 0 "a valid Split table passes (rc)"
+	assert_eq "$OUT" "OK" "a valid Split table passes (OK)"
+}
+
+t_prep_split_eleven_rows_fail() {
+	f=$(_prep_split_file 'S1|a|-|1' 'S2|b|-|2' 'S3|c|-|3' 'S4|d|-|4' 'S5|e|-|5' 'S6|f|-|6' 'S7|g|-|7' 'S8|h|-|8' 'S9|i|-|9' 'S10|j|-|10' 'S11|k|-|11')
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 1 "11 Split rows fail (rc)"
+	assert_contains "$OUT" "ERROR: ## Split has 11 rows" "11 Split rows name the count"
+}
+
+t_prep_split_ten_rows_pass() {
+	f=$(_prep_split_file 'S1|a|-|1' 'S2|b|-|2' 'S3|c|-|3' 'S4|d|-|4' 'S5|e|-|5' 'S6|f|-|6' 'S7|g|-|7' 'S8|h|-|8' 'S9|i|-|9' 'S10|j|-|10')
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 0 "10 Split rows pass"
+}
+
+t_prep_split_unknown_depends_on_fails() {
+	f=$(_prep_split_file 'S1|auth|-|1' 'S2|billing|S9|2')
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 1 "an unknown depends-on id fails (rc)"
+	assert_contains "$OUT" "ERROR: ## Split row S2 depends on unknown id S9" "the unknown id is named"
+}
+
+t_prep_split_capitalised_header_passes() {
+	f=$(_prep_base_file)
+	printf '\n## Split\n| ID | Capability | Depends-on | Order |\n|----|------------|------------|-------|\n| S1 | auth | - | 1 |\n' >>"$f"
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 0 "a capitalised Split header is not a data row"
+}
+
+t_prep_split_alignment_separator_passes() {
+	f=$(_prep_base_file)
+	printf '\n## Split\n| id | capability | depends-on | order |\n|:---|:-----------|:-----------|------:|\n| S1 | auth | - | 1 |\n' >>"$f"
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 0 "an alignment-colon Split separator is not a data row"
+}
+
+t_prep_split_glob_depends_on_is_literal() {
+	f=$(_prep_split_file 'S1|auth|*|1')
+	run_cmd "$PREP_LINT" "$f"
+	assert_rc 1 "a * depends-on is an unknown id (rc)"
+	assert_contains "$OUT" "unknown id *" "the * is not expanded against the cwd"
+}

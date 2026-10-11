@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Stub `claude` for case-selfcheck --replay tests. No network, no spend.
+# STUB_LOG: dir to record the argv into. STUB_FIX=0: leave the bug alone.
+# STUB_EXTRA=1: also write notes.txt (a file the human fix did not touch).
+printf '%s\n' "$*" >"$STUB_LOG/agent-args"
+pwd >"$STUB_LOG/agent-cwd"
+if [ "${STUB_FIX:-1}" = 1 ]; then
+	python3 -I -c 'p = "calc.py"; s = open(p).read().replace("a - b", "a + b"); open(p, "w").write(s)'
+fi
+if [ "${STUB_EXTRA:-0}" = 1 ]; then printf 'scratch\n' >notes.txt; fi
+# STUB_COMMIT=1: commit the change, as /flow:fix does.
+if [ "${STUB_COMMIT:-0}" = 1 ]; then
+	git add -A && git -c user.email=s@example.com -c user.name=stub -c commit.gpgsign=false commit -q -m "agent fix"
+fi
+printf '{"type":"result","subtype":"success","is_error":false,"num_turns":3,"total_cost_usd":0.5,"result":"done"}\n'

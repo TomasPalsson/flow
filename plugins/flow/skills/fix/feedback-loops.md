@@ -19,7 +19,7 @@ A tight pass/fail signal that goes red on this bug is what finds the cause. Bise
 6. Throwaway harness: a minimal subset of the system (one service, mocked deps) exercised by one function call.
 7. Property or fuzz loop: for "sometimes wrong output", run 1000 random inputs and look for the failure.
 8. Bisection harness: if the bug appeared between two known states, automate "boot at state X, check" so `git bisect run` can drive it.
-9. Differential loop: the same input through old and new version (or two configs), outputs diffed.
+9. Differential loop: the same input through old and new version, two configs, or a working sibling of the same code, outputs diffed.
 10. HITL script, last resort: when a human must click, copy [`scripts/hitl-loop.template.sh`](scripts/hitl-loop.template.sh) so the loop is still structured and its output comes back to you. A human-driven loop is an extra stop before the §3 gate: say so in one line before you start it.
 
 ## Tighten it
@@ -51,13 +51,15 @@ Once red, cut inputs, callers, config, data and steps one at a time, re-running 
 
 ## Hypotheses
 
-Write 3-5 ranked hypotheses before testing any. Each must be falsifiable: "If X is the cause, then changing Y makes the bug disappear." If you cannot state the prediction, discard or sharpen it. Probe in rank order without stopping; the ranked list, with the one that held, goes into the §3 gate message, so it adds no stop of its own.
+Write 3-5 ranked hypotheses before testing any. Each must be falsifiable: "If X is the cause, then changing Y makes the bug disappear." If you cannot state the prediction, discard or sharpen it. Probe in rank order without stopping; the ranked list, with the one that held, goes into the §3 gate message, so it adds no stop of its own. When two hypotheses stay tied, the next probe is one that separates the two causes: a change or input for which they predict different outcomes.
 
 ## Instrument
 
 - Every probe maps to one prediction; change one variable at a time.
 - Prefer a debugger or REPL over logs, targeted logs over "log everything and grep".
 - Tag every debug log `[DEBUG-<4 hex>]` (for example `[DEBUG-a4f2]`) so cleanup is one grep.
+- When the failure crosses layers (service to service, CLI to API, infrastructure to app), log input and output at each layer boundary with that tag. The first boundary where the value is already wrong names the layer to read.
+- Before a dangerous call (destroy, delete, external write), log the stack and arguments to stderr, so the caller that passes the bad value is named.
 - Performance regressions: logs are usually wrong. Take a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second; vet the baseline and every later number by calling the Skill tool with "flow-extras:benchmark-checklist" (skip quietly when flow-extras is not installed).
 
 ## No correct seam is a finding

@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Stub `claude` for case-selfcheck --live tests. No network, no spend.
 # STUB_LOG: dir to record observations into. STUB_TRACE: canned stream-json file.
-# STUB_JUDGE: PASS|FAIL. STUB_SLEEP: seconds to hang. CASE_DIR: case whose solution.sh to run.
+# STUB_JUDGE: PASS|FAIL. STUB_JUDGE_REPLY: a literal judge reply (overrides STUB_JUDGE). STUB_SLEEP: seconds to hang. CASE_DIR: case whose solution.sh to run.
 case " $* " in
 *" --output-format json "*)
 	printf '%s\n' "$*" >>"$STUB_LOG/judge-args"
+	cat >"$STUB_LOG/judge-stdin"
+	if [ -n "${STUB_JUDGE_REPLY:-}" ]; then
+		python3 -I -c 'import json,sys; print(json.dumps({"result": sys.argv[1], "total_cost_usd": 0.001}))' "$STUB_JUDGE_REPLY"
+		exit 0
+	fi
 	if [ "${STUB_JUDGE:-PASS}" = PASS ]; then
 		printf '{"result":"PASS: ok","total_cost_usd":0.001}\n'
 	else

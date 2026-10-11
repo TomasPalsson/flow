@@ -12,6 +12,8 @@
 
 ## GitHub Actions
 
+A green pipeline or a 200 from the health check does not prove the new code is live, because an older revision still answers. Before calling it deployed, compare the live revision (SST output, Lambda version or a /version endpoint) with `git rev-parse HEAD`; the `claim-check` agent applies this rule.
+
 ### Basic Deploy Workflow
 
 ```yaml

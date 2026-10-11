@@ -312,6 +312,10 @@ Read `references/production.md` for observability, evaluations, security pattern
 - [ ] MCP servers on ECS/Fargate or AgentCore (never Lambda)
 - [ ] CloudWatch alarms configured
 - [ ] Timeout limits set on all external calls
+- [ ] Viability walk before deploy: every verb in the agent's job maps to a registered tool and the credential that tool needs
+- [ ] After `agentcore launch`, one probe invoke ("confirm you can reach <service>, list 1-2 items, don't start the task") before the real payload
+- [ ] Telemetry check: an induced tool failure can be found in CloudWatch/OTel by session id alone
+- [ ] Run logs carry `entry_point` (scheduler|api|cli) next to the session id; logs of external calls record metadata only (host, status, latency, size), never bodies
 
 ---
 
@@ -323,6 +327,7 @@ Read `references/production.md` for observability, evaluations, security pattern
 | `references/deployment.md` | Deploying to AgentCore Runtime, Dockerfile, IAM, networking, CLI | Local development only, not deploying yet |
 | `references/patterns.md` | Agent factories, tool design, security hooks, testing, performance | Quick prototype with a single tool |
 | `references/production.md` | Observability, evaluations, cost tracking, monitoring, security | Development phase, pre-deployment |
+| `references/versions.md` | Quoting or changing a model ID, a pinned package version or a container requirement from this skill, or re-checking whether one is stale | Work that quotes none of them |
 
 ## Model Selection
 

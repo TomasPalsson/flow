@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # git-guard.sh — PreToolUse/Bash hook. C22 budget: <= 160 lines with comments.
-# This is a regex blocklist over a command string. It raises the bar against an ordinary mistake; it is not a security boundary — `bash -c`, `eval`, variable
-# construction and a helper script written via Edit all evade it. CI is the real backstop.
+# This is a regex blocklist over a command string. It raises the bar against an ordinary mistake; it is not a security boundary — `bash -c`, `eval`, variable construction and a helper script written via Edit all evade it. CI is the real backstop.
 set -u
 export LC_ALL=C
 HERE=$(cd "$(dirname "$0")" && pwd -P)
@@ -28,10 +27,10 @@ gg_denylist() {
 	done <<<"$GG_DENY"
 }
 # gg_coarse <cmd> <why>: >20000-char / >200-part cap (C22 1/3), and the fallback when the awk pass below emits no well-formed "N" record. <why> states the condition observed.
-GG_BIG='git[[:space:]]+.*push[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*reset[^;&|]*--hard|git[[:space:]]+.*clean[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*checkout[^;&|]*([[:space:]](-[a-zA-Z]*f|--force|\.|\./|\.\.|\.\./|:/|:/\.)([[:space:]]|$)|--[[:space:]]*\.)|git[[:space:]]+.*restore[^;&|]*\.|git[[:space:]]+.*branch[^;&|]*(-D|--delete)|git[[:space:]]+.*commit[^;&|]*(-[a-zA-Z]*n|--no-verify)|rm[[:space:]]+.*-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])[a-zA-Z]*|chmod.*(-R|--recursive).*777'
+GG_BIG='git[[:space:]]+.*push[^;&|]*(-[a-zA-Z]*f|--force|[[:space:]]\+)|git[[:space:]]+.*worktree[[:space:]]+remove[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*reset[^;&|]*--hard|git[[:space:]]+.*clean[^;&|]*(-[a-zA-Z]*f|--force)|git[[:space:]]+.*checkout[^;&|]*([[:space:]](-[a-zA-Z]*f|--force|\.|\./|\.\.|\.\./|:/|:/\.)([[:space:]]|$)|--[[:space:]]*\.)|git[[:space:]]+.*restore[^;&|]*\.|git[[:space:]]+.*branch[^;&|]*(-D|--delete)|git[[:space:]]+.*commit[^;&|]*(-[a-zA-Z]*n|--no-verify)|rm[[:space:]]+.*-[a-zA-Z]*([rR][a-zA-Z]*f|f[a-zA-Z]*[rR])[a-zA-Z]*|chmod.*(-R|--recursive).*777'
 gg_coarse() {
 	[ -n "$GG_DENY" ] && gg_denylist "$1" '*' # GG_BIG holds the builtin rules only, so the project deny list is checked separately here or it would fail open on this path
-	printf '%s' "$1" | grep -Eq "$GG_BIG" && gg_deny "$2; matched a denied pattern (git push --force/-f, reset --hard, clean -f, checkout -- ., restore ., branch -D, commit --no-verify/-n, rm -rf on a root-like target, or chmod -R 777)"
+	printf '%s' "$1" | grep -Eq "$GG_BIG" && gg_deny "$2; matched a denied pattern (git push --force/-f or a +refspec, worktree remove --force, reset --hard, clean -f, checkout -- ., restore ., branch -D, commit --no-verify/-n, rm -rf on a root-like target, or chmod -R 777)"
 	hook_ok
 }
 [ "${#cmd}" -gt 20000 ] && gg_coarse "$cmd" "command too large to parse safely"
@@ -49,7 +48,7 @@ gg_scan() {
 		pre) case "$t" in "$arg"*) return 0 ;; esac ;;
 		short) case "$t" in --*) : ;; -*) case "$t" in *"$arg"*) return 0 ;; esac ;; esac ;;
 		git) case "$t" in git | */git) return 0 ;; esac ;;
-		sub) case "$t" in push | reset | clean | checkout | restore | branch | commit) return 0 ;; esac ;;
+		sub) case "$t" in push | reset | clean | checkout | restore | branch | commit | worktree) return 0 ;; esac ;;
 		tgt) case "$t" in '/' | '~' | '$HOME' | '.' | '..' | '*' | '/*' | '~'/ | '$HOME'/) return 0 ;; esac ;;
 		nw) case "$t" in if | then | else | elif | fi | do | done | while | until | for | case | 'esac' | time | nohup | exec | '!' | '{' | '(' | sudo | env | command | builtin | *=*) : ;; *) return 0 ;; esac ;;
 		esac
@@ -75,12 +74,13 @@ gg_rule_git() {
 	gg_scan sub '' "$GG_START" || return 0
 	sub=${T[$GG_IDX]} s=$((GG_IDX + 1))
 	case "$sub" in
-	push) { gg_scan eq --force "$s" || gg_scan short f "$s" || gg_scan pre --force= "$s"; } && gg_deny "git push --force/-f can overwrite remote history destructively; use --force-with-lease instead" ;;
+	push) { gg_scan eq --force "$s" || gg_scan short f "$s" || gg_scan pre --force= "$s" || gg_scan pre + "$s"; } && gg_deny "git push --force/-f or a +refspec can overwrite remote history destructively; use --force-with-lease instead" ;;
 	reset) gg_scan eq --hard "$s" && gg_deny "git reset --hard discards uncommitted work irrecoverably; use plain git reset or git stash instead" ;;
 	clean) { gg_scan eq --force "$s" || gg_scan short f "$s"; } && gg_deny "git clean -f permanently deletes untracked files, and with -x the ignored build output too; git clean -n lists what it would delete" ;;
 	checkout) { gg_scan eq . "$s" || gg_scan eq ./ "$s" || gg_scan eq :/ "$s" || gg_scan eq :/. "$s" || gg_scan eq .. "$s" || gg_scan eq ../ "$s" || gg_scan eq "*" "$s" || gg_scan eq ":/*" "$s" || gg_scan pre ":(top" "$s" || gg_scan eq --force "$s" || gg_scan short f "$s"; } && gg_deny "git checkout -- . discards all uncommitted changes in the tree; use git stash or commit first" ;;
 	restore) gg_scan eq . "$s" && ! { gg_scan eq --staged "$s" || gg_scan short S "$s"; } && gg_deny "git restore . discards all uncommitted changes in the tree; use git restore --staged . if you only meant to unstage" ;;
 	branch) { gg_scan short D "$s" || { gg_scan eq --delete "$s" && gg_scan eq --force "$s"; }; } && gg_deny "git branch -D force-deletes a branch even if unmerged; use git branch -d to be warned first" ;;
+	worktree) gg_scan eq remove "$s" && { gg_scan eq --force "$s" || gg_scan short f "$s"; } && gg_deny "git worktree remove --force deletes untracked and uncommitted work in that tree; run git -C <wt> status --porcelain first, then remove without --force" ;;
 	commit) { gg_scan eq --no-verify "$s" || gg_scan short n "$s"; } && gg_deny "git commit --no-verify/-n skips pre-commit hooks (format/lint/tests); fix what the hook flags instead" ;;
 	esac
 }

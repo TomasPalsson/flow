@@ -25,7 +25,32 @@ invent — `flow-lint --json` already proved `[P]` disjointness per wave, so sta
 returns `{lintOk: false}` before any developer agent starts. `/flow:next` calls
 it only when a wave has **three or more** ready `[P]` tasks; below that it
 dispatches fresh `developer` subagents inline, because a two-task workflow costs
-more than it schedules.
+more than it schedules. Each task's chain runs in the child workflow
+`build-slices-task.js`, which build-slices finds in the `workflows/` sibling of
+`scriptsDir`. `workflow()` takes no shell variables, so a `scriptsDir` that is
+not absolute (the `$HOME/.claude/scripts` default) is resolved by the repo-root
+agent's shell (`pwd -P`); if that yields no absolute path the run returns
+`started:false` with `missing: ["scriptsDir"]` before any task is dispatched. A
+task whose child throws or returns nothing is named in `incomplete`, so the run
+is not `clean`.
+
+## flow:build-slices-task
+
+export const meta = {
+  name: 'build-slices-task',
+  description: 'Internal step of flow:build-slices: run one task through brief, implement, review, and the fix ladder',
+  whenToUse: 'Never directly; build-slices calls it once per task through workflow({ scriptPath })',
+  phases: [
+    { title: 'Brief', detail: 'task-brief cuts one task (and its design contract) into a brief file' },
+    { title: 'Implement', detail: 'a developer agent implements the task from the brief only' },
+    { title: 'Review', detail: 'review-package builds the diff; three adversary lenses check it' },
+    { title: 'Fix', detail: 'bounded fix ladder on fatal/significant findings, then a recorded ruling' },
+  ],
+}
+
+Internal: build-slices calls it once per task through
+`workflow({ scriptPath })`, one level deep, and merges the gaps, known-open
+findings and out-of-scope notes it returns. Not for direct use.
 
 ## flow:plan-review
 

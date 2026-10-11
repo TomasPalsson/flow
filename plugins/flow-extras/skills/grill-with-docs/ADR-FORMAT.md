@@ -1,8 +1,18 @@
 # ADR Format
 
-ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.
+## Where an ADR goes: match the existing convention first
 
-Create the `docs/adr/` directory lazily — only when the first ADR is needed.
+A repo that already records decisions has a home, an extension and a numbering pattern for them. A second series splits the history, so continue the one that exists. Before writing an ADR, look for:
+
+- an existing ADR directory: `docs/adr/`, `docs/decisions/`, `adr/`, or any directory whose name contains `ADR` or `decision` (case-insensitive)
+- an `.adr-dir` file at the repo root (adr-tools): its content is the directory
+- a CLAUDE.md, README or CONTEXT.md line that names where decisions go
+
+Then continue what you found: the same directory, the same extension (`.md`, `.rst`), and the same filename pattern (`0007-slug.md`, `ADR-007-Title.rst`, a date prefix), numbered one past the highest existing entry.
+
+If the evidence conflicts (two directories, or two numbering schemes), stop and ask the user which one to use. Never start a third.
+
+Use `docs/adr/0001-slug.md` only when nothing is found. Create the directory lazily, when the first ADR is needed.
 
 ## Template
 
@@ -24,7 +34,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+Scan the ADR directory you chose above for the highest existing number and increment by one, keeping its padding and separator.
 
 ## When to offer an ADR
 
@@ -45,3 +55,5 @@ If a decision is easy to reverse, skip it — you'll just reverse it. If it's no
 - **Deliberate deviations from the obvious path.** "We're using manual SQL instead of an ORM because X." Anything where a reasonable reader would assume the opposite. These stop the next engineer from "fixing" something that was deliberate.
 - **Constraints not visible in the code.** "We can't use AWS because of compliance requirements." "Response times must be under 200ms because of the partner API contract."
 - **Rejected alternatives when the rejection is non-obvious.** If you considered GraphQL and picked REST for subtle reasons, record it — otherwise someone will suggest GraphQL again in six months.
+
+Credit: adapted from addyosmani/agent-skills skills/documentation-and-adrs/SKILL.md @ 1be8e34 (MIT).

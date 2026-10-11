@@ -551,7 +551,7 @@ function route(root, ctx, opts) {
 
   if (L.errors && L.errors.length) {
     gates.lint_error = true;
-    const lying = L.errors.filter((e) => /^(done-|id-vanished)/.test(e.rule));
+    const lying = L.errors.filter((e) => /^(done-|id-vanished|spec-criterion-)/.test(e.rule));
     const first = (lying.length ? lying : L.errors)[0];
     if (lying.length) {
       gates.unreachable_done = true;

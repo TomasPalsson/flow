@@ -108,6 +108,7 @@ Each architecture pattern has a native AgentCore primitive. **Load [`references/
 | [`references/multi-agent.md`](references/multi-agent.md) | Considering/building multi-agent; subagent scaling; A2A | Confirmed single-agent task |
 | [`references/agentcore-mapping.md`](references/agentcore-mapping.md) | Implementing on Bedrock AgentCore | Provider-agnostic design; non-AWS target |
 | [`references/anti-pattern-gallery.md`](references/anti-pattern-gallery.md) | Something is broken/expensive/slow and you want the cause | Greenfield design (use the ladder above instead) |
+| [`references/versions.md`](references/versions.md) | Quoting or changing a cache minimum, tool type string or AgentCore port from these references, or re-checking whether one is stale | Work that quotes none of them |
 | [`scripts/decision-ladder.md`](scripts/decision-ladder.md) | (required) when choosing/justifying an architecture rung | After the rung is decided and recorded |
 | [`scripts/token_cost_calculator.py`](scripts/token_cost_calculator.py) | Budgeting; caching break-even; single-vs-multi cost delta | No cost/budget question in play |
 

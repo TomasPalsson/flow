@@ -1,0 +1,1 @@
+The task named in the prompt left the findings given there open. Class each by predicate: known-open (a later task can build on this code safely) or load-bearing (a later task would build on a defect). Set oversize true when the task is too large to finish in one fix ladder, and put the proposed split in recut. Return classes, oversize, recut.

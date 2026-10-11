@@ -1,6 +1,6 @@
 ---
 name: slack
-description: Wait for Slack messages using the `slack-watch` poller — arm a Monitor that wakes Claude when a DM, mention, or channel message arrives, then respond. Use when the user wants Claude to sit and wait on Slack: "wait until someone messages me", "let me know when X replies", "watch Slack", "ping me on a new DM", "monitor #channel", "wake me when they respond". Do NOT use for a one-off "check my Slack now" — read Slack directly with the Slack MCP tools instead.
+description: 'Wait for Slack messages using the `slack-watch` poller — arm a Monitor that wakes Claude when a DM, mention, or channel message arrives, then respond. Use when the user wants Claude to sit and wait on Slack: "wait until someone messages me", "let me know when X replies", "watch Slack", "ping me on a new DM", "monitor #channel", "wake me when they respond". Do NOT use for a one-off "check my Slack now" — read Slack directly with the Slack MCP tools instead.'
 user-invocable: true
 argument-hint: "[who or what to watch for]"
 ---

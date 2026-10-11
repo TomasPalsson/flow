@@ -4,7 +4,10 @@ Performance is a feature. Identify the actual bottleneck for THIS interface, fix
 
 Understand current performance and identify problems:
 
+0. **Name the framework and rendering model** (Next.js App Router, Vite SPA, static HTML, and so on) before giving any framework advice. Advice for the wrong rendering model is noise.
+
 1. **Measure current state**:
+   - Report a number only when a tool produced it (Lighthouse, CrUX, a trace, the profiler). With no such data, mark every metric `not measured` and call each finding a `potential impact`, never a result. Label each provided value with its source: Field (CrUX), Lab (Lighthouse), or Trace. A guessed score looks like evidence and sends the work in the wrong direction.
    - **Core Web Vitals**: LCP, INP, CLS scores
    - **Load time**: Time to interactive, first contentful paint
    - **Bundle size**: JavaScript, CSS, image sizes
@@ -153,17 +156,15 @@ const observer = new IntersectionObserver((entries) => {
 ### React/Framework Optimization
 
 **React-specific**:
-- Use `memo()` for expensive components
-- `useMemo()` and `useCallback()` for expensive computations
+- Use `memo`, `useMemo` or `useCallback` only after the React DevTools Profiler shows the re-render cost, and not at all when React Compiler is enabled (it memoizes for you; hand-written memo adds noise and can fight it)
 - Virtualize long lists
 - Code split routes
-- Avoid inline function creation in render
-- Use React DevTools Profiler
+- Measure with the React DevTools Profiler before and after
 
 **Framework-agnostic**:
 - Minimize re-renders
 - Debounce expensive operations
-- Memoize computed values
+- Memoize computed values only where a profile shows they are expensive
 - Lazy load routes and components
 
 ### Network Optimization
@@ -256,3 +257,6 @@ Test that optimizations worked:
 - **User perception**: Does it *feel* faster?
 
 When the user-facing numbers move, hand off to `/impeccable polish` for the final pass.
+
+Credit: adapted from addyosmani/agent-skills agents/web-performance-auditor.md @ 1be8e34 (MIT).
+Credit: adapted from vercel-labs/agent-skills skills/react-best-practices @ 063bee9 (MIT).

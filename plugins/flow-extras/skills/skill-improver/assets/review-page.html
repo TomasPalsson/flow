@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Skill review</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 1200px; padding: 1.5rem; color: #1a1a1a; }
+  h1 { font-size: 1.2rem; }
+  section.case { border: 1px solid #ccc; border-radius: 6px; margin: 1.25rem 0; padding: 1rem; }
+  section.case h2 { font-size: 1rem; margin: 0 0 .75rem; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .pair h3 { font-size: .8rem; color: #555; margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .04em; }
+  pre, iframe { width: 100%; box-sizing: border-box; height: 22rem; overflow: auto; border: 1px solid #ddd; background: #fafafa; margin: 0; padding: .5rem; white-space: pre-wrap; }
+  iframe { background: #fff; padding: 0; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 4rem; margin-top: .75rem; font: inherit; }
+  .prev-comment { font-size: .85rem; color: #555; margin-top: .5rem; }
+  #export { margin: 1.5rem 0 .5rem; }
+  #out { width: 100%; box-sizing: border-box; min-height: 8rem; font: 13px/1.4 ui-monospace, monospace; }
+  @media (max-width: 800px) { .pair { grid-template-columns: 1fr; } }
+</style>
+<h1>Skill review: <span id="title"></span></h1>
+<p>Leave a comment only on the cases you want changed. A case with no comment is carried forward unchanged.</p>
+<div id="cases"></div>
+<button id="export">Show feedback.json</button>
+<a id="download" download="feedback.json" hidden>Download feedback.json</a>
+<textarea id="out" readonly hidden></textarea>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+  var data = JSON.parse(document.getElementById("data").textContent);
+  document.getElementById("title").textContent = data.title || "";
+  function show(parent, c, label) {
+    var box = document.createElement("div");
+    var h = document.createElement("h3");
+    h.textContent = label;
+    box.appendChild(h);
+    if (!c) {
+      var none = document.createElement("pre");
+      none.textContent = "(no earlier output)";
+      box.appendChild(none);
+    } else if (c.kind === "html") {
+      var f = document.createElement("iframe");
+      f.setAttribute("sandbox", "");
+      f.srcdoc = c.text;
+      box.appendChild(f);
+    } else {
+      var p = document.createElement("pre");
+      p.textContent = c.text;
+      box.appendChild(p);
+    }
+    parent.appendChild(box);
+  }
+  var root = document.getElementById("cases");
+  var fields = {};
+  data.cases.forEach(function (c) {
+    var s = document.createElement("section");
+    s.className = "case";
+    var h = document.createElement("h2");
+    h.textContent = "Case " + c.id;
+    s.appendChild(h);
+    var pair = document.createElement("div");
+    pair.className = "pair";
+    show(pair, c.prev, "Iteration " + data.prev_label);
+    show(pair, c.curr, "Iteration " + data.curr_label);
+    s.appendChild(pair);
+    if (c.prev_comment) {
+      var pc = document.createElement("div");
+      pc.className = "prev-comment";
+      pc.textContent = "Earlier comment: " + c.prev_comment;
+      s.appendChild(pc);
+    }
+    var t = document.createElement("textarea");
+    t.placeholder = "Comment on case " + c.id + " (leave empty to keep it as is)";
+    s.appendChild(t);
+    fields[c.id] = t;
+    root.appendChild(s);
+  });
+  document.getElementById("export").addEventListener("click", function () {
+    var list = data.cases.map(function (c) { return { case: c.id, comment: fields[c.id].value.trim() }; });
+    var text = JSON.stringify(list, null, 2);
+    var out = document.getElementById("out");
+    out.hidden = false;
+    out.value = text;
+    var a = document.getElementById("download");
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(text);
+    a.hidden = false;
+  });
+</script>

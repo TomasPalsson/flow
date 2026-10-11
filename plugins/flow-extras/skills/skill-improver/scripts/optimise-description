@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""optimise-description: search for a skill description that triggers better, scored on held-out queries.
+
+  optimise-description --plugin-dir <plugin> --skill <name> --queries <queries.json>
+                       [--approved] [--iterations 4] [--runs 3] [--max-turns 3]
+                       [--model M] [--improver-model M] [--claude claude] [--out optimise.json]
+
+Without --approved it prints the query set and the train/held-out split and
+stops (exit 2), so the user sees the queries before any run. It never edits a
+SKILL.md: it prints the winning description and records it in optimise.json.
+
+Choices that guard against overfitting:
+  * the split is 60/40 within each polarity (should and should not trigger);
+  * the winner is the candidate with the best held-out score, not the best train score;
+  * the improver prompt carries train failures only, never held-out queries or scores;
+  * every retry asks for a structurally different description;
+  * a held-out gain of fewer than 2 queries over the original is reported as noise
+    and the original description stays.
+
+Credit: adapted from anthropics/claude-plugins-official plugins/skill-creator/skills/skill-creator/scripts/improve_description.py @ a9fd216 (Apache-2.0).
+Credit: adapted from anthropics/skills skills/skill-creator/scripts/improve_description.py @ dbd4588 (Apache-2.0).
+"""
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import re
+import subprocess
+import sys
+import tempfile
+import shutil
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+_HERE = Path(__file__).resolve().parent
+_loader = importlib.machinery.SourceFileLoader("trigger_eval", str(_HERE / "trigger-eval"))
+_spec = importlib.util.spec_from_loader("trigger_eval", _loader)
+te = importlib.util.module_from_spec(_spec)
+_loader.exec_module(te)
+
+MIN_WIN = 2
+
+
+def call_claude(prompt, model, claude, cwd):
+    cmd = [claude, "-p", prompt, "--output-format", "text"]
+    if model:
+        cmd += ["--model", model]
+    res = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, env=te.scratch_env(),
+                         timeout=300)
+    return res.stdout
+
+
+def parse_description(text):
+    m = re.search(r"<new_description>(.*?)</new_description>", text, re.S)
+    return (m.group(1) if m else text).strip().strip('"')
+
+
+def build_prompt(skill_text, description, train_results, history):
+    """The improver prompt. Train results only: held-out queries and scores never enter."""
+    failed = [r for r in train_results if not r["pass"]]
+    out = [f'You are improving the description of an Agent Skill.\n\nCurrent description:\n"{description}"\n']
+    if failed:
+        out.append("Queries it got wrong (train set):")
+        for r in failed:
+            kind = "should have triggered" if r["should_trigger"] else "should not have triggered"
+            out.append(f'  - "{r["query"]}" ({kind}; triggered {r["triggers"]}/{r["runs"]})')
+    if history:
+        out.append("\nEarlier attempts. Do not repeat them; write something structurally different:")
+        for h in history:
+            out.append(f'  - train {h["train_passed"]}/{h["train_total"]}: "{h["description"]}"')
+    out.append(
+        "\nSkill content, for context on what the skill does:\n<skill_content>\n"
+        f"{skill_text}\n</skill_content>\n\n"
+        "Generalise from the failures to broader kinds of user intent and situation. Do not "
+        "list the failing queries. Write in the third person, say what the skill does and when "
+        "to use it, and name a neighbouring skill for near-miss requests when one exists. Stay "
+        f"well under {te.DESC_LIMIT} characters.\n"
+        "Respond with only the new description inside <new_description> tags.")
+    return "\n".join(out)
+
+
+def shorten_prompt(prompt, too_long):
+    return (f"{prompt}\n\nA previous attempt was {len(too_long)} characters, over the "
+            f'{te.DESC_LIMIT} limit:\n"{too_long}"\n'
+            "Rewrite it shorter, keeping the most important trigger situations. "
+            "Respond with only the new description inside <new_description> tags.")
+
+
+def pick_best(cands):
+    """Best held-out score; ties go to the better train score, then the earlier candidate."""
+    best = None
+    for i, c in enumerate(cands):
+        key = (c["held_passed"], c["train_passed"], -i)
+        if best is None or key > best[0]:
+            best = (key, c)
+    return best[1]
+
+
+def verdict(cands):
+    """(winner, label). A held-out win under MIN_WIN queries is noise: the original stays."""
+    baseline = cands[0]
+    best = pick_best(cands)
+    gain = best["held_passed"] - baseline["held_passed"]
+    if best is baseline:
+        return baseline, "original-best"
+    if gain < MIN_WIN:
+        return baseline, "noise"
+    return best, "better"
+
+
+def score(res):
+    return res["summary"]["passed"], res["summary"]["total"]
+
+
+def optimise(queries, plugin_dir, skill, iterations=4, runs=3, max_turns=3, timeout=120,
+             model=None, improver_model=None, workers=4, claude="claude"):
+    train, held = te.split_queries(queries)
+    skill_text = (Path(plugin_dir) / "skills" / skill / "SKILL.md").read_text()
+    description = te.read_description(plugin_dir, skill)
+    scratch = tempfile.mkdtemp(prefix="optimise-description-")
+    cands, history = [], []
+    try:
+        for it in range(iterations + 1):
+            res = te.evaluate(train + held, plugin_dir, skill, description, runs, max_turns,
+                              timeout, model, workers, claude, scratch)
+            by_q = {r["query"]: r for r in res["results"]}
+            tr = [by_q[q["query"]] for q in train]
+            ho = [by_q[q["query"]] for q in held]
+            cand = {"iteration": it, "description": description,
+                    "train_passed": sum(r["pass"] for r in tr), "train_total": len(tr),
+                    "held_passed": sum(r["pass"] for r in ho), "held_total": len(ho),
+                    "train_results": tr, "held_results": ho}
+            cands.append(cand)
+            if cand["train_passed"] == cand["train_total"] or it == iterations:
+                break
+            prompt = build_prompt(skill_text, description, tr, history)
+            history.append(cand)
+            nxt = parse_description(call_claude(prompt, improver_model, claude, scratch))
+            if len(nxt) > te.DESC_LIMIT:
+                nxt = parse_description(call_claude(shorten_prompt(prompt, nxt), improver_model,
+                                                    claude, scratch))
+            if not nxt or len(nxt) > te.DESC_LIMIT:
+                break
+            description = nxt
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    winner, label = verdict(cands)
+    return {"skill": te.full_skill_name(plugin_dir, skill), "train": train, "held_out": held,
+            "candidates": cands, "winner": winner["description"], "verdict": label}
+
+
+def show_queries(queries):
+    train, held = te.split_queries(queries)
+    for name, group in (("train", train), ("held-out", held)):
+        print(f"{name} ({len(group)}):")
+        for q in group:
+            print(f"  [{'should' if q['should_trigger'] else 'should not'}] {q['query']}")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="Search for a better skill description")
+    p.add_argument("--plugin-dir", required=True)
+    p.add_argument("--skill", required=True)
+    p.add_argument("--queries", required=True)
+    p.add_argument("--approved", action="store_true",
+                   help="the user has seen the query set; without it the script only prints it")
+    p.add_argument("--iterations", type=int, default=4)
+    p.add_argument("--runs", type=int, default=3)
+    p.add_argument("--max-turns", type=int, default=3)
+    p.add_argument("--timeout", type=int, default=120)
+    p.add_argument("--model")
+    p.add_argument("--improver-model")
+    p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--claude", default="claude")
+    p.add_argument("--out", help="default: .skill-forge/<skill>/optimise.json")
+    args = p.parse_args(argv)
+    try:
+        queries = te.load_queries(args.queries)
+    except (OSError, ValueError) as e:
+        print(f"optimise-description: {e}", file=sys.stderr)
+        return 2
+    show_queries(queries)
+    if not args.approved:
+        print("\nShow these queries to the user. Re-run with --approved once they agree.",
+              file=sys.stderr)
+        return 2
+    try:
+        out = optimise(queries, args.plugin_dir, args.skill, args.iterations, args.runs,
+                       args.max_turns, args.timeout, args.model, args.improver_model,
+                       args.workers, args.claude)
+    except (OSError, ValueError, te.EvalError, subprocess.TimeoutExpired) as e:
+        print(f"optimise-description: {e}", file=sys.stderr)
+        return 2
+    te.write_trigger_json(args.out or f".skill-forge/{args.skill}/optimise.json", out)
+    for c in out["candidates"]:
+        print(f"iteration {c['iteration']}: train {c['train_passed']}/{c['train_total']} "
+              f"held-out {c['held_passed']}/{c['held_total']}")
+    if out["verdict"] == "noise":
+        print(f"noise: the best held-out gain is under {MIN_WIN} queries; the description is unchanged")
+    elif out["verdict"] == "original-best":
+        print("the original description scored best on held-out queries; no change")
+    else:
+        print("winning description (not written to any SKILL.md):")
+        print(out["winner"])
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

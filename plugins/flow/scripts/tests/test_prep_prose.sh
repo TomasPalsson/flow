@@ -142,3 +142,19 @@ t_prep_contradiction_question_keeps_the_hypothesis_rule() {
 	assert_not_contains "$body" "ask once which is right" \
 		"the bare 'ask once which is right' template is gone (it displaced rule 2 in a live eval)"
 }
+
+t_prep_prose_justify_probe_and_low_confidence_reason() {
+	local body
+	body=$(cat "$PREP_SKILL")
+	assert_contains "$body" "justify this to anyone" \
+		"rule 4 carries the justify probe for convention-signalling answers"
+	assert_contains "$body" "interview-me/SKILL.md @ 1be8e34" \
+		"the justify probe credits addyosmani/agent-skills interview-me"
+	assert_contains "$body" "weakest tier" \
+		"rule 2 asks for a one-clause reason beside the weakest confidence word"
+}
+
+t_prep_prose_split_writes_a_split_table() {
+	assert_contains "$(cat "$PREP_SKILL")" "id | capability | depends-on | order" \
+		"prep/SKILL.md writes a ## Split table when the split offer is accepted"
+}

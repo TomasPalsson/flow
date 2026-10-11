@@ -6,6 +6,7 @@ print_help() {
   cat <<'EOF'
 Usage: skills-lint [<skills-dir>]
        skills-lint --usage [<history.jsonl>]
+       skills-lint --frontmatter|--orphans|--collisions|--claude-md <dir>
 
 Scans every *.md file under <skills-dir> (default: $HOME/.claude/skills)
 for path references of the form:
@@ -33,10 +34,17 @@ stem is a single character or the literal X, Y, foo, or bar (e.g.
 "references/a.md"), and any reference inside a ``` or ~~~ fence (C16).
 
 Prints "MISSING <file>:<line> <path>" for every reference that does
-not resolve; exit 1 if any. Also prints "TOOL <file>:<line> <cmd>"
+not resolve, and "RESIDUE <file>:<line> <text>" for a chat sign-off in the
+last 3 prose lines of a SKILL.md, agents/*.md or references/*.md; exit 1 if any. Also prints "TOOL <file>:<line> <cmd>"
 (does not affect the exit code) for "command -v <cmd>" or a
 backticked binary name, when <cmd> is one of the allowlisted tools
 (better-plan, rtk, gh, bun, uv) and is not installed on this machine.
+
+Prints "PARITY <file>:<line> ..." (exit 1) when text between
+<!-- shared:NAME --> and <!-- /shared:NAME --> markers differs between
+two files that carry NAME, when a closing marker is missing, or when a
+NAME is carried by one file only. It names both files and the first
+differing character. Use it for a paragraph two skills need inline.
 
 --usage [<history.jsonl>] (default: $HOME/.claude/history.jsonl):
 counts, per installed skill (a directory under $HOME/.claude/skills)
@@ -49,6 +57,9 @@ shapes: reads the first non-empty of "display", "prompt", "text" per
 JSONL record. Requires python3; prints a one-line notice and exits 0
 when python3 or the history file is unavailable. Always exits 0 and
 never runs together with the reference check above.
+
+--frontmatter [--claude-ai] | --orphans | --collisions | --claude-md: run
+"python3 skills-lint-frontmatter.py" with no arguments for what each checks.
 EOF
 }
 
@@ -125,6 +136,13 @@ if [ "${1:-}" = "--usage" ]; then
   _skills_lint_usage "${1:-$HOME/.claude/history.jsonl}"
   exit 0
 fi
+
+case "${1:-}" in
+--frontmatter | --orphans | --collisions | --claude-md)
+  if ! have python3; then printf 'skills-lint %s: python3 not found\n' "$1"; exit 0; fi
+  exec python3 -I "$(cd "$(dirname "$0")" && pwd -P)/skills-lint-frontmatter.py" "$@"
+  ;;
+esac
 
 skills_dir=${1:-$HOME/.claude/skills}
 skills_dir=${skills_dir%/}
@@ -253,6 +271,9 @@ while IFS= read -r file; do
       }
     }
   ' "$file" 2>/dev/null || true)
+  case "$file" in */SKILL.md | */agents/*.md | */references/*.md)
+    r=$(awk -f "$(dirname "$0")/skills-lint-residue.awk" "$file" 2>/dev/null) && [ -n "$r" ] && { printf '%s\n' "$r"; had_missing=1; } ;;
+  esac
   [ -z "$scan" ] && continue
   while IFS= read -r entry; do
     [ -z "$entry" ] && continue
@@ -386,6 +407,71 @@ SCANEOF
 done <<FILEOF
 $files
 FILEOF
+
+# Shared-paragraph parity (F26): text between <!-- shared:NAME --> and
+# <!-- /shared:NAME --> must be byte-identical in every file that carries NAME.
+# Fixture files are skipped on the same rule as above.
+parity_files=$files
+case "$skills_dir" in */tests/fixtures*) ;; *) parity_files=$(printf '%s\n' "$files" | grep -v '/tests/fixtures/' || true) ;; esac
+parity=$(printf '%s\n' "$parity_files" | awk '
+  function flush(   text, rest, p, q, name, endm, body, pre, line, n) {
+    text = buf; buf = ""
+    while ((p = index(text, "<!-- shared:")) > 0) {
+      pre = substr(text, 1, p - 1)
+      line = gsub(/\n/, "\n", pre) + 1 + base
+      rest = substr(text, p + 12)
+      q = index(rest, " -->")
+      if (q == 0) { print "PARITY " cur ":" line " unterminated shared marker"; return }
+      name = substr(rest, 1, q - 1)
+      rest = substr(rest, q + 4)
+      endm = "<!-- /shared:" name " -->"
+      n = index(rest, endm)
+      if (n == 0) { print "PARITY " cur ":" line " shared:" name " has no closing marker"; return }
+      body = substr(rest, 1, n - 1)
+      if ((name SUBSEP cur) in seen) { print "PARITY " cur ":" line " shared:" name " appears twice in one file"; }
+      seen[name SUBSEP cur] = 1
+      cnt[name]++
+      files_of[name, cnt[name]] = cur
+      body_of[name, cnt[name]] = body
+      line_of[name, cnt[name]] = line
+      if (!(name in order)) { order[name] = ++nn; names[nn] = name }
+      rest = substr(rest, n + length(endm))
+      pre = substr(text, 1, length(text) - length(rest))
+      base += gsub(/\n/, "\n", pre)
+      text = rest
+    }
+  }
+  {
+    path = $0
+    if (path == "") next
+    cur = path; buf = ""; base = 0
+    while ((getline l < path) > 0) buf = buf l "\n"
+    close(path)
+    flush()
+  }
+  END {
+    for (i = 1; i <= nn; i++) {
+      name = names[i]
+      if (cnt[name] == 1) {
+        print "PARITY " files_of[name, 1] ":" line_of[name, 1] " shared:" name " is carried by this file only"
+        continue
+      }
+      for (k = 2; k <= cnt[name]; k++) {
+        a = body_of[name, 1]; b = body_of[name, k]
+        if (a == b) continue
+        m = (length(a) < length(b)) ? length(a) : length(b)
+        for (j = 1; j <= m; j++) if (substr(a, j, 1) != substr(b, j, 1)) break
+        print "PARITY " files_of[name, 1] ":" line_of[name, 1] " differs from " files_of[name, k] ":" line_of[name, k] " in shared:" name " at character " j
+        print "  " files_of[name, 1] ": ..." substr(a, (j > 20 ? j - 20 : 1), 60)
+        print "  " files_of[name, k] ": ..." substr(b, (j > 20 ? j - 20 : 1), 60)
+      }
+    }
+  }
+')
+if [ -n "$parity" ]; then
+  printf '%s\n' "$parity"
+  had_missing=1
+fi
 
 [ "$had_missing" -eq 1 ] && exit 1
 exit 0

@@ -470,3 +470,206 @@ t_hyg_squash_merged_but_extra_commit_is_not_safe() {
 	git -C "$repo" worktree remove --force "$wt" >/dev/null 2>&1 || true
 	rm -rf "$repo"
 }
+
+# ---------------------------------------------------------------------------
+# duplicate-skills (F24): the same skill name loaded from two on-disk sources
+# ---------------------------------------------------------------------------
+
+# dup_check <home> <project> — calls duplicateSkillsCheck(push, home, project).
+dup_check() {
+	DUP_HOME="$1" DUP_PROJ="$2" hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.duplicateSkillsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, process.env.DUP_HOME, process.env.DUP_PROJ);
+process.stdout.write(JSON.stringify(rows));
+'
+}
+
+# dup_skill <plugin-dir> <skill...> — a plugin dir exposing the named skills.
+dup_skill() {
+	local dir n
+	dir=$1
+	shift
+	for n in "$@"; do
+		mkdir -p "$dir/skills/$n"
+		printf -- '---\nname: %s\ndescription: x\n---\n' "$n" >"$dir/skills/$n/SKILL.md"
+	done
+}
+
+# dup_install <home> <key> <installPath> — one installed_plugins.json entry.
+dup_install() {
+	mkdir -p "$1/.claude/plugins"
+	printf '{"version":2,"plugins":{"%s":[{"scope":"user","installPath":"%s"}]}}\n' "$2" "$3" >"$1/.claude/plugins/installed_plugins.json"
+}
+
+# dup_warn_count <rows-json> — number of WARN rows.
+dup_warn_count() {
+	printf '%s' "$1" | grep -o '"status":"WARN"' | wc -l | tr -d ' '
+}
+
+t_dup_skills_same_name_in_two_plugins_warns_once_naming_both() {
+	local home proj rows
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	dup_skill "$home/store/alpha" audit
+	dup_skill "$home/store/beta" audit
+	mkdir -p "$home/.claude/skills"
+	ln -s "$home/store/alpha" "$home/.claude/skills/alpha"
+	dup_install "$home" "beta@mkt" "$home/store/beta"
+
+	dup_check "$home" "$proj"
+	rows="$OUT"
+	assert_contains "$rows" "skill audit loads from both" "t_dup_skills_two_plugins row"
+	assert_contains "$rows" "skills-dir alpha" "t_dup_skills_two_plugins source-a"
+	assert_contains "$rows" "beta@mkt" "t_dup_skills_two_plugins source-b"
+	assert_eq "$(dup_warn_count "$rows")" "1" "t_dup_skills_two_plugins one-row"
+	rm -rf "$home" "$proj"
+}
+
+t_dup_skills_whole_plugin_duplicated_collapses_to_one_row() {
+	local home proj rows
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	dup_skill "$home/src/tooling" lint fmt test
+	dup_skill "$home/cache/tooling" lint fmt test
+	mkdir -p "$home/.claude/skills"
+	ln -s "$home/src/tooling" "$home/.claude/skills/tooling"
+	dup_install "$home" "tooling@flow" "$home/cache/tooling"
+
+	dup_check "$home" "$proj"
+	rows="$OUT"
+	assert_contains "$rows" "plugin tooling loads from both skills-dir and tooling@flow" "t_dup_skills_collapse row"
+	assert_eq "$(dup_warn_count "$rows")" "1" "t_dup_skills_collapse one-row"
+	rm -rf "$home" "$proj"
+}
+
+t_dup_skills_same_directory_twice_is_not_a_duplicate() {
+	local home proj rows
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	dup_skill "$home/store/alpha" audit
+	mkdir -p "$home/.claude/skills"
+	ln -s "$home/store/alpha" "$home/.claude/skills/alpha"
+	dup_install "$home" "alpha@mkt" "$home/store/alpha"
+
+	dup_check "$home" "$proj"
+	rows="$OUT"
+	assert_not_contains "$rows" '"status":"WARN"' "t_dup_skills_same_dir no-warn"
+	assert_contains "$rows" '"status":"PASS"' "t_dup_skills_same_dir pass"
+	rm -rf "$home" "$proj"
+}
+
+t_dup_skills_project_skill_clashing_with_plugin_warns() {
+	local home proj rows
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	dup_skill "$home/store/beta" audit
+	dup_install "$home" "beta@mkt" "$home/store/beta"
+	mkdir -p "$proj/.claude/skills/audit"
+	printf -- '---\nname: audit\ndescription: x\n---\n' >"$proj/.claude/skills/audit/SKILL.md"
+
+	dup_check "$home" "$proj"
+	rows="$OUT"
+	assert_contains "$rows" "skill audit loads from both" "t_dup_skills_project warn"
+	assert_contains "$rows" "project .claude/skills" "t_dup_skills_project source"
+	rm -rf "$home" "$proj"
+}
+
+t_dup_skills_no_sources_passes() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	dup_check "$home" "$proj"
+	assert_contains "$OUT" '"status":"PASS"' "t_dup_skills_none pass"
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# Text rules from the famous-repos round (F153, F169, F190, F191)
+# ---------------------------------------------------------------------------
+
+t_famous_babysit_bans_empty_commit_retrigger() {
+	local f
+	f="$SCAN_DIR/../../flow-extras/skills/babysit/SKILL.md"
+	assert_contains "$(cat "$f")" "Never push an empty commit" "t_famous_babysit empty-commit rule"
+	assert_contains "$(cat "$f")" "gh run rerun --failed" "t_famous_babysit flake path"
+}
+
+t_famous_benchmark_checklist_carries_rules() {
+	local f w n
+	f="$SCAN_DIR/../../flow-extras/skills/benchmark-checklist/SKILL.md"
+	for w in 'N/A, never 0' 'is reverted' 'attempt ledger' 'geomean' 'worst shape' 'cache key correctness' 'randomized differential' 'like coverage' 'range with its assumptions' 'Say where the clock starts'; do
+		assert_contains "$(cat "$f")" "$w" "t_famous_benchmark_checklist $w"
+	done
+	n=$(wc -l <"$f" | tr -d ' ')
+	[ "$n" -le 75 ] || assert_eq "$n" "<=75" "t_famous_benchmark_checklist line-budget"
+}
+
+t_famous_find_skills_recommends_only_fetched() {
+	local f
+	f="$SCAN_DIR/../../flow-extras/skills/find-skills/SKILL.md"
+	assert_contains "$(cat "$f")" "fetched this conversation" "t_famous_find_skills fetched rule"
+	assert_contains "$(cat "$f")" "drop it and say none was found" "t_famous_find_skills caveat rule"
+	assert_not_contains "$(cat "$f")" "might help" "t_famous_find_skills no-might-help"
+	assert_not_contains "$(cat "$f")" "185K" "t_famous_find_skills no-remembered-count"
+}
+
+t_famous_rubric_reviewer_safety_rules() {
+	local f
+	f="$SCAN_DIR/../../../docs/research/23-pstack-rubric.md"
+	assert_contains "$(cat "$f")" "Never invoke a git transport" "t_famous_rubric no-transports"
+	assert_contains "$(cat "$f")" "python3 -I -S" "t_famous_rubric isolated-python"
+	assert_contains "$(cat "$f")" "Trust only goes down" "t_famous_rubric trust-down"
+	assert_contains "$(cat "$f")" "gh api repos/<o>/<r>/compare/<sha>...HEAD --method GET" "t_famous_rubric compare-api"
+	assert_contains "$(cat "$f")" "layout assumptions" "t_famous_rubric b5-layout"
+}
+
+# ---------------------------------------------------------------------------
+# referenced-paths (F22): backticked paths and Ruling lines that point nowhere
+# ---------------------------------------------------------------------------
+
+# rp_check <projectDir> — calls referencedPathsCheck(push, projectDir).
+rp_check() {
+	RP_DIR="$1" hyg_node '
+const hygiene = require(process.env.HYG_LIB_DIR + "/doctor-hygiene.js");
+const rows = [];
+hygiene.referencedPathsCheck(function (id, status, detail) {
+  rows.push({ id: id, status: status, detail: detail });
+}, process.env.RP_DIR);
+process.stdout.write(JSON.stringify(rows));
+'
+}
+
+t_hyg_referenced_paths_missing_ruling_path_is_one_warn() {
+	local d
+	d=$(tmp_dir)
+	printf '# Progress\nRuling: keep scripts/old.sh\n' >"$d/PROGRESS.md"
+	rp_check "$d"
+	assert_eq "$(dup_warn_count "$OUT")" "1" "t_hyg_referenced_paths one WARN for a Ruling line citing a missing path"
+	assert_contains "$OUT" "scripts/old.sh" "t_hyg_referenced_paths WARN names the path"
+	assert_contains "$OUT" '"id":"referenced-paths"' "t_hyg_referenced_paths row id"
+	rm -rf "$d"
+}
+
+t_hyg_referenced_paths_existing_and_pattern_paths_pass() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/scripts"
+	printf 'x\n' >"$d/scripts/old.sh"
+	printf '# Progress\nRuling: keep scripts/old.sh\n' >"$d/PROGRESS.md"
+	printf 'Use `src/**/*.ts` and `<path>/x.md`; entry is `scripts/old.sh`.\n' >"$d/CLAUDE.md"
+	rp_check "$d"
+	assert_eq "$(dup_warn_count "$OUT")" "0" "t_hyg_referenced_paths no WARN when paths exist or are patterns"
+	assert_contains "$OUT" '"status":"PASS"' "t_hyg_referenced_paths PASS row"
+	rm -rf "$d"
+}
+
+t_hyg_referenced_paths_silent_without_any_instruction_file() {
+	local d
+	d=$(tmp_dir)
+	rp_check "$d"
+	assert_eq "$OUT" "[]" "t_hyg_referenced_paths no row when there is no CLAUDE.md, rules or PROGRESS.md"
+	rm -rf "$d"
+}

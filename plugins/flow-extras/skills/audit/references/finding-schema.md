@@ -93,6 +93,20 @@ This is the field that separates real findings from hallucinations. Every agent 
 
 At Phase 2, missing or vague `failure_scenario` → confidence forced to 0.60 max, label forced to `question`. This single rule cuts noise by the largest margin.
 
+## Test retirement card
+
+A finding that proposes deleting or retiring a test must carry every field below. Without the full card, Phase 2 rule 1 drops it. The reason: a test that looks redundant is often the only thing guarding a caller the grep did not see.
+
+| Field | Content |
+|-------|---------|
+| `detects` | the specific regression this test would catch |
+| `non_test_callers` | production code that exercises the same path, with file:line |
+| `search_command` | the exact command used to look for other coverage, so a reviewer can re-run it |
+| `stronger_proof` | the test or check that already catches `detects` (name and path) |
+| `history` | `git log` evidence for why the test exists (commit or issue), or "none found" |
+
+`NO_ASSERTION` and `NEAR_DUPLICATE` lines from `scripts/test-prefilter.sh` are leads. A lead alone is never a card.
+
 ## Markdown Report Format (Gate 1)
 
 The orchestrator emits this format from `findings-consolidated.json` at Phase 3. Present to the user verbatim.
@@ -154,6 +168,12 @@ The orchestrator emits this format from `findings-consolidated.json` at Phase 3.
 - **tests-agent**: coverage gaps on hot-spot files, fixture brittleness, assertion-free tests. Found 1 issue.
 - **style-agent**: ran formatter check only — 0 unique findings (all would be caught by `prettier --check`).
 
+## Not investigated
+
+- Dirs listed as Skipped in `plan.md`, each with its reason (copy the rows).
+- Any lens whose agent reported "not scanned", and anything its second-look pass could not reach.
+- Findings the refute pass sent to the backlog, as a count.
+
 ---
 
 **Which findings should I address?**
@@ -186,6 +206,11 @@ All 6 audit dimensions completed. No findings survived filtering at `severity ×
 - **design-agent**: <what_i_checked>
 - **tests-agent**: <what_i_checked>
 - **style-agent**: <what_i_checked>
+
+## Not investigated
+
+- Dirs listed as Skipped in `plan.md`, each with its reason.
+- Any lens whose agent reported "not scanned": a lens that finds nothing says what it checked, or that it did not scan. Silence is not a clean result.
 
 ## What Was NOT Audited
 

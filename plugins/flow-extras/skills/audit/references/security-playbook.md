@@ -20,14 +20,16 @@ description: Ordered security audit playbook for the /audit skill's security dim
 **Tools**:
 ```bash
 # gitleaks — fastest for history scanning
-gitleaks detect --source . --log-opts="--all" --report-format json --report-path /tmp/gitleaks.json
+gitleaks detect --redact --source . --log-opts="--all" --report-format json --report-path /tmp/gitleaks.json
 
 # trufflehog — verified live secrets (slower but high-signal)
 trufflehog git file://. --only-verified --json
 
 # Current working tree only
-gitleaks detect --no-git --report-format json
+gitleaks detect --redact --no-git --report-format json --report-path /tmp/gitleaks-worktree.json
 ```
+
+The gitleaks reports are redacted (`--redact`), so the agent can read them without copying a live secret into its transcript. trufflehog has no redact flag and its JSON carries the raw value, so read it through `jq 'del(.Raw, .RawV2)'` and never print the file whole.
 
 **High-signal patterns** (never suppress):
 - AWS `AKIA[A-Z0-9]{16}` — IAM access key IDs
@@ -251,6 +253,30 @@ grep -rn "hashlib\.md5.*password\|hashlib\.sha.*password" --include="*.py" .
 - JWT in localStorage is a smell (XSS steals it); httpOnly cookie is preferred
 - Session IDs with insufficient entropy (should be ≥128 bits of random)
 
+**Server Actions are public endpoints** (Next.js App Router, `'use server'`):
+- Each exported function in a `'use server'` file or block can be invoked directly with a crafted POST, whatever the page, layout or middleware shows. Authentication and authorization must happen inside the action.
+- Detect: `grep -rln "'use server'" --include="*.ts" --include="*.tsx" .`, then read each exported function for a session check before the first read or write.
+
+```typescript
+// Incorrect: the page hides the button, but anyone can POST to the action
+'use server'
+export async function deleteUser(userId: string) {
+  await db.user.delete({ where: { id: userId } })
+}
+
+// Correct: authenticate and authorize inside the action
+'use server'
+export async function deleteUser(userId: string) {
+  const session = await verifySession()
+  if (!session || session.user.role !== 'admin') throw new Error('Unauthorized')
+  await db.user.delete({ where: { id: userId } })
+}
+```
+
+Also validate the arguments: they arrive as untrusted input like any request body. Module-scope state shared across requests is a separate bug, covered in `language-playbooks.md` (correctness) and the pentest `vuln-cookbook.md`.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/server-auth-actions.md @ 063bee9 (MIT).
+
 **Frame all findings as questions**, not assertions, because the agent can't prove coverage:
 ```json
 {
@@ -283,8 +309,8 @@ grep -rn "hashlib\.md5.*password\|hashlib\.sha.*password" --include="*.py" .
 
 ```bash
 # ===== SECRETS =====
-gitleaks detect --source . --log-opts="--all" --report-format json --report-path .audit/gitleaks.json
-gitleaks detect --no-git --report-format json --report-path .audit/gitleaks-worktree.json
+gitleaks detect --redact --source . --log-opts="--all" --report-format json --report-path .audit/gitleaks.json
+gitleaks detect --redact --no-git --report-format json --report-path .audit/gitleaks-worktree.json
 trufflehog git file://. --only-verified --json > .audit/trufflehog.json
 
 # ===== DEPENDENCIES =====

@@ -207,19 +207,41 @@ function parsePyproject(root) {
   return raw;
 }
 
+/**
+ * The pytest command, resolved in the same order check-all's resolvePyTool uses
+ * for its test gate, so a brief and a gate never name different runners:
+ * the project's .venv, then `uv run --no-sync` when uv.lock locks pytest and
+ * uv is installed, then a bare `pytest`.
+ */
+function onPath(cmd) {
+  const dirs = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  return dirs.some((d) => {
+    try { fs.accessSync(path.join(d, cmd), fs.constants.X_OK); return true; } catch { return false; }
+  });
+}
+
+function resolvePytest(root) {
+  const venv = path.join(root, '.venv', 'bin', 'pytest');
+  if (exists(venv)) return venv;
+  const lock = readFile(path.join(root, 'uv.lock')) || '';
+  if (/^name = "pytest"$/m.test(lock) && onPath('uv')) return 'uv run --no-sync pytest';
+  return 'pytest';
+}
+
 function detectPythonCommands(root) {
   const toml = parsePyproject(root);
+  const pytest = resolvePytest(root);
 
   // Detect test runner
   let test_cmd = '';
   if (toml) {
-    if (/\[tool\.pytest/m.test(toml))  test_cmd = 'pytest';
+    if (/\[tool\.pytest/m.test(toml))  test_cmd = pytest;
     else if (/\[tool\.unittest/m.test(toml)) test_cmd = 'python -m unittest';
   }
-  if (!test_cmd && exists(path.join(root, 'pytest.ini')))  test_cmd = 'pytest';
+  if (!test_cmd && exists(path.join(root, 'pytest.ini')))  test_cmd = pytest;
   if (!test_cmd && exists(path.join(root, 'setup.cfg'))) {
     const cfg = readFile(path.join(root, 'setup.cfg')) || '';
-    if (/\[tool:pytest\]/m.test(cfg)) test_cmd = 'pytest';
+    if (/\[tool:pytest\]/m.test(cfg)) test_cmd = pytest;
   }
 
   // Detect linter/formatter

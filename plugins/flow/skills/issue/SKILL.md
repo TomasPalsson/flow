@@ -54,7 +54,24 @@ gh auth status >/dev/null 2>&1 && gh repo view >/dev/null 2>&1
 - **Fails** → `.specs/ISSUES.md`, and say which check failed in one clause so
   the fallback is never silent.
 
-**GitHub** — `gh issue create --title "<title>" --body "<the five fields>"`.
+**Redact first.** Pass every text this skill writes (the title and the five
+fields of a new record, an `Also:` line or `gh` comment, and the `Discovered:`
+NOTES line) through `${CLAUDE_PLUGIN_ROOT}/scripts/redact` (stdin to stdout)
+before it goes to `.specs/`, `.specs/ISSUES.md` or `gh`. It masks keys, tokens, `user:pass@` URL credentials and signed-URL query parameters (`token`, `sig`, `key`,
+`X-Amz-*`, `X-Goog-*`), and leaves ordinary text such as `max_tokens: 4096`
+alone. An issue outlives the session and may be public, so a secret pasted
+from a log must not be written; a record keeps the shape of the evidence, not
+the credential.
+
+**GitHub** — pipe the five fields in through a quoted heredoc, so a backtick or `$(` in the body is text, not a command:
+
+```bash
+gh issue create --title "<title>" --body-file - <<'EOF'
+<the five fields>
+EOF
+```
+
+`gh` has no title file, so keep the title plain: no backticks, `$` or double quotes.
 Add `--label flow-issue` only if that label already exists (`gh label list`);
 never create labels. Print the URL it returns.
 
@@ -84,6 +101,12 @@ domain concept (for example "night theme" and "dark mode"), one query per
 phrasing, because GitHub search ANDs the terms in a single query: `grep` the
 open entries in `.specs/ISSUES.md`, or `gh issue list --search "<words>"`.
 
+- **A search that fails is not "no duplicates".** If `gh issue list` exits
+  non-zero or prints an error (offline, rate limit, auth), report
+  `search failed: <err>` to the user, say that duplicates are unchecked, and
+  then file, with the gap shown. The failure is
+  never treated as no duplicates, and the ref line says `searched: <queries>
+  in gh (failed)`.
 - **A match on the request's own words** means **append one line to the
   existing record** (`Also: <new evidence> — <date>`, or a GitHub comment) and
   print that ref.
@@ -111,8 +134,8 @@ problem.
 
 End with two lines and nothing else:
 
-- `Filed: I-003 — <title> — searched: <queries> in <ISSUES.md|gh>` (or the
-  GitHub URL in place of `I-003`)
+- `Filed: I-003 — <title> — searched: <queries> in <ISSUES.md|gh>` (`gh (failed)` when the search
+  failed; or the GitHub URL in place of `I-003`)
 - `Next: <the thing that was in flight>` — verbatim what you were doing.
   When nothing was in flight: `Next: /flow:spec I-003` when it should be
   built now, otherwise `Next: nothing — I-003 is parked.`

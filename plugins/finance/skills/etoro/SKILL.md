@@ -1,5 +1,5 @@
 ---
-name: agent-portfolio
+name: etoro
 description: Guides agents through creating, retrieving, and trading on behalf of eToro agent-portfolios. Covers the full lifecycle — creating an agent-portfolio, obtaining its user token, building a portfolio strategy, opening/closing positions, and rebalancing. Use when the user wants to create an agent portfolio, manage an existing one, or execute trades through one.
 ---
 

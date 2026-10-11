@@ -13,7 +13,8 @@ const MIN_CLAUDE_VERSION = '2.1.269';
 
 // ledgerLine(fields) -> one JSON object, the literal shape every writer and
 // reader of evals/ledger.jsonl shares: {ts, sha, model, judgeModel,
-// tags:{<tag>:{score, delta, cases}}, meanDelta, costUsd, partial, reason}.
+// tags:{<tag>:{score, delta, cases}}, meanDelta, costUsd, partial, reason,
+// graders?}.
 function ledgerLine(fields) {
   return JSON.stringify({
     ts: fields.ts,
@@ -25,6 +26,7 @@ function ledgerLine(fields) {
     costUsd: fields.costUsd,
     partial: fields.partial,
     reason: fields.reason,
+    graders: fields.graders, // {<case>: sha256 of case.yaml + postcheck.sh}; omitted when absent
   });
 }
 

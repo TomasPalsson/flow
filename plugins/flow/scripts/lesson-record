@@ -5,7 +5,7 @@ set -u
 
 usage() {
   cat <<'HELP'
-Usage: lesson-record --what <text> --mechanism <text> --cost <text> --rejected <text> [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
+Usage: lesson-record --what <text> --mechanism <text> --cost <text> --rejected <text> [--rung <rung>] [--form <form>] [--control <fails>/<n>] [--file <PROGRESS.md>] [--date <YYYY-MM-DD>]
 
 Appends
   - Ruling: <what> — <mechanism> — <cost> — rejected: <rejected> (<YYYY-MM-DD>)
@@ -23,6 +23,13 @@ file is now over 60 lines, a warning to stderr (exit stays 0).
 --rejected is required: '<rung: why>; ...' for each higher rung of the
 ladder that was ruled out, or 'none' at the Unrepresentable rung (nothing
 is higher). It makes the ladder walk visible in the ruling.
+--rung names the ladder rung chosen: unrepresentable, test, hook, script, skill or claude-md.
+--form names the instruction form (prohibition, recipe, slot, conditional; the table in
+skill-improver's writing-for-agents.md) and is required when --rung is skill or claude-md.
+It is written into the ruling as `(form: <form>)` after the mechanism. A prohibition
+on those rungs also needs --control <fails>/<n>: the no-rule control arm ran first, failed
+at least once, over at least 5 reps; no rule lands if the control does not fail. It is
+written as `(form: prohibition; control <fails>/<n>)`.
 --what, --mechanism, --cost and --rejected must each be single-line printable text:
 a newline, tab, or any other ASCII control character (bytes 0x00-0x1F
 or 0x7F) is rejected.
@@ -31,7 +38,7 @@ Exit codes: 0 written · 2 usage, malformed --date, or non-printable text · 3 e
 HELP
 }
 
-WHAT=""; MECH=""; COST=""; REJ=""; FILE="PROGRESS.md"; DATE=""; DATE_SET=0
+WHAT=""; MECH=""; COST=""; REJ=""; RUNG=""; FORM=""; CONTROL=""; FILE="PROGRESS.md"; DATE=""; DATE_SET=0
 while [ $# -gt 0 ]; do
   case "$1" in
   --help | -h) usage; exit 0 ;;
@@ -39,6 +46,9 @@ while [ $# -gt 0 ]; do
   --mechanism) MECH=${2:-}; shift 2 ;;
   --cost) COST=${2:-}; shift 2 ;;
   --rejected) REJ=${2:-}; shift; [ $# -gt 0 ] && shift ;;
+  --rung) RUNG=${2:-}; shift; [ $# -gt 0 ] && shift ;;
+  --form) FORM=${2:-}; shift; [ $# -gt 0 ] && shift ;;
+  --control) CONTROL=${2:-}; shift; [ $# -gt 0 ] && shift ;;
   --file) FILE=${2:-}; shift 2 ;;
   --date)
     DATE_SET=1
@@ -51,10 +61,52 @@ if [ -z "$WHAT" ] || [ -z "$MECH" ] || [ -z "$COST" ] || [ -z "$REJ" ]; then
   printf 'lesson-record: --what, --mechanism, --cost and --rejected are all required (--rejected may be none)\n' >&2
   exit 2
 fi
-_all="$WHAT$MECH$COST$REJ"
+_all="$WHAT$MECH$COST$REJ$RUNG$FORM$CONTROL"
 if [ "$_all" != "$(printf '%s' "$_all" | tr -d '\000-\037\177')" ]; then
   printf 'lesson-record: arguments must be single-line printable text\n' >&2
   exit 2
+fi
+
+case "$RUNG" in
+'' | unrepresentable | test | hook | script | skill | claude-md) ;;
+*) printf 'lesson-record: --rung must be unrepresentable, test, hook, script, skill or claude-md\n' >&2; exit 2 ;;
+esac
+case "$FORM" in
+'' | prohibition | recipe | slot | conditional) ;;
+*) printf 'lesson-record: --form must be prohibition, recipe, slot or conditional\n' >&2; exit 2 ;;
+esac
+case "$RUNG" in
+skill | claude-md)
+  if [ -z "$FORM" ]; then
+    printf 'lesson-record: --form (prohibition|recipe|slot|conditional) is required on the %s rung; see skill-improver/references/writing-for-agents.md\n' "$RUNG" >&2
+    exit 2
+  fi
+  if [ "$FORM" = prohibition ] && [ -z "$CONTROL" ]; then
+    printf 'lesson-record: a prohibition on the %s rung needs --control <fails>/<n>: run the control arm first (no rule, 5+ reps) and record how often it failed\n' "$RUNG" >&2
+    exit 2
+  fi
+  ;;
+esac
+if [ -n "$CONTROL" ]; then
+  if [ "$FORM" != prohibition ]; then
+    printf 'lesson-record: --control applies only to --form prohibition\n' >&2
+    exit 2
+  fi
+  case "$CONTROL" in
+  [0-9]*/[0-9]*) ;;
+  *) printf 'lesson-record: --control must look like <fails>/<n>, e.g. 4/5\n' >&2; exit 2 ;;
+  esac
+  _cf=${CONTROL%%/*}; _cn=${CONTROL##*/}
+  case "$_cf$_cn" in
+  *[!0-9]*) printf 'lesson-record: --control must look like <fails>/<n>, e.g. 4/5\n' >&2; exit 2 ;;
+  esac
+  if [ "$_cn" -lt 5 ] || [ "$_cf" -lt 1 ] || [ "$_cf" -gt "$_cn" ]; then
+    printf 'lesson-record: --control needs at least 5 reps and at least 1 failure; no rule lands if the control arm does not fail\n' >&2
+    exit 2
+  fi
+fi
+if [ -n "$FORM" ]; then
+  if [ -n "$CONTROL" ]; then MECH="$MECH (form: $FORM; control $CONTROL)"; else MECH="$MECH (form: $FORM)"; fi
 fi
 
 if [ "$DATE_SET" -eq 0 ]; then

@@ -598,7 +598,326 @@ t_noslop_prose_ranges_match_rubric() {
 	local skill last
 	skill=$(cat "$SKILL_DIR/SKILL.md")
 	last=$(grep -o '^| NP-[0-9]*' "$SKILL_DIR/references/prose-rubric.md" | grep -o '[0-9]*$' | sort -n | tail -1)
-	assert_eq "$last" "13" "prose-rubric.md's last row is NP-13"
+	assert_eq "$last" "17" "prose-rubric.md last row is NP-17"
 	assert_contains "$skill" '(NP-01 to NP-13)' "SKILL.md names the full prose range NP-01 to NP-13"
 	assert_contains "$skill" 'the lens rows NP-10, NP-11 and NP-13' "SKILL.md lists NP-13 among the lens rows"
+}
+
+# ---------------------------------------------------------------------------
+# F138 — slop-check exits 2 when it could not run, never a silent clean pass
+# ---------------------------------------------------------------------------
+
+t_noslop_unavailable_bogus_base_exits_2() {
+	local d
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base nonexistent-ref-xyz --no-tools
+	assert_rc 2 "unresolvable --base exits 2"
+	assert_contains "$ERR" "slop-check: unavailable:" "stderr names the reason"
+	assert_not_contains "$ERR" "0 findings" "no clean-looking summary"
+}
+
+t_noslop_unavailable_json_carries_reason() {
+	local d
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base nonexistent-ref-xyz --no-tools --json
+	assert_rc 2 "--json with a bad base exits 2"
+	assert_contains "$OUT" '"unavailable": "' "--json carries an unavailable field"
+}
+
+t_noslop_unavailable_one_commit_repo_exits_2() {
+	local d
+	d=$(tmp_dir)
+	git -C "$d" init -q
+	git -C "$d" config user.email t@t
+	git -C "$d" config user.name t
+	printf 'x = 1\n' >"$d/a.py"
+	git -C "$d" add a.py
+	git -C "$d" commit -q -m one
+	run_slop "$d" --no-tools
+	assert_rc 2 "one-commit repo with no --base exits 2"
+	assert_contains "$ERR" "slop-check: unavailable:" "stderr names the reason"
+}
+
+t_noslop_unavailable_not_a_repo_exits_2() {
+	local d
+	d=$(tmp_dir)
+	run_slop "$d" --no-tools
+	assert_rc 2 "outside a git repo exits 2"
+	assert_contains "$ERR" "slop-check: unavailable: not a git repository" "stderr names the reason"
+}
+
+t_noslop_unavailable_good_base_still_exits_0() {
+	local d
+	d=$(tmp_dir)
+	bash "$MAKE_FIXTURE" "$d" >/dev/null 2>&1
+	run_slop "$d" --base base --no-tools
+	assert_rc 0 "a resolvable base keeps the advisory exit 0"
+}
+
+# ---------------------------------------------------------------------------
+# F206 (NS-32 React form), F70 (test rules, NS-34), F168 (NP-14 to NP-17),
+# F167 (--claims)
+# ---------------------------------------------------------------------------
+
+t_noslop_ns32_has_react_variant_form() {
+	local f="$SKILL_DIR/references/rubric.md" line
+	line=$(grep -n 'variant components' "$f")
+	assert_eq "$(printf '%s\n' "$line" | grep -c .)" "1" "'variant components' appears on exactly one line"
+	assert_contains "$line" "| NS-32 |" "that line is the NS-32 row"
+	assert_contains "$line" "isEditing" "NS-32 names the boolean mode prop shape"
+	assert_contains "$line" "disabled" "NS-32 guard lets a single independent boolean through"
+}
+
+t_noslop_developer_block_test_rules() {
+	local f="$SKILL_DIR/references/developer-block.md" b
+	b=$(cat "$f")
+	assert_contains "$b" "wait on a condition" "block: positive form of no sleeps"
+	assert_contains "$b" "fails with a message" "block: the wait fails loudly"
+	assert_contains "$b" "full shape of the real response" "block: mocks carry the full real shape"
+	assert_contains "$b" "lives in test utilities, not the production class" "block: test-only methods stay out of production"
+}
+
+t_noslop_ns34_row_and_receipt() {
+	local r a
+	r=$(cat "$SKILL_DIR/references/rubric.md")
+	a=$(cat "$SKILL_DIR/references/adversary-lens.md")
+	assert_contains "$r" "| NS-34 |" "rubric has an NS-34 row"
+	assert_contains "$r" "zero non-test callers" "NS-34 names the test-only method case"
+	assert_contains "$r" "lifecycle hooks" "NS-34 guard covers framework lifecycle hooks"
+	assert_contains "$a" "- NS-34:" "adversary-lens has an NS-34 receipt line"
+	assert_contains "$a" "NS-31 to NS-34 are advise" "adversary-lens lists NS-34 as advise"
+}
+
+t_noslop_prose_np14_to_np17_rows() {
+	local r
+	r=$(cat "$SKILL_DIR/references/prose-rubric.md")
+	for id in NP-14 NP-15 NP-16 NP-17; do
+		assert_contains "$r" "| $id |" "prose-rubric has a $id row"
+	done
+	assert_contains "$r" "NP-15 to NP-17" "grader mapping lists NP-15 to NP-17 as llm"
+	assert_contains "$r" "qualifier" "NP-11 keeps qualifiers"
+	assert_contains "$r" "lens + slop-check --prose --claims (NP-03 paths)" "NP-03 tool column names --claims"
+}
+
+t_noslop_np14_flags_minimizers() {
+	prose_out_for 'Simply run the installer. Setup is easy to finish. It is easily done.'
+	assert_contains "$OUT" "NP-14" "NP-14 fires on simply / easy / easily"
+	assert_eq "$(printf '%s\n' "$OUT" | grep -c 'NP-14')" "3" "one NP-14 finding per minimizer"
+}
+
+t_noslop_np14_skips_just_code_quotes_fences() {
+	local f
+	f=$(tmp_dir)/m.md
+	printf 'Just do it.\n\nRun `simply` now.\n\nThe docs say "easy" in a quote.\n\n```\nsimply easy\n```\n' >"$f"
+	run_cmd "$SLOP_CHECK" --prose "$f"
+	assert_not_contains "$OUT" "NP-14" "just, backticks, quotes and fences are not flagged"
+}
+
+# claims_fixture <dir> — a root with src/real.py (5 lines) and doc.md holding
+# one missing path, one line past EOF, one wrong snippet and one valid cite.
+claims_fixture() {
+	mkdir -p "$1/src"
+	printf 'import os\n\ndef real():\n    return 1\n# end\n' >"$1/src/real.py"
+	cat >"$1/doc.md" <<'MD'
+# Doc
+
+The helper lives in src/gone.py and does the work.
+It is defined at src/real.py:99 near the end.
+See src/real.py:3 `def other():` for the entry point.
+See src/real.py:3-4 `def real():` for the entry point.
+See https://example.com/a/b.py:7 for background.
+
+```
+src/fenced_missing.py:1
+```
+MD
+}
+
+t_noslop_claims_reports_three_and_exits_0() {
+	local d
+	d=$(tmp_dir)
+	claims_fixture "$d"
+	run_cmd "$SLOP_CHECK" --prose "$d/doc.md" --claims --root "$d"
+	assert_rc 0 "--claims is advisory: exit 0"
+	assert_eq "$(printf '%s\n' "$OUT" | grep -c '^CLAIM ')" "3" "exactly three CLAIM lines"
+	assert_contains "$OUT" "doc.md:3 MISSING-PATH" "missing path on doc line 3"
+	assert_contains "$OUT" "doc.md:4 LINE-OUT-OF-RANGE" "line past EOF on doc line 4"
+	assert_contains "$OUT" "doc.md:5 SNIPPET-NOT-FOUND" "wrong snippet on doc line 5"
+	assert_not_contains "$OUT" "doc.md:6" "valid path:line and snippet pass"
+	assert_not_contains "$OUT" "doc.md:7" "URLs are skipped"
+	assert_not_contains "$OUT" "doc.md:10" "fenced paths are skipped"
+}
+
+t_noslop_claims_off_without_flag() {
+	local d
+	d=$(tmp_dir)
+	claims_fixture "$d"
+	run_cmd "$SLOP_CHECK" --prose "$d/doc.md"
+	assert_not_contains "$OUT" "CLAIM" "--prose alone never runs the claims scan"
+}
+
+t_noslop_claims_json_carries_claims() {
+	local d
+	d=$(tmp_dir)
+	claims_fixture "$d"
+	run_cmd "$SLOP_CHECK" --prose "$d/doc.md" --claims --root "$d" --json
+	assert_contains "$OUT" '"claims"' "--json output has a claims array"
+	assert_contains "$OUT" "MISSING-PATH" "--json claims carry the kind"
+}
+
+t_noslop_api_receipt_in_developer_block() {
+	local b
+	b=$(cat "$SKILL_DIR/references/developer-block.md")
+	assert_contains "$b" "api: <pkg>@" "developer-block asks for an api: <pkg>@<version> line"
+	assert_contains "$b" "UNVERIFIED" "developer-block allows UNVERIFIED when no source can be read"
+	assert_contains "$b" "git grep" "developer-block scopes the receipt to symbols git grep finds nowhere else"
+	assert_contains "$b" "already used elsewhere in the repo needs none" "developer-block exempts symbols the repo already uses"
+}
+
+t_noslop_evidence_register_is_linked() {
+	assert_contains "$(cat "$SKILL_DIR/references/developer-block.md")" "references/evidence.md" "developer-block links the evidence register so it is not an orphan"
+}
+
+# famous-borrows F149: the body is checked against the diff in both directions
+t_noslop_z5_pr_body_two_way_diff_check() {
+	local b
+	b=$(cat "$SCAN_DIR/../skills/shared/pr-body.md")
+	assert_contains "$b" "git diff --stat" "pr-body runs git diff --stat before gh pr create"
+	assert_contains "$b" "both directions" "pr-body checks the body against the diff in both directions"
+	assert_contains "$b" "generated files, lockfiles" "pr-body lets generated files and lockfiles be left out on purpose"
+}
+
+# ---------------------------------------------------------------------------
+# famous-borrows F135: suppressions (NS-09), test-runner sniffing (NS-09) and
+# toBe(<n>) loosened to toBeGreaterThan (NS-13), on added lines only.
+# ---------------------------------------------------------------------------
+
+# z6_repo <path> <base-content> <head-content> — a repo whose `base` tag holds
+# <path> with <base-content> (skipped when empty) and whose HEAD holds
+# <head-content>. Prints the repo dir.
+z6_repo() {
+	local d
+	d=$(tmp_dir)
+	git -C "$d" init -q
+	git -C "$d" config user.email t@t
+	git -C "$d" config user.name t
+	git -C "$d" config commit.gpgsign false
+	mkdir -p "$d/$(dirname "$1")"
+	printf 'seed\n' >"$d/seed.txt"
+	[ -n "$2" ] && printf '%s\n' "$2" >"$d/$1"
+	git -C "$d" add -A
+	git -C "$d" commit -q -m base
+	git -C "$d" tag base
+	printf '%s\n' "$3" >"$d/$1"
+	git -C "$d" add -A
+	git -C "$d" commit -q -m head
+	printf '%s' "$d"
+}
+
+# z6_check <path> <base> <head> — runs slop-check over the pair; sets OUT/ERR.
+z6_check() {
+	local d
+	d=$(z6_repo "$1" "$2" "$3")
+	run_slop "$d" --base base --no-tools
+	rm -rf "$d"
+}
+
+t_noslop_z6_suppression_without_reason_fires() {
+	z6_check src/a.py "x = 1" 'x = 1  # noqa: E501'
+	assert_rc 0 "advisory exit"
+	assert_contains "$OUT" "src/a.py:1: NS-09 suppression without a reason" "noqa without a reason"
+	z6_check src/a.ts "const a = 1;" '// eslint-disable-next-line no-console'
+	assert_contains "$OUT" "NS-09 suppression without a reason" "eslint-disable without a reason"
+	z6_check src/b.ts "const a = 1;" '// biome-ignore lint/suspicious/noExplicitAny'
+	assert_contains "$OUT" "NS-09 suppression without a reason" "biome-ignore without a reason"
+	z6_check src/c.ts "const a = 1;" '/* istanbul ignore next */'
+	assert_contains "$OUT" "NS-09 suppression without a reason" "istanbul ignore without a reason"
+}
+
+t_noslop_z6_arithmetic_before_marker_is_not_a_reason() {
+	z6_check src/a.py "x = 1" 'total = price - discount  # noqa: E501'
+	assert_contains "$OUT" "NS-09 suppression without a reason" "spaced subtraction is code, not a reason"
+	z6_check src/a.ts "const a = 1;" 'const s = since(x); // eslint-disable-line'
+	assert_contains "$OUT" "NS-09 suppression without a reason" "a since( identifier is not a reason"
+}
+
+t_noslop_z6_suppression_with_reason_is_exempt() {
+	z6_check src/a.ts "const a = 1;" '// eslint-disable-next-line no-console -- dev server banner'
+	assert_eq "$OUT" "" "eslint-disable with a -- reason is not reported"
+	z6_check src/b.ts "const a = 1;" '// biome-ignore lint/suspicious/noExplicitAny: third-party callback type'
+	assert_eq "$OUT" "" "biome-ignore with a reason is not reported"
+	z6_check src/a.py "x = 1" 'x = 1  # noqa: E501 - long vendored URL'
+	assert_eq "$OUT" "" "noqa with a reason is not reported"
+}
+
+t_noslop_z6_preexisting_suppression_is_not_reported() {
+	z6_check src/a.py 'x = 1  # noqa: E501' $'x = 1  # noqa: E501\ny = 2'
+	assert_not_contains "$OUT" "suppression" "a suppression that predates the diff is silent"
+}
+
+t_noslop_z6_test_env_sniffing_fires() {
+	z6_check src/a.ts "const a = 1;" 'const fast = !!process.env.CI;'
+	assert_contains "$OUT" "src/a.ts:1: NS-09 test-runner check in non-test code" "process.env.CI"
+	z6_check src/a.py "x = 1" 'if os.environ.get("PYTEST_CURRENT_TEST"): pass'
+	assert_contains "$OUT" "NS-09 test-runner check in non-test code" "PYTEST_CURRENT_TEST"
+	z6_check src/b.ts "const a = 1;" 'const t = process.env.JEST_WORKER_ID;'
+	assert_contains "$OUT" "NS-09 test-runner check in non-test code" "JEST_WORKER_ID"
+}
+
+t_noslop_z6_test_env_near_misses_are_silent() {
+	z6_check src/page.tsx "const a = 1;" 'const dev = process.env.NODE_ENV === "development";'
+	assert_eq "$OUT" "" "NODE_ENV in a .tsx file is not reported"
+	z6_check src/a.ts "const a = 1;" 'const c = process.env.CI_TOKEN;'
+	assert_eq "$OUT" "" "CI_TOKEN is not process.env.CI"
+	z6_check src/a.test.ts "const a = 1;" 'const fast = !!process.env.CI;'
+	assert_not_contains "$OUT" "test-runner check" "a test file may read the runner env"
+}
+
+t_noslop_z6_tobe_loosened_to_greater_than_fires() {
+	z6_check src/a.test.ts 'expect(n).toBe(3);' 'expect(n).toBeGreaterThan(0);'
+	assert_contains "$OUT" "NS-13 exact count loosened to a bound" "toBe(3) -> toBeGreaterThan"
+	z6_check src/b.test.ts 'expect(n).toBe(3);' 'expect(n).toBeGreaterThanOrEqual(1);'
+	assert_contains "$OUT" "NS-13 exact count loosened to a bound" "toBe(3) -> toBeGreaterThanOrEqual"
+}
+
+t_noslop_z6_tobe_near_misses_are_silent() {
+	z6_check src/a.test.ts 'expect(n).toBe(3);' 'expect(n).toBe(4);'
+	assert_not_contains "$OUT" "loosened to a bound" "toBe(3) -> toBe(4) is not a loosening"
+	z6_check src/b.test.ts 'expect(a).toBe(true);' $'expect(a).toBe(true);\nexpect(n).toBeGreaterThan(0);'
+	assert_not_contains "$OUT" "loosened to a bound" "a new bound beside an untouched toBe is not a loosening"
+}
+
+t_noslop_z6_clean_diff_prints_nothing() {
+	z6_check src/a.ts "const a = 1;" 'const b = compute(a) + 1;'
+	assert_eq "$OUT" "" "a clean diff prints nothing on stdout"
+}
+
+# F136: pr-body.md carries the Gate edits line and the rule that none needs an
+# exit-0 scan; a bogus Base is UNAVAILABLE (exit 2), which the line must not
+# turn into "none".
+t_noslop_z6_pr_body_gate_edits_line() {
+	local b
+	b=$(cat "$SCAN_DIR/../skills/shared/pr-body.md")
+	assert_contains "$b" "Gate edits: none detected | N listed" "pr-body states the Gate edits line"
+	assert_contains "$b" "UNAVAILABLE: <reason>" "pr-body names the UNAVAILABLE form"
+	assert_contains "$b" "\`none detected\` needs an exit-0 scan" "pr-body states the rule that none needs exit 0"
+	assert_contains "$b" "slop-check --base" "pr-body names the scan the line is filled from"
+}
+
+t_noslop_z6_bogus_base_scan_is_unavailable_not_none() {
+	local d
+	d=$(z6_repo src/a.ts "const a = 1;" 'const b = 2;')
+	run_slop "$d" --base no-such-ref --no-tools
+	assert_rc 2 "a bogus Base exits 2, which the PR body reports as UNAVAILABLE"
+	rm -rf "$d"
+}
+
+# F135(d): next's Gates step runs the Base..HEAD scan and the [skip ci] grep.
+t_noslop_z6_next_gates_run_gate_scan() {
+	local s
+	s=$(cat "$SCAN_DIR/../skills/next/SKILL.md")
+	assert_contains "$s" "slop-check --base <Base>" "next Gates runs slop-check over Base..HEAD"
+	assert_contains "$s" 'grep -F "[skip ci]"' "next Gates greps the log for [skip ci]"
 }

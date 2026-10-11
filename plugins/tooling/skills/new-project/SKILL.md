@@ -169,6 +169,8 @@ Do NOT add OS/editor files (`.DS_Store`, `.vscode/`, `.idea/`) to project `.giti
 
 If the project is likely to use env vars (Python service, Node API, any web app, anything with a database or LLM API), write `.env.example` with placeholder values and inline comments. **Missing `.env.example` is the #1 onboarding friction cause.** It costs nothing to create.
 
+Real values never pass through chat. Leave `.env.example` as placeholders and have the user fill `.env` in their own shell (`read -rs X && printf 'X=%s\n' "$X" >> .env`) or through a `/wizard` stage; check a value by prefix or length, never by printing it. The full rule is `secrets.md` in the flow plugin's `skills/shared/` directory (flow's `/flow:next` and `/flow:spec` follow it too).
+
 ### 5d. .envrc
 
 If `.env` will exist, write `.envrc` with `dotenv` (direnv is active in user's shell).

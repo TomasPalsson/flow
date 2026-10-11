@@ -86,6 +86,7 @@ KEYBOARD:
 [ ] Enter/Space activates buttons and links
 [ ] Escape closes modals/dropdowns
 [ ] Focus trapped inside open modals
+[ ] Skip-to-content link is the first focusable element on pages with nav
 
 SEMANTIC HTML:
 [ ] Heading hierarchy correct (h1 → h2 → h3)
@@ -93,6 +94,8 @@ SEMANTIC HTML:
 [ ] Images have meaningful alt text (or role="presentation")
 [ ] Buttons used for actions, links for navigation
 [ ] Lists use ul/ol, not div soup
+[ ] Text zoomed to 200% loses no content or function
+[ ] Name/email/address/password inputs carry the right autocomplete token
 
 ARIA:
 [ ] Icon-only buttons have aria-label
@@ -173,6 +176,7 @@ Before finalizing the QA report:
 ```
 [ ] Verdict is clear: PASS / PASS WITH NOTES / FAIL
 [ ] Every ship-blocker has reproduction steps
+[ ] every ship-blocker is Confirmed by a replay (or moved to Should Fix as Observed-once, replay needed)
 [ ] Every issue has file:line or browser evidence
 [ ] "Passed Checks" section is populated (what was tested and clean)
 [ ] "Not Tested" section explains gaps

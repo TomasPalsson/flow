@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""receipt-check - mechanical check of review findings' receipts.
+
+Usage: receipt-check --diff <review-package diff> --root <repo root> < findings.json
+
+stdin is a JSON array of findings (or {"findings": [...]}), each with file, line
+and an optional quote. Prints one compact JSON array, one object per finding in
+input order: {"index", "disposition", "line", "reason"}.
+
+  verified      the quote is within 5 lines of the cited line at head, or on a
+                '-' line of that file's hunks in the diff
+  moved         the quote is elsewhere in the same file; "line" is corrected
+  unsupported   the quote exists only in another file of the diff
+  failed        the file is neither at head nor deleted in the diff, the path
+                leaves the root, or the quote appears nowhere
+  unverifiable  no quote given, or the finding is malformed
+
+Only "failed" is meant to dismiss a finding. Never throws on a bad finding.
+Exit 2 on a usage error (bad flags, unreadable diff, unparseable stdin).
+
+Credit: adapted from vercel-labs/agent-skills vercel-optimize/lib/verify-claim.mjs @ 063bee9 (MIT).
+"""
+import json
+import os
+import sys
+
+WINDOW = 5
+
+
+def norm(text):
+    return " ".join(str(text).split())
+
+
+def parse_diff(path):
+    """Return {file: {"removed": [text], "all": [text], "deleted": bool}}."""
+    files = {}
+    cur = None
+    in_hunk = False
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            line = raw.rstrip("\n")
+            if line.startswith("diff --git "):
+                in_hunk = False
+                parts = line.split(" b/", 1)
+                name = parts[1] if len(parts) == 2 else None
+                if name is None:
+                    cur = None
+                    continue
+                cur = files.setdefault(name, {"removed": [], "all": [], "deleted": False})
+                continue
+            if cur is None:
+                continue
+            if not in_hunk:
+                if line.startswith("deleted file mode"):
+                    cur["deleted"] = True
+                elif line.startswith("@@"):
+                    in_hunk = True
+                continue
+            if line.startswith("@@"):
+                continue
+            if line.startswith("-"):
+                cur["removed"].append(line[1:])
+                cur["all"].append(line[1:])
+            elif line.startswith("+") or line.startswith(" "):
+                cur["all"].append(line[1:])
+    return files
+
+
+def relativize(root, rel):
+    """An absolute path under the root becomes root-relative; anything else is unchanged."""
+    if isinstance(rel, str) and os.path.isabs(rel):
+        base = os.path.realpath(root)
+        full = os.path.realpath(rel)
+        if full.startswith(base + os.sep):
+            return os.path.relpath(full, base)
+    return rel
+
+
+def safe_path(root, rel):
+    if not isinstance(rel, str) or not rel or os.path.isabs(rel):
+        return None
+    full = os.path.realpath(os.path.join(root, rel))
+    base = os.path.realpath(root)
+    if full != base and not full.startswith(base + os.sep):
+        return None
+    return full
+
+
+def read_lines(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read().split("\n")
+    except OSError:
+        return None
+
+
+def occurrences(lines, quote):
+    """Return the 1-based line numbers where the normalised quote starts."""
+    nlines = [norm(x) for x in lines]
+    joined = ""
+    starts = []
+    for n in nlines:
+        starts.append(len(joined))
+        joined += n + " "
+    hits = []
+    pos = joined.find(quote)
+    while pos != -1:
+        idx = 0
+        for i, s in enumerate(starts):
+            if s <= pos:
+                idx = i
+            else:
+                break
+        hits.append(idx + 1)
+        pos = joined.find(quote, pos + 1)
+    return hits
+
+
+def contains(lines, quote):
+    return bool(occurrences(lines, quote))
+
+
+def result(index, disposition, line=None, reason=""):
+    return {"index": index, "disposition": disposition, "line": line, "reason": reason}
+
+
+def check(index, finding, root, diff):
+    if not isinstance(finding, dict):
+        return result(index, "unverifiable", None, "finding is not an object")
+    rel = relativize(root, finding.get("file"))
+    line = finding.get("line")
+    line = line if isinstance(line, int) and not isinstance(line, bool) else None
+    quote = norm(finding.get("quote") or "")
+    path = safe_path(root, rel)
+    if path is None:
+        if isinstance(rel, str) and rel:
+            return result(index, "failed", line, "path " + rel + " is outside the repo root")
+        return result(index, "unverifiable", line, "no file given")
+    section = diff.get(rel)
+    head_lines = read_lines(path) if os.path.isfile(path) else None
+    if head_lines is None:
+        if section is None or not section["deleted"]:
+            return result(index, "failed", line, "file " + rel + " not found at head or deleted in the diff")
+        if not quote:
+            return result(index, "unverifiable", line, "no quote")
+        if contains(section["removed"], quote) or (quote[:1] in ("+", "-") and contains(section["removed"], quote[1:].strip())):
+            return result(index, "verified", line, "")
+        return result(index, "failed", line, "quote not found in the removed lines of " + rel)
+    if not quote:
+        return result(index, "unverifiable", line, "no quote")
+    hits = occurrences(head_lines, quote)
+    if not hits and quote[:1] in ("+", "-") and len(quote) > 1:
+        # a quote copied from the diff keeps its hunk marker; retry without it
+        stripped = quote[1:].strip()
+        if stripped and (occurrences(head_lines, stripped) or (section is not None and contains(section["removed"], stripped))):
+            quote = stripped
+            hits = occurrences(head_lines, quote)
+    if line is not None:
+        for h in hits:
+            if abs(h - line) <= WINDOW:
+                return result(index, "verified", line, "")
+    if section is not None and contains(section["removed"], quote):
+        return result(index, "verified", line, "")
+    if hits:
+        ref = line if line is not None else 1
+        best = sorted(hits, key=lambda h: (abs(h - ref), h))[0]
+        return result(index, "moved", best, "quote found at line " + str(best))
+    for name, other in diff.items():
+        if name != rel and contains(other["all"], quote):
+            return result(index, "unsupported", line, "quote found only in " + name)
+    return result(index, "failed", line, "quote not found in " + rel + " or the diff")
+
+
+def main(argv):
+    diff_path = None
+    root = None
+    args = list(argv)
+    while args:
+        a = args.pop(0)
+        if a in ("-h", "--help"):
+            print(__doc__.strip())
+            return 0
+        if a == "--diff" and args:
+            diff_path = args.pop(0)
+        elif a == "--root" and args:
+            root = args.pop(0)
+        else:
+            sys.stderr.write("receipt-check: unknown or incomplete argument " + a + "\n")
+            return 2
+    if not diff_path or not root:
+        sys.stderr.write("receipt-check: --diff and --root are required\n")
+        return 2
+    try:
+        diff = parse_diff(diff_path)
+    except OSError as e:
+        sys.stderr.write("receipt-check: cannot read diff: " + str(e) + "\n")
+        return 2
+    try:
+        data = json.loads(sys.stdin.read())
+    except ValueError:
+        sys.stderr.write("receipt-check: stdin is not JSON\n")
+        return 2
+    if isinstance(data, dict):
+        data = data.get("findings")
+    if not isinstance(data, list):
+        sys.stderr.write("receipt-check: expected a JSON array of findings\n")
+        return 2
+    out = [check(i, f, root, diff) for i, f in enumerate(data)]
+    sys.stdout.write(json.dumps(out, separators=(",", ":")) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -59,7 +59,7 @@ If the goal cannot be written as a command, write the closest command you can an
 
 When the goal is a number to move (an eval score, a latency, a bundle size, a count of failures) rather than a check to turn green, use the metric form. A pass/fail verifier cannot express "better than before", and a hand-run climb loses the record of what was tried. Read [`references/verifier-design.md`](references/verifier-design.md) §7 for the command, then arm with `--metric` in Step 4.
 
-In this form `--verify` is the regression gate (it must stay green), and the loop keeps a commit only when the median of `--runs` metric runs beats the best value by more than the noise measured at init. A rejected attempt is undone with `git revert`, so it stays in history, and every attempt is a row in `.claude/loop/decisions.tsv`. The tree must be clean at init.
+In this form `--verify` is the regression gate (it must stay green), and the loop keeps a commit only when the median of `--runs` metric runs beats the best value by more than the noise measured at init. A rejected attempt is undone with `git revert`, so it stays in history, and every attempt is a row in `.claude/loop/decisions.tsv`. The tree must be clean at init. A win inside twice the noise is measured once more before it is kept. Add `--holdout '<cmd printing one number>'` when the metric can be overfit: a candidate whose holdout score regresses is reverted, and the holdout numbers stay out of the prompt (see `verifier-design.md` §7).
 
 ## Step 3 — Write the per-iteration prompt and the task list
 
@@ -81,7 +81,7 @@ For a metric goal, arm with `--metric` instead (the tree must be clean; `--targe
 
 ```bash
 flow loop init "<goal>" --metric '<cmd printing one number>' --direction max|min --runs 3 \
-  --min-attempts N [--target V] [--verify "<regression gate>"] [--shape fresh]
+  --min-attempts N [--target V] [--verify "<regression gate>"] [--holdout '<cmd>'] [--shape fresh]
 ```
 
 `init` writes `.claude/loop/loop.md` (the contract), runs the verifier once (must be red), records the base commit and the test-file count, and prints the caps. Defaults: session 8 iterations; fresh 30 iterations, 480 minutes, `stall_after` 3.

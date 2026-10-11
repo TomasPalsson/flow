@@ -105,6 +105,17 @@ assert_file_missing() {
   if [ ! -e "$1" ]; then _pass "$2"; else _fail "$2" "file exists: $1"; fi
 }
 
+# postinc_hits <file> — "<file>:<line> ..." for each bare ((n++)) in a file that
+# runs under `set -e` (a line starting with `set -...e...`). ((n++)) evaluates to
+# the OLD value, so the first increment from 0 is a false status and `set -e`
+# exits. Comment lines and lines marked portable-ok are exempt.
+postinc_hits() {
+  grep -qE '^[[:space:]]*set[[:space:]]+-[a-zA-Z]*e' "$1" 2>/dev/null || return 0
+  grep -nE '\(\([[:space:]]*[A-Za-z_][A-Za-z_0-9]*\+\+[[:space:]]*\)\)' "$1" 2>/dev/null |
+    grep -v 'portable-ok' | grep -vE '^[0-9]+:[[:space:]]*#' |
+    sed "s|^|$1:|; s|\$|  -- use n=\$((n+1)), not ((n++)): it exits a set -e script when n is 0|" || true
+}
+
 summary() {
   printf '\n%s passed, %s failed\n' "$PASS" "$FAIL"
   if [ "$FAIL" -gt 0 ]; then

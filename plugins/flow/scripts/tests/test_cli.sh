@@ -355,6 +355,20 @@ EOF
 
 # FU-12 for ruff: C901 names the function first, and `sha256_digest` puts 256
 # in front of the real measurement (42).
+t_cli_init_python_never_commits_a_machine_local_venv_path() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	printf '[project]\nname = "x"\n\n[tool.pytest.ini_options]\n' >"$proj/pyproject.toml"
+	_cli_stub "$proj/.venv/bin/pytest" 'exit 0' 'exit 0'
+	cli_in "$proj" "$home" init --stack python
+	assert_rc 0 "t_cli_init_python_never_commits_a_machine_local_venv_path rc"
+	assert_not_contains "$(cat "$proj/CLAUDE.md")" "$proj" "t_cli_init_python_never_commits_a_machine_local_venv_path claude-md"
+	assert_not_contains "$(cat "$proj/.github/workflows/gates.yml")" "$proj" "t_cli_init_python_never_commits_a_machine_local_venv_path gates-yml"
+	assert_contains "$(cat "$proj/.github/workflows/gates.yml")" "run: pytest" "t_cli_init_python_never_commits_a_machine_local_venv_path bare-runner"
+	rm -rf "$home" "$proj"
+}
+
 t_cli_init_python_ruff_complexity_ignores_digits_in_the_function_name() {
 	local home proj thresholds
 	home=$(tmp_dir)
@@ -1387,4 +1401,158 @@ EOF
 	assert_contains "$OUT" "the gate can start red" "t_cli_init_node_unmeasured_thresholds_are_named_as_defaults says-gate-may-start-red"
 
 	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# declared gates (F130) — gates: [{name, cmd}] in .claude/flow.config.json
+# ---------------------------------------------------------------------------
+
+t_cli_doctor_declared_gate_makes_a_manifest_free_repo_gated() {
+	local home proj block
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	mkdir -p "$proj/.claude"
+	printf 'resource "x" "y" {}\n' >"$proj/main.tf"
+	printf '{ "gates": [ { "name": "fmt", "cmd": "echo fmt-ok" } ] }\n' >"$proj/.claude/flow.config.json"
+
+	cli_in "$proj" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "gates-runnable"')
+	assert_contains "$block" '"status": "PASS"' "t_cli_doctor_declared_gate_makes_a_manifest_free_repo_gated status-pass"
+	assert_contains "$block" '1 gate(s)' "t_cli_doctor_declared_gate_makes_a_manifest_free_repo_gated one-gate"
+	assert_not_contains "$block" 'no gates to run' "t_cli_doctor_declared_gate_makes_a_manifest_free_repo_gated not-empty"
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "config-schema"')
+	assert_contains "$block" '"status": "PASS"' "t_cli_doctor_declared_gate_makes_a_manifest_free_repo_gated schema-pass"
+
+	rm -rf "$home" "$proj"
+}
+
+t_cli_doctor_config_schema_rejects_malformed_gates() {
+	local home proj block
+	home=$(tmp_dir)
+	proj=$(tmp_dir)
+	mkdir -p "$proj/.claude"
+	printf '{ "gates": [ { "name": "fmt" }, { "name": "", "cmd": "x" } ] }\n' >"$proj/.claude/flow.config.json"
+
+	cli_in "$proj" "$home" doctor --json
+	block=$(printf '%s' "$OUT" | grep -A2 '"id": "config-schema"')
+	assert_contains "$block" '"status": "FAIL"' "t_cli_doctor_config_schema_rejects_malformed_gates status-fail"
+	assert_contains "$block" 'gates must be an array of {name, cmd}' "t_cli_doctor_config_schema_rejects_malformed_gates names-key"
+
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# archive (F102) — guarded move of a shipped feature into .specs/archive/
+# ---------------------------------------------------------------------------
+
+# _cli_archive_repo <slug> — a committed repo holding .specs/<slug>/TASKS.md.
+_cli_archive_repo() {
+	local proj slug
+	slug=$1
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs/$slug"
+	printf '# Tasks\n' >"$proj/.specs/$slug/TASKS.md"
+	printf 'x\n' >"$proj/.specs/$slug/spec.md"
+	(cd "$proj" && git add .specs && git commit -q -m "add spec") >/dev/null 2>&1
+	printf '%s' "$proj"
+}
+
+t_cli_archive_moves_and_appends_ledger() {
+	local home proj day
+	home=$(tmp_dir)
+	proj=$(_cli_archive_repo 007-demo)
+	day=$(date +%Y-%m-%d)
+
+	cli_in "$proj" "$home" archive 007-demo
+	assert_rc 0 "t_cli_archive_moves_and_appends_ledger rc"
+	assert_file_exists "$proj/.specs/archive/$day-007-demo/TASKS.md" "t_cli_archive_moves_and_appends_ledger tasks-at-depth-1"
+	assert_file_missing "$proj/.specs/007-demo" "t_cli_archive_moves_and_appends_ledger source-gone"
+	assert_contains "$(cat "$proj/.specs/LEDGER.md")" "$day · 007-demo · merged" "t_cli_archive_moves_and_appends_ledger ledger-line"
+
+	rm -rf "$home" "$proj"
+}
+
+t_cli_archive_refuses_existing_target() {
+	local home proj day
+	home=$(tmp_dir)
+	proj=$(_cli_archive_repo 007-demo)
+	day=$(date +%Y-%m-%d)
+	mkdir -p "$proj/.specs/archive/$day-007-demo"
+	printf 'old\n' >"$proj/.specs/archive/$day-007-demo/keep.md"
+
+	cli_in "$proj" "$home" archive 007-demo
+	assert_rc 1 "t_cli_archive_refuses_existing_target rc"
+	assert_contains "$ERR" "already exists" "t_cli_archive_refuses_existing_target says-why"
+	assert_file_exists "$proj/.specs/007-demo/TASKS.md" "t_cli_archive_refuses_existing_target source-untouched"
+	assert_file_missing "$proj/.specs/archive/$day-007-demo/007-demo" "t_cli_archive_refuses_existing_target no-nesting"
+	assert_file_exists "$proj/.specs/archive/$day-007-demo/keep.md" "t_cli_archive_refuses_existing_target target-untouched"
+	assert_file_missing "$proj/.specs/LEDGER.md" "t_cli_archive_refuses_existing_target no-ledger-line"
+
+	rm -rf "$home" "$proj"
+}
+
+t_cli_next_skill_archives_through_flow_archive() {
+	local skill
+	skill=$(cat "$SCAN_DIR/../skills/next/SKILL.md")
+	assert_contains "$skill" 'run `flow archive [<NNN-slug>]`' "t_cli_next_skill_archives_through_flow_archive names-the-command"
+	assert_contains "$skill" 'It exits 1 when the target already exists' "t_cli_next_skill_archives_through_flow_archive states-the-guard"
+}
+
+t_cli_archive_does_not_reprefix_dated_slug() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(_cli_archive_repo 2026-01-02-007-demo)
+
+	cli_in "$proj" "$home" archive 2026-01-02-007-demo
+	assert_rc 0 "t_cli_archive_does_not_reprefix_dated_slug rc"
+	assert_file_exists "$proj/.specs/archive/2026-01-02-007-demo/TASKS.md" "t_cli_archive_does_not_reprefix_dated_slug single-prefix"
+	assert_eq "$(ls "$proj/.specs/archive")" "2026-01-02-007-demo" "t_cli_archive_does_not_reprefix_dated_slug only-entry"
+
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# unknown flags (F128) — exit 2 before any state is computed
+# ---------------------------------------------------------------------------
+
+t_cli_next_unknown_flag_exits_2_without_moving_counter() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	mkdir -p "$proj/.specs"
+	printf '7\n' >"$proj/.specs/.next-call-count"
+
+	cli_in "$proj" "$home" next --jsno
+	assert_rc 2 "t_cli_next_unknown_flag_exits_2_without_moving_counter jsno"
+	assert_contains "$ERR" "unknown option '--jsno'" "t_cli_next_unknown_flag_exits_2_without_moving_counter names-flag"
+	assert_contains "$ERR" "usage: flow next" "t_cli_next_unknown_flag_exits_2_without_moving_counter prints-usage"
+	assert_eq "$(cat "$proj/.specs/.next-call-count")" "7" "t_cli_next_unknown_flag_exits_2_without_moving_counter counter-unchanged"
+
+	cli_in "$proj" "$home" next --json --bogus
+	assert_rc 2 "t_cli_next_unknown_flag_exits_2_without_moving_counter bogus"
+
+	cli_in "$proj" "$home" next --json --peek
+	assert_rc 0 "t_cli_next_unknown_flag_exits_2_without_moving_counter declared-still-ok"
+
+	rm -rf "$home" "$proj"
+}
+
+# Every `flow <sub> --flag` the shipped docs, hooks and scripts mention must
+# be a declared flag (FLOW_ARGV_CHECK=1 validates argv and stops).
+t_cli_documented_flags_are_all_accepted() {
+	local plugins pairs sub flag bad
+	plugins=$(cd "$SCAN_DIR/../.." && pwd -P)
+	bad=""
+	pairs=$(grep -rhoE 'flow (doctor|init|install|statusline|off|on|pass|use|tick|publish|stealth|lint|finish|next|digest|archive)( [A-Za-z0-9]+)*( --[a-z][a-z-]*)+' \
+		--include='*.md' --include='*.sh' --include='*.json' --include='*.js' --include='*.py' "$plugins" 2>/dev/null |
+		awk '{ for (i = 3; i <= NF; i++) if ($i ~ /^--/) print $2, $i }' | sort -u)
+	while read -r sub flag; do
+		[ -n "$sub" ] || continue
+		FLOW_ARGV_CHECK=1 run_cmd node "$CLI_PATH" "$sub" "$flag"
+		[ "$RC" -eq 2 ] && bad="$bad $sub:$flag"
+	done <<EOF2
+$pairs
+EOF2
+	assert_eq "$bad" "" "t_cli_documented_flags_are_all_accepted rejected-pairs"
+	if [ -n "$pairs" ]; then _pass "t_cli_documented_flags_are_all_accepted found-pairs"; else _fail "t_cli_documented_flags_are_all_accepted found-pairs" "scan matched nothing"; fi
 }

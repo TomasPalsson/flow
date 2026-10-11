@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: "Explore a codebase systematically using parallel exploration agents, then generate bold improvement ideas from transformative redesigns to quick wins using structured divergent/convergent ideation, and deliver them as a single-file interactive HTML site. Outputs ideas with 7-field Idea Passports (problem, evidence, who, impact, solution, effort, confidence) grouped into Foundation/Growth/Delight tiers, rendered as a polished, shareable HTML page styled via the frontend-design skill. Use INSTEAD of ad-hoc brainstorming when structured, evidence-backed output is needed. Trigger when: user asks to brainstorm, generate ideas, suggest improvements, 'what should I build', 'how can I improve this', 'what's missing', 'ideas for', 'what would make this better', 'opportunities in this codebase', 'UX improvements', 'DX improvements', 'what should we change', review for opportunities."
+description: "Explore a codebase systematically using parallel exploration agents, then generate bold improvement ideas from transformative redesigns to quick wins using structured divergent/convergent ideation, and deliver them as a single-file interactive HTML site. Outputs ideas with 7-field Idea Passports (problem, evidence, who, impact, solution, effort, confidence) grouped into Foundation/Growth/Delight tiers, rendered as a polished, shareable HTML page styled via the design:design skill. Use INSTEAD of ad-hoc brainstorming when structured, evidence-backed output is needed. Trigger when: user asks to brainstorm, generate ideas, suggest improvements, 'what should I build', 'how can I improve this', 'what's missing', 'ideas for', 'what would make this better', 'opportunities in this codebase', 'UX improvements', 'DX improvements', 'what should we change', review for opportunities."
 ---
 
 # Brainstorm
@@ -19,16 +19,16 @@ Generate genuinely useful, codebase-grounded improvement ideas — from bold tra
 
 ---
 
-## Load Frontend Design Skill First
+## Load the Design Skill First
 
-**Before writing the HTML output in Phase 4, invoke the frontend-design skill.** The frontend-design skill provides the aesthetic guidance that prevents generic, flat, AI-looking output. Without it, the brainstorm page will look like every other AI-generated page and undermine the credibility of the ideas themselves.
+**Before writing the HTML output in Phase 4, invoke the design:design skill.** It holds the aesthetic and UX rules that prevent generic, flat, AI-looking output. Without it, the brainstorm page will look like every other AI-generated page and undermine the credibility of the ideas themselves.
 
 ```
 Skill tool call:
-  skill: "frontend-design:frontend-design"
+  skill: "design:design"
 ```
 
-Apply its guidance to every visual decision — palette, typography, spacing, component styling, motion. The brainstorm skill owns *structure and content* (tiers, Passports, evidence); frontend-design owns *aesthetics*. Invoke it BEFORE you start the HTML in Phase 4, not after — retrofitting aesthetic choices onto a finished page produces worse results than designing with them from the start.
+Apply its guidance to every visual decision — palette, typography, spacing, component styling, motion. The brainstorm skill owns *structure and content* (tiers, Passports, evidence); design:design owns *aesthetics*. Invoke it BEFORE you start the HTML in Phase 4, not after — retrofitting aesthetic choices onto a finished page produces worse results than designing with them from the start.
 
 ---
 
@@ -223,7 +223,7 @@ The output is a single self-contained HTML file, not a chat reply. The chat resp
 
 ### Before writing any HTML
 
-1. **Confirm the frontend-design skill was invoked** (see the "Load Frontend Design Skill First" section near the top). If not, invoke it now. Its color, typography, spacing, and motion guidance drives every visual decision below. Without it, the page will look like default AI output and the ideas will inherit that credibility hit.
+1. **Confirm the design:design skill was invoked** (see the "Load the Design Skill First" section near the top). If not, invoke it now. Its color, typography, spacing, and motion guidance drives every visual decision below. Without it, the page will look like default AI output and the ideas will inherit that credibility hit.
 2. **Choose the aesthetic direction** that fits the codebase. A brainstorm for a CLI tool should not look like a consumer SaaS landing page. Match the visual voice to the subject: editorial restraint for infra/tooling, higher energy for product UX brainstorms.
 
 ### What the HTML must contain
@@ -257,8 +257,8 @@ Single `.html` file — CSS in `<style>`, JS in `<script>`, libraries via CDN on
   3. **Scroll-spy Table of Contents.** Sticky side or top ToC with "you are here" highlight driven by IntersectionObserver using `rootMargin: '-10% 0px -85% 0px'` for the thin-band trigger. Non-negotiable for a 1,500+ line document.
 - **Priority stack default state.** Foundation tier expanded on load. Growth shows the first 2 lines of each card with a "Show more" reveal. Delight is collapsed behind a single reveal affordance. Hierarchy should be visible before any interaction.
 - **Epistemic border on every idea card.** Confidence is rendered as a left-border treatment — solid (High), dashed (Med), dotted (Low) — not only as a badge. Still include the badge for screen-reader clarity.
-- **Tier color applied consistently.** Foundation/Growth/Delight each get one accent color (from the frontend-design palette) and that color appears on cards, tabs, legend, and chart series. Don't let the Chart.js legend be the only place tiers are color-coded.
-- **Dark/light theme toggle** with correct color tokens from the frontend-design palette. For ECharts, read CSS vars via `getComputedStyle(document.documentElement)` at init and on theme change, then pass to ECharts options (ECharts themes are JSON, not CSS-driven).
+- **Tier color applied consistently.** Foundation/Growth/Delight each get one accent color (from the design:design palette) and that color appears on cards, tabs, legend, and chart series. Don't let the Chart.js legend be the only place tiers are color-coded.
+- **Dark/light theme toggle** with correct color tokens from the design:design palette. For ECharts, read CSS vars via `getComputedStyle(document.documentElement)` at init and on theme change, then pass to ECharts options (ECharts themes are JSON, not CSS-driven).
 - **Mobile responsive** at 375px. The bipartite brushing view collapses to per-card chip tags; the DAG collapses to a numbered "what requires what" list; the treemap collapses to a sorted severity list.
 - **Accessibility** — skip link first, semantic HTML (`<main>`, `<section>`, `<article>` per idea), `aria-label` on tabs, ARIA live region for brushing announcements ("Idea X cites 3 findings"), `prefers-reduced-motion` disables animations. Every diagram has a textual `<details>` data-table fallback.
 - **No placeholder text.** Every word is a real finding, idea, or evidence citation about this specific codebase.
@@ -316,9 +316,9 @@ These are what separate a competent-looking page from a page that reads as a cur
   <title>Brainstorm: [repo name]</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Fonts (frontend-design picks the families), ECharts, D3, d3-dag, Mermaid 11, Chart.js — see Library toolkit above -->
+  <!-- Fonts (design:design picks the families), ECharts, D3, d3-dag, Mermaid 11, Chart.js — see Library toolkit above -->
   <style>
-    /* Tokens from frontend-design skill (light + dark) */
+    /* Tokens from design:design skill (light + dark) */
     /* Reset / base / layout / components / motion */
     /* Tier colors: --tier-foundation, --tier-growth, --tier-delight — used on cards, tabs, chart series */
     /* Epistemic borders: .idea[data-conf="high"] { border-left: 3px solid var(--accent) } etc. */

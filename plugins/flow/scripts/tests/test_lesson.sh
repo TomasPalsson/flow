@@ -361,3 +361,55 @@ t_lesson_skill_M09_retro_routing() {
 	assert_contains "$s" "Lucky path" "M09: lucky path category"
 	assert_contains "$s" "Hand-fed context" "M09: hand-fed context category"
 }
+
+# ---- F28/F29: instruction form and control arm on skill / CLAUDE.md rungs ----
+
+t_lesson_record_form_required_on_skill_rung() {
+	local d
+	d=$(tmp_dir)
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "skill-rung ruling without --form exits 2"
+	assert_contains "$ERR" "--form" "the refusal names --form"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung claude-md --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "CLAUDE.md-rung ruling without --form exits 2"
+	assert_eq "$([ -f "$d/PROGRESS.md" ] && echo yes || echo no)" "no" "nothing is written on refusal"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form recipe --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 0 "skill-rung ruling with --form recipe is recorded"
+	assert_contains "$OUT" "form: recipe" "the ruling line carries form:"
+	assert_contains "$(cat "$d/PROGRESS.md")" "form: recipe" "PROGRESS.md holds the form"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung test --what "t" --mechanism "m" --cost "c" --rejected "none"
+	assert_rc 0 "a test-rung ruling needs no --form"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --form shouting --what "x" --mechanism "m" --cost "c" --rejected "none"
+	assert_rc 2 "an unknown --form value exits 2"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung nonsense --what "y" --mechanism "m" --cost "c" --rejected "none"
+	assert_rc 2 "an unknown --rung value exits 2"
+	rm -rf "$d"
+}
+
+t_lesson_record_prohibition_needs_control_arm() {
+	local d
+	d=$(tmp_dir)
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form prohibition --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "a prohibition on the skill rung without --control exits 2"
+	assert_contains "$ERR" "control arm first" "the refusal says the control arm runs first"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form prohibition --control 0/5 --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "a control that never failed (0/5) exits 2"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form prohibition --control 3/4 --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "a control with fewer than 5 reps exits 2"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form prohibition --control abc --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "a malformed --control exits 2"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form recipe --control 3/5 --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 2 "--control with a non-prohibition form exits 2"
+	run_cmd "$RECORD" --file "$d/PROGRESS.md" --rung skill --form prohibition --control 4/5 --what "w" --mechanism "m" --cost "c" --rejected "test: none"
+	assert_rc 0 "a prohibition with a failing control (4/5) is recorded"
+	assert_contains "$OUT" "form: prohibition; control 4/5" "the ruling line carries the control result"
+	rm -rf "$d"
+}
+
+t_lesson_skill_names_form_and_control() {
+	local skill
+	skill=$(cat "$SCAN_DIR/../skills/lesson/SKILL.md")
+	assert_contains "$skill" "--form" "lesson skill passes --form for skill and CLAUDE.md rungs"
+	assert_contains "$skill" "control arm first" "lesson skill runs the control arm first for a prohibition"
+	assert_contains "$skill" "writing-for-agents.md" "lesson skill points at the form table"
+}

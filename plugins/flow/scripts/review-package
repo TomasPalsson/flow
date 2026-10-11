@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # review-package — write a review diff package for base..head. Never prints
 # the diff itself to stdout. Bash 3.2 compatible; see --help.
+# Credit: adapted from obra/superpowers skills/subagent-driven-development/scripts/review-package @ bb92a77 (MIT). Re-baselined 2026-10-10: the borrow-time sha is not recoverable.
 set -u
 
 usage() {
@@ -16,7 +17,18 @@ Writes to --out (default .claude/review/<base-short>..<head-short>.diff):
   (blank line)
   git diff -U10 base..head
 
+Line 1 of the file is `# review-package base=<full sha> head=<full sha>`, so a reader can
+tell which range a diff covers. A stale file at an explicit --out is removed once the arguments parse, before
+any ref check, so a failed run never leaves an old diff under the name a caller will read.
+
+Also writes <out>.anchors (one `file:line` per line the diff adds, new-side numbers) and
+<out>.files (one changed path per line, deleted files included). review-diff reads them
+to tell a finding on a changed line from one that predates the change, and to check that a
+reviewing lens read every changed file. Both are removed with a stale <out>.
+
 Prints the output path, then the line count of the written file.
+Exit 3 if <base> is not an ancestor of <head> (the diff would include the reverse of
+unrelated commits); stderr names `git merge-base <base> <head>` as the base to use.
 Exit 1 if a ref does not resolve, or if base..head changes nothing (an empty diff has
 nothing to review; "empty diff BASE..HEAD" goes to stderr and no file is written).
 The diff is never printed to stdout.
@@ -78,6 +90,9 @@ case "$BASE" in
 esac
 [ -z "$HEAD_REF" ] && HEAD_REF="HEAD"
 
+# A stale diff from an earlier run must not survive any failure below.
+[ -n "$OUT" ] && rm -f "$OUT" "$OUT.anchors" "$OUT.files"
+
 if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
   printf 'review-package: ref does not resolve: %s\n' "$BASE" >&2
   exit 1
@@ -85,6 +100,11 @@ fi
 if ! git rev-parse --verify "$HEAD_REF" >/dev/null 2>&1; then
   printf 'review-package: ref does not resolve: %s\n' "$HEAD_REF" >&2
   exit 1
+fi
+
+if ! git merge-base --is-ancestor "$BASE" "$HEAD_REF" 2>/dev/null; then
+  printf 'review-package: %s is not an ancestor of %s; use $(git merge-base %s %s)\n' "$BASE" "$HEAD_REF" "$BASE" "$HEAD_REF" >&2
+  exit 3
 fi
 
 if git diff --quiet "$BASE..$HEAD_REF"; then
@@ -103,12 +123,38 @@ OUT_DIR=$(dirname "$OUT")
 mkdir -p "$OUT_DIR"
 
 {
+  printf '# review-package base=%s head=%s\n' "$(git rev-parse "$BASE^{commit}")" "$(git rev-parse "$HEAD_REF^{commit}")"
   git log --oneline "$BASE..$HEAD_REF"
   printf '\n'
   git diff --stat "$BASE..$HEAD_REF"
   printf '\n'
   git diff -U10 "$BASE..$HEAD_REF"
 } >"$OUT"
+
+# Added-line anchors and the changed-path list. With -U0 a hunk header's "+c,d" is exactly
+# the new-side range the added lines occupy; pure-deletion hunks also anchor where code was removed.
+rm -f "$OUT.anchors" "$OUT.files"
+git -c core.quotePath=false diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ -U0 "$BASE..$HEAD_REF" |
+  awk '
+    # Body lines of a hunk are skipped by count, so an added line that reads "++ x" is never taken for a file header.
+    skip > 0 && !/^\\/ { skip--; next }
+    /^--- / { of = substr($0, 5); sub(/\t.*$/, "", of); if (of == "/dev/null") of = ""; else sub(/^a\//, "", of); next }
+    /^\+\+\+ / { f = substr($0, 5); sub(/\t.*$/, "", f); if (f == "/dev/null") f = ""; else sub(/^b\//, "", f); next }
+    /^@@ / {
+      o = $2; sub(/^-/, "", o); m = split(o, q, ","); os = q[1] + 0; oc = (m > 1) ? q[2] + 0 : 1
+      h = $3; sub(/^\+/, "", h)
+      n = split(h, p, ","); ln = p[1] + 0; cnt = (n > 1) ? p[2] + 0 : 1
+      for (i = 0; i < cnt && f != ""; i++) print f ":" (ln + i)
+      # A pure deletion adds nothing: anchor the two new-side lines around the gap and the deleted base lines.
+      if (cnt == 0) {
+        if (f != "") { print f ":" ln; print f ":" (ln + 1) }
+        d = (f != "") ? f : of
+        for (i = 0; i < oc && d != ""; i++) print d ":" (os + i)
+      }
+      skip = oc + cnt
+    }
+  ' >"$OUT.anchors"
+git -c core.quotePath=false diff --no-color --no-ext-diff --name-only "$BASE..$HEAD_REF" >"$OUT.files"
 
 LINES=$(wc -l <"$OUT" | tr -d ' ')
 printf '%s\n' "$OUT"

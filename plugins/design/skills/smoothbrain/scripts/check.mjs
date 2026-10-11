@@ -1,19 +1,28 @@
 #!/usr/bin/env node
-// node check.mjs <page.html> — checks a smoothbrain page against references/page.md.
+// node check.mjs <page.html> [--repo <dir>] — checks a smoothbrain page against references/page.md.
 // Prints FAIL / WARN / ok lines. Exit 1 on any FAIL.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { basename, isAbsolute, join, relative } from 'node:path';
+import { Script } from 'node:vm';
 
 const RUNGS = ['big-picture', 'parts', 'moves', 'detail', 'words'];
 const MAX_WORDS = 25;
 const MAX_STEP_WORDS = 20;
 const MAX_TERMS = 5;
 
-const file = process.argv[2];
-if (!file) {
-  console.error('usage: node check.mjs <page.html>');
+const args = process.argv.slice(2);
+const repoAt = args.indexOf('--repo');
+const repo = repoAt === -1 ? null : args[repoAt + 1];
+if (repoAt !== -1) args.splice(repoAt, 2);
+const file = args[0];
+if (!file || (repoAt !== -1 && !(repo && existsSync(repo) && statSync(repo).isDirectory()))) {
+  console.error('usage: node check.mjs <page.html> [--repo <dir>]');
   process.exit(2);
 }
-const html = readFileSync(file, 'utf8').replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
+// Read the raw file first: scripts are stripped below, and a script cut short by a raw </script> must still be seen.
+const raw = readFileSync(file, 'utf8');
+const html = raw.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
 
 const results = [];
 const fail = msg => results.push(`FAIL ${msg}`);
@@ -32,6 +41,23 @@ const order = [];
 for (const m of html.matchAll(/<section\b[^>]*data-zoom="([^"]+)"[^>]*>([\s\S]*?)<\/section>/gi)) {
   sections[m[1]] = m[2];
   order.push(m[1]);
+}
+
+// 0. Inline scripts parse. The HTML parser ends a script at the first </script>, even inside a string,
+// so a truncated body fails to parse. Credit: adapted from anthropics/claude-plugins-official plugins/project-artifact/SKILL.md @ a9fd216 (Apache-2.0).
+{
+  let scripts = 0, broken = 0;
+  for (const m of raw.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (/\bsrc\s*=/i.test(m[1])) continue;
+    const type = (m[1].match(/\btype\s*=\s*["']?([^"'\s>]+)/i) || [, ''])[1].toLowerCase();
+    const isJson = type.includes('json');
+    if (!isJson && type && !/^(text|application)\/(javascript|ecmascript)$/.test(type)) continue;
+    scripts++;
+    const line = raw.slice(0, m.index).split('\n').length;
+    try { if (isJson) JSON.parse(m[2]); else new Script(m[2]); }
+    catch (e) { broken++; fail(`inline script at line ${line} does not parse${isJson ? ' as JSON' : ''} (${e.message}); escape \`<\` as \`\\u003c\` in embedded strings`); }
+  }
+  if (scripts && !broken) ok(`${scripts} inline script${scripts === 1 ? '' : 's'} parse`);
 }
 
 // 1. Rungs present and in order.
@@ -63,6 +89,12 @@ if (sections.moves !== undefined) {
 if (sections.detail !== undefined) {
   if (/<details\b/i.test(sections.detail)) ok('detail has details');
   else fail('detail has no <details> section');
+}
+
+// 2b. Optional gap marking: know/fuzzy/lost toggles need the visible request box, since a copy button can be blocked in a sandboxed frame.
+// Credit: adapted from anthropics/claude-plugins-official plugins/playground/skills/playground/templates/concept-map.md @ a9fd216 (Apache-2.0).
+if (/\bdata-mark\b/i.test(html) && !/<textarea\b[^>]*\bdata-gap-request\b/i.test(html)) {
+  warn('[data-mark] toggles with no <textarea data-gap-request> showing the generated request');
 }
 
 // 3. Words card: every term is used on the page.
@@ -119,6 +151,45 @@ for (const m of text.matchAll(/(?<![\p{L}\p{N}-])[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*s?
 }
 if (bad.length) fail(`acronyms with no meaning beside the first use: ${bad.join(', ')}`);
 else ok('every acronym explained');
+
+// 6. With --repo: code names on the page exist in the repo that was read.
+// A missing call or path is a FAIL; a missing plain identifier is a WARN. Commands, numbers, library
+// APIs and <pre data-external> blocks are not repo names and are skipped.
+// Credit: adapted from anthropics/claude-plugins-official plugins/code-modernization/commands/modernize-map.md @ a9fd216 (Apache-2.0).
+if (repo) {
+  const LIB = /^(Promise|Object|Array|JSON|Math|Date|Map|Set|Number|String|Error|Buffer|Intl|Reflect|Symbol|console|process|window|document|navigator|localStorage|fs|path|os)\./;
+  // The page itself holds every token it shows, so it must not count as evidence.
+  const pageAbs = realpathSync(file);
+  const rel = relative(realpathSync(repo), pageAbs);
+  const pageInRepo = !rel.startsWith('..') && !isAbsolute(rel);
+  const inRepo = needle => {
+    const gitArgs = ['-C', repo, 'grep', '-qF', '--untracked', '-e', needle];
+    if (pageInRepo) gitArgs.push('--', '.', `:(exclude)${rel}`);
+    if (spawnSync('git', gitArgs, { stdio: 'ignore' }).status === 0) return true;
+    // Also reached when git says no: git grep skips ignored files (generated code) and non-repos.
+    const grepArgs = ['-rqF', '--exclude-dir=node_modules', '--exclude-dir=.git'];
+    if (pageInRepo) grepArgs.push(`--exclude=${basename(pageAbs)}`);
+    return spawnSync('grep', [...grepArgs, '-e', needle, repo], { stdio: 'ignore' }).status === 0;
+  };
+  const external = html.replace(/<pre\b[^>]*\bdata-external\b[^>]*>[\s\S]*?<\/pre>/gi, ' ');
+  const tokens = new Set(
+    [...external.matchAll(/<code\b[^>]*>([\s\S]*?)<\/code>/gi)].map(m => decode(m[1].replace(/<[^>]+>/g, '')).trim()));
+  let checked = 0, missingNames = 0;
+  for (const t of tokens) {
+    if (!t || /\s/.test(t) || /^[a-z]+:\/\//i.test(t) || t.startsWith('/') || LIB.test(t)) continue;
+    const call = /^[A-Za-z_$][\w$.]*\(\)$/.test(t);
+    const path = /^[\w.@-]+(\/[\w.@-]+)+\.[A-Za-z][A-Za-z0-9]*$/.test(t);
+    const ident = /^[a-z][a-z0-9]*[A-Z]\w*$/.test(t) || /^[a-z0-9]+(_[a-z0-9]+)+$/.test(t) || /^[A-Z][a-z0-9]+([A-Z][a-z0-9]*)+$/.test(t);
+    if (!call && !path && !ident) continue;
+    checked++;
+    const needle = call ? t.slice(0, -2).split('.').pop() : t;
+    if (inRepo(needle) || (path && existsSync(join(repo, t)))) continue;
+    missingNames++;
+    if (call || path) fail(`\`${t}\` is not in the repo (${repo}); explain only code you read`);
+    else warn(`\`${t}\` is not in the repo (${repo}); check the spelling against the code`);
+  }
+  if (!missingNames) ok(`${checked} repo name${checked === 1 ? '' : 's'} found in the repo`);
+}
 
 console.log(results.join('\n'));
 process.exit(results.some(r => r.startsWith('FAIL')) ? 1 : 0);

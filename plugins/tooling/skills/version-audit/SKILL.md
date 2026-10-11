@@ -2,18 +2,18 @@
 name: version-audit
 description: >-
   Audit every version reference in a repo and check each against the latest SAFE
-  version — not just the latest. Use WHENEVER the user wants to find outdated or
-  risky dependencies, pins, or actions, e.g. "are my deps up to date", "check for
-  outdated packages", "is everything on the latest version", "stop using
-  checkout@v4 when v7 exists", "audit my GitHub Actions versions", "find stale /
-  deprecated / EOL dependencies", "bump my dependencies safely", "version audit",
-  "dependency freshness", "what's outdated". Triggers on any manifest: package.json,
-  Cargo.toml, go.mod, pyproject.toml, requirements.txt, Gemfile, Dockerfile FROM,
-  .nvmrc, .tool-versions, and .github/workflows. Covers npm/bun, pip/uv, cargo
-  (Rust), go modules, Docker base images, GitHub Actions, and runtime pins
-  (engines.node, go directive, requires-python). Distinguishes patch/minor (safe) from major
-  (breaking — flag, never auto-apply), filters out prereleases/yanked/deprecated,
-  flags EOL runtimes, and separates freshness from security (CVEs).
+  version, not just the latest. Use WHENEVER the user wants outdated or risky
+  dependencies, pins, or actions found, e.g. "are my deps up to date", "check for
+  outdated packages", "is everything on the latest version", "what's outdated",
+  "dependency freshness", "stop using checkout@v4 when v7 exists", "audit my GitHub
+  Actions versions", "find stale / deprecated / EOL dependencies", "bump my
+  dependencies safely", "version audit", "plan the Next 15 upgrade", "are my Claude
+  model IDs current". Triggers on any manifest (package.json, Cargo.toml, go.mod,
+  pyproject.toml, requirements.txt, Gemfile, Dockerfile FROM, .nvmrc,
+  .tool-versions, .github/workflows). Covers npm/bun, pip/uv, cargo, go,
+  Docker images, GitHub Actions, runtime pins. Flags majors (never auto-applied),
+  writes a major-upgrade plan when asked, checks Claude model IDs against the live
+  catalog, filters prereleases/yanked, flags EOL, separates freshness from CVEs.
 ---
 
 # Version Audit — latest ≠ safe
@@ -134,6 +134,27 @@ Before recommending any **major**: link the changelog/release notes and the
 migration guide, and verify peer/engine constraints are satisfiable. One bump at a
 time — never mega-bump everything at once, or you cannot attribute the breakage.
 
+## Major upgrade plan
+
+Only when the user picks a major from a report or asks for an upgrade plan. This mode writes
+`.specs/` files and never runs the upgrade, so "never auto-apply a major" holds. Reason for the
+shape: a major's breakage is only attributable if the baseline, the hops and the pilot are explicit.
+
+1. **Pin the version pair** from the lockfile (resolved) and the latest-safe target. A span of
+   several majors, or a runtime plus a framework, is split into hops that each build and pass
+   before the next starts; every hop gets its own pilot.
+2. **T000 baseline.** Run the tests and the build on the current version now and record the
+   commands and exit codes. A red baseline stops the plan: say so. Check the test runner supports
+   the target; if not, migrating it is an early phase, not a leaf.
+3. **Delta catalog.** Write a rules file from the changelog and migration guide, then
+   `node scripts/delta-scan.mjs <repo> --rules rules.json`. Each row is confirmed (`file:line`),
+   wrong-site or not-hit; only confirmed rows enter the catalog. Each codemod is marked present,
+   runnable here, or ran, and shows "present, not run" until it truly ran. Read
+   [`references/delta-catalog.md`](references/delta-catalog.md) for the rules format and states.
+4. **Pilot unit.** Choose one representative unit (not the easiest) to go first; the rest wait for it.
+5. **Write the plan** as `.specs/<NNN>-<slug>/TASKS.md` in the `/flow:spec` shape from the skeleton
+   in that reference, with no `Approved:` line, then run `flow-lint` on it. Hand it to the user.
+
 ## Never recommend these as "latest"
 
 - **Prereleases**: any version with `-alpha/-beta/-rc/-canary/-next/-dev/-nightly`,
@@ -197,6 +218,25 @@ Known tooling traps baked into the scanner (do not relearn the hard way):
 `bun outdated --json` is a no-op (table only, always exit 0); `bun audit` doesn't
 exist in 1.2.x; `bun.lock` is JSONC (not `JSON.parse`-able); `npm outdated --json`
 exits **1** when anything is outdated.
+
+## Claude model IDs
+
+Runs only inside an explicit version audit or when the user asks whether their Claude models are
+current. Hard-coded IDs rot and a mistyped snapshot date fails only at call time.
+
+1. Run `node scripts/model-ids.mjs <repo>`. It prints `KEEP IN SYNC` / `MODEL LAUNCH` markers first
+   (the repo's own list of load-bearing sites), then every hit as `file:line status bucket id`.
+   It matches bare and regional Bedrock forms (`anthropic.claude-*`, `us.`/`eu.`/`global.` prefixes).
+2. Get the live catalog, never a remembered list: on Bedrock,
+   `aws bedrock list-foundation-models --region us-east-1 --by-provider anthropic --query 'modelSummaries[].[modelId,modelLifecycle.status]' --output text > /tmp/catalog.txt`
+   (keep the lifecycle column, or LEGACY models read as current; write the file outside the repo);
+   otherwise WebFetch the Models Overview. Re-run with `--catalog <file>`. Without one every ID reads
+   `unverified`, which is not an all-clear.
+3. Report each ID as current, legacy, deprecated (with its date), retired, or unknown (`file:line`).
+   Unknown is a finding to check, usually a wrong snapshot date.
+4. Before any rename, load [`references/claude-model-ids.md`](references/claude-model-ids.md) and
+   classify each file as caller, definer, opaque or suffixed. Capability gates get the new ID added
+   alongside the old one, not replaced.
 
 ## Reporting
 

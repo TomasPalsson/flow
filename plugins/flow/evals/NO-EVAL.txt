@@ -1,0 +1,9 @@
+# Skills under plugins/flow/skills with no eval case, and why. One `<skill>: <reason>` line each.
+# test_evals.sh (t_evals_every_skill_has_disposition) fails when a skill has neither a case that
+# select-cases finds for it nor a line here, when a skill has both (the waiver is stale: delete
+# the line), or when a line names a directory that does not exist. This file holds policy;
+# ledger.jsonl is a run ledger and must not.
+flow-deepen: runs after a spec's tasks are built and merged; a fixture needs a merged-PR history, so it is checked by test_flow_deepen_prose.sh only
+issue: files a GitHub issue or appends to .specs/ISSUES.md; the format and wording rules are pinned by test_issue_prose.sh, and routing is not at risk (an explicit /flow:issue call)
+lesson: an interactive correction loop that edits hooks and rules; the mechanical parts (lesson-sites, lesson-record, lesson-mine) have shell tests in test_lesson.sh and test_lesson_mine.sh
+spec-judge: a scorer the spec skill dispatches (test_spec_prose.sh pins how spec calls it), not something a user request routes to; its own scoring is not yet measured by any case

@@ -147,6 +147,8 @@ NEVER use generic AI-generated aesthetics like:
 
 **Weak anti-patterns** (vague, no reasoning): "Avoid making mistakes. Be careful with edge cases. Don't write bad code."
 
+**Library and API skills** (a skill about a specific SDK, service or API): also look for a "What <X> does NOT have" section, which names the features, flags and methods people assume exist, each with the real alternative. Models hallucinate APIs; a negative fact is knowledge the agent cannot supply from memory. A library skill without one loses a point or two here, not more, when its other entries are expert-grade.
+
 **The test**: would an expert read the entry and say "yes, I learned this the hard way"? Or would they say "this is obvious to everyone" or "this just restates the rule above"?
 
 ---
@@ -184,9 +186,10 @@ A poor description costs the most: a Skill with perfect content but a poor descr
 - [ ] Contains searchable keywords (file extensions, domain terms, action verbs)
 - [ ] Specific enough that Agent knows EXACTLY when to use it
 - [ ] Says when it applies, and names a neighbouring skill for nearby requests when one exists (Not for X, use Y)
-- [ ] Meets the hard limits, checked in Step 0: 1-1024 characters, third person, no `<` or `>`
+- [ ] Covers explicit asks and at least one implicit or proactive situation (a state of the repo or the conversation, not only a command)
+- [ ] Meets the hard limits, checked in Step 0: 1-1024 characters, third person (no `<` or `>` only for claude.ai)
 
-Keyword stuffing and "MUST be used whenever" phrasing add no points on their own — what counts is whether the description actually distinguishes this skill's territory. When a trigger-eval result is available (a measured trigger rate), it is the strongest evidence for this dimension; use it over a cold read.
+Keyword stuffing and "MUST be used whenever" phrasing add no points on their own — what counts is whether the description actually distinguishes this skill's territory. When a trigger-eval result is available (a measured trigger rate, such as `.skill-forge/<skill>/trigger.json` from `skill-improver/scripts/trigger-eval`), it is the strongest evidence for this dimension; use it over a cold read.
 
 ---
 
@@ -387,7 +390,13 @@ Run these checks before scoring. They are pass/fail, not judgment calls.
 
 (a) Reference resolution: run `flow skills-lint <skill-dir>`. Any `MISSING` line is a failure. If the `flow` CLI is not installed, check every path the skill references with `ls` instead.
 
-(b) Frontmatter: `name` matches `^[a-z0-9]+(-[a-z0-9]+)*$` and is 64 characters or fewer. `description` is 1-1024 characters, written in the third person, and contains no `<` or `>`.
+(b) Frontmatter: run `flow skills-lint --frontmatter <dir>` on the directory that holds the skill (add `--claude-ai` when the skill will be uploaded to claude.ai, which rejects `<` and `>` in a description; Claude Code does not). It checks that `name` is kebab-case, 64 characters or fewer, equal to the directory name and unique; that `description` is 1-1024 characters; that `model:` is a known value; and that the frontmatter parses as strict YAML. Any `YAML`, `NAME`, `DUP-NAME`, `MODEL` or `DESC-LEN` line is a failure. The description should also be written in the third person, which no script checks. If the `flow` CLI is not installed, check these by hand.
+
+(b2) Orphans: run `flow skills-lint --orphans <dir>`. An `ORPHAN` line is a reference or script that SKILL.md never reaches by name, so no run will load it: link it from the step that needs it, or delete it.
+
+(b3) Overlap, only when the skill sits next to similar ones: `flow skills-lint --collisions` lists description pairs that read alike (cosine 0.75 or higher). It is a report, not a failure; a listed pair means the descriptions need a sharper "Not for X (use Y)" line.
+
+(c) Live-fetched rules: if SKILL.md or its references tell the agent to fetch its rules, instructions or output format from a URL at run time (WebFetch, or `curl`/`wget` of a URL), especially a moving ref such as `/main/` or `/HEAD/` rather than a pinned commit sha, the check fails. The finding names the file and line and says: the scored text is not the text that runs. A pinned-sha URL, and a fetch of user-supplied data (not instructions), do not trigger it. Run `grep -nE 'WebFetch|curl |wget |raw\.githubusercontent|/(main|master|HEAD)/' <skill-dir>/SKILL.md <skill-dir>/references/*.md` and read each hit; a skill with no hit passes (c).
 
 A failed pre-check is a Critical Issue and caps the total at 95 — one below skill-forge's 96 stop line. The report shows both the raw total and the capped total.
 
@@ -421,6 +430,12 @@ For each of the 8 dimensions:
 ```
 Total = D1 + D2 + D3 + D4 + D5 + D6 + D7 + D8
 Max = 120 points
+```
+
+Emit the eight scores as one JSON object (`{"D1":18,"D2":13,...}`) and compute the total with this command, never by hand. skill-forge compares the computed total against its 96 stop line. Run it once without the cap for the raw total, and once with `95` as the cap when a pre-check failed for the capped total:
+
+```bash
+node -e 'const s=JSON.parse(process.argv[1]);const t=Object.values(s).reduce((a,b)=>a+b,0);console.log(String(Math.min(t,Number(process.argv[2]||Infinity))))' '<dimension scores as JSON>' [cap]
 ```
 
 **Grade Scale** (percentage-based):

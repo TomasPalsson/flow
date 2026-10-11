@@ -7,43 +7,43 @@
       "name": "flow",
       "source": "./plugins/flow",
       "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the spec/next/fix/loop skill set, and /flow:loop (verifier-decided unattended loops).",
-      "version": "0.8.0"
+      "version": "0.9.0"
     },
     {
       "name": "flow-extras",
       "source": "./plugins/flow-extras",
       "description": "Optional companions to flow: audits, PR review, idea critique, grilling, skill authoring and judging, prompt and CLAUDE.md tooling, and ultracode fleets.",
-      "version": "0.4.0"
+      "version": "0.5.0"
     },
     {
       "name": "design",
       "source": "./plugins/design",
       "description": "Design and UI skills, usability first: design (UX-first design process), vary (roll-assigned, never-the-same UI design), graphics (custom icon sets, illustrations, diagrams and brand objects, called by the others when a page needs them), smoothbrain (big-picture-first picture explainers in plain words), UX critique, mobile design, polish passes, showcase pages, and UI animation.",
-      "version": "0.5.1"
+      "version": "0.6.0"
     },
     {
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Personal finance and trading skills: alpha research, portfolio tracking, investment analysis, and eToro integration.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "aws",
       "source": "./plugins/aws",
       "description": "AWS and Strands agent skills: exploration, Lambda microVMs, AgentCore, steering hooks, and SST.",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "name": "web",
       "source": "./plugins/web",
       "description": "Web tooling skills: SEO audits, Google Ads, HubSpot prospecting, Figma-to-Strapi, website cloning, API exploration, and browser automation.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "tooling",
       "source": "./plugins/tooling",
       "description": "General developer tooling skills: project scaffolding, CLI building, code style, GitHub CLI, agent architecture, RAG, human-step wizards, and more.",
-      "version": "0.3.2"
+      "version": "0.4.0"
     }
   ]
 }

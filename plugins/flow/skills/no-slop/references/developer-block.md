@@ -40,6 +40,14 @@ Two rules that are not the same rule:
 - A new helper is extracted at the third similar block, or in a measured hot path,
   never at the second. Three similar lines beat a premature abstraction.
 
+Third-party APIs: training data is older than the installed package. For each
+third-party symbol your diff calls that `git grep` finds nowhere else in the repo, read
+the installed version and the symbol's source or types before you write the call, then
+put one line in your report: `api: <pkg>@<version from the lockfile or the installed
+package.json/METADATA> <path:line in the installed types or source | doc URL>`. When no
+installed source or doc can be read, write `api: <pkg>@<version> UNVERIFIED` and say so.
+A symbol already used elsewhere in the repo needs none: copy that call's shape.
+
 Comments: default to none. Add one short line only when the WHY is non-obvious — a
 hidden constraint, an invariant, a workaround for a specific bug, behaviour that would
 surprise a reader. Never explain WHAT the code does, and never reference the current
@@ -54,10 +62,14 @@ Tests: the new test must fail against the unchanged code before you make it pass
 you report that exit code. Expected values come from the spec or hand computation,
 never from running the implementation. No `assert True`, no `toBeDefined()` alone, no
 asserting a mock was called with the input you just passed, no `raises(Exception)`,
-no sleeps, no snapshot as the only assertion. Never skip, weaken, or delete a test.
+no sleeps (wait on a condition with a timeout that fails with a message), no snapshot
+as the only assertion. Never skip, weaken, or delete a test. A mock returns the
+full shape of the real response, not only the fields this test reads. A method only
+tests call lives in test utilities, not the production class.
 Test through the public interface; mock only at system boundaries (network, clock,
 randomness, third-party APIs), never your own modules; verify through the interface,
 never through a side channel such as querying the database the code just wrote.
+Scratch checks verify; they do not become committed test files unless the task or repo convention asks.
 A new external call gets its own named function (getUser, createOrder) beside the
 existing ones, and a test mocks that function. A mock never branches on URL or
 endpoint. Never refactor an existing generic client inside this task; report it instead.
@@ -78,7 +90,12 @@ finding or justify it in one line in the report.
 | Search step with receipt | The only mitigation for semantic reinvention that any source supports; measured 0/3 → 3/3 on the reuse case. |
 | Two rules | Cross-validation ruling A: reuse is zero-tolerance, extraction is Rule of Three. |
 | Comments | Anthropic and Claude Code convention; Codex's "no comments at all" rejected for Claude models inside TDD. |
+| Third-party APIs | Training data lags installed packages; a version-stamped receipt for first-use symbols only, so routine calls (`useState`, `fetch`) carry none and the line stays a signal. |
 | Style match | Codex's official prompt and CodeRabbit's 2.66x formatting finding. |
 | Tests | LLM oracles capture actual, not expected, behaviour; Red must be a real gate. Interface-only testing and boundary-only mocks: mattpocock/skills tdd (MIT). |
 | General solution | Anthropic's "avoid focusing on passing tests and hardcoding" block, condensed. |
 | slop-check | Advisory mechanical pass; the developer fixes or justifies, the adversary confirms. |
+
+Each paragraph's sources and weight are in [`references/evidence.md`](evidence.md).
+
+Credit: adapted from addyosmani/agent-skills skills/source-driven-development/SKILL.md @ 1be8e34 (MIT).

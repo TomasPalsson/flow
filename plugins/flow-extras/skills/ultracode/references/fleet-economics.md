@@ -41,6 +41,8 @@ Output is ~89% of tokens but ~94% of dollars here — implementer tier choice is
 
 **C. Caching honesty.** Break-even: 1 reuse (5m cache) or 2 reuses (1h). Always cache the shared prefix (agent system prompt, rubric, SPEC) in fan-outs ≥2. But savings are bounded by the shared fraction: if each agent's unique payload (its diff/files) dominates input, caching the prefix saves ~20%, not 5x. Cache pays hugely only when the shared block dominates.
 
+**Measure it.** To see what real sessions spent and where the cache broke, run `node scripts/analyze-sessions.mjs --since 7d` (or `bun`; add `--json`, `--top N`, `--cache-break N`). A cache break is one call with more than 100000 uncached input tokens (`input + cache_creation`), meaning the shared prefix stopped matching and the whole context was billed again. The script reads `~/.claude/projects`, prints to stdout only and cuts prompt text to 80 characters; redirect output to `${TMPDIR:-/tmp}`, never into a repo, because the previews can name client work. Run it when asked, not per turn.
+
 ## Escalation economics
 
 - **Sonnet → Opus for one worker** is justified when the expected cost of a Sonnet mistake on *that call* exceeds 2.5x — realistically: no oracle to catch it cheaply, or blast radius spans many files before any gate fires.

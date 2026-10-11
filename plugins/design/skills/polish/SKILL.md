@@ -202,6 +202,21 @@ Polish is about details. Zoom in. Squint at it. Use it yourself. The little thin
 - Create new one-off components when design system equivalents exist
 - Hard-code values that should use design tokens
 
+## Fix loop
+
+Apply the findings from the dimensions above one at a time, so each change can be seen, proven and undone on its own.
+
+1. **Check for the user's own edits first.** Run `git status --porcelain`. If a file polish would touch already has uncommitted changes, ask once: commit them first, stash them with a unique tag, or run without commits. Never mix the user's hunks into a polish commit; a commit cannot be split cleanly afterwards.
+2. **One fix per commit.** Name the finding and commit only the files that fix touched: `git commit -m 'style(polish): F-NNN <desc>' -- <paths>`. Skip this step in the "run without commits" mode and keep the fixes as separate, listed edits.
+3. **Console baseline.** Before the first fix, record the console errors on the affected pages. After each fix, a new error that was not in the baseline counts as a regression.
+4. **Before and after.** With a browser tool available, take a screenshot before and after every fix and compare the pair. Without one, mark the fix best-effort.
+5. **Status per finding.** `verified` means the re-check passed and no new console error appeared. `best-effort` means the fix is applied but could not be fully checked. `reverted` means a regression was found; undo it with `git revert <that fix's sha>`, never a bare revert of the latest commit, and only for a commit polish made in this run. Mark the finding deferred.
+6. **Risk meter, after every 5 fixes and after any revert.** Start at 0%. Add 15% per revert, 5% per component file (JSX, TSX, template) changed, 20% for touching an unrelated file. CSS-only changes add nothing. Above 20%, stop, show the user what was done and ask whether to continue. The hard cap is 30 fixes; stop there even if findings remain.
+
+Why the limits: polish loops drift into rewrites, and a small, proven, revertable step is what keeps a design pass from becoming a refactor.
+
+Credit: adapted from garrytan/gstack design-review/SKILL.md.tmpl @ 5b9b837 (MIT).
+
 ## Final Verification
 
 Before marking as done:

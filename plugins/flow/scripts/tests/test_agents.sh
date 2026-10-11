@@ -403,3 +403,99 @@ t_agents_claim_check_accepts_caller_output_path() {
 	body=$(_agents_body_text "$AGENTS_DIR/claim-check.md")
 	assert_contains "$body" "(or to the output path the caller gave you instead)" "claim-check.md: writes to a caller-given path, default unchanged"
 }
+
+# F62/F69/F80 — adversary severity clauses, mutation canary, PLAUSIBLE next step.
+t_agents_adversary_plausible_names_next_evidence_step() {
+	local body findings
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	findings=$(printf '%s\n' "$body" | sed -n '/^## Findings/,/^## Verdict/p')
+	assert_contains "$findings" "next evidence step" "adversary.md: Findings section says PLAUSIBLE names the next evidence step"
+	assert_contains "$findings" "not a fix" "adversary.md: a PLAUSIBLE finding is not a fix"
+	assert_contains "$(cat "$SCAN_DIR/../skills/next/review.md")" "not reproduced" "review.md: fix ladder records unreproduced findings"
+}
+
+t_agents_adversary_silent_spec_graded_by_effect() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "even when the spec is silent" "adversary.md: a gap the spec is silent on still counts as correctness"
+	assert_not_contains "$body" "Only correctness and stated-requirement gaps may be" "adversary.md: old stated-requirement-only guard is gone"
+}
+
+t_agents_adversary_gaming_runs_mutation_canary() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "git archive HEAD" "adversary.md: gaming lens mutates a no-.git scratch copy"
+	assert_contains "$body" "equivalent mutant" "adversary.md: surviving mutant must be shown not equivalent"
+	assert_contains "$body" "NEEDS-TOOL" "adversary.md: canary that cannot run emits NEEDS-TOOL"
+	assert_contains "$body" "never inside the repo" "adversary.md: mutation never touches the repo"
+}
+
+# _agents_lens_bullet <lens> — the adversary.md bullet for one lens: from its
+# "- **lens**" line to the next top-level bullet (indented sub-bullets stay in).
+_agents_lens_bullet() {
+	awk -v lens="$1" '
+		index($0, "- **" lens "**") == 1 { on = 1; print; next }
+		on && /^- \*\*/ { exit }
+		on { print }
+	' "$AGENTS_DIR/adversary.md"
+}
+
+t_agents_adversary_correctness_checks_text_the_change_made_false() {
+	local b
+	b=$(_agents_lens_bullet correctness)
+	assert_contains "$b" "user-facing strings (messages, help text, docs) and existing comments that the change made false" "adversary.md: correctness finds strings and comments the change made false"
+	assert_contains "$b" "the diff did not touch" "adversary.md: an untouched comment the change falsified still counts"
+}
+
+t_agents_adversary_gaming_catches_renamed_negative_assertions() {
+	local b
+	b=$(_agents_lens_bullet gaming)
+	assert_contains "$b" "negative assertion" "adversary.md: gaming names negative assertions"
+	assert_contains "$b" "not.toContain('FOO')" "adversary.md: gaming gives the renamed-symbol example"
+	assert_contains "$b" "when the diff renames" "adversary.md: gaming checks negative assertions on every rename"
+}
+
+t_agents_adversary_cross_file_traces_siblings_acceptance_drift_and_reverts() {
+	local b
+	b=$(_agents_lens_bullet cross-file)
+	assert_contains "$b" "enum, union, status list or constant set" "adversary.md: cross-file traces a new enum value to its siblings"
+	assert_contains "$b" "loosens what an input accepts" "adversary.md: cross-file traces every consumer of loosened acceptance"
+	assert_contains "$b" "git log -S" "adversary.md: cross-file reads the history of re-added lines"
+	assert_contains "$b" "git blame" "adversary.md: cross-file blames touched lines"
+	assert_contains "$b" "citing the commit sha" "adversary.md: a reverted-fix finding cites the commit"
+	assert_contains "$b" "prompt, tool description or schema" "adversary.md: cross-file checks prompt-tool drift"
+}
+
+t_agents_adversary_security_panel_rules_have_one_home() {
+	local b
+	b=$(_agents_lens_bullet security)
+	assert_contains "$b" "name the attacker and the gain" "adversary.md: security names attacker and gain"
+	assert_contains "$b" "Never refute with a defense you did not read" "adversary.md: security never refutes with an unread defense"
+	assert_contains "$b" "Attacker equals victim" "adversary.md: security carries the attacker-equals-victim refute list"
+	assert_contains "$b" "Never apply that exemption to model output, tool-call arguments, webhook or HTTP bodies, or queue and S3 payloads" "adversary.md: the exemption never covers prompt-injectable input"
+	assert_eq "$(ls "$AGENTS_DIR/../skills/shared" | grep -c 'security-lens')" "0" "no second copy of the security lens text"
+}
+
+t_agents_adversary_credits_the_borrowed_review_rules() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/adversary.md")
+	assert_contains "$body" "Credit: adapted from garrytan/gstack review/checklist.md @ 5b9b837 (MIT)." "adversary.md: gstack lens rules are credited with a sha"
+	assert_contains "$body" "Credit: adapted from anthropics/claude-plugins-official plugins/claude-security/agents/scan-verifier.md @ a9fd216 (Apache-2.0)." "adversary.md: scan-verifier rules are credited with a sha"
+}
+
+t_agents_developer_reports_what_it_did_not_touch() {
+	local body
+	body=$(_agents_body_text "$AGENTS_DIR/developer.md")
+	assert_contains "$body" "Didn't touch" "developer.md: output contract lists files deliberately left alone"
+	assert_contains "$body" "unless code it covers has changed" "developer.md: no repeat of a clean run on unchanged code"
+	assert_not_contains "$body" "let the compiler" "developer.md: no write-first-and-let-the-compiler rule"
+}
+
+t_agents_developer_never_narrows_stated_behaviour() {
+	local body bad
+	body=$(_agents_body_text "$AGENTS_DIR/developer.md")
+	assert_contains "$body" "Never narrow a stated behaviour" "developer.md: forbids narrowing to what the verify command covers"
+	bad=$(printf '%s\n' "$body" | grep 'narrowest reading' | grep -vc 'silent')
+	assert_eq "$bad" "0" "developer.md: every 'narrowest reading' line is scoped to a silent spec"
+	assert_contains "$body" "narrowest command" "developer.md: shell discipline line is unchanged"
+}
