@@ -287,7 +287,8 @@ const fresh = j => !j.g.anchor_hit
 // Only the generator's own flag counts: a subtract-lens idea can still add behaviour, and "Remove" on it confused readers.
 const isSub = j => !!byId[j.g.best].subtracts
 const bet = j => A.cells.find(c => c.id === byId[j.g.best].cell)
-const isFix = j => byId[j.g.best].lens === 'fix'
+// A group the defect sweep also found is a defect, whichever member merge chose as best.
+const isFix = j => j.g.ids.some(id => byId[id].lens === 'fix')
 const ideasOnly = alive.filter(j => !isFix(j))
 // Fit is a rank, so half the pool sits under 0.5 by construction: ask for "not bottom 30%", then relax.
 const pickFresh = (n, slot, key, minFit) => {
@@ -302,14 +303,16 @@ const PICK = {
   remove: n => take(ideasOnly.filter(isSub).sort(by(j => j.s.value + j.s.surprise)), n, 'remove'),
 }
 let picks = [...PICK.safe(3), ...PICK.wild(2), ...PICK.stretch(2), ...PICK.fix(4)]
-const firstSub = picks.find(p => p.slot === 'safe' && isSub(p))
+// A fix that deletes a stale value is not the bold removal readers look for.
+// Label a removal wherever it was picked: an unlabelled one is dropped as a twin and nothing refills it.
+const firstSub = picks.find(p => isSub(p) && !isFix(p))
 if (firstSub) firstSub.slot = 'remove'
-else if (!picks.some(isSub)) picks.push(...PICK.remove(1))
+else picks.push(...PICK.remove(1))
 
 // Themes are coarse labels from one agent and miss some twins; one reader checks the picks as a set.
 const pairsSchema = { type: 'object', required: ['same'], properties: { same: { type: 'array', items: { type: 'array', items: { type: 'string' } } } } }
-// Two passes: a replacement pick can itself be a twin of something already on the page.
-for (let pass = 0; pass < 2; pass++) {
+// Up to three passes: a replacement pick (often the next removal) can itself clash with the page.
+for (let pass = 0; pass < 3; pass++) {
   const twins = await agent(`These are the ideas picked for one page. List every pair a reader would see as the same idea, or one idea containing the other (same problem for the same people, even if the change differs), and every pair that contradicts each other (one removes or abandons a thing the other invests in). Return pairs of ids; return none if none.\n\n${picks.map(p => `[${p.g.best}] ${byId[p.g.best].move} | who notices: ${byId[p.g.best].user_sees}`).join('\n')}`, { label: `twins:${pass + 1}`, phase: 'Judge', schema: pairsSchema, model: GEN_MODEL })
   for (const pair of twins?.same || []) {
     const inPage = pair.map(id => picks.findIndex(p => p.g.best === id)).filter(i => i >= 0)
@@ -321,6 +324,8 @@ for (let pass = 0; pass < 2; pass++) {
   }
   if (!(twins?.same || []).length) break
 }
+// If the removal lost a clash and no fresh one was left, another removal already on the page takes the label.
+if (!picks.some(p => p.slot === 'remove')) { const sub = picks.find(p => isSub(p) && !isFix(p)); if (sub) sub.slot = 'remove' }
 log(`picked ${picks.length}: ${picks.map(p => `${p.slot}:${p.g.best}`).join(', ')}`)
 
 // ---------- 6. explain: plain card, then pictures ----------
