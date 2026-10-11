@@ -343,9 +343,29 @@ test('glosses are unified: first gloss in page order wins, case-insensitive', ()
   ]);
   const html = assembleOk(dir);
   assert.ok(html.includes('<b>pr</b>: safe wording · <b>cli</b>: command tool'));
-  assert.ok(html.includes('<b>Cli</b>: command tool'));
-  assert.ok(html.includes('<b>PR</b>: safe wording'));
+  assert.ok(html.includes('<b>cli</b>: command tool'));
   assert.ok(!html.includes('wild wording') && !html.includes('other wording'));
+});
+
+test('a glossary term shows only on the first card; empty gloss lines vanish', () => {
+  const dir = makeRun([
+    idea('w', 'wild', { words: [{ term: 'PR', gloss: 'review request' }] }),
+    idea('s', 'safe', { words: [{ term: 'pr', gloss: 'x' }, { term: 'cli', gloss: 'command tool' }] }),
+    idea('t', 'stretch', { words: [{ term: 'Cli', gloss: 'y' }] }),
+  ]);
+  const html = assembleOk(dir);
+  assert.equal(html.match(/<b>PR<\/b>/gi).length, 1);
+  assert.equal(html.match(/<b>cli<\/b>/gi).length, 1);
+  assert.equal(html.match(/<p class="words">/g).length, 1);
+});
+
+test('left-out lists sit in a closed details; heading, intro and count stay visible', () => {
+  const html = assembleOk(makeRun([idea('a', 'safe')]));
+  const sec = html.slice(html.indexOf('<section class="left-out"'));
+  const d = sec.indexOf('<details><summary>See the ideas we left out</summary>');
+  assert.ok(d > sec.indexOf('Most are the first things') && d > sec.indexOf('class="count"'));
+  assert.ok(sec.indexOf('<h3>Obvious') > d && sec.indexOf('<h3>Ideas that already') > d);
+  assert.ok(sec.indexOf('</details>') > sec.indexOf('<h3>Ideas that already'));
 });
 
 test('about renders under h1 before the headline; absent means no about paragraph', () => {

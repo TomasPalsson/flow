@@ -303,15 +303,17 @@ function sizeBadge(size) {
   return `<span class="size"><span class="blocks" role="img" aria-label="${size.blocks} of 3 blocks">${squares}</span> ${words}</span>`;
 }
 
-// One gloss per term across the page: the first in page order wins (case-insensitive term).
+// One gloss per term across the page: the first in page order wins (case-insensitive term),
+// and the term is shown only on the first card where it appears.
 function unifyGlosses(ordered) {
-  const first = new Map();
+  const seen = new Set();
   return ordered.map((idea) => {
     if (!(idea.words ?? []).length) return idea;
-    const words = idea.words.map((w) => {
+    const words = idea.words.filter((w) => {
       const k = w.term.toLowerCase();
-      if (!first.has(k)) first.set(k, w.gloss);
-      return { ...w, gloss: first.get(k) };
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
     });
     return { ...idea, words };
   });
@@ -387,11 +389,13 @@ function leftOut(d) {
   return `<section class="left-out" aria-labelledby="left-out-h">
 <h2 id="left-out-h">What we left out</h2>
 <p>These came up and did not make the page. Most are the first things anyone would think of, or turned out to exist already.</p>
+<p class="count">${d.count} ideas were left out in all.</p>
+<details><summary>See the ideas we left out</summary>
 <h3>Obvious ideas we skipped on purpose</h3>
 ${obvious}
 <h3>Ideas that already exist or were wrong</h3>
 ${dead}
-<p class="count">${d.count} ideas were left out in all.</p>
+</details>
 </section>`;
 }
 

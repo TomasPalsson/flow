@@ -186,7 +186,7 @@ CHECKER: ${r ? r.note + (r.verdict === 'rewrite' ? ' (It partly exists: make the
 WHY IT WAS PICKED: ${SLOT_WHY[slot]}.${notes.length ? ' Judges said: ' + notes.join(' / ') : ''}
 
 Write:
-- title: 8 words or fewer, starts with a verb, says ONE change for a person (no "and", no "maybe"). No function, file or flag names.
+- title: 8 words or fewer, starts with a verb, says ONE change for a person (no "and", no "maybe"). No function, file or flag names. It must make sense to someone who has not seen the bug or the code: say the effect ("Keep personal work out of invoices"), not the trigger ("...when prompts mention UTF-8").
 - sentence: 20 words or fewer, active voice, what changes for whom. Everyday words; no function, file or flag names (those go in evidence).
 - words: at most 3 terms the title and sentence cannot avoid (the project's real names, tools), glossed in 6 words or fewer. Never invent a new name for a thing.
 - why_here: one plain sentence a friend would say ("This is the one most people would feel every day"). Never mention scores, ranks, judges, slots or evidence numbers.
@@ -194,7 +194,7 @@ Write:
 - size: blocks 1 = hours, 2 = days, 3 = weeks, 0 = not sure; words says it plainly.
 - evidence: path:line plus what it shows. risks: up to 3.
 - kind and pictures: pick the kind, then 2 to 4 pictures from the catalog in page.md. The FIRST picture shows what a person sees or does today (a screen, a terminal, a message, a moment). No picture of code structure (folders, files, functions, module boxes): readers new to the project cannot decode them; that detail belongs in evidence. Each picture proves ONE claim no other picture on the card proves, and lists at least 2 facts it will show (real names, real values from the evidence; never invented numbers). Before/after pairs count as two pictures. A tidy idea may need only 1-2.
-Plain words everywhere: short sentences, everyday verbs, the project's own nouns.`
+Plain words everywhere: short sentences, everyday verbs, the project's own nouns. Numbers in human units ("10 min", not "600s").`
 
 const drawPrompt = (id, card) => `Draw the pictures for one idea card. Read ${A.skill}/references/page.md first and follow its SVG drawing rules exactly. ${DATA_RULE}
 Write each picture to ${A.run}/pictures/${id}-p<N>.svg (N = 1, 2, ...). You may read the repo to get real names and output text.
@@ -310,7 +310,7 @@ else if (!picks.some(isSub)) picks.push(...PICK.remove(1))
 const pairsSchema = { type: 'object', required: ['same'], properties: { same: { type: 'array', items: { type: 'array', items: { type: 'string' } } } } }
 // Two passes: a replacement pick can itself be a twin of something already on the page.
 for (let pass = 0; pass < 2; pass++) {
-  const twins = await agent(`These are the ideas picked for one page. List every pair a reader would see as the same idea, or one idea containing the other (same problem for the same people, even if the change differs). Return pairs of ids; return none if none.\n\n${picks.map(p => `[${p.g.best}] ${byId[p.g.best].move} | who notices: ${byId[p.g.best].user_sees}`).join('\n')}`, { label: `twins:${pass + 1}`, phase: 'Judge', schema: pairsSchema, model: GEN_MODEL })
+  const twins = await agent(`These are the ideas picked for one page. List every pair a reader would see as the same idea, or one idea containing the other (same problem for the same people, even if the change differs), and every pair that contradicts each other (one removes or abandons a thing the other invests in). Return pairs of ids; return none if none.\n\n${picks.map(p => `[${p.g.best}] ${byId[p.g.best].move} | who notices: ${byId[p.g.best].user_sees}`).join('\n')}`, { label: `twins:${pass + 1}`, phase: 'Judge', schema: pairsSchema, model: GEN_MODEL })
   for (const pair of twins?.same || []) {
     const inPage = pair.map(id => picks.findIndex(p => p.g.best === id)).filter(i => i >= 0)
     if (inPage.length < 2) continue

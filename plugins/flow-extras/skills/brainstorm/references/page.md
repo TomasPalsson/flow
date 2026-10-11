@@ -82,7 +82,7 @@ Picture types: **terminal** (a pane with up to 4 real output lines, the changed 
 6. The accent colour goes only on the thing that changes. Pair it with a shape cue (thicker outline, a +, bold text) so it survives greyscale.
 7. Before and after pictures use the same layout and positions. Only the changed thing differs. A removed thing is ghosted: dashed outline, `opacity="0.4"`.
 8. An arrow means "then" and carries a verb label ("sends", "checks"). Use nesting or a bracket for "is part of".
-9. Real names and real numbers from the evidence only. An unknown number is left out, never guessed.
+9. Real names and real numbers from the evidence only. An unknown number is left out, never guessed. Write numbers in human units ("10 min", "2 h", not "600s"). Screen words in another language: label the part in plain English and put the original word after it in brackets, once.
 10. No mascots, no metaphor icons (a rocket for "fast"), no decoration. The picture must still say its claim with the caption covered.
 11. Ids: prefix every `id` with the idea and picture id (`i3p1-arrow`). assemble.mjs also rewrites ids, but do not rely on it.
 
