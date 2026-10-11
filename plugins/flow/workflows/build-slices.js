@@ -1,15 +1,10 @@
-// build-slices — implement TASKS.md tasks end to end: brief, developer,
-// review-package, two adversary lenses, then a bounded fix ladder. See C11 in
-// the harness spec and WORKFLOW-API.md for the globals used below (agent,
-// pipeline, parallel, log, args).
-//
-// The plan is a TASKS.md (spec 004 K-B grammar) and the schedule is not this
-// workflow's to invent: `flow-lint --json` already proves `[P]` disjointness
-// per wave and returns the wave list, so stage 0 runs the linter and uses its
-// `waves` array verbatim. Each wave runs concurrently via parallel(); a task's
-// full chain (brief -> implement -> package -> review -> fix ladder) runs
-// inside its own thunk, so a slow task never blocks a fast one in the same
-// wave, and wave N+1 never starts before wave N reports.
+// build-slices — implement TASKS.md tasks end to end: brief, developer, review-package, adversary
+// lenses, then a bounded fix ladder. Globals: agent, parallel, workflow, log, args (C11,
+// WORKFLOW-API.md). The wave schedule is flow-lint's (`--json`, the only TASKS.md parser, which
+// proves [P] tasks are disjoint). This file schedules waves, runs the worker pool and keeps the gap,
+// parked and discovered lists; each task's whole chain runs in the child workflow
+// build-slices-task.js (one workflow() call per task, one level deep). Long prompt prose lives in
+// workflows/prompts/build-slices-<step>.md; an agent prompt names the file and carries the values.
 export const meta = {
   name: 'build-slices',
   description: 'Implement TASKS.md tasks wave by wave with brief, developer, review-package, adversarial review, and a bounded fix ladder',
@@ -23,103 +18,60 @@ export const meta = {
   ],
 }
 
-// Stage 0: the wave schedule comes from `flow-lint --json`, never from this
-// workflow's own guess about file overlap. The linter is the only parser of
-// the TASKS.md grammar and the only thing that has proved `[P]` disjointness.
+// Schemas; objOf and arrOf only shorten the literals.
+const STR = { type: 'string' }
+const NUM = { type: 'number' }
+function arrOf(items) { return { type: 'array', items: items } }
+function objOf(required, properties) { return { type: 'object', required: required, properties: properties } }
+const STRS = arrOf(STR)
 const SCHEDULE_SCHEMA = {
   type: 'object',
   required: ['waves'],
-  properties: {
-    ok: { type: 'boolean' },
-    waves: { type: 'array', items: { type: 'array', items: { type: 'string' } } },
-  },
+  properties: { ok: { type: 'boolean' }, waves: arrOf(STRS) },
 }
+// files: the task line's files: list (finds earlier gaps); verify: its verify command or human: text.
+const BRIEF_SCHEMA = objOf(['briefPath'], { briefPath: STR, files: STRS, verify: STR })
+// toplevel: `git rev-parse --show-toplevel` from repoRoot, compared in code. exit: the integer
+// printed by `<verify>; echo $?`. headSha: HEAD at packaging, the next round's FIX_BASE.
+const ROOT_SCHEMA = objOf(['toplevel'], { toplevel: STR })
+// The same check when scriptsDir is not absolute: scriptsDir is that dir as `pwd -P` prints it.
+const ROOT_DIR_SCHEMA = objOf(['toplevel', 'scriptsDir'], { toplevel: STR, scriptsDir: STR })
+const VERIFY_RUN_SCHEMA = objOf(['exit'], { exit: NUM, output: STR })
+const DIFF_SCHEMA = objOf(['diffPath'], { diffPath: STR, headSha: STR })
+// Test ids as the runner lists them (count only for an unknown runner); replaces: (replaces: ...) ids.
+const TESTS_SCHEMA = objOf(['ids'], { runner: STR, ids: STRS, count: NUM, replaces: STRS })
+const TASK_STATUS = ['DONE', 'DONE_WITH_CONCERNS', 'BLOCKED']
+// gaps: surprises later waves would rediscover. rejected: a finding the fixer disputes, with its
+// receipt. misreads: a finding showing the task contract was misread (needs a Ruling and --amend).
+const TASK_RESULT = objOf(['id', 'redExit', 'greenExit', 'refactorPassCount', 'commits', 'files', 'notes'], {
+  id: STR, redExit: NUM, greenExit: NUM, refactorPassCount: NUM, commits: STRS, files: STRS, notes: STR,
+  status: { type: 'string', enum: TASK_STATUS }, concerns: STRS, gaps: STRS,
+  rejected: arrOf(objOf(['finding', 'receipt'], { finding: STR, receipt: STR })),
+  misreads: arrOf(objOf(['finding', 'ruling'], { finding: STR, ruling: STR, amend: STR })),
+})
+const FINDING_ITEM = objOf(['predicate', 'severity', 'scenario', 'receipt'], { predicate: STR, severity: STR, scenario: STR, receipt: STR, quote: STR })
+const RELOOK = objOf(['verdicts'], {
+  verdicts: arrOf(objOf(['finding', 'status', 'receipt'], { finding: STR, status: { type: 'string', enum: ['ADDRESSED', 'NOT_ADDRESSED'] }, receipt: STR })),
+  newBreakage: arrOf(FINDING_ITEM),
+  outOfScope: STRS,
+})
+const SCORE_SCHEMA = objOf(['score'], { score: NUM, why: STR, how: STR })
+const CLASSIFY_SCHEMA = objOf(['classes'], {
+  classes: arrOf(objOf(['predicate', 'class'], { predicate: STR, class: { type: 'string', enum: ['known-open', 'load-bearing'] } })),
+  oversize: { type: 'boolean' },
+  recut: STR,
+})
+const VERIFY_SCHEMA = objOf(['results'], {
+  results: arrOf(objOf(['requirement', 'check', 'status'], { requirement: STR, check: STR, status: { type: 'string', enum: ['pass', 'fail', 'refused'] }, output: STR })),
+})
+const FINDINGS = objOf(['verdict', 'checked', 'findings'], {
+  verdict: STR, checked: STR, findings: arrOf(FINDING_ITEM),
+  // What a diff-only reviewer could not judge; each check is a runnable read-only command or grep.
+  cannotVerify: { type: 'array', items: objOf(['requirement', 'check'], { requirement: STR, check: STR }) },
+})
 
-const BRIEF_SCHEMA = {
-  type: 'object',
-  required: ['briefPath'],
-  properties: { briefPath: { type: 'string' } },
-}
-
-const DIFF_SCHEMA = {
-  type: 'object',
-  required: ['diffPath'],
-  properties: { diffPath: { type: 'string' } },
-}
-
-const TASK_RESULT = {
-  type: 'object',
-  required: ['id', 'redExit', 'greenExit', 'refactorPassCount', 'commits', 'files', 'notes'],
-  properties: {
-    id: { type: 'string' },
-    redExit: { type: 'number' },
-    greenExit: { type: 'number' },
-    refactorPassCount: { type: 'number' },
-    commits: { type: 'array', items: { type: 'string' } },
-    files: { type: 'array', items: { type: 'string' } },
-    notes: { type: 'string' },
-  },
-}
-
-const FINDINGS = {
-  type: 'object',
-  required: ['verdict', 'checked', 'findings'],
-  properties: {
-    verdict: { type: 'string' },
-    checked: { type: 'string' },
-    findings: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['predicate', 'severity', 'scenario', 'receipt'],
-        properties: {
-          predicate: { type: 'string' },
-          severity: { type: 'string' },
-          scenario: { type: 'string' },
-          receipt: { type: 'string' },
-        },
-      },
-    },
-  },
-}
-
-function isBlocking(finding) {
-  return !!finding && (finding.severity === 'fatal' || finding.severity === 'significant')
-}
-
-function adversaryPrompt(lens, briefPath, diffPath) {
-  return 'Adversarial review, lens=' + lens + '. Read ONLY the brief at ' + briefPath +
-    ' and the diff at ' + diffPath + '. Report findings as FINDINGS JSON with predicate, severity ' +
-    '(fatal|significant|minor|none), scenario, and receipt (file:line or command output).'
-}
-
-// ADVERSARY_LENSES mirrors, in order, the three parallel() thunks built below
-// for the initial review and every re-look round — the index->name lookup a
-// null result is traced back to for failedLenses.
-const ADVERSARY_LENSES = ['correctness', 'gaming', 'slop']
-
-// collectLensResults reduces one parallel() lens-array result into its
-// blocking findings, appending any null result's lens name (ADVERSARY_LENSES
-// order, tagged with roundSuffix — '' for the first review, ':r<N>' for a
-// re-look round) to the caller's failedLenses accumulator and logging one
-// line naming them. When a lens failed and mergeWith is given (a re-look
-// round), mergeWith's findings are kept unioned in — never cleared (B3).
-function collectLensResults(results, roundSuffix, context, failedLenses, mergeWith) {
-  const findings = []
-  const before = failedLenses.length
-  results.forEach(function (r, i) {
-    if (!r) { failedLenses.push(ADVERSARY_LENSES[i] + roundSuffix); return }
-    findings.push.apply(findings, (r.findings || []).filter(isBlocking))
-  })
-  if (failedLenses.length === before) { return findings }
-  log('lens(es) failed ' + context + ': ' + failedLenses.slice(before).join(', '))
-  return mergeWith ? mergeWith.concat(findings) : findings
-}
-
-// selectWaves narrows flow-lint's wave list to the ids this run was asked to
-// build, preserving the linter's wave order and dropping waves that end up
-// empty. An empty/absent `ids` means "every task the linter scheduled".
-// Ids are compared as strings because TASKS.md ids are strings (T001, CHK011).
+// selectWaves narrows flow-lint's wave list to the requested ids, keeping its order and dropping
+// empty waves. Ids compare as strings (T001, CHK011).
 function selectWaves(lintWaves, ids) {
   const want = (ids && ids.length > 0) ? ids.map(String) : null
   const out = []
@@ -137,186 +89,116 @@ const base = args.base
 const testCmd = args.testCmd
 const requestedIds = args.ids || args.slices
 const scriptsDir = args.scriptsDir || '$HOME/.claude/scripts'
-// skills/next/SKILL.md promises "at most 4 in parallel" — a wave never hands
-// parallel() more than this many thunks at once, no matter how many [P]
-// tasks flow-lint put in it.
-const MAX_PARALLEL = 4
-// Generated artifacts live in the feature's own review/ — the per-feature dir
-// `.gitignore` matches as `.specs/*/review/`, and the same one task-brief
-// writes into. A repo-level `.specs/review/` is neither.
+const promptsDir = args.promptsDir || scriptsDir + '/../workflows/prompts'
+const MAX_PARALLEL = 4 // skills/next/SKILL.md: "at most 4 in parallel"
+// Generated artifacts live in the feature's own review/ (git-ignored as `.specs/*/review/`).
 const reviewDir = args.reviewDir || (String(tasks || '').replace(/\/?[^/]*$/, '') || '.') + '/review'
+const repoRoot = args.repoRoot
+const NEXT_CALL = 'Workflow({ name: "flow:build-slices", args: { tasks: "<absolute path to TASKS.md>", base: "<Base sha>", testCmd: "<the Test: command>", repoRoot: "<absolute path printed by git rev-parse --show-toplevel>", scriptsDir: "<absolute path of the flow plugin\'s scripts/ dir>" } })'
+const ABS = /^(\/|[A-Za-z]:[\\/])/
+function trimSlash(p) { return String(p || '').replace(/[\\/]+$/, '') }
+// The child workflow sits in workflows/, beside scripts/, the way promptsDir does. A trailing
+// /scripts becomes /workflows, so no '..' is left for the runtime to normalise through a symlink.
+// workflow() expands no shell variables, so a scriptsDir that is not absolute (the '$HOME/...'
+// default) is first resolved by the repo-root agent's shell (`pwd -P`, symlinks followed).
+function childPath(dir) {
+  const d = trimSlash(dir)
+  return /\/scripts$/.test(d) ? d.replace(/\/scripts$/, '/workflows/build-slices-task.js') : d + '/../workflows/build-slices-task.js'
+}
+let taskScript = ABS.test(scriptsDir) ? childPath(scriptsDir) : null
+function refusal(reason, missing, extra) { return Object.assign({ started: false, reason: reason, missing: missing }, extra || {}, { next: NEXT_CALL }) }
+function haiku(prompt, label, phase, schema) { return agent(prompt, { model: 'haiku', label: label, phase: phase, schema: schema }) }
 
-// Stage 0: run the linter and take its waves. `flow-lint --json` exits 1 on any
-// ERROR, so a plan that would race two [P] tasks over one file never reaches a
-// developer agent — the schedule and the validation are the same call.
-let lintWaves = args.waves
-if (lintWaves === undefined) {
+// Preflight: a missing argument would be pasted into prompts as "undefined" and a relative or wrong
+// repo would build in the wrong checkout, so nothing is dispatched until all four are in hand.
+function preflight() {
+  const given = { tasks: tasks, base: base, testCmd: testCmd, repoRoot: repoRoot }
+  const missing = Object.keys(given).filter(function (k) { return !given[k] })
+  if (missing.length > 0) { return refusal('missing-arg', missing) }
+  if (!ABS.test(String(repoRoot))) { return refusal('not-absolute', []) }
+  return /['\n\r]/.test(String(repoRoot)) ? refusal('bad-repo-root', []) : null
+}
+async function checkRepo() {
+  const cmd = 'cd \'' + repoRoot + '\' && git rev-parse --show-toplevel'
+  const res = taskScript
+    ? await haiku('Run this exact command and return its output as toplevel: ' + cmd, 'repo-root', 'Schedule', ROOT_SCHEMA)
+    : await haiku('Run this exact command and return its first output line as toplevel and its second as scriptsDir: ' + cmd + ' && cd "' + scriptsDir + '" && pwd -P', 'repo-root', 'Schedule', ROOT_DIR_SCHEMA)
+  const dir = trimSlash(res && res.scriptsDir)
+  if (!taskScript && ABS.test(dir) && !/[\n\r]/.test(dir)) { taskScript = childPath(dir) }
+  if (res && trimSlash(res.toplevel) === trimSlash(repoRoot)) { return null }
+  log('repo check: ' + ((res && res.toplevel) || 'no answer') + ' is not ' + repoRoot + '; nothing dispatched')
+  return refusal('wrong-repo', [], { toplevel: (res && res.toplevel) || '' })
+}
+const refused = preflight() || await checkRepo() || (taskScript ? null : refusal('not-absolute', ['scriptsDir']))
+if (refused) { return refused }
+
+// Stage 0: `flow-lint --json` exits 1 on any ERROR, so a plan that races two [P] tasks over one
+// file never reaches a developer. Null means the linter refused the plan.
+async function scheduleWaves() {
   const scheduleRes = await agent(
     'Run this exact command and return its parsed JSON: ' + scriptsDir + '/flow-lint ' + tasks + ' --json' +
       '. Return an object with "ok" (the JSON\'s ok field) and "waves" (the JSON\'s waves array, ' +
       'an array of arrays of task id strings). If the command exits non-zero, still return the ' +
       'parsed JSON so the caller sees ok:false and an empty schedule.',
-    {
-      model: 'haiku',
-      agentType: 'general-purpose',
-      label: 'schedule',
-      phase: 'Schedule',
-      schema: SCHEDULE_SCHEMA,
-    }
+    { model: 'haiku', agentType: 'general-purpose', label: 'schedule', phase: 'Schedule', schema: SCHEDULE_SCHEMA }
   )
   if (scheduleRes && scheduleRes.ok === false) {
     log('flow-lint reported ERRORs for ' + tasks + '; refusing to dispatch. Fix TASKS.md and re-run.')
-    return { tasks: [], parked: [], clean: false, waves: [], discovered: [], lintOk: false }
+    return null
   }
-  lintWaves = (scheduleRes && scheduleRes.waves) || []
+  return (scheduleRes && scheduleRes.waves) || []
+}
+let lintWaves = args.waves
+if (lintWaves === undefined) {
+  lintWaves = await scheduleWaves()
+  if (lintWaves === null) { return { tasks: [], parked: [], clean: false, waves: [], discovered: [], lintOk: false } }
 }
 
-// runTask carries one task through its full chain (brief -> implement ->
-// package -> review -> fix ladder) inside a single thunk, so it can be handed
-// to parallel() alongside every other task in its wave without any of them
-// blocking on each other.
-async function runTask(id) {
-  let briefCmd = scriptsDir + '/task-brief ' + tasks + ' ' + id
-  if (design) { briefCmd += ' --design ' + design }
-  const briefRes = await agent(
-    'Run this exact command and return its stdout output path: ' + briefCmd,
-    { model: 'haiku', label: 'brief:' + id, phase: 'Brief', schema: BRIEF_SCHEMA }
-  )
-  const briefPath = briefRes ? briefRes.briefPath : null
-  if (!briefPath) {
-    return {
-      result: { id: id, redExit: null, greenExit: null, refactorPassCount: 0, commits: [], files: [], notes: 'brief failed' },
-      parked: [],
-    }
-  }
-
-  const implementPrompt = 'Implement task ' + id + ' by reading ONLY the brief at ' + briefPath +
-    ' and the files it names. Follow RED/GREEN/REFACTOR from the brief, and touch no file outside ' +
-    'the brief\'s files: list. Run the test command: ' + testCmd + '. State the search receipt before ' +
-    'your first edit and run scripts/slop-check before reporting done. Return the TASK_RESULT.'
-  const implRes = await agent(implementPrompt, { agentType: 'developer', label: 'implement:' + id, phase: 'Implement', schema: TASK_RESULT })
-  if (!implRes) {
-    return {
-      result: { id: id, redExit: null, greenExit: null, refactorPassCount: 0, commits: [], files: [], notes: 'implement failed' },
-      parked: [],
-    }
-  }
-  let ctx = Object.assign({}, implRes, { id: id, briefPath: briefPath })
-
-  const reviewCmd = scriptsDir + '/review-package ' + base + ' HEAD --out ' + reviewDir + '/' + id + '.diff'
-  const diffRes = await agent(
-    'Run this exact command and return its output path: ' + reviewCmd,
-    { model: 'haiku', label: 'review:' + id, phase: 'Review', schema: DIFF_SCHEMA }
-  )
-  ctx = Object.assign({}, ctx, { diffPath: diffRes ? diffRes.diffPath : null })
-
-  // No diff means nothing was reviewed. An empty findings list here would read as a
-  // clean review, so the task parks with the true reason instead.
-  if (!ctx.diffPath) {
-    log('parked: task ' + id + ' - no diff to review')
-    return {
-      result: { id: id, redExit: ctx.redExit, greenExit: ctx.greenExit, refactorPassCount: ctx.refactorPassCount, commits: ctx.commits || [], files: ctx.files || [], notes: 'no diff to review', failedLenses: [] },
-      parked: [{ task: id, finding: { predicate: 'no diff to review', severity: 'significant', scenario: 'review-package produced no diff path, so the task was never reviewed', receipt: reviewCmd }, ruling: 'parked', why: 'review-package yielded no diff (empty diff or packaging failed); the task was not reviewed' }],
-    }
-  }
-
-  let current = [], taskFailedLenses = []
-  if (ctx.diffPath) {
-    const lenses = await parallel([
-      function () { return agent(adversaryPrompt('correctness', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:correctness:' + id, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('gaming', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:gaming:' + id, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('slop', ctx.briefPath, ctx.diffPath), { agentType: 'adversary', label: 'adv:slop:' + id, phase: 'Review', schema: FINDINGS }) },
-    ])
-    current = collectLensResults(lenses, '', 'on the first review for task ' + id, taskFailedLenses)
-  }
-
-  const localParked = []
-  // history: one {round, findings, notes} per completed fix round. From round 2
-  // on, every fix prompt carries it so a fresh agent does not retry what an
-  // earlier round already tried (skills/next/review.md: "told what the first
-  // three attempts tried and why each failed").
-  const history = []
-  let stopReason = null
-
-  for (let round = 1; round <= 5 && current.length > 0; round++) {
-    const stronger = round >= 4
-    let prompt = 'Task ' + ctx.id + '. Brief: ' + ctx.briefPath + '. Diff: ' + ctx.diffPath +
-      '. Fix these adversarial findings: ' + JSON.stringify(current) + '.'
-    if (history.length > 0) {
-      prompt += ' ' + (stronger ? 'Approaches tried and failed in earlier rounds' : 'Earlier fix rounds') +
-        ' (round, findings, what that fixer reported): ' + JSON.stringify(history) + '.'
-    }
-    prompt += ' Run the test command: ' + testCmd + '. Return the updated TASK_RESULT.'
-    // Retry-once on a null result: the same call, same prompt, so a transient
-    // failure does not end the ladder; a second null parks with the true reason.
-    let fixed
-    for (let attempt = 1; attempt <= 2 && !fixed; attempt++) {
-      if (stronger) {
-        fixed = await agent(prompt, { agentType: 'developer', model: 'opus', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
-      } else {
-        fixed = await agent(prompt, { agentType: 'developer', label: 'fix:' + ctx.id + ':r' + round, phase: 'Fix', schema: TASK_RESULT })
-      }
-    }
-    if (!fixed) { stopReason = 'fix agent returned nothing in round ' + round; break }
-    history.push({ round: round, findings: current, notes: fixed.notes || '' })
-    ctx = Object.assign({}, ctx, fixed, { id: id, briefPath: ctx.briefPath })
-    log('fix round ' + round + ' for task ' + ctx.id + (stronger ? ' (fresh implementer, opus)' : ' (same implementer)'))
-
-    const reReviewCmd = scriptsDir + '/review-package ' + base + ' HEAD --out ' + reviewDir + '/' + ctx.id + '.diff'
-    const reReview = await agent(
-      'Run this exact command and return its output path: ' + reReviewCmd,
-      { model: 'haiku', label: 'review:' + ctx.id + ':r' + round, phase: 'Review', schema: DIFF_SCHEMA }
-    )
-    const diffPath = reReview ? reReview.diffPath : ctx.diffPath
-    ctx = Object.assign({}, ctx, { diffPath: diffPath })
-
-    const relook = await parallel([
-      function () { return agent(adversaryPrompt('correctness', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:correctness:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('gaming', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:gaming:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-      function () { return agent(adversaryPrompt('slop', ctx.briefPath, diffPath), { agentType: 'adversary', label: 'adv:slop:' + ctx.id + ':r' + round, phase: 'Review', schema: FINDINGS }) },
-    ])
-    current = collectLensResults(relook, ':r' + round, 'in round ' + round + ' for task ' + ctx.id, taskFailedLenses, current)
-  }
-
-  for (const finding of current) {
-    const why = stopReason || 'fix ladder exhausted after 5 rounds without resolving this finding'
-    const ruling = { task: ctx.id, finding: finding, ruling: 'parked', why: why }
-    localParked.push(ruling)
-    log('parked: task ' + ctx.id + ' - ' + finding.predicate)
-  }
-
-  return {
-    result: {
-      id: ctx.id,
-      redExit: ctx.redExit,
-      greenExit: ctx.greenExit,
-      refactorPassCount: ctx.refactorPassCount,
-      commits: ctx.commits || [],
-      files: ctx.files || [],
-      notes: ctx.notes || '',
-      failedLenses: taskFailedLenses,
-    },
-    parked: localParked,
-  }
+// Gaps from earlier tasks. knownGaps: { task, wave, files, text } per parked known-open finding; a
+// later task whose files: overlap sees them. reportedGaps: TASK_RESULT.gaps, not tied to files.
+// Both reach only tasks in LATER waves, so a task never reads a gap a sibling wrote while it ran.
+// The child reports its additions when it returns (gapNotes, knownOpen, discovered); runTask merges them.
+const knownGaps = []
+const reportedGaps = []
+// discovered is declared here so a re-look's outOfScope notes can join it as tasks run.
+const discovered = []
+function noteGaps(task, wave, list) {
+  ;(list || []).forEach(function (t) {
+    const text = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 300)
+    if (text && !reportedGaps.some(function (g) { return g.text === text })) { reportedGaps.push({ task: task, wave: wave, text: text }) }
+  })
+}
+// One block for the brief (reported gaps and F52 known-open findings of earlier waves); the brief
+// is cut before the task's files are known, so nothing is filtered by file here.
+function gapBlock(wave) {
+  const lines = reportedGaps.filter(function (g) { return g.wave < wave }).map(function (g) { return g.task + ': ' + g.text })
+  knownGaps.filter(function (g) { return g.wave < wave }).forEach(function (g) {
+    const line = g.task + ': ' + String(g.text || '').replace(/\s+/g, ' ')
+    if (lines.indexOf(line) === -1) { lines.push(line) }
+  })
+  return lines.join('\n')
 }
 
-// The schedule is fixed once flow-lint has spoken, so it is logged in full
-// BEFORE any wave starts running — one line per wave, formatted exactly
-// "wave <k>: T002, T003".
-const waves = selectWaves(lintWaves, requestedIds)
-waves.forEach(function (wave, i) {
-  log('wave ' + (i + 1) + ': ' + wave.join(', '))
-})
+// The schemas the child's agents answer in; passed in args so one copy exists.
+const TASK_SCHEMAS = { BRIEF_SCHEMA: BRIEF_SCHEMA, VERIFY_RUN_SCHEMA: VERIFY_RUN_SCHEMA, DIFF_SCHEMA: DIFF_SCHEMA, TESTS_SCHEMA: TESTS_SCHEMA, TASK_RESULT: TASK_RESULT, RELOOK: RELOOK, SCORE_SCHEMA: SCORE_SCHEMA, CLASSIFY_SCHEMA: CLASSIFY_SCHEMA, VERIFY_SCHEMA: VERIFY_SCHEMA, FINDINGS: FINDINGS }
+// runTask hands one task's whole chain to the child inside a single pool slot, so no task in a wave
+// blocks another, then merges what the child added to the gap and discovered lists.
+async function runTask(id, wave) {
+  const r = await workflow({ scriptPath: taskScript }, {
+    id: id, wave: wave, tasks: tasks, design: design, base: base, testCmd: testCmd, scriptsDir: scriptsDir, promptsDir: promptsDir,
+    reviewDir: reviewDir, repoRoot: repoRoot, gapText: gapBlock(wave), knownGaps: knownGaps.slice(), schemas: TASK_SCHEMAS,
+  })
+  if (!r) { log('task ' + id + ': the child workflow returned no result'); return null }
+  noteGaps(id, wave, r.gapNotes)
+  ;(r.knownOpen || []).forEach(function (g) { knownGaps.push(g) })
+  ;(r.discovered || []).forEach(function (d) { discovered.push(d) })
+  return r
+}
 
-const finalTasks = []
-const parked = []
-
-for (let w = 0; w < waves.length; w++) {
-  const ready = waves[w]
-  // A worker pool, not fixed chunks: min(MAX_PARALLEL, ready.length) workers
-  // each pull the next index off a shared queue, so a finished task frees its
-  // slot at once. Results are stored by index, keeping wave order (not finish
-  // order) so the PR body and digest do not reshuffle between runs.
+// A worker pool, not fixed chunks: min(MAX_PARALLEL, ready.length) workers pull the next index off
+// a shared queue, so a finished task frees its slot at once. Results are stored by index, keeping
+// wave order (not finish order) so the PR body and digest do not reshuffle.
+async function runWave(ready, w) {
   const waveResults = new Array(ready.length).fill(null)
   let nextIndex = 0
   const workers = []
@@ -324,10 +206,7 @@ for (let w = 0; w < waves.length; w++) {
     workers.push(async function () {
       while (nextIndex < ready.length) {
         const i = nextIndex++
-        // a thrown task frees its slot (null result) and must not kill the worker
-        try {
-          waveResults[i] = await runTask(ready[i])
-        } catch (e) {
+        try { waveResults[i] = await runTask(ready[i], w) } catch (e) { // a thrown task frees its slot and must not kill the worker
           log('task ' + ready[i] + ' threw: ' + (e && e.message ? e.message : e))
           waveResults[i] = null
         }
@@ -335,23 +214,57 @@ for (let w = 0; w < waves.length; w++) {
     })
   }
   await parallel(workers)
-  waveResults.forEach(function (r) {
-    if (!r) { return }
-    finalTasks.push(r.result)
-    r.parked.forEach(function (p) { parked.push(p) })
-  })
+  return waveResults
 }
 
-// discovered: out-of-plan work a task's notes flagged along the way, surfaced
-// here rather than silently dropped so the caller can append it to TASKS.md as
-// new tasks (append-only) or record it in NOTES.md.
-const discovered = []
-finalTasks.forEach(function (t) {
-  if (t && typeof t.notes === 'string' && /out-of-plan/i.test(t.notes)) {
-    discovered.push({ task: t.id, note: t.notes })
-  }
+// The schedule is fixed once flow-lint has spoken: log it in full before any wave runs.
+const waves = selectWaves(lintWaves, requestedIds)
+waves.forEach(function (wave, i) {
+  log('wave ' + (i + 1) + ': ' + wave.join(', '))
 })
 
-const incomplete = finalTasks.filter(function (t) { return t && t.failedLenses && t.failedLenses.length > 0 }).map(function (t) { return t.id })
+const finalTasks = []
+const parked = []
+// unfinished: tasks whose child threw or returned nothing (a path or runtime error, not a verdict);
+// they count against clean through incomplete, so a run where no task ran is never clean.
+const unfinished = []
+const unrunWaves = []
+const minors = []
+let stopReason = null
 
-return { tasks: finalTasks, parked: parked, clean: parked.length === 0 && incomplete.length === 0, waves: waves, discovered: discovered, lintOk: true, incomplete: incomplete }
+for (let w = 0; w < waves.length; w++) {
+  const ready = waves[w]
+  const waveResults = await runWave(ready, w)
+  let unparkedInWave = 0
+  waveResults.forEach(function (r, i) {
+    if (!r) { unfinished.push(ready[i]); return }
+    finalTasks.push(r.result)
+    r.parked.forEach(function (p) { parked.push(p) })
+    ;(r.minors || []).forEach(function (m) { minors.push(m) })
+    if (r.parked.length === 0) { unparkedInWave++ }
+  })
+  if (w >= waves.length - 1) { continue }
+  // Wave breaker: fewer than 2/3 of a wave of three or more ended unparked is a pattern, not a
+  // one-off, and the next wave would build on it. A thrown task counts as parked.
+  if (ready.length >= 3 && unparkedInWave * 3 < ready.length * 2) {
+    log('wave breaker: ' + unparkedInWave + ' of ' + ready.length + ' tasks of wave ' + (w + 1) + ' ended unparked; later waves not dispatched')
+    stopReason = 'wave breaker'
+    unrunWaves.push.apply(unrunWaves, waves.slice(w + 1))
+    break
+  }
+  if (parked.some(function (p) { return p.class === 'load-bearing' })) { // later tasks would build on a known defect
+    log('load-bearing finding after wave ' + (w + 1) + '; later waves not dispatched')
+    unrunWaves.push.apply(unrunWaves, waves.slice(w + 1))
+    break
+  }
+}
+
+// discovered: out-of-plan work a task's notes flagged (plus re-look outOfScope notes), surfaced so
+// the caller can append it to TASKS.md (append-only) or NOTES.md instead of silently dropping it.
+finalTasks.forEach(function (t) {
+  if (t && typeof t.notes === 'string' && /out-of-plan/i.test(t.notes)) { discovered.push({ task: t.id, note: t.notes }) }
+})
+const incomplete = finalTasks.filter(function (t) { return t && t.failedLenses && t.failedLenses.length > 0 }).map(function (t) { return t.id }).concat(unfinished)
+const blockedBy = parked.filter(function (p) { return p.class === 'load-bearing' }).map(function (p) { return p.task }).filter(function (t, i, a) { return a.indexOf(t) === i })
+
+return { tasks: finalTasks, parked: parked, clean: parked.length === 0 && incomplete.length === 0, waves: waves, discovered: discovered, lintOk: true, incomplete: incomplete, blocked: blockedBy.length > 0, blockedBy: blockedBy, unrunWaves: unrunWaves, stopReason: stopReason, minors: minors }

@@ -1,19 +1,6 @@
 ---
 name: prompt-injection-tester
-description: >-
-  Generate tailored prompt-injection / jailbreak TEST prompts to red-team a chatbot or agent you
-  built and own, then analyze the bot's reply to score whether the guardrail held. Use WHENEVER the
-  user wants to test, red-team, attack, probe, jailbreak, or stress-test their OWN bot/agent/LLM app,
-  OR pastes a bot response and asks "did my injection work / did it hold up". Two modes — GENERATE
-  (scenario + bot type -> one tailored adversarial prompt copied to the clipboard via pbcopy and
-  logged) and ANALYZE (bot response -> RESISTED / PARTIAL / COMPROMISED verdict + the next move).
-  Tailors to the bot's ACTUAL app-layer guardrails (not generic DAN strings), prioritizes
-  indirect / RAG / tool-result channels and multi-turn Crescendo, and embeds a benign canary marker
-  so success is provable without producing real harmful content. Triggers - "test my bot for prompt
-  injection", "red-team my chatbot", "write a jailbreak to test my agent", "is my bot vulnerable to
-  injection", "generate an injection test and pbcopy it", "did this injection work", "score this bot
-  response", "prompt injection tester", "/prompt-injection-tester". Scoped to systems the user owns
-  or operates — authorized defensive testing only.
+description: 'Generate tailored prompt-injection / jailbreak TEST prompts to red-team a chatbot or agent you built and own, then analyze the bot''s reply to score whether the guardrail held. Use WHENEVER the user wants to test, red-team, probe, jailbreak, or stress-test their OWN bot/agent/LLM app, OR pastes a bot response and asks "did my injection work / did it hold up". Two modes: GENERATE (scenario + bot type -> one tailored adversarial prompt copied to the clipboard via pbcopy and logged) and ANALYZE (bot response -> RESISTED / PARTIAL / COMPROMISED verdict + the next move). Tailors to the bot''s ACTUAL app-layer guardrails (not generic DAN strings), prioritizes indirect / RAG / tool-result channels and multi-turn Crescendo, and embeds a benign canary marker so success is provable. Triggers: "test my bot for prompt injection", "red-team my chatbot", "did this injection work", "score this bot response", "/prompt-injection-tester". Scoped to systems the user owns or operates; authorized defensive testing only.'
 ---
 
 # Prompt Injection Tester

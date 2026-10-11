@@ -122,6 +122,17 @@ bash scripts/audit-recon.sh "${PROJECT_DIR:-.}" > .audit/recon.txt
 
 Write `plan.md` summarizing: stacks detected, size tier, which dimensions will run, hot-spot files, findings budget.
 
+`plan.md` also carries two tables, so a quiet lens can never be mistaken for full coverage:
+
+- **Scanned**: `| Dir | Why |` rows for each top-level dir an agent will read.
+- **Skipped**: `| Dir | Reason |` rows for each top-level dir left out (sampled out by the tier table, generated, vendored). A Skipped row without a reason is rejected.
+- Root-level files go in a row named `.` in either table.
+- Put each table under a `## Scanned` / `## Skipped` heading (a bold `**Scanned**:` label line also works); rows outside those sections are ignored.
+
+Run `bash scripts/audit-coverage.sh .audit/plan.md "${PROJECT_DIR:-.}"` before launching agents. It compares both tables with `git ls-files | cut -d/ -f1 | sort -u`, prints `UNLISTED:<dir>` for each dir in neither table, and exits 1 until the ledger is complete. The size-tier table above is unchanged: medium, large and huge repos still scope to hot-spots or samples, and the ledger records what was left out and why. Only the small tier requires exact-cover slicing, each file read by exactly one agent slice.
+
+Run `bash scripts/test-prefilter.sh "${PROJECT_DIR:-.}" > .audit/test-prefilter.txt`. Its `NO_ASSERTION:` and `NEAR_DUPLICATE:` lines are leads for the tests agent, not verdicts.
+
 ## Phase 1 — Parallel Detection (6 dimensions, strict scope bounds)
 
 Read [`references/orchestration.md`](references/orchestration.md) in full before launching agents — wave discipline, agent prompt template, dedup rules, failure modes.
@@ -145,6 +156,8 @@ Launch 6 agents in parallel (single message, multiple Agent tool calls). Each ag
 
 **Wait for ALL agents** before proceeding. Check each output file exists and is >20 lines of JSON. Re-run any silent failures.
 
+**Second-look pass**: once every lens has returned, launch one fresh agent per lens (new context, same scope, same references) that sees the lens's file list and its `what_i_checked` but not its findings. It writes `.audit/findings-raw/<dimension>-second.json` (the second-look file). Its job is the quiet miss: a lens that found nothing records what it checked or "not scanned" in `what_i_checked`, and the second look re-checks exactly that. A single pass over a hot-spot is where silent gaps hide.
+
 ## Phase 2 — Deduplication and Prioritization (orchestrator-only)
 
 Read [`references/triage.md`](references/triage.md) in full — ranking by `business_impact × technical_risk / fix_cost`, Fowler quadrant, P0-P3 tiers, when NOT to refactor.
@@ -152,7 +165,7 @@ Read [`references/triage.md`](references/triage.md) in full — ranking by `busi
 Do NOT delegate this phase to a subagent — synthesis is orchestrator work.
 
 Rules (in order):
-1. **Schema validation** — drop any finding missing required fields (`file`, `line_start`, `severity`, `confidence`, `failure_scenario`, `what_i_checked`).
+1. **Schema validation** — drop any finding missing required fields (`file`, `line_start`, `severity`, `confidence`, `failure_scenario`, `what_i_checked`). A finding that proposes deleting a test is also dropped unless it carries the full retirement card (see `finding-schema.md`).
 2. **Tool-overlap drop** — drop any finding a standard linter/type-checker already flags (unused imports, missing semicolons, formatter violations, type errors).
 3. **Failure scenario gate** — any finding lacking a concrete `failure_scenario` → confidence capped at 0.60 and labeled `question`.
 4. **Exact-location merge** — same `file + line_range` across agents → merge to single finding at highest severity; increment `agent_count`.
@@ -161,6 +174,8 @@ Rules (in order):
 7. **Access control cap** — auth/access-control findings are capped at medium confidence NO MATTER WHAT the agent claimed (SAST on access control is unreliable regardless of tool).
 8. **Budget enforcement** — rank by `severity_weight × confidence` (critical=4, major=3, minor=2, nitpick=1), keep top-N where N comes from the size-tier table. Critical + live-secrets + exploited-CVE findings EXCEED the budget (always shown).
 9. **Blast radius tagging** — `local` (1 file), `module` (2-5), `cross-cutting` (6+). Only `local` is auto-fix eligible.
+
+**Refute pass** (after rule 9): give each surviving finding to a fresh agent whose only job is to disprove it: find the guard, caller, test or comment that makes the failure scenario impossible. A refuted finding goes to the backlog with the refutation attached. For `critical` findings also run an independent confirm pass in a second fresh context that must reproduce the failure path from the cited lines; a critical finding that is not confirmed drops one tier. Both passes read the code, not the original agent's reasoning, so they do not inherit its mistake.
 
 Dropped findings go to `findings-backlog.json` (user can recall with "show backlog").
 
@@ -284,6 +299,8 @@ This prevents the scenario where an audit consumes significant user attention wh
 ## Phase 7 — Verification
 
 Spawn a separate verifier agent (fresh context, never the detection or fix agent). Give it: the original finding list, the applied-fixes log, the changed files. It verifies each approved finding is actually resolved by rereading the code.
+
+For each applied fix the verifier also returns `TARGETED`, `NO_NEW_VULNERABILITY` and `BEHAVIOUR_UNCHANGED`, each `CONFIDENT`, `NOT_CONFIDENT` or `UNSURE` with one `file:line` or test-name line, plus `untested=true` when no shipped test other than one added by the fix runs the changed function's other callers. A change in which inputs are accepted, beyond the bug's own input, is `NOT_CONFIDENT` on `BEHAVIOUR_UNCHANGED`. Any claim that is not `CONFIDENT` lands the finding under "Remaining for human"; `untested=true` is listed beside it.
 
 Output `.audit/verification.md`:
 - Approved findings: N

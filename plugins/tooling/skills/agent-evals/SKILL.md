@@ -17,6 +17,8 @@ Read the matching reference **fully** before acting; load **only** the ones a ro
 | Build, validate, or debug an LLM-as-a-judge / model-graded eval | [`references/llm-as-judge.md`](references/llm-as-judge.md) |
 | Decide significance/sample size; design the pipeline, CI cadence, or cut cost | [`references/statistics-and-cost.md`](references/statistics-and-cost.md) |
 | Anything on AWS — AgentCore, Bedrock, CloudWatch, managed eval | [`references/agentcore-and-bedrock.md`](references/agentcore-and-bedrock.md) |
+| An eval result looks surprising (all pass, all fail, a big jump), or you are about to trust an existing eval before comparing systems | [`references/eval-audit.md`](references/eval-audit.md) |
+| Evaluating an MCP server or a tool set: write questions the data can settle, run them with the fixed harness, collect tool feedback | [`references/mcp-server-evals.md`](references/mcp-server-evals.md) |
 | Just deciding code-graded vs judge vs human, or outcome vs trajectory | none — stay in this file (Decisions 1 & 2) |
 
 If unsure, start with `metrics-and-datasets.md` (error analysis comes before everything). The decision sections below are self-contained — only load a reference when its row matches.
@@ -107,6 +109,8 @@ Most teams build only Tier 3 and never run it. Build Tier 1 first. Read [`refere
 ## Evaluating on AWS (AgentCore / Bedrock)
 
 Read [`references/agentcore-and-bedrock.md`](references/agentcore-and-bedrock.md) in full if the system runs on AWS, or the user mentions AgentCore, Bedrock, CloudWatch, or managed eval. Do not load the metrics, judge, or statistics references for this step, and do not load this file at all for non-AWS work — it's vendor-specific.
+
+Read [`references/mcp-server-evals.md`](references/mcp-server-evals.md) in full when the thing under test is an MCP server or a set of tools: it has blind question authoring, closed-data answers, `NOT_FOUND` cases and the `scripts/mcp_eval.py` harness. Do not load it for other targets.
 
 One-paragraph orientation: **AgentCore Observability** emits OTEL traces (GenAI semantic conventions) to CloudWatch — that's the *data*, not eval. **AgentCore Evaluations** (GA 2026-03-31) is the managed *scoring* layer: 13 built-in evaluators at session/trace/tool levels, ground-truth via `expected_response`/`expected_trajectory`/`assertions`, **online** (sampled prod) vs **on-demand** (CI/CD) modes, custom code evaluators as Lambda. **Bedrock Evaluations** (managed, separate) does model + RAG eval with 11 metrics and judge models. Don't confuse Observability (data) with Evaluations (scoring), or Evaluations (measures quality) with Policy (blocks actions).
 

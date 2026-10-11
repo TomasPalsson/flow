@@ -26,8 +26,21 @@ function envSha(env) {
 
 const SKIP_RE = /\.skip\(|\.only\(|it\.todo\(|xfail|@pytest\.mark\.skip|#\[ignore\]|t\.Skip\(/;
 const STOPGATE_RE = /"?stopGate"?\s*[:=]\s*false/;
-const THRESHOLD_KEY_RE = /^(max[-_A-Za-z]*|complexity|threshold)$/i;
-const KV_RE = /"?([A-Za-z_][A-Za-z0-9_-]*)"?\s*[:=]\s*(-?[0-9]+)/g;
+// Direction table (mirrored in hooks/tamper-notice.sh; keep the two in step).
+// An increase loosens a max*/complexity*/timeout*/retries* key; a decrease
+// loosens a min*/threshold/coverage*/fail_under/branches/lines/functions/
+// statements key. A key that looks like a gate number but fits neither list
+// is reported as "direction unknown" instead of guessed at.
+const UP_LOOSENS_RE = /^(max|complexity|timeout|retries)/i;
+const DOWN_LOOSENS_RE = /^(min|coverage|fail[-_]?under|threshold|branches$|lines$|functions$|statements$)/i;
+const GATE_KEY_RE = /(max|min|complexity|threshold|timeout|retries|coverage|fail[-_]?under|branches|lines|functions|statements)/i;
+
+function thresholdDirection(key) {
+  if (UP_LOOSENS_RE.test(key)) return 'up';
+  if (DOWN_LOOSENS_RE.test(key)) return 'down';
+  return GATE_KEY_RE.test(key) ? 'unknown' : null;
+}
+const KV_RE = /"?([A-Za-z_][A-Za-z0-9_-]*)"?\s*[:=]\s*(-?[0-9]+(?:\.[0-9]+)?)/g;
 const MAX_SCAN_BYTES = 1024 * 1024;
 
 function isTestPath(p) {
@@ -46,9 +59,17 @@ function isGateConfigPath(p) {
   );
 }
 
-function gitLines(toplevel, args) {
+// gitRun -> { lines, error }. A non-zero exit is an error marker, not an
+// empty result: an empty diff reads as "nothing changed", which is clean.
+function gitRun(toplevel, args) {
   const r = spawnSync('git', ['-C', toplevel, ...args], { encoding: 'utf8' });
-  return (r.status === 0 ? r.stdout : '').split('\n').filter(Boolean);
+  if (r.status === 0) return { lines: r.stdout.split('\n').filter(Boolean), error: '' };
+  const why = String(r.stderr || '').trim().split('\n')[0] || `git exited ${r.status}`;
+  return { lines: [], error: `git ${args[0]} failed: ${why}` };
+}
+
+function gitLines(toplevel, args) {
+  return gitRun(toplevel, args).lines;
 }
 
 function untrackedFiles(toplevel) {
@@ -125,8 +146,12 @@ function changedLinesByFile(diffText) {
 
 // All changes since base: the diff for tracked files, and the whole content
 // of each untracked file as added lines.
-function changesSinceBase(toplevel, base) {
+// `errors` collects git failures so tamperCheck can report them.
+function changesSinceBase(toplevel, base, errors) {
   const diff = base ? spawnSync('git', ['-C', toplevel, 'diff', base], { encoding: 'utf8' }) : null;
+  if (diff && diff.status !== 0) {
+    errors.push(`git diff failed: ${String(diff.stderr || '').trim().split('\n')[0] || `exit ${diff.status}`}`);
+  }
   const files = changedLinesByFile(diff && diff.status === 0 ? diff.stdout : '');
   for (const f of untrackedFiles(toplevel)) {
     const abs = path.join(toplevel, f);
@@ -141,16 +166,29 @@ function changesSinceBase(toplevel, base) {
 function thresholdPairs(lines) {
   const out = {};
   for (const l of lines) {
-    for (const m of l.matchAll(KV_RE)) if (THRESHOLD_KEY_RE.test(m[1])) out[m[1]] = m[2];
+    for (const m of l.matchAll(KV_RE)) if (thresholdDirection(m[1])) out[m[1]] = Number(m[2]);
   }
   return out;
 }
 
-function gateWeakened(change) {
-  if (change.added.some((l) => STOPGATE_RE.test(l))) return true;
+// gateAssess(change) -> { weakened, unknown: [key] }. Only a loosening move
+// counts as weakened; a changed key with no known direction is listed once.
+function gateAssess(change) {
+  const res = { weakened: change.added.some((l) => STOPGATE_RE.test(l)), unknown: [] };
   const before = thresholdPairs(change.removed);
   const after = thresholdPairs(change.added);
-  return Object.keys(after).some((k) => k in before && before[k] !== after[k]);
+  for (const k of Object.keys(after)) {
+    if (!(k in before) || before[k] === after[k]) continue;
+    const dir = thresholdDirection(k);
+    if (dir === 'up' && after[k] > before[k]) res.weakened = true;
+    else if (dir === 'down' && after[k] < before[k]) res.weakened = true;
+    else if (dir === 'unknown') res.unknown.push(k);
+  }
+  return res;
+}
+
+function gateWeakened(change) {
+  return gateAssess(change).weakened;
 }
 
 // protectedPaths(front) -> string[]. --test-files (K-F, FR-008) names files
@@ -172,8 +210,10 @@ function isUnder(file, root) {
 // (git diff --name-only, which reports deletions and renames too) or
 // untracked-and-not-ignored. Deliberately name-based: changedLinesByFile only
 // sees files with a `+++ b/` header, so it misses deletions entirely.
-function changedPaths(toplevel, base) {
-  const tracked = base ? gitLines(toplevel, ['diff', '--name-only', base]) : [];
+function changedPaths(toplevel, base, errors) {
+  const run = base ? gitRun(toplevel, ['diff', '--name-only', base]) : { lines: [], error: '' };
+  if (run.error) errors.push(run.error);
+  const tracked = run.lines;
   return [...new Set(tracked.concat(untrackedFiles(toplevel)))];
 }
 
@@ -183,13 +223,13 @@ function changedPaths(toplevel, base) {
 // the one exemption: `flow eval` (the verifier itself) appends a line to it on
 // every run, so protecting it would flag every iteration of the very loop
 // FR-008 exists to protect.
-function protectedFindings(toplevel, front) {
+function protectedFindings(toplevel, front, errors) {
   const roots = protectedPaths(front);
   if (!roots.length) return [];
   const findings = [];
   const gone = roots.filter((p) => !fs.existsSync(path.join(toplevel, p)));
   for (const p of gone) findings.push(`protected file removed: ${p}`);
-  for (const f of changedPaths(toplevel, front.base)) {
+  for (const f of changedPaths(toplevel, front.base, errors)) {
     if (f === LEDGER_PATH || gone.includes(f)) continue;
     if (roots.some((r) => isUnder(f, r))) findings.push(`protected file changed: ${f}`);
   }
@@ -198,6 +238,7 @@ function protectedFindings(toplevel, front) {
 
 function tamperCheck(toplevel, front, env) {
   const findings = [];
+  const errors = [];
   // Scoped to --target (a UI loop): a plain non-UI loop never records
   // env_sha, so a coincidental SERVE/PORT in someone's shell never marks an
   // unrelated loop suspect (same scoping target_script already uses).
@@ -207,12 +248,16 @@ function tamperCheck(toplevel, front, env) {
   const initCount = toInt(front.test_files);
   const curCount = countTestFiles(toplevel);
   if (curCount < initCount) findings.push(`test files removed: ${initCount} → ${curCount}`);
-  findings.push(...protectedFindings(toplevel, front));
-  const changes = changesSinceBase(toplevel, front.base);
+  findings.push(...protectedFindings(toplevel, front, errors));
+  const changes = changesSinceBase(toplevel, front.base, errors);
   for (const [file, change] of Object.entries(changes)) {
     if (isTestPath(file) && change.added.some((l) => SKIP_RE.test(l))) findings.push(`skip/xfail added in ${file}`);
-    if (isGateConfigPath(file) && gateWeakened(change)) findings.push(`gate config weakened (${file})`);
+    if (!isGateConfigPath(file)) continue;
+    const gate = gateAssess(change);
+    if (gate.weakened) findings.push(`gate config weakened (${file})`);
+    if (gate.unknown.length) findings.push(`gate config threshold changed, direction unknown (${file}: ${gate.unknown.join(', ')})`);
   }
+  if (errors.length) findings.push(`tamper check unavailable: ${[...new Set(errors)].join('; ')}`);
   if (front.verify_sha && sha1(front.verify || '') !== front.verify_sha) findings.push('verifier rewritten');
   const extraPaths = [front.target_script, ...String(front.verify_script || '').split(/\s+/)];
   if (front.target_sha && targetSha(toplevel, front.target, extraPaths) !== front.target_sha) {
@@ -222,4 +267,4 @@ function tamperCheck(toplevel, front, env) {
   return findings;
 }
 
-module.exports = { tamperCheck, countTestFiles, targetSha, envSha, UI_ENV_VARS };
+module.exports = { gateAssess, gateWeakened, tamperCheck, countTestFiles, targetSha, envSha, UI_ENV_VARS };

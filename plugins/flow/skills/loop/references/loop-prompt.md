@@ -104,10 +104,13 @@ In the metric form (`flow loop init --metric`), the continuation already carries
 
 ```markdown
 First read .claude/loop/decisions.tsv: every earlier attempt, its before and after, and whether it was kept.
-Do not repeat a rejected idea. After 3 rejects in a row, change category (a different kind of change,
-not another variation of the last one).
-Make ONE change aimed at the metric, commit it with a message that states the hypothesis (the message
-becomes the hypothesis column), and stop. The loop measures, then keeps or reverts the commit itself.
+Do not repeat a rejected idea. After 3 rejects in a row the continuation asks for a round with no content
+edit: bucket the failing cases (artifact gap, grader, harness, structural, variance), then target the largest
+artifact gap or write BLOCKED.md.
+Make ONE change aimed at the metric, commit it with a message that states the hypothesis, the expected
+direction of the metric, and what result would falsify it (the message becomes the hypothesis column), and stop. The loop measures, then keeps or reverts the commit itself.
 Do not commit .claude/loop/LEARNINGS.md and do not run `git reset`; append learnings as usual.
 Out of scope: <the scorer, its data, the regression gate>.
 ```
+
+Credit: adapted from anthropics/skills skills/claude-api/shared/evals/eval-hillclimb.md @ dbd4588 (Apache-2.0).

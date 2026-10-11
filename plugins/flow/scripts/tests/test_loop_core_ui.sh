@@ -360,3 +360,67 @@ t_ui_f1_target_script_empty_without_target() {
 
 	rm -rf "$proj" "$home"
 }
+
+# ---------------------------------------------------------------------------
+# tamper.js — a failed git diff must read as "unavailable", never as clean
+# ---------------------------------------------------------------------------
+
+t_ui_tamper_check_bogus_base_is_unavailable() {
+	local proj
+	proj=$(_lu_repo)
+	_lu_node "
+const { tamperCheck } = require(process.env.LU_LOOP_DIR + '/tamper.js');
+const front = { test_files: '1', base: 'nonexistent-ref-xyz', verify_sha: '', target: '', target_sha: '' };
+console.log(JSON.stringify(tamperCheck('$proj', front)));
+"
+	assert_contains "$OUT" "tamper check unavailable:" "t_ui_tamper_check_bogus_base_is_unavailable"
+	rm -rf "$proj"
+}
+
+t_ui_tamper_check_valid_base_is_available() {
+	local proj
+	proj=$(_lu_repo)
+	_lu_node "
+const { tamperCheck } = require(process.env.LU_LOOP_DIR + '/tamper.js');
+const front = { test_files: '1', base: 'HEAD', verify_sha: '', target: '', target_sha: '' };
+console.log(JSON.stringify(tamperCheck('$proj', front)));
+"
+	assert_eq "$OUT" "[]" "t_ui_tamper_check_valid_base_is_available"
+	rm -rf "$proj"
+}
+
+# tamper.js gateAssess: direction-aware threshold diff, only loosening flags
+t_ui_gate_threshold_directions() {
+	_lu_node '
+const { gateAssess } = require(process.env.LU_LOOP_DIR + "/tamper.js");
+const cases = [
+  ["coverage: 80", "coverage: 70", "weak"],
+  ["coverage: 80", "coverage: 85", "ok"],
+  ["fail_under = 90", "fail_under = 80", "weak"],
+  ["fail_under = 90", "fail_under = 95", "ok"],
+  ["maxLines: 300", "maxLines: 400", "weak"],
+  ["maxLines: 400", "maxLines: 300", "ok"],
+  ["\"timeout\": 30", "\"timeout\": 60", "weak"],
+  ["\"retries\": 3", "\"retries\": 1", "ok"],
+  ["minScore: 5", "minScore: 3", "weak"],
+  ["branchThreshold: 5", "branchThreshold: 9", "unknown"],
+  ["fail_under = 92.5", "fail_under = 92.0", "weak"],
+];
+const out = cases.map(([o, n, want]) => {
+  const r = gateAssess({ added: [n], removed: [o] });
+  const got = r.weakened ? "weak" : r.unknown.length ? "unknown" : "ok";
+  return got === want ? "" : o + " -> " + n + " got " + got + " want " + want;
+}).filter(Boolean);
+console.log(out.length ? out.join("; ") : "all-ok");
+'
+	assert_eq "$OUT" "all-ok" "t_ui_gate_threshold_directions"
+}
+
+t_ui_gate_unknown_direction_reported_once() {
+	_lu_node '
+const { gateAssess } = require(process.env.LU_LOOP_DIR + "/tamper.js");
+const r = gateAssess({ added: ["branchThreshold: 9", "branchThreshold: 9"], removed: ["branchThreshold: 5"] });
+console.log(JSON.stringify(r.unknown));
+'
+	assert_eq "$OUT" '["branchThreshold"]' "t_ui_gate_unknown_direction_reported_once"
+}

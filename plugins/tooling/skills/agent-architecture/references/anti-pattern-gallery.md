@@ -16,6 +16,17 @@ Find your symptom, read the cause, apply the fix. Most agent failures are **engi
 ### `cache_read_input_tokens` stays 0
 **Cause:** the cached prefix hash changed. Common killers: a timestamp/request-ID/username before the breakpoint; a tool definition or `tool_choice` changed mid-session; prompt below the min-cache threshold; conversation grew past the 20-block lookback; the breakpoint sits on the volatile user turn; Go/Swift random JSON key order.
 **Fix:** breakpoint on the **last block identical across requests**, dynamics after it; freeze tools+`tool_choice` for the session; check min thresholds (1,024/4,096/2,048); add a 2nd breakpoint as history grows; sort JSON keys. Verify `cache_creation_input_tokens>0` then `cache_read_input_tokens>0`. **AgentCore:** static system+tools per session; place Memory injections AFTER the breakpoint. (Full: [`token-economics.md`](token-economics.md).)
+**Find the invalidator** — grep whatever builds the prefix (system prompt, tool list):
+
+| Grep | Why it breaks the prefix |
+|---|---|
+| `datetime.now\|Date.now\|time.time\|uuid4\|randomUUID` | changes every request |
+| `json.dumps(` without `sort_keys=True`, iterating a `set` | prefix bytes differ between runs |
+| session/user id interpolated into `system` | one prefix per user, no sharing |
+| `if flag: system +=` | every flag combination is its own prefix |
+| `tools=build_tools(user)` | tools render first; a varying set caches nothing |
+
+**Keep a standing check:** an integration test sends the same request twice and asserts `usage.cache_read_input_tokens > 0` on the second. The costly failure is a later prompt-assembly change that misses silently for months. Credit: adapted from anthropics/skills skills/claude-api/shared/prompt-caching.md @ dbd4588 (Apache-2.0).
 
 ### Fine on short tasks, degrades on long ones — "context rot"
 **Cause:** everything dumped upfront; no compaction. Attention is n²; quality erodes from ≈50K–150K tokens, well before the 200K wall. Four rot modes: poisoning (false premises), distraction (irrelevant data), confusion (similar-but-distinct mixed), clash (contradictory instructions).
@@ -44,6 +55,14 @@ Find your symptom, read the cause, apply the fix. Most agent failures are **engi
 ### Numeric/logic answers sometimes wrong, and pricey
 **Cause:** reasoning in tokens for work with a provably correct answer — probabilistic where it should be deterministic; 10–50× the cost of a function.
 **Fix:** if it can be coded and has a correct answer (math, dates, sort, filter, regex, JSON, dedup), make it a tool/code call. **AgentCore:** Code Interpreter — deterministic, kills the hallucination class.
+
+### Same loop body N times, slow and flaky — an LLM running a deterministic plan
+**Cause:** a fixed sequence (same tools, same order, inputs fully determine outputs) executed by a model call per step; the transcript is one loop body repeated.
+**Fix:** count the model-call sites in the pipeline, batch job or agent loop and ask of each whether its inputs fully determine its output. Routing, tallying, normalizing, filtering and formatting go back to code; keep one model call where the work is adaptive (classifying the ambiguous remainder, writing the judgment summary) and name it. Zero model calls is an over-fix when a judgment step exists. Credit: adapted from anthropics/skills skills/claude-api/shared/prompt-audit.md @ dbd4588 (Apache-2.0).
+
+### Q&A agent costs several times per answer — a checker loop on one-question-at-a-time work
+**Cause:** an agent that answers one question at a time (document Q&A, tutor, support) wrapped in a second pass: a grader, a voter, a re-ask. Every extra pass multiplies the cost of every answer, however much the request stresses accuracy.
+**Fix:** give the agent the documents and tools it needs, have its prompt check its own work before replying, and raise effort. A check that calls no model (each cited quote appears word for word in the source) is fine, and so is sending a failing answer back to the same session a few times. Build a model checker only when the user asks, and say what it adds per answer. Credit: adapted from anthropics/skills skills/claude-api/shared/managed-agents-multiagent.md @ dbd4588 (Apache-2.0).
 
 ### Behaves erratically, ignores instructions — the mega-prompt
 **Cause:** over-specified system prompt (the 32-page SOP); pseudocode-with-if-else; conflicting rules. Wrong "altitude": too low = brittle hardcoding, too high = "be helpful" gives no signal.

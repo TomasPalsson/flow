@@ -111,8 +111,8 @@ t_prep_prose_claim_vs_code() {
 	c=$(cat "$PREP_SKILL")
 	assert_contains "$c" 'When an answer states how existing code behaves, open the code first' \
 		"SKILL.md opens the code before recording a claim about it"
-	assert_contains "$c" 'quote path:line and ask once which is right' \
-		"SKILL.md quotes path:line on a contradiction and asks once"
+	assert_contains "$c" 'On a contradiction, quote path:line in the question' \
+		"SKILL.md quotes path:line on a contradiction (the question itself follows rule 2)"
 }
 
 # ---------------------------------------------------------------------------
@@ -132,4 +132,29 @@ t_prep_prose_skill_line_cap() {
 t_prep_prose_listed_in_plugins_doc() {
 	assert_contains "$(cat "$PLUGINS_DOC")" '- prep' \
 		"docs/reference/plugins.md lists - prep"
+}
+
+t_prep_contradiction_question_keeps_the_hypothesis_rule() {
+	local body
+	body=$(cat "$PREP_SKILL")
+	assert_contains "$body" "still follows rule 2" \
+		"rule 5's contradiction question keeps rule 2's hypothesis and '— confirm or correct?'"
+	assert_not_contains "$body" "ask once which is right" \
+		"the bare 'ask once which is right' template is gone (it displaced rule 2 in a live eval)"
+}
+
+t_prep_prose_justify_probe_and_low_confidence_reason() {
+	local body
+	body=$(cat "$PREP_SKILL")
+	assert_contains "$body" "justify this to anyone" \
+		"rule 4 carries the justify probe for convention-signalling answers"
+	assert_contains "$body" "interview-me/SKILL.md @ 1be8e34" \
+		"the justify probe credits addyosmani/agent-skills interview-me"
+	assert_contains "$body" "weakest tier" \
+		"rule 2 asks for a one-clause reason beside the weakest confidence word"
+}
+
+t_prep_prose_split_writes_a_split_table() {
+	assert_contains "$(cat "$PREP_SKILL")" "id | capability | depends-on | order" \
+		"prep/SKILL.md writes a ## Split table when the split offer is accepted"
 }

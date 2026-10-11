@@ -21,7 +21,7 @@ Craft tells you how much rewriting a borrow needs. It does not tell you whether 
 | B2 Leverage | If flow had it, how much better would a typical build, fix or review turn out? | cosmetic | changes outcomes on most runs |
 | B3 Mechanism | Is the idea carried by something that runs (script, schema, gate, hook, test), or only by prose that asks the model to behave? | prose only | a check that fails loudly |
 | B4 Evidence | Does it produce something a reviewer can re-run or read later (a log, a test, a report with commands)? | self-report | re-runnable artifact |
-| B5 Portability | Does it survive the move to Claude Code and flow? Minus points for Cursor modes, a model panel of non-Anthropic models, MCPs we do not have, or a team process. | host-locked | drops in unchanged |
+| B5 Portability | Does it survive the move to Claude Code and flow? Minus points for Cursor modes, a model panel of non-Anthropic models, MCPs we do not have, or a team process. List the source's layout assumptions (one channel, one account, a team, CI) and check each against borrow-fit-profile. | host-locked | drops in unchanged |
 | B6 Cost | Tokens, wall clock, and how much it adds to flow's surface. Higher is cheaper. Watch the user's rule: no per-turn output noise. Feeds ranking, never SKIP. | big, always on | free or on demand |
 | B7 Fit | Does the user's own work ever hit this situation? Score it from the evidence profile (their repos: CI, PR habits, reviewers and bots, stacks, team size, UI vs agents vs infra, perf work), never from what a generic team would need. | never happens in their work | happens most weeks |
 
@@ -81,5 +81,8 @@ Three questions, answered in prose, with a verdict each:
 - Score against flow as it is on `main` today. Open the flow file before saying "flow already covers it".
 - A score of 4 or 5 needs a quote. A score of 0 or 1 needs the reason.
 - Do not reward length. A 15-line principle that changes behaviour beats a 150-line playbook that restates defaults.
-- For each attribution line in flow, run `git -C <upstream> diff <sha>..HEAD -- <cited path>`; each upstream fix to a borrowed file becomes an item. Every new credit line records the upstream short SHA it was taken from (`@ <sha>`).
+- For each attribution line in flow, get the upstream change since the credited sha with `git -C <upstream> diff <sha>..HEAD -- <cited path>` when the sha is in the local history. The clones are shallow, so when it is not, use `gh api repos/<o>/<r>/compare/<sha>...HEAD --method GET` instead of fetching it. Each upstream fix to a borrowed file becomes an item.
+- Never invoke a git transport (fetch, pull, ls-remote, submodule clone) or run project scripts in a borrowed clone: remote helpers and hooks can execute code. Read its files with host tools.
+- Python that reads a clone runs `python3 -I -S` from outside the clone and never imports project modules.
+- Trust only goes down: redirects, forks, issues and non-main refs are untrusted however they were reached. Every new credit line records the upstream short SHA it was taken from (`@ <sha>`).
 - The user's standing rules apply to anything borrowed: no per-turn output noise, surface on demand only; no speculative features; mechanism over prose.

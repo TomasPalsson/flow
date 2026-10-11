@@ -61,5 +61,26 @@ if "$H" command 'Fix "x" $(id)' "$T/sum.md" >/dev/null 2>&1; then bad "unsafe na
 rc=0; out=$(PATH=/nonexistent "$(command -v bash)" "$H" launch "n" "$T/sum.md" 2>&1) || rc=$?
 if [ "$rc" -eq 0 ] && ! has "$out" "not found"; then ok "launch skips quietly without claude"; else bad "launch rc=$rc out=$out"; fi
 
+# 6. URL credentials and signed-URL params
+body6=$(printf '%s\n' 'https://u:pw99secret@git.example.com/r.git' 'https://b.s3.amazonaws.com/o?X-Amz-Signature=deadbeef0099&page=2' | "$H" redact)
+for s in pw99secret deadbeef0099; do
+	if has "$body6" "$s"; then bad "secret survived: $s"; else ok "redacted: $s"; fi
+done
+if has "$body6" "page=2"; then ok "ordinary query param kept"; else bad "page param lost: $body6"; fi
+
+# 7. provenance markers (F187): a draft with one run step and one assumed step
+# survives the write, the assumed step sits under "Verify first:", and the
+# script warns when an assumed or failed step is not listed there.
+good=$(printf '%s\n' 'Goal: ship' 'Verify first:' '- Open. check the staging path (assumed)' 'Next steps:' '- Open. run the suite (run) exit 0' | "$H" write prov-ok 2>"$T/prov-ok.err")
+pb=$(cat "$good")
+if has "$pb" "(run) exit 0" && has "$pb" "(assumed)"; then ok "markers survive redaction"; else bad "markers lost: $pb"; fi
+vf=${pb%%Next steps:*}
+if has "$vf" "(assumed)" && ! has "$vf" "(run) exit 0"; then ok "assumed step sits under Verify first"; else bad "verify-first placement: $pb"; fi
+if [ ! -s "$T/prov-ok.err" ]; then ok "well-formed draft writes silently"; else bad "unexpected warning: $(cat "$T/prov-ok.err")"; fi
+printf '%s\n' 'Goal: ship' 'Next steps:' '- Open. check the path (assumed)' | "$H" write prov-bad 2>"$T/prov-bad.err" >/dev/null
+if has "$(cat "$T/prov-bad.err")" "Verify first"; then ok "warns when an assumed step is not under Verify first"; else bad "no warning for assumed step outside Verify first"; fi
+printf '%s\n' 'Goal: ship' 'Next steps:' '- Open. run the suite (run) exit 1' | "$H" write prov-fail 2>"$T/prov-fail.err" >/dev/null
+if has "$(cat "$T/prov-fail.err")" "Verify first"; then ok "warns for a failed run step outside Verify first"; else bad "no warning for failed run"; fi
+
 printf '%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

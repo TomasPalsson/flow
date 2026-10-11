@@ -293,6 +293,7 @@ t_quality_size_guard_long_file_flagged() {
 	assert_rc 2 "t_quality_size_guard_long_file_flagged rc"
 	assert_contains "$ERR" "449 lines" "t_quality_size_guard_long_file_flagged line-count"
 	assert_not_contains "$ERR" "function '" "t_quality_size_guard_long_file_flagged no-function-problem"
+	assert_contains "$ERR" "cohesive responsibility or phase, never by moving lines to meet the count" "t_quality_size_guard_long_file_flagged split-advice"
 }
 
 t_quality_size_guard_binary_file_never_crashes() {
@@ -418,6 +419,46 @@ t_quality_tamper_notice_test_skip_added_rc2() {
 	assert_contains "$ERR" "pytest.mark.skip" "t_quality_tamper_notice_test_skip_added_rc2 matched-line"
 	assert_contains "$ERR" "You just disabled or weakened a check" "t_quality_tamper_notice_test_skip_added_rc2 message"
 	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-n1"
+}
+
+# _tn_threshold_case <label> <file> <old-line> <new-line> <expect: flag|silent>
+_tn_threshold_case() {
+	local label="$1" file="$2" old="$3" new="$4" expect="$5" repo
+	repo=$(tmp_repo)
+	printf '%s\n' "$old" >"$repo/$file"
+	(cd "$repo" && git add "$file" && git commit -q -m t) >/dev/null 2>&1
+	printf '%s\n' "$new" >"$repo/$file"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"tam-th\",\"tool_input\":{\"file_path\":\"$repo/$file\"}}"
+	if [ "$expect" = flag ]; then
+		assert_rc 2 "$label rc"
+		assert_contains "$ERR" "You just disabled or weakened a check" "$label message"
+	elif [ "$expect" = unknown ]; then
+		assert_rc 2 "$label rc"
+		assert_contains "$ERR" "direction unknown" "$label message"
+		assert_not_contains "$ERR" "disabled or weakened" "$label not-weakened"
+	else
+		assert_rc 0 "$label rc"
+		assert_eq "$ERR" "" "$label silent"
+	fi
+	rm -rf "$repo" "${TMPDIR:-/tmp}/claude-tamper-tam-th"
+}
+
+t_quality_tamper_notice_threshold_directions() {
+	local _tn_to="time""out" # split so run.sh's portability grep does not read it as the banned command
+	_tn_threshold_case "t_quality_tn_cov_loosen" pyproject.toml 'coverage = 80' 'coverage = 70' flag
+	_tn_threshold_case "t_quality_tn_cov_tighten" pyproject.toml 'coverage = 80' 'coverage = 85' silent
+	_tn_threshold_case "t_quality_tn_failunder_loosen" pyproject.toml 'fail_under = 90' 'fail_under = 80' flag
+	_tn_threshold_case "t_quality_tn_failunder_tighten" pyproject.toml 'fail_under = 90' 'fail_under = 95' silent
+	_tn_threshold_case "t_quality_tn_maxlines_loosen" pyproject.toml 'maxLines = 300' 'maxLines = 400' flag
+	_tn_threshold_case "t_quality_tn_maxlines_tighten" pyproject.toml 'maxLines = 400' 'maxLines = 300' silent
+	_tn_threshold_case "t_quality_tn_timeout_loosen" pyproject.toml "$_tn_to = 30" "$_tn_to = 60" flag
+	_tn_threshold_case "t_quality_tn_retries_tighten" pyproject.toml 'retries = 3' 'retries = 1' silent
+	_tn_threshold_case "t_quality_tn_unknown_dir" pyproject.toml 'branchThreshold = 5' 'branchThreshold = 9' unknown
+	_tn_threshold_case "t_quality_tn_unknown_nonloosen_word" pyproject.toml 'lines_after_imports = 2' 'lines_after_imports = 1' unknown
+	_tn_threshold_case "t_quality_tn_decimal_loosen" pyproject.toml 'fail_under = 92.5' 'fail_under = 92.0' flag
+	_tn_threshold_case "t_quality_tn_repeat_key_loosen" pyproject.toml 'branches = 80
+branches = 60' 'branches = 90
+branches = 40' flag
 }
 
 t_quality_tamper_notice_test_harmless_edit_rc0() {
@@ -1711,5 +1752,71 @@ t_quality_stop_gate_nested_manifest_deletion_does_not_block() {
 	assert_rc 0 "nested manifest deletion: rc 0"
 	assert_not_contains "$OUT" "manifest disappeared" "nested manifest deletion: no block"
 	_qstop_forget "nested-manifest"
+	rm -rf "$d"
+}
+
+# famous-borrows F135: CI workflow files are gate config; continue-on-error and
+# allow_failure turn a failing job into a passing one.
+_z6_ci_edit() {
+	local repo=$1 file=$2 before=$3 after=$4 sid=$5
+	mkdir -p "$repo/$(dirname "$file")"
+	printf '%s\n' "$before" >"$repo/$file"
+	(cd "$repo" && git add "$file" && git commit -q -m ci) >/dev/null 2>&1
+	printf '%s\n' "$after" >"$repo/$file"
+	run_hook "$SCAN_DIR/tamper-notice.sh" "{\"session_id\":\"$sid\",\"tool_input\":{\"file_path\":\"$repo/$file\"}}"
+	rm -rf "${TMPDIR:-/tmp}/claude-tamper-$sid"
+}
+
+t_quality_tamper_notice_ci_continue_on_error_rc2() {
+	local repo
+	repo=$(tmp_repo)
+	_z6_ci_edit "$repo" .github/workflows/ci.yml $'jobs:\n  t:\n    steps: []' $'jobs:\n  t:\n    continue-on-error: true\n    steps: []' z6-ci1
+	assert_rc 2 "continue-on-error: true added to a workflow"
+	assert_contains "$ERR" "continue-on-error: true" "the added line is named"
+	_z6_ci_edit "$repo" .gitlab-ci.yml $'test:\n  script: x' $'test:\n  allow_failure: true\n  script: x' z6-ci2
+	assert_rc 2 "allow_failure: true added to .gitlab-ci.yml"
+	assert_contains "$ERR" "allow_failure: true" "the added line is named"
+	rm -rf "$repo"
+}
+
+t_quality_tamper_notice_ci_near_misses_rc0() {
+	local repo
+	repo=$(tmp_repo)
+	_z6_ci_edit "$repo" .github/workflows/ci.yml $'jobs:\n  t:\n    steps: []' $'name: CI\njobs:\n  t:\n    continue-on-error: false\n    steps: []' z6-ci3
+	assert_rc 0 "a workflow edit that adds no relaxation is silent"
+	assert_eq "$ERR" "" "no output"
+	_z6_ci_edit "$repo" .github/workflows/ci.yml $'jobs:\n  t:\n    timeout-minutes: 5' $'jobs:\n  t:\n    timeout-minutes: 30' z6-ci4
+	assert_rc 0 "timeout-minutes belongs to the threshold check, not the CI check"
+	rm -rf "$repo"
+}
+
+# famous-borrows F143: security-patterns.sh logs each reported hit to
+# <git dir>/flow-security-hits.tsv as <rule>\t<file>\t<matched text>; a near-miss logs nothing.
+t_quality_secpat_logs_hit_for_digest() {
+	local d f log
+	d=$(tmp_repo)
+	f="$d/a.js"
+	printf 'el.innerHTML = s;\n' >"$f"
+	run_hook "$SCAN_DIR/security-patterns.sh" \
+		"{\"session_id\":\"z6-log\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$f\",\"content\":\"el.innerHTML = s;\\n\"}}" \
+		CLAUDE_PROJECT_DIR="$d"
+	assert_rc 2 "the hit is still reported"
+	log="$d/.git/flow-security-hits.tsv"
+	assert_eq "$(cat "$log" 2>/dev/null)" "$(printf 'innerHTML\t%s\tel.innerHTML = s;' "$f")" "state line is rule, file, matched text"
+	assert_eq "$(git -C "$d" status --porcelain | grep -c claude)" "0" "the working tree gains no state file"
+	rm -f "${TMPDIR:-/tmp}/claude-once-z6-log" "${TMPDIR:-/tmp}/claude-count-z6-log"
+	rm -rf "$d"
+}
+
+t_quality_secpat_near_miss_logs_nothing() {
+	local d f
+	d=$(tmp_repo)
+	f="$d/a.js"
+	printf 'el.textContent = s;\n' >"$f"
+	run_hook "$SCAN_DIR/security-patterns.sh" \
+		"{\"session_id\":\"z6-nolog\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$f\",\"content\":\"el.textContent = s;\\n\"}}" \
+		CLAUDE_PROJECT_DIR="$d"
+	assert_rc 0 "silent"
+	assert_eq "$([ -e "$d/.git/flow-security-hits.tsv" ] && echo yes || echo no)" "no" "no state file for a near-miss"
 	rm -rf "$d"
 }

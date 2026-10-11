@@ -10,3 +10,7 @@ Ask each question open, without hinting at the answer you'd pick. Don't waste a 
 Ask one question at a time — one decision per question, though naming a decision's own candidates ("Postgres, MySQL, or SQLite?") is still one question, not several.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
+
+When agreement took several rounds, restate the final version in one message and get a yes before building on it.
+
+Credit: adapted from anthropics/skills skills/claude-api/shared/evals/build-eval.md @ dbd4588 (Apache-2.0), for the restate step.

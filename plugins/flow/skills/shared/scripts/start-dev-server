@@ -17,6 +17,7 @@ let timeout = 30000;
 let killFirst = false;
 let customCmd = '';
 let dir = process.cwd();
+let wrapCmd = [];
 
 for (let i = 0; i < args.length; i++) {
   switch (args[i]) {
@@ -25,10 +26,11 @@ for (let i = 0; i < args.length; i++) {
     case '--kill':    killFirst = true; break;
     case '--cmd':     customCmd = args[++i]; break;
     case '--dir':     dir = path.resolve(args[++i]); break;
+    case '--':        wrapCmd = args.slice(i + 1); i = args.length; break;
     case '-h': case '--help':
       process.stdout.write(`start-dev-server — start dev server, wait for ready, output JSON
 
-Usage: start-dev-server [options]
+Usage: start-dev-server [options] [-- <cmd...>]
 
 Options:
   --port N       Port to poll (auto-detected if omitted)
@@ -39,6 +41,15 @@ Options:
   --cmd "..."    Override dev command
   --dir <path>   Project directory (default: cwd)
   -h, --help     Show this help
+
+Wrap mode: everything after "--" is a command to run once the server is ready,
+for scripted checks (a Playwright run, an eval scaffold, a worktree verify).
+The server starts in its own process group; when the command exits, or on
+SIGINT or SIGTERM, that group is stopped (SIGTERM, then SIGKILL after 5s) and
+start-dev-server exits with the command's exit code. Only the group this run
+spawned is ever signalled. The ready JSON goes to stderr in this mode so the
+command's stdout stays its own. An interactive multi-turn browser session
+cannot use wrap mode: the server must outlive one command there.
 
 Output (stdout): {"url","pid","command","ready_ms"} or {"error","message","command"}
 `);
@@ -54,8 +65,16 @@ function output(obj) {
   process.stdout.write(JSON.stringify(obj) + '\n');
 }
 
+// The process group this run spawned (wrap mode only); never anything else.
+let wrapPgid = 0;
+// Set once the wrapped command is done: the server exiting then is the cleanup, not a crash.
+let wrapDone = false;
+// Set once the wrapped command is launched: a later server crash is reported on stderr, and the command's own exit code wins.
+let wrapRunning = false;
+
 function fail(error, message, command) {
   output({ error, message, command });
+  if (wrapPgid) { try { process.kill(-wrapPgid, 'SIGKILL'); } catch { /* already gone */ } }
   process.exit(1);
 }
 
@@ -196,6 +215,52 @@ function parsePort(text) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Wrap mode: run <cmd> against the server, then always stop its process group
+// Credit: adapted from anthropics/skills webapp-testing/scripts/with_server.py @ dbd4588 (Apache-2.0).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function groupAlive(pgid) {
+  try { process.kill(-pgid, 0); return true; } catch { return false; }
+}
+
+async function stopGroup(pgid) {
+  if (!groupAlive(pgid)) return;
+  try { process.kill(-pgid, 'SIGTERM'); } catch { return; }
+  const until = Date.now() + 5000;
+  while (groupAlive(pgid) && Date.now() < until) await new Promise(r => setTimeout(r, 100));
+  if (groupAlive(pgid)) { try { process.kill(-pgid, 'SIGKILL'); } catch { /* gone */ } }
+}
+
+function runWrapped(pgid, readyInfo) {
+  wrapRunning = true;
+  process.stderr.write(JSON.stringify(readyInfo) + '\n');
+  let code = 1;
+  let stopping = false;
+  const finish = async (exitCode) => {
+    if (stopping) return;
+    stopping = true;
+    wrapDone = true;
+    await stopGroup(pgid);
+    process.exit(exitCode);
+  };
+  const cmd = spawn(wrapCmd[0], wrapCmd.slice(1), { cwd: dir, stdio: 'inherit' });
+  cmd.on('error', (err) => {
+    process.stderr.write(`start-dev-server: cannot run ${wrapCmd[0]}: ${err.message}\n`);
+    finish(127);
+  });
+  cmd.on('exit', (c, sig) => {
+    code = c !== null ? c : 128 + (sig === 'SIGINT' ? 2 : sig === 'SIGTERM' ? 15 : 1);
+    finish(code);
+  });
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      try { cmd.kill(sig); } catch { /* already gone */ }
+      finish(128 + (sig === 'SIGINT' ? 2 : 15));
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -223,6 +288,7 @@ async function main() {
   });
 
   child.unref();
+  if (wrapCmd.length) wrapPgid = child.pid;
 
   let serverOutput = '';
 
@@ -252,7 +318,11 @@ async function main() {
   });
 
   child.on('exit', (code) => {
-    if (code !== null && code !== 0) {
+    if (code !== null && code !== 0 && wrapRunning && !wrapDone) {
+      process.stderr.write(`start-dev-server: server exited with code ${code} while the wrapped command was running\n`);
+      return;
+    }
+    if (code !== null && code !== 0 && !wrapDone) {
       fail('server_crashed', `Server exited with code ${code}`, devCmd);
     }
   });
@@ -302,12 +372,14 @@ async function main() {
       // Also try HTTP to make sure it's actually serving
       const httpReady = await checkHttp(targetPort);
       if (httpReady) {
-        output({
+        const info = {
           url: `http://localhost:${targetPort}`,
           pid: child.pid,
           command: devCmd,
           ready_ms: Date.now() - start,
-        });
+        };
+        if (wrapCmd.length) { runWrapped(child.pid, info); return; }
+        output(info);
         process.exit(0);
       }
     }

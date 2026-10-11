@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -110,7 +110,144 @@ test('SKILL.md "It is working if" has the grounding bullet', () => {
   assert.match(w, /No card or step needs an idea the page has not shown above it\./);
 });
 
+// Inline scripts must parse: a raw </script> inside a string ends the script early.
+const withScript = body => page().replace(/<script>[\s\S]*<\/script>/, body);
+
+test('a raw </script> inside a JS string fails with the script line', () => {
+  const r = check(withScript('<script>\nconst s = "</script>";\n</script>'));
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /FAIL.*inline script.*line \d+/);
+});
+
+test('the same string with the closing tag escaped passes', () => {
+  const r = check(withScript('<script>\nconst s = "<\\/script>";\n</script>'));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /ok .*inline scripts? parse/);
+});
+
+test('invalid JSON in a type=application/json script fails, valid JSON passes', () => {
+  const bad = check(withScript('<script type="application/json" id="d">{"a": </script>'));
+  assert.equal(bad.code, 1, bad.out);
+  assert.match(bad.out, /FAIL.*JSON/);
+  const good = check(withScript('<script type="application/json" id="d">{"a": "\\u003c/script>"}</script>'));
+  assert.equal(good.code, 0, good.out);
+});
+
+test('a script with src is not parsed', () => {
+  const r = check(withScript('<script src="x.js"></script>'));
+  assert.equal(r.code, 0, r.out);
+});
+
+// Know/Fuzzy/Lost marking: toggles need a visible request box.
+const MARK = '<button data-mark="fuzzy">fuzzy</button>';
+const GAP = '<textarea readonly data-gap-request>Explain deeper:</textarea>';
+const marked = extra => page({ ...SECTIONS, parts: SECTIONS.parts.replace('</section>', `${MARK}${extra}</section>`) });
+
+test('[data-mark] toggles without a [data-gap-request] textarea warn', () => {
+  const r = check(marked(''));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /WARN.*data-gap-request/);
+});
+
+test('toggles with the request textarea are clean', () => {
+  const r = check(marked(GAP));
+  assert.equal(r.code, 0, r.out);
+  assert.doesNotMatch(r.out, /WARN/);
+});
+
+test('page.md and SKILL.md carry the gap-marking snippet and the script-escape rule', () => {
+  const pageMd = readFileSync(join(dirname(SCRIPT), '..', 'references', 'page.md'), 'utf8');
+  assert.match(pageMd, /data-gap-request/);
+  assert.match(pageMd, /select\(\)/);
+  assert.match(pageMd, /escape `<` as `\\u003c`/);
+  const s5 = SKILL.slice(SKILL.indexOf('## 5. Build and ship'), SKILL.indexOf('## It is working if'));
+  assert.match(s5, /3 or more part cards/);
+  assert.match(s5, /Ask about the gaps/);
+});
+
 test('a plural on the page counts as a use of the term', () => {
   const r = check(page({ ...SECTIONS, words: SECTIONS.words.replace('</dl>', '<dt>arrival</dt><dd>A job coming in.</dd></dl>'), moves: SECTIONS.moves.replace('A job arrives.', 'Two arrivals come.') }));
   assert.equal(r.code, 0, r.out);
+});
+
+// --repo: code names on the page must exist in the repo that was read.
+// Credit: adapted from anthropics/claude-plugins-official plugins/code-modernization/commands/modernize-map.md @ a9fd216 (Apache-2.0).
+const repoWith = files => {
+  const d = mkdtempSync(join(tmpdir(), 'sb-repo-'));
+  for (const [name, body] of Object.entries(files)) {
+    mkdirSync(dirname(join(d, name)), { recursive: true });
+    writeFileSync(join(d, name), body);
+  }
+  return d;
+};
+const withCode = code => page({ ...SECTIONS, detail: SECTIONS.detail.replace('</details>', `${code}</details>`) });
+const checkRepo = (html, repo) => {
+  const f = join(dir, `r${Math.random().toString(36).slice(2)}.html`);
+  writeFileSync(f, html);
+  const r = spawnSync('node', [SCRIPT, f, '--repo', repo], { encoding: 'utf8' });
+  return { code: r.status, out: r.stdout + r.stderr };
+};
+
+test('--repo: a call the repo lacks fails', () => {
+  const r = checkRepo(withCode('<p>It calls <code>parseInvoice()</code>.</p>'), repoWith({ 'a.js': 'function other() {}' }));
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /FAIL.*parseInvoice\(\)/);
+});
+
+test('--repo: the same page passes when the repo has the call', () => {
+  const r = checkRepo(withCode('<p>It calls <code>parseInvoice()</code>.</p>'), repoWith({ 'a.js': 'function parseInvoice() {}' }));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /ok.*1 repo name found/);
+});
+
+test('--repo: a missing path fails, an existing path passes', () => {
+  const html = withCode('<p>See <code>src/billing/pay.ts</code>.</p>');
+  assert.equal(checkRepo(html, repoWith({ 'a.js': 'x' })).code, 1);
+  assert.equal(checkRepo(html, repoWith({ 'src/billing/pay.ts': 'x' })).code, 0);
+});
+
+test('--repo: a missing plain identifier warns only', () => {
+  const r = checkRepo(withCode('<p>The <code>retryCount</code> field.</p>'), repoWith({ 'a.js': 'x' }));
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /WARN.*retryCount/);
+});
+
+test('--repo: commands, status codes, library APIs and external blocks stay clean', () => {
+  const html = withCode('<p>Run <code>npm test</code>; a <code>404</code> comes back; <code>Promise.all()</code> waits.</p><pre data-external><code>fakeThing()</code></pre>');
+  const r = checkRepo(html, repoWith({ 'a.js': 'x' }));
+  assert.equal(r.code, 0, r.out);
+  assert.doesNotMatch(r.out, /WARN|FAIL/);
+});
+
+test('--repo: a bad directory is a usage error, and no --repo checks nothing', () => {
+  assert.equal(checkRepo(withCode(''), join(dir, 'nope')).code, 2);
+  const r = check(withCode('<p><code>parseInvoice()</code></p>'));
+  assert.equal(r.code, 0, r.out);
+});
+
+test('--repo: a page saved inside the repo is not evidence for its own names', () => {
+  const d = repoWith({ 'a.js': 'function other() {}' });
+  const f = join(d, 'explain.html');
+  writeFileSync(f, withCode('<p><code>parseInvoice()</code> <code>src/billing/pay.ts</code></p>'));
+  const r = spawnSync('node', [SCRIPT, f, '--repo', d], { encoding: 'utf8' });
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stdout, /FAIL.*parseInvoice\(\)/);
+});
+
+test('--repo: the git branch finds tracked and ignored names, and fails missing ones', () => {
+  const d = repoWith({ 'a.js': 'function tracked() {}', 'gen/b.js': 'function generated() {}', '.gitignore': 'gen/\n' });
+  spawnSync('git', ['-C', d, 'init', '-q']);
+  spawnSync('git', ['-C', d, 'add', 'a.js', '.gitignore']);
+  assert.equal(checkRepo(withCode('<p><code>tracked()</code> <code>generated()</code></p>'), d).code, 0);
+  assert.equal(checkRepo(withCode('<p><code>nopeFnZZ()</code></p>'), d).code, 1);
+});
+
+test('--repo: slash tokens that are not file paths are not checked', () => {
+  const r = checkRepo(withCode('<p><code>application/json</code> <code>upstream/dev</code> <code>24/7</code></p>'), repoWith({ 'a.js': 'x' }));
+  assert.equal(r.code, 0, r.out);
+});
+
+test('SKILL.md step 5 passes --repo when explaining a path or repo', () => {
+  const s5 = SKILL.slice(SKILL.indexOf('## 5. Build and ship'), SKILL.indexOf('## It is working if'));
+  assert.match(s5, /--repo/);
 });

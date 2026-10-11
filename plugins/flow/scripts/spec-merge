@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""spec-merge: fold an archived feature's Behaviors rows into the living SPEC.md.
+
+Usage: spec-merge <TASKS.md> [--into <SPEC.md>] [--slug <name>] [--base <hash>]
+
+The living file (default: .specs/SPEC.md, found by walking up from TASKS.md;
+under stealth .specs is a symlink, so the file lands inside the store) is the
+current truth of what the product does: one row per behaviour, keyed by the
+stable Key column of the Behaviors table. Rows without a Key are ignored, and
+nothing is backfilled.
+
+Key cell grammar (comma or semicolon separated):
+  tags/add-persists                          add a row
+  tags/add-persists, Replaces: tags/add      replace that row; keeps "(Previously: ...)"
+  Retire: tags/old                           remove that row (listed under ## Retired)
+
+Exit 0: merged, or nothing to do (a second run changes nothing, byte for byte).
+Exit 1: key collision with no Replaces, replaces/retire target missing, a
+        duplicate key inside the feature, or a base hash that does not match.
+Exit 2: usage error.
+
+A header line `Spec-base: <hash>` (or --base) pins the living file the feature
+was written against (the 12-hex prefix printed by the last merge); a living file
+that has moved on makes the merge refuse instead of guessing.
+"""
+import hashlib
+import os
+import re
+import sys
+
+KEY_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
+HEAD = "# Current behaviours\n\n<!-- Maintained by spec-merge from archived TASKS.md Behaviors rows. Change a row with a Replaces: or Retire: mark in a later feature, not by hand. -->\n\n"
+TABLE_HEAD = "| Key | Given / When / Then | Proven by | Source |\n|-----|---------------------|-----------|--------|\n"
+
+
+class Refuse(Exception):
+    pass
+
+
+def cells(line):
+    s = line.strip()
+    if not s.startswith("|"):
+        return None
+    return [c.strip() for c in s.strip("|").split("|")]
+
+
+def feature_rows(text):
+    """-> [(key_cell, gwt, proven)] from the ## Behaviors table, fence-aware."""
+    rows, in_beh, fence, header = [], False, False, None
+    for raw in text.splitlines():
+        line = raw.rstrip("\r")
+        st = line.strip()
+        if st.startswith("```") or st.startswith("~~~"):
+            fence = not fence
+            continue
+        if fence:
+            continue
+        if st.startswith("## "):
+            in_beh = st[3:].strip().lower().startswith("behaviors")
+            header = None
+            continue
+        if not in_beh:
+            continue
+        c = cells(line)
+        if c is None:
+            continue
+        if all(re.fullmatch(r":?-+:?", x) for x in c):
+            continue
+        low = [x.lower() for x in c]
+        if header is None:
+            header = low
+            continue
+        def col(name):
+            for i, h in enumerate(header):
+                if name in h:
+                    return i
+            return -1
+        k, g, p = col("key"), col("given"), col("proven")
+        if k < 0 or k >= len(c) or not c[k]:
+            continue
+        rows.append((c[k], c[g] if 0 <= g < len(c) else "", c[p] if 0 <= p < len(c) else ""))
+    return rows
+
+
+def parse_key(cell):
+    """-> (key|None, replaces|None, retire|None)"""
+    key = rep = ret = None
+    for tok in re.split(r"[;,]", cell):
+        t = tok.strip()
+        if not t:
+            continue
+        m = re.match(r"(?i)^(replaces|retire):\s*(.+)$", t)
+        if m:
+            if m.group(1).lower() == "replaces":
+                rep = m.group(2).strip()
+            else:
+                ret = m.group(2).strip()
+        elif key is None:
+            key = t
+        else:
+            raise Refuse("Key cell \"%s\" has more than one key" % cell)
+    for k in (key, rep, ret):
+        if k is not None and not KEY_RE.match(k):
+            raise Refuse("key \"%s\" may only use letters, digits and . _ / -" % k)
+    if key is None and ret is None:
+        raise Refuse("Key cell \"%s\" names no key" % cell)
+    return key, rep, ret
+
+
+def load_living(path):
+    rows, retired = {}, {}
+    if not os.path.exists(path):
+        return rows, retired
+    section = "rows"
+    with open(path, encoding="utf-8") as fh:
+        for line in fh.read().splitlines():
+            if line.startswith("## "):
+                section = "retired" if line[3:].strip().lower() == "retired" else "rows"
+                continue
+            if section == "retired":
+                m = re.match(r"^- (\S+) — retired by (\S+)$", line)
+                if m:
+                    retired[m.group(1)] = m.group(2)
+                continue
+            c = cells(line)
+            if not c or len(c) < 4 or c[0].lower() == "key" or all(re.fullmatch(r":?-+:?", x) for x in c):
+                continue
+            rows[c[0]] = {"gwt": c[1], "proven": c[2], "source": c[3]}
+    return rows, retired
+
+
+def render(rows, retired):
+    out = HEAD + TABLE_HEAD
+    for k in sorted(rows):
+        r = rows[k]
+        out += "| %s | %s | %s | %s |\n" % (k, r["gwt"], r["proven"], r["source"])
+    if retired:
+        out += "\n## Retired\n"
+        for k in sorted(retired):
+            out += "- %s — retired by %s\n" % (k, retired[k])
+    return out
+
+
+def merge(rows, retired, feature, slug):
+    seen = set()
+    for key_cell, gwt, proven in feature:
+        key, rep, ret = parse_key(key_cell)
+        if ret is not None:
+            if ret in rows:
+                del rows[ret]
+                retired[ret] = slug
+            elif retired.get(ret) != slug:
+                raise Refuse("Retire: %s names a behaviour the living file does not have" % ret)
+            if key is None:
+                continue
+        if key in seen:
+            raise Refuse("key %s appears twice in this feature" % key)
+        seen.add(key)
+        if rep is not None:
+            if rep in rows and rows[rep]["source"] != slug:
+                old = rows.pop(rep)
+                gwt = "%s (Previously: %s)" % (gwt, old["gwt"])
+            elif not (key in rows and rows[key]["source"] == slug):
+                raise Refuse("Replaces: %s names a behaviour the living file does not have" % rep)
+        if key in rows and rows[key]["source"] != slug:
+            raise Refuse("key %s is already in the living file (source %s); mark the row with Replaces: %s, or pick a new key" % (key, rows[key]["source"], key))
+        if key in rows and rep is not None and rows[key]["source"] == slug:
+            continue  # this feature's replacement is already merged
+        rows[key] = {"gwt": gwt, "proven": proven, "source": slug}
+
+
+def find_living(tasks):
+    d = os.path.dirname(os.path.abspath(tasks))
+    while True:
+        if os.path.basename(d) == ".specs":
+            return os.path.join(d, "SPEC.md")
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()[:12]
+
+
+def main(argv):
+    tasks = into = slug = base = None
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-h", "--help"):
+            sys.stdout.write(__doc__)
+            return 0
+        if a in ("--into", "--slug", "--base"):
+            if i + 1 >= len(argv):
+                sys.stderr.write("spec-merge: %s needs a value\n" % a)
+                return 2
+            v = argv[i + 1]
+            i += 1
+            if a == "--into":
+                into = v
+            elif a == "--slug":
+                slug = v
+            else:
+                base = v
+        elif a.startswith("-"):
+            sys.stderr.write("spec-merge: unknown option %s\n" % a)
+            return 2
+        elif tasks is None:
+            tasks = a
+        else:
+            sys.stderr.write("spec-merge: one TASKS.md at a time\n")
+            return 2
+        i += 1
+    if tasks is None:
+        sys.stderr.write("spec-merge: no TASKS.md given\n  fix: spec-merge <TASKS.md> [--into <SPEC.md>]\n")
+        return 2
+    try:
+        with open(tasks, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError as e:
+        sys.stderr.write("spec-merge: cannot read %s: %s\n" % (tasks, e.strerror))
+        return 1
+    try:
+        feature = feature_rows(text)
+        if not feature:
+            return 0  # no keyed Behaviors rows: nothing to fold, nothing written
+        if into is None:
+            into = find_living(tasks)
+            if into is None:
+                sys.stderr.write("spec-merge: no .specs directory above %s\n  fix: pass --into <path to SPEC.md>\n" % tasks)
+                return 2
+        slug = slug or os.path.basename(os.path.dirname(os.path.abspath(tasks)))
+        if base is None:
+            m = re.search(r"(?:^|·)\s*Spec-base:\s*([0-9a-fA-F]{6,64}|none)\b", text, re.M)
+            base = m.group(1).lower() if m else None
+        before = b""
+        if os.path.exists(into):
+            with open(into, "rb") as fh:
+                before = fh.read()
+        rows, retired = load_living(into)
+        merge(rows, retired, feature, slug)
+        after = render(rows, retired).encode("utf-8")
+        if after == before:
+            return 0
+        if base is not None and not digest(before).startswith(base.lower()) and not (not before and base in ("none", "empty")):
+            raise Refuse("the living file moved on since this feature was written (Spec-base %s, file is %s)" % (base, digest(before) if before else "empty"))
+        tmp = into + ".tmp"
+        with open(tmp, "wb") as fh:
+            fh.write(after)
+        os.replace(tmp, into)
+        sys.stdout.write("spec-merge: %s updated (%d behaviours, hash %s)\n" % (into, len(rows), digest(after)))
+        return 0
+    except Refuse as e:
+        sys.stderr.write("spec-merge: %s\n  fix: resolve it in the feature's Behaviors Key column (Replaces: / Retire:), or refresh Spec-base: from the living file's hash, then re-run\n" % e)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -34,6 +34,13 @@ _started=$(date +%s)
 dir=$(hook_project_dir)
 git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 || hook_ok
 
+# F144: past R0 this turn's change set is judged (or deliberately skipped), so
+# the turn stamp may be reset by the next prompt. A turn that never reaches here
+# (the user interrupted it; Stop does not fire) leaves no marker, and
+# turn-stamp.sh then keeps the stamp so its edits are still gated next time.
+_consumed="$(hook_stamp_path).consumed"
+trap ': >"$_consumed" 2>/dev/null' EXIT
+
 _tmp="${TMPDIR:-/tmp}"
 _tmp="${_tmp%/}"
 _toplevel=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)

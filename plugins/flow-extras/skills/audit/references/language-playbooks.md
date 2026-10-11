@@ -33,6 +33,60 @@ Failure scenario: `gather(a(), b(), c())` where `a()` raises at t=1s. `b()` and 
 
 ---
 
+**Independent awaits run one after another (start-early, await-late with `TaskGroup`)**
+
+```python
+# BAD — config waits for auth, though neither needs the other
+async def handler(request):
+    session = await auth(request)
+    config = await fetch_config()
+    data = await fetch_data(session.user_id)
+    return {"data": data, "config": config}
+
+# GOOD (3.11+) — independent work is started first, awaited when needed
+async def handler(request):
+    async with asyncio.TaskGroup() as tg:
+        session_task = tg.create_task(auth(request))
+        config_task = tg.create_task(fetch_config())
+    session = session_task.result()
+    data = await fetch_data(session.user_id)
+    return {"data": data, "config": config_task.result()}
+```
+
+Failure scenario: `auth` takes 80 ms and `fetch_config` takes 120 ms. Sequential awaits cost 200 ms before `fetch_data` even starts; with both tasks started up front the wait is 120 ms. On a hot request path that is a free 40% cut.
+
+Also check the cheap condition before the await: `if flag and await get_flag():` skips the network call when `flag` is already false, while `if await get_flag() and flag:` pays for it every time. Keep the original order when the cheap condition depends on the flag or the order carries side effects.
+
+**Flag**: consecutive `await` lines whose arguments do not use each other's results. Use `TaskGroup`/`create_task`, not a new gather call, so this entry does not contradict the entry above.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/async-api-routes.md and async-cheap-condition-before-await.md @ 063bee9 (MIT).
+
+---
+
+**Module-level mutable state shared across requests (Python handlers)**
+
+```python
+# BAD — one dict for the whole process; two concurrent requests overwrite each other
+current_user = {}
+
+async def handler(request):
+    current_user["id"] = await authenticate(request)
+    return await render_dashboard()      # reads current_user after an await
+
+# GOOD — request data stays local and travels as an argument or a contextvar
+async def handler(request):
+    user_id = await authenticate(request)
+    return await render_dashboard(user_id)
+```
+
+Failure scenario: request A sets `current_user["id"] = "alice"` and awaits; request B sets `"bob"` before A resumes; A renders Bob's dashboard to Alice. Module scope is process-wide shared memory, not request-local state.
+
+**Flag**: a module-level `dict`, `list` or global rebound inside a handler, tool function or agent callback. Safe: immutable config loaded once, and caches that are keyed by request identity on purpose.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/server-no-shared-module-state.md @ 063bee9 (MIT).
+
+---
+
 **PEP 695 `type` statement runtime trap**
 
 ```python
@@ -309,6 +363,115 @@ import { foo } from "./utils"      // runtime error in Node ESM
 ```
 
 Most common Node.js ESM migration failure.
+
+---
+
+**Promise waterfalls: chain per-item, start early, check the cheap condition first**
+
+```typescript
+// BAD — one slow chat blocks every author fetch
+const chats = await Promise.all(chatIds.map(id => getChat(id)))
+const authors = await Promise.all(chats.map(c => getUser(c.author)))
+
+// GOOD — per-item chaining, each item moves on as soon as its own data is ready
+const authors = await Promise.all(
+  chatIds.map(id => getChat(id).then(c => getUser(c.author)))
+)
+
+// BAD — config waits for auth
+const session = await auth()
+const config = await fetchConfig()
+
+// GOOD — start early, await late
+const sessionPromise = auth()
+const configPromise = fetchConfig()
+const session = await sessionPromise
+const [config, data] = await Promise.all([configPromise, fetchData(session.user.id)])
+
+// BAD — pays for the flag call even when the cheap guard already fails
+const enabled = await getFlag()
+if (enabled && isAdmin) { /* ... */ }
+
+// GOOD
+if (isAdmin) {
+  if (await getFlag()) { /* ... */ }
+}
+```
+
+Failure scenario: 100 chats, one `getChat` takes 4 s. With two stages, all 99 author fetches wait 4 s; with per-item chaining only the slow item does. The cheap-condition version skips a network call on every non-admin request.
+
+**Flag**: an `await Promise.all(...)` whose result feeds a second `Promise.all(...)` map, and `await` calls with no data dependency on each other. Keep the original order when the cheap condition is expensive, depends on the flag, or side effects need a fixed order.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/server-parallel-nested-fetching.md, async-api-routes.md and async-cheap-condition-before-await.md @ 063bee9 (MIT).
+
+---
+
+**Barrel imports and non-analyzable dynamic imports defeat tree-shaking**
+
+```typescript
+// BAD — pulls the whole icon library through the barrel file
+import { Check } from 'lucide-react'
+// GOOD — import from the module path, or list the package in next.config
+// experimental: { optimizePackageImports: ['lucide-react'] }
+import Check from 'lucide-react/dist/esm/icons/check'
+
+// BAD — the bundler cannot tell which files to include, so it includes everything it might match
+const mod = await import(`./locales/${userInput}`)
+// GOOD — a literal path per branch, or a lookup table of literal imports
+const loaders = { en: () => import('./locales/en'), is: () => import('./locales/is') }
+const mod = await loaders[lang]()
+```
+
+Failure scenario: a page imports one icon from a 1,500-icon barrel; the client bundle grows by hundreds of KB and every page that touches the barrel pays for it. With a template-literal import path the bundler includes the whole directory.
+
+**Flag**: `import { x } from` on packages known for barrels (icon sets, `lodash`, `@mui/*`, `date-fns` in older setups) with no `optimizePackageImports` entry; `import(` or `require(` with a non-literal argument.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/bundle-barrel-imports.md and bundle-analyzable-paths.md @ 063bee9 (MIT).
+
+---
+
+**A hoisted `/g` regex keeps `lastIndex` between calls**
+
+```typescript
+// BAD — hoisted global regex: lastIndex survives between test() calls
+const SPACE = /\s/g
+SPACE.test('a b')   // true, lastIndex = 2
+SPACE.test('a b')   // false, lastIndex resets to 0 only after the miss
+
+// GOOD — no /g flag when only testing, or create the regex per call
+const SPACE = /\s/
+```
+
+Failure scenario: a validator hoists `/foo/g` to module scope to avoid re-creating it. The first call returns true, the next call on the same input returns false, and the result depends on the previous caller. Hoisting is right for regexes without `/g` (or `/y`); with `/g` use `String.prototype.matchAll` or reset `lastIndex = 0`.
+
+**Flag**: a module-level regex literal with the `g` or `y` flag used with `.test(` or `.exec(`.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/js-hoist-regexp.md @ 063bee9 (MIT).
+
+---
+
+**Module-level mutable state shared across requests (Next.js, server code)**
+
+```tsx
+// BAD — module scope is process-wide; concurrent renders overwrite each other
+let currentUser: User | null = null
+export default async function Page() {
+  currentUser = await auth()
+  return <Dashboard />            // reads currentUser after an await
+}
+
+// GOOD — request data stays in the render tree
+export default async function Page() {
+  const user = await auth()
+  return <Dashboard user={user} />
+}
+```
+
+Failure scenario: request A sets `currentUser` and awaits; request B overwrites it before A finishes rendering; A's response shows B's data. This is a data leak, not only a race.
+
+**Flag**: a module-level `let` (or a mutable `Map`/object) assigned inside a handler, Server Component or Server Action. Safe: immutable config loaded once, and caches keyed on purpose. The matching auth rule for Server Actions lives in `security-playbook.md`.
+
+Credit: adapted from vercel-labs/agent-skills react-best-practices/rules/server-no-shared-module-state.md @ 063bee9 (MIT).
 
 ---
 

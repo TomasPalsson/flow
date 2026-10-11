@@ -46,13 +46,11 @@ user may override with one word:
 - **oneshot** — 0 intent gaps, 0 irreversibles, ≤5 tasks.
 - **dispatch** — anything else.
 
-The ratchet is one-way: if doubt appears later in the interview, upgrade the
-route, never downgrade it. The ratchet starts at the first answer: a PREP.md
-still at `Questions: 0` (a `/flow:develop-idea` seed, or a prep that dropped
-before Q1) is classified fresh, and its `Route:` line is ignored. `spike` and
-`bounded` end in chat (`Status: done in chat`) — there is no spec to prep for.
-Say so, deliver the short design or the recommendation directly in chat, and
-keep PREP.md as the record.
+The ratchet is one-way: if doubt appears later in the interview, upgrade the route, never downgrade it. The
+ratchet starts at the first answer: a PREP.md still at `Questions: 0` (a `/flow:develop-idea` seed, or a prep
+that dropped before Q1) is classified fresh, and its `Route:` line is ignored. `spike` and `bounded` end in
+chat (`Status: done in chat`) — there is no spec to prep for. Say so, deliver the short design or the
+recommendation directly in chat, and keep PREP.md as the record.
 
 ## Step 1 — Explore before asking
 
@@ -63,25 +61,20 @@ confirms or corrects what was found; they don't restate it.
 
 ## Step 2 — The file, first and after every answer
 
-Allocate `.specs/NNN-<slug>/PREP.md`: `NNN` = max existing `.specs/NNN-*` + 1
-(`001` if none; create `.specs/` if absent), `slug` = lowercase ASCII
-`[a-z0-9-]` from the idea, max 40 chars. If a `.specs/*-<slug>/PREP.md` with
-`Status: interviewing` already exists, resume it — do not re-ask any recorded
-`D-NN`. A seed from `/flow:develop-idea` (a `Seed:` line under the header
-marks it) holds what the user already said:
-its first turn reads the `unconfirmed` `A-NN` lines and `## Not this` back
-as ONE block with ONE ask — "reply with what's wrong, or 'right'" — and that
-is Q1. It is a read-back of the user's own answers, not a batch of new
-questions, and it satisfies rule 4's Not-this probe; mark each line
-`confirmed Q1` or `corrected Q1`. Nothing in the seed is re-asked open;
-from Q2, rule 1 holds again. Keep its `Seed:` line (the user's own first
-words) on every rewrite.
+Allocate `.specs/NNN-<slug>/PREP.md`: `NNN` = max existing `.specs/NNN-*` + 1 (`001` if none; create `.specs/`
+if absent), `slug` = lowercase ASCII `[a-z0-9-]` from the idea, max 40 chars. If a `.specs/*-<slug>/PREP.md`
+with `Status: interviewing` already exists, resume it — do not re-ask any recorded `D-NN`. A seed from
+`/flow:develop-idea` (a `Seed:` line under the header marks it) holds what the user already said: its first
+turn reads the `unconfirmed` `A-NN` lines and `## Not this` back as ONE block with ONE ask — "reply with
+what's wrong, or 'right'" — and that is Q1. It is a read-back of the user's own answers, not a batch of new
+questions, and it satisfies rule 4's Not-this probe; mark each line `confirmed Q1` or `corrected Q1`. Nothing
+in the seed is re-asked open; from Q2, rule 1 holds again. Keep its `Seed:` line (the user's own first words)
+on every rewrite.
 
-Write the file from `references/prep-template.md` BEFORE the first question,
-with `Questions: 0 of 12`, and rewrite it after EVERY answer: bump the
-`Questions:` counter, add the `— user, Q<n>` receipt to the line it settled,
-move the item to its section. A dropped session loses one answer, not the
-interview. Print the path once.
+Write the file from `references/prep-template.md` BEFORE the first question, with `Questions: 0 of 12`, and
+rewrite it after EVERY answer: bump the `Questions:` counter, add the `— user, Q<n>` receipt to the line it
+settled, move the item to its section. A dropped session loses one answer, not the interview. Print the path
+once.
 
 ## Step 3 — Interview rules
 
@@ -93,7 +86,9 @@ interview. Print the path once.
    fairly confident — never a bare percentage), ending "— confirm or
    correct?"**, so a one-word reply locks it: *"Mr Claude's guess: likely 409
    on a duplicate tag — confirm or correct?"* A stated hypothesis the user
-   can correct is not a leading question; a hidden one is.
+   can correct is not a leading question; a hidden one is. When the word is
+   the weakest tier (probably, unsure), add one clause naming what is missing
+   ("probably, unsure who maintains it"), so the user knows what to correct.
 3. **Only ask what is answerable** in 2–5 options or ≤5 words. Interaction
    feel, aesthetics, "does this look right" are ungrillable — say so and
    route them to a prototype or `/design:vary`; talking through them is
@@ -107,13 +102,18 @@ interview. Print the path once.
    Credit: adapted from mattpocock/skills skills/engineering/prototype/LOGIC.md @ 49dd158 (MIT).
 4. **Two mandatory probes**: "what should this explicitly NOT do?" (fills
    **Not this**) and the quantification probe on every adjective ("fast",
-   "simple", "robust" → a number or a comparison).
+   "simple", "robust" → a number or a comparison). One more, when an answer
+   defers to convention ("the standard way", "I should probably"): ask once
+   "if you didn't have to justify this to anyone, what would you want?".
+   Credit: adapted from addyosmani/agent-skills skills/interview-me/SKILL.md @ 1be8e34 (MIT).
 5. **Explicit confirmation only.** A decision becomes a `D-NN` on a number, a
    name or a specific. "Sure", "agreed", silence → restate once; if still
    vague, record an `A-NN` with `confidence: low`, never a `D-NN`.
-   When an answer states how existing code behaves, open the code first. On a
-   contradiction, quote path:line and ask once which is right; record the
-   `D-NN` only from that reply. No contradiction, no extra words.
+   When an answer states how existing code behaves, open the code first.
+   On a contradiction, quote path:line in the question; a
+   contradiction question still follows rule 2 (your hypothesis with a
+   confidence word, ending "— confirm or correct?"), and the `D-NN` is
+   recorded only from that reply. No contradiction, no extra words.
    Credit: adapted from mattpocock/skills skills/engineering/domain-modeling/SKILL.md @ 49dd158 (MIT).
 6. **Checkpoint at 6**: print the Decisions / Open counts and ask "continue
    or write?". Hard cap 12. More than 3 **Open** lines is the split signal —
@@ -121,7 +121,9 @@ interview. Print the path once.
    Before counting, resolve any Open line the tree can answer as an `A-NN`
    with evidence (Step 1). When the split fires, an Open line you can phrase
    as one precise question now becomes its own prep in the offer; the rest go
-   under `## Not yet specified` and are not pre-sliced.
+   under `## Not yet specified` and are not pre-sliced. When the offer is
+   accepted, write `## Split` into PREP.md: a table (at most 10 rows) of
+   `id | capability | depends-on | order`, `depends-on` naming other ids or `-`.
    Credit: adapted from mattpocock/skills skills/engineering/wayfinder/SKILL.md @ 49dd158 (MIT).
 7. **The last question is always Verify**:
    "what single check would convince you this shipped" — the spec inherits

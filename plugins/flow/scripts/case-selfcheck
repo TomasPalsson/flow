@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """case-selfcheck — prove an xhard eval case can be passed and that its
-untouched scaffold fails it. See evals/README.md, "Self-check"."""
+untouched scaffold fails it. See evals/README.md, "Self-check".
+
+Credit: adapted from anthropics/skills claude-api/shared/evals/eval-audit.md @ dbd4588 (Apache-2.0).
+Credit: adapted from vercel-labs/agent-skills vercel-optimize/lib/gates/index.mjs @ 063bee9 (MIT).
+Credit: adapted from anthropics/claude-plugins-official plugins/skill-creator/skills/skill-creator/agents/grader.md @ a9fd216 (Apache-2.0).
+Credit: adapted from github/spec-kit .github/workflows/bug-test.md @ 0443760 (MIT)."""
 import concurrent.futures
 import glob
+import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -133,7 +140,7 @@ def live_env(d):
 def scaffold(case_dir, d, tree, env=None):
     rc, out = run(["bash", os.path.join(case_dir, "scaffold.sh")], tree, env or base_env(d), 120)
     if rc != 0:
-        return "scaffold exited %d: %s" % (rc, last_line(out))
+        return "scaffold error (exit %d): %s" % (rc, last_line(out))
     return None
 
 
@@ -142,6 +149,90 @@ def postcheck(case_dir, name, d, tree, env=None, run_id="selfcheck", trace=None)
     env.update({"EVAL_CASE": name, "EVAL_RUN": run_id,
                 "EVAL_TRACE": trace or os.path.join(d, "trace"), "EVAL_PLUGIN_ROOT": PLUGIN})
     return run(["bash", os.path.join(case_dir, "postcheck.sh")], tree, env, 120)
+
+
+GIT_SWEEP = re.compile(r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace)(?:=|\s+)\S+|--[\w-]+)\s+)*(?:add|commit)\b")
+HEAD_GUARD = re.compile(r"rev-parse\s+--verify\s+-q\s+HEAD")
+FILE_WRITE = re.compile(r"(?:^|[\s;&|(])(?:mkdir|touch|cp|mv|tee)\b|>\s*[^\s&|]|\bgit\s+init\b")
+SIBLING_TYPES = ("file_exists", "regex", "tool_used")
+NEAR_MISS = re.compile(r"near-miss of [\w-]+:[\w-]+|no-territory")
+
+
+def grader_hash(case_dir):
+    """sha256 over case.yaml then postcheck.sh bytes (the latter only if present).
+    flow eval hashes the same bytes, so ledger lines from both writers compare."""
+    h = hashlib.sha256()
+    for fn in ("case.yaml", "postcheck.sh"):
+        try:
+            with open(os.path.join(case_dir, fn), "rb") as fh:
+                h.update(fh.read())
+        except OSError:
+            pass
+    return h.hexdigest()
+
+
+def scaffold_lines(case_dir):
+    """Non-comment lines of scaffold.sh, in order."""
+    text = read_text(os.path.join(case_dir, "scaffold.sh")) or ""
+    return [l for l in text.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+
+
+DISCARD = re.compile(r"\d*>+\s*/dev/null|\d*>&\d")
+
+
+def first_line(lines, pattern):
+    for i, l in enumerate(lines):
+        if pattern.search(DISCARD.sub("", l)):
+            return i
+    return None
+
+
+def guard_problem(case_dir):
+    """Error text when scaffold.sh runs git add/commit with no HEAD guard before it.
+    Run by hand in a checkout, an unguarded commit sweeps that tree into one commit."""
+    lines = scaffold_lines(case_dir)
+    sweep = first_line(lines, GIT_SWEEP)
+    if sweep is None:
+        return None
+    guard = first_line(lines, HEAD_GUARD)
+    if guard is None or guard > sweep:
+        return ("scaffold.sh runs git add/commit without the HEAD guard before it "
+                "(`git rev-parse --verify -q HEAD`, see xhard-finish/scaffold.sh)")
+    return None
+
+
+def skill_bound(g, key):
+    """A grader's integer min/max, or None when absent or not a number."""
+    try:
+        return int(g.get(key))
+    except (TypeError, ValueError):
+        return None
+
+
+def case_warnings(case_dir, name):
+    """Advisory lines (never failures) for a case that parses."""
+    try:
+        with open(os.path.join(case_dir, "case.yaml"), encoding="utf-8") as fh:
+            case = yaml.safe_load(fh)
+    except (OSError, yaml.YAMLError):
+        return []
+    if not isinstance(case, dict):
+        return []
+    out = []
+    lines = scaffold_lines(case_dir)
+    write = first_line(lines, FILE_WRITE)
+    guard = first_line(lines, HEAD_GUARD)
+    if write is not None and (guard is None or guard > write):
+        out.append("WARN %s: scaffold.sh writes files before any HEAD guard; run by hand in a "
+                   "checkout it would overwrite files (guard: xhard-finish/scaffold.sh)" % name)
+    skill = [g for g in case.get("graders") or []
+             if isinstance(g, dict) and g.get("type") == "tool_used" and g.get("tool") == "Skill"]
+    negative = (any(skill_bound(g, "max") == 0 for g in skill)
+                and not any((skill_bound(g, "min") or 0) >= 1 for g in skill))
+    if negative and not NEAR_MISS.search(str(case.get("description") or "")):
+        out.append("WARN %s: negative routing case names no skill; say 'near-miss of <plugin:skill>' "
+                   "or 'no-territory' in its description" % name)
+    return out
 
 
 def check_shape(case_dir, name, tags_ok):
@@ -177,6 +268,20 @@ def check_shape(case_dir, name, tags_ok):
                 re.compile(g.get("pattern", ""))
             except re.error as e:
                 return None, "grader %s: invalid regex: %s" % (gname, e)
+    by_name = {g.get("name"): g for g in case["graders"]}
+    for g in case["graders"]:
+        if "negative_ok" not in g:
+            continue
+        gname = g.get("name", g.get("type"))
+        if g.get("type") != "llm":
+            return None, "grader %s: negative_ok only applies to llm graders" % gname
+        sib = by_name.get(g["negative_ok"])
+        if sib is None or sib is g or sib.get("type") not in SIBLING_TYPES:
+            return None, ("grader %s: negative_ok names %r, which is not a file_exists/regex/tool_used "
+                          "grader in this case" % (gname, g["negative_ok"]))
+    problem = guard_problem(case_dir)
+    if problem:
+        return None, problem
     execution = case.get("execution") or {}
     if not (execution.get("prompt") or "").strip():
         return None, "execution.prompt empty"
@@ -346,6 +451,34 @@ def last_assistant_text(events):
     return ""
 
 
+LIMIT_PATTERN = re.compile(
+    r"(?:session|usage|weekly|rate|5-hour)\s+limit|hit your .{0,30}limit|limit reached|credit balance is too low",
+    re.I)
+BENIGN_ERROR = re.compile(r"maximum number of turns|error_max_turns", re.I)
+
+
+def errored_reason(events, stderr_text, timed_out):
+    """Why a finished run measured nothing (a usage/session limit, an is_error result, or no
+    result event at all), or None. A timeout is a graded failure, not an error, and so is
+    hitting max_turns: the routing cases sit on that budget by design."""
+    res = result_event(events)
+    text = str(res.get("result") or "")
+    if res.get("is_error") and not BENIGN_ERROR.search(text + str(res.get("subtype") or "")):
+        m = LIMIT_PATTERN.search(text)
+        return m.group(0) if m else "is_error result: %s" % (text[:120] or "(no text)")
+    for ev in events:  # only the runner's own error events: a model's text may discuss limits
+        if ev.get("type") == "system" and re.search(r"error|retry|limit", str(ev.get("subtype") or "")):
+            m = LIMIT_PATTERN.search(json.dumps(ev))
+            if m:
+                return m.group(0)
+    m = LIMIT_PATTERN.search(stderr_text or "")
+    if m:
+        return m.group(0)
+    if not res and not timed_out:
+        return "no result event"
+    return None
+
+
 def run_agent(case, tree, trace_path, stderr_path, model):
     """claude -p in the tree, own process group, wall-clock capped. Returns timed_out."""
     ex = case.get("execution") or {}
@@ -385,7 +518,12 @@ def run_agent(case, tree, trace_path, stderr_path, model):
 
 JUDGE_SYSTEM = ("You are an eval grader. You judge only the material in the user's message "
                  "against the criteria given there. You have no tools and no environment: "
-                 "never ask for more input, never comment on your own working directory.")
+                 "never ask for more input, never comment on your own working directory. "
+                 "The burden of proof is on the material: answer PASS only when you can quote "
+                 "evidence of substance from it, and FAIL when uncertain. You also audit the "
+                 "eval itself: after the verdict line, add one line starting `eval_critique:` "
+                 "naming assertions in the criteria that a wrong output would still satisfy and "
+                 "outcomes the criteria never check, or `eval_critique: none`.")
 
 TRANSCRIPT_CAP = 90000
 
@@ -476,11 +614,28 @@ def transcript(events, prompt=""):
     return "USER PROMPT\n%s\n\nRUN TRANSCRIPT\n%s\n\nFINAL MESSAGE\n%s" % (prompt, body, final)
 
 
+def split_critique(reply):
+    """(reply without critique lines, critique text or ""): the `eval_critique:` line(s)
+    a judge adds after its verdict. `none` counts as no critique."""
+    keep, crit = [], []
+    for line in reply.splitlines():
+        m = re.match(r"\s*eval_critique:\s*(.*)", line, re.I)
+        if m:
+            crit.append(m.group(1).strip())
+        elif crit:
+            crit.append(line.strip())
+        else:
+            keep.append(line)
+    text = " ".join(c for c in crit if c)
+    return "\n".join(keep).strip(), "" if text.lower().rstrip(".") == "none" else text
+
+
 def judge(g, focus, model):
-    """(passed, reason, cost) from one headless judge call: no tools, grader system
+    """(passed, reason, cost, critique) from one headless judge call: no tools, grader system
     prompt, prompt on stdin (a whole-run transcript overflows one argv string)."""
     prompt = ("CRITERIA\n%s\n\nMATERIAL\n```\n%s\n```\n\nReply with exactly one line: PASS or "
-              "FAIL, then a colon and one sentence why." % (g.get("criteria", ""), focus))
+              "FAIL, then a colon and one sentence why, quoting the evidence. Then one more line "
+              "starting `eval_critique:` (see your instructions)." % (g.get("criteria", ""), focus))
     cwd = tempfile.mkdtemp(prefix="case-live-judge.")
     try:
         env = dict(os.environ)
@@ -491,7 +646,7 @@ def judge(g, focus, model):
         pr = subprocess.run(cmd, cwd=cwd, env=env, input=prompt, capture_output=True,
                             text=True, errors="replace", timeout=300)
     except (OSError, subprocess.TimeoutExpired) as e:
-        return False, "judge call failed: %s" % e, 0.0
+        return False, "judge call failed: %s" % e, 0.0, ""
     finally:
         shutil.rmtree(cwd, ignore_errors=True)
     try:
@@ -499,16 +654,17 @@ def judge(g, focus, model):
         reply = str(data.get("result", "")).strip()
         cost = float(data.get("total_cost_usd") or 0)
     except (ValueError, AttributeError, TypeError):
-        return False, "judge reply unparseable: %s" % last_line(pr.stdout + pr.stderr), 0.0
+        return False, "judge reply unparseable: %s" % last_line(pr.stdout + pr.stderr), 0.0, ""
+    reply, critique = split_critique(reply)
     words = reply.split()
     first = re.sub(r"\W+$", "", words[0]).upper() if words else ""
-    return first == "PASS", reply or "(empty reply)", cost
+    return first == "PASS", reply or "(empty reply)", cost, critique
 
 
 def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
-    """(passed, why, judge_cost) for any grader in a live run."""
+    """(passed, why, judge_cost, critique) for any grader in a live run."""
     if is_file_grader(g):
-        return eval_grader(g, tree), "%s %s" % (g.get("type"), g.get("pattern", g.get("path", ""))), 0.0
+        return eval_grader(g, tree), "%s %s" % (g.get("type"), g.get("pattern", g.get("path", ""))), 0.0, ""
     t = g.get("type")
     if t == "regex":
         text = decoded_trace(events, read_text(trace_path))
@@ -517,7 +673,7 @@ def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
             flags |= {"i": re.I, "m": re.M, "s": re.S}.get(ch, 0)
         found = re.search(g.get("pattern", ""), text, flags) is not None
         ok = found if g.get("match", "contains") == "contains" else not found
-        return ok, "trace %s /%s/" % (g.get("match", "contains"), g.get("pattern", "")), 0.0
+        return ok, "trace %s /%s/" % (g.get("match", "contains"), g.get("pattern", "")), 0.0, ""
     if t == "tool_used":
         pat = g.get("input_match")
         count = 0
@@ -532,7 +688,7 @@ def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
         lo, hi = int(g.get("min", 1)), g.get("max")
         ok = lo <= count and (hi is None or count <= int(hi))
         return ok, "%s used %d times (min %d, max %s)" % (
-            g.get("tool"), count, lo, hi if hi is not None else "-"), 0.0
+            g.get("tool"), count, lo, hi if hi is not None else "-"), 0.0, ""
     if t == "llm":
         focus = g.get("focus") or {}
         if isinstance(focus, dict) and focus.get("source") == "file":
@@ -543,7 +699,7 @@ def grade_live(g, tree, trace_path, events, judge_model, prompt=""):
         else:
             text = transcript(events, prompt)
         return judge(g, text, judge_model)
-    return False, "unsupported grader type %r" % t, 0.0
+    return False, "unsupported grader type %r" % t, 0.0, ""
 
 
 HOME_STORE_LOCK = threading.Lock()
@@ -571,7 +727,8 @@ def live_run_one(case_dir, case, name, k, out_dir, opts):
     os.makedirs(tree)
     trace_path = os.path.join(run_dir, "trace.jsonl")
     rec = {"case": name, "run": k, "score": 0.0, "post": False, "turns": 0, "cost": 0.0,
-           "secs": 0, "timed_out": False, "passed": False, "failed": [], "trace": trace_path}
+           "secs": 0, "timed_out": False, "passed": False, "failed": [], "trace": trace_path,
+           "errored": False}
     t0 = time.time()
     env = live_env(run_dir)
     err = scaffold(case_dir, run_dir, tree, env)
@@ -579,8 +736,17 @@ def live_run_one(case_dir, case, name, k, out_dir, opts):
         rec["failed"].append("scaffold: %s" % err)
         rec["secs"] = int(time.time() - t0)
         return rec
-    rec["timed_out"] = run_agent(case, tree, trace_path, os.path.join(run_dir, "stderr.log"),
-                                 opts["model"])
+    stderr_path = os.path.join(run_dir, "stderr.log")
+    rec["timed_out"] = run_agent(case, tree, trace_path, stderr_path, opts["model"])
+    events = trace_events(trace_path)
+    why = errored_reason(events, read_text(stderr_path), rec["timed_out"])
+    if why:
+        res = result_event(events)
+        rec.update({"errored": True, "reason": why, "turns": res.get("num_turns") or 0,
+                    "cost": cost_of(res), "secs": int(time.time() - t0)})
+        if not opts["keep"]:
+            shutil.rmtree(tree, ignore_errors=True)
+        return rec
     grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec)
     rec["secs"] = int(time.time() - t0)
     if not opts["keep"]:
@@ -605,20 +771,29 @@ def installed_copy_use(events):
     return None
 
 
+def cost_of(res):
+    """The result event's total_cost_usd, or None when it has none: unmeasured is not $0."""
+    value = res.get("total_cost_usd")
+    return float(value) if isinstance(value, (int, float)) else None
+
+
 def grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec):
     """Grade one finished run in place (graders, then postcheck) into rec. Separate
     from live_run so a finished run can be re-graded without paying for the agent."""
     events = trace_events(trace_path)
     res = result_event(events)
     rec["turns"] = res.get("num_turns") or sum(1 for e in events if e.get("type") == "assistant")
-    rec["cost"] = float(res.get("total_cost_usd") or 0)
+    rec["cost"] = cost_of(res)
     total = got = 0.0
     for g in case["graders"]:
         w = float(g.get("weight", 1))
-        ok, why, jcost = grade_live(g, tree, trace_path, events, opts["judge_model"],
+        ok, why, jcost, critique = grade_live(g, tree, trace_path, events, opts["judge_model"],
                                     (case.get("execution") or {}).get("prompt", ""))
-        rec["cost"] += jcost
+        if rec["cost"] is not None:
+            rec["cost"] += jcost
         total += w
+        if critique:
+            rec.setdefault("critiques", []).append("%s: %s" % (g.get("name", g.get("type")), critique))
         if ok:
             got += w
         else:
@@ -638,25 +813,54 @@ def grade_run(case_dir, case, name, k, run_dir, tree, trace_path, env, opts, rec
     rec["passed"] = rec["score"] == 1 and rec["post"] and not rec["contaminated"]
 
 
+def money(value, prefix="$"):
+    return "n/a" if value is None else "%s%.2f" % (prefix, value)
+
+
 def live_line(rec):
-    line = "LIVE %s score=%.2f post=%s turns=%s cost=$%.2f %ds%s" % (
-        rec["case"], rec["score"], "ok" if rec["post"] else "FAIL", rec["turns"], rec["cost"],
+    if rec.get("errored"):
+        return "ERRORED %s run-%s: %s (not graded, left out of the mean)" % (
+            rec["case"], rec["run"], rec["reason"])
+    line = "LIVE %s score=%.2f post=%s turns=%s cost=%s %ds%s" % (
+        rec["case"], rec["score"], "ok" if rec["post"] else "FAIL", rec["turns"], money(rec["cost"]),
         rec["secs"], " [timed out]" if rec["timed_out"] else "")
-    return "\n".join([line] + ["  - %s" % f.replace("\n", "\n    ") for f in rec["failed"]])
+    return "\n".join([line] + ["  - %s" % f.replace("\n", "\n    ") for f in rec["failed"]]
+                     + ["  ~ eval_critique %s" % c for c in rec.get("critiques", [])])
+
+
+def mean_score(recs):
+    """Mean score over runs that measured something, or None when none did."""
+    measured = [r["score"] for r in recs if not r.get("errored")]
+    return sum(measured) / len(measured) if measured else None
+
+
+def total_cost(recs):
+    """Summed cost, or None when any run's cost is unknown."""
+    if any(r["cost"] is None for r in recs):
+        return None
+    return sum(r["cost"] for r in recs)
 
 
 def write_ledger(path, recs, opts):
     rc, sha = run(["git", "rev-parse", "HEAD"], PLUGIN, {}, 30)
     now = time.time()
     ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now)) + ".%03dZ" % int(now % 1 * 1000)
-    mean = sum(r["score"] for r in recs) / len(recs)
+    measured = [r for r in recs if not r.get("errored")]
+    errored = len(recs) - len(measured)
+    tags = {}
+    if measured:
+        tags["xhard"] = {"score": mean_score(recs), "delta": 0, "cases": len({r["case"] for r in measured}),
+                         "post": {"pass": sum(1 for r in measured if r["post"]), "total": len(measured)}}
     line = {"ts": ts, "sha": sha.strip() if rc == 0 else "", "model": opts["model"],
-            "judgeModel": opts["judge_model"],
-            "tags": {"xhard": {"score": mean, "delta": 0, "cases": len({r["case"] for r in recs}),
-                               "post": {"pass": sum(1 for r in recs if r["post"]), "total": len(recs)}}},
-            "meanDelta": 0, "costUsd": sum(r["cost"] for r in recs),
-            "partial": any(r["timed_out"] for r in recs),
+            "judgeModel": opts["judge_model"], "tags": tags,
+            "meanDelta": 0, "costUsd": total_cost(recs),
+            "partial": errored > 0 or any(r["timed_out"] for r in recs),
             "reason": "live runner (outside the eval sandbox)"}
+    if errored:
+        line["errored"] = errored
+        line["reason"] += "; %d run(s) errored, left out of the score" % errored
+    line["graders"] = {n: grader_hash(os.path.join(opts["root"], n)) for n in sorted({r["case"] for r in recs})
+                       if os.path.isdir(os.path.join(opts["root"], n))}
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(line, separators=(",", ":")) + "\n")
 
@@ -686,6 +890,7 @@ def live_main(root, names, opts):
         print("case-selfcheck: --out %s is under ~/.claude, where the agent cannot write — use a dir outside it (default: the system tmp dir)" % out_dir)
         return 2
     os.makedirs(out_dir, exist_ok=True)
+    opts["root"] = root
     print("case-selfcheck --live: out %s" % out_dir)
     cases = []
     bad = 0
@@ -713,22 +918,267 @@ def live_main(root, names, opts):
                 rec = f.result()
             except Exception as e:
                 rec = {"case": n, "run": k, "score": 0.0, "post": False, "turns": 0, "cost": 0.0,
-                       "secs": 0, "timed_out": False, "passed": False,
+                       "secs": 0, "timed_out": False, "passed": False, "errored": False,
                        "failed": ["internal error %s: %s" % (type(e).__name__, e)]}
             recs.append(rec)
             print(live_line(rec))
     npass = sum(1 for r in recs if r["passed"])
-    mean = sum(r["score"] for r in recs) / len(recs) if recs else 0.0
-    cost = sum(r["cost"] for r in recs)
+    mean = mean_score(recs)
+    cost = total_cost(recs)
+    errored = [r for r in recs if r.get("errored")]
+    if errored:
+        with open(os.path.join(out_dir, "errors.jsonl"), "w", encoding="utf-8") as fh:
+            for r in errored:
+                fh.write(json.dumps({"case": r["case"], "run": r["run"], "reason": r["reason"],
+                                     "trace": r.get("trace")}) + "\n")
     results = os.path.join(out_dir, "results.json")
     with open(results, "w", encoding="utf-8") as fh:
         json.dump({"model": opts["model"], "judgeModel": opts["judge_model"], "runs": recs,
-                   "passed": npass, "total": len(recs), "meanScore": mean, "costUsd": cost}, fh, indent=2)
+                   "passed": npass, "total": len(recs), "errored": len(errored),
+                   "meanScore": mean, "costUsd": cost}, fh, indent=2)
     if opts["ledger"] and recs:
         write_ledger(opts["ledger_path"], recs, opts)
-    print("case-selfcheck --live: %d/%d runs passed, mean score %.2f, cost $%.2f, results %s" % (
-        npass, len(recs), mean, cost, results))
+    print("case-selfcheck --live: %d/%d runs passed, mean score %s, %s, results %s" % (
+        npass, len(recs), "n/a" if mean is None else "%.2f" % mean,
+        "cost: n/a" if cost is None else "cost $%.2f" % cost, results))
+    if errored:
+        print("case-selfcheck --live: %d run(s) errored, see %s" % (
+            len(errored), os.path.join(out_dir, "errors.jsonl")))
     return 0 if recs and npass == len(recs) else 1
+
+
+PROBES = (
+    ("empty", ""),
+    ("an \"I don't know\" answer", "I don't know."),
+    ("a confident answer to an unrelated question",
+     "The capital of Australia is Canberra, which became the seat of government in 1927. "
+     "I am certain of this and have nothing else to add."),
+)
+
+
+def probe_judges(root, names, opts):
+    """Show every llm grader its criteria against empty, evasive and off-topic material. A
+    grader that PASSes any of them cannot tell a finished run from nothing. Judge-only: no
+    agent run, no scaffold. A grader whose criteria are a negation (an empty file passes
+    "no redundant guard") sets negative_ok: <sibling>, a file_exists/regex/tool_used grader
+    that already catches empty output."""
+    tags_ok = load_tags()
+    defaults = read_contract("[c.DEFAULT_MODELS.judgeModel].join(' ')", "DEFAULT_MODELS")
+    if tags_ok is None or defaults is None:
+        return 2
+    model = opts["judge_model"] or defaults[0]
+    if not names:
+        try:
+            names = sorted(n for n in os.listdir(root) if os.path.isfile(os.path.join(root, n, "case.yaml")))
+        except OSError as e:
+            print("case-selfcheck: cannot read root %s: %s" % (root, e))
+            return 2
+    probed = noisy = errors = shape = 0
+    for name in names:
+        case_dir = os.path.join(root, name)
+        case, err = check_shape(case_dir, name, tags_ok) if os.path.isdir(case_dir) else (None, "no such case dir")
+        if err:
+            print("FAIL %s: %s" % (name, err))
+            shape += 1
+            continue
+        for g in case["graders"]:
+            if g.get("type") != "llm":
+                continue
+            gname = g.get("name", "llm")
+            if g.get("negative_ok"):
+                print("skip %s/%s (negative_ok: %s)" % (name, gname, g["negative_ok"]))
+                continue
+            probed += 1
+            for label, text in PROBES:
+                passed, reason, _cost, _crit = judge(g, text, model)
+                if passed:
+                    noisy += 1
+                    print("FAIL %s/%s passed on %s input: %s" % (name, gname, label, reason))
+                elif reason.startswith(("judge call failed", "judge reply unparseable")):
+                    errors += 1
+                    print("ERROR %s/%s on %s input: %s" % (name, gname, label, reason))
+    print("case-selfcheck --probe-judges: %d llm grader(s) probed, %d passed noise, %d error(s), %d shape failure(s)"
+          % (probed, noisy, errors, shape))
+    if noisy or shape:
+        return 1
+    return 2 if errors else 0
+
+
+# -------------------------------------------------------------- --replay ----
+# Replay a real fix commit: clone the repo at <fix-sha>^, keep the fix commit's own test
+# files, ask /flow:fix to repair it, and report whether the fix test passes and how the
+# agent's files compare with the human fix's. Everything happens in a temp clone; the
+# source repo is only read, and results go to a ledger outside the flow repo (the
+# fixture rule: committed cases hold no private code, so a replay is never a case).
+
+TEST_PATH = re.compile(r"(^|/)(tests?|__tests__|spec)/|(^|/)test_[^/]+$|_test\.\w+$|\.(test|spec)\.\w+$")
+REPLAY_LEDGER = os.path.join("~", ".flow", "replays", "ledger.jsonl")
+
+
+def git_bytes(repo, args):
+    pr = subprocess.run(["git", "-C", repo] + args, capture_output=True)
+    return pr.returncode, pr.stdout
+
+
+def git_lines(repo, args):
+    rc, out = git_bytes(repo, args)
+    return rc, [l for l in out.decode("utf-8", "replace").splitlines() if l]
+
+
+def replay_test_cmd(opts, files):
+    """The shell command that runs the fix commit's tests, or None when it cannot be guessed."""
+    quoted = " ".join(shlex.quote(f) for f in files)
+    if opts.get("test_cmd"):
+        return opts["test_cmd"].replace("{files}", quoted)
+    if all(f.endswith(".py") for f in files):
+        have_pytest = subprocess.run([sys.executable, "-c", "import pytest"], capture_output=True).returncode == 0
+        return "python3 -m %s %s" % ("pytest -q" if have_pytest else "unittest", quoted)
+    return None
+
+
+NO_BYTECODE = {"PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def clear_bytecode(tree):
+    for root, dirs, _files in os.walk(tree):
+        if ".git" in dirs:
+            dirs.remove(".git")
+        for d in [x for x in dirs if x == "__pycache__"]:
+            shutil.rmtree(os.path.join(root, d), ignore_errors=True)
+            dirs.remove(d)
+
+
+def replay_refuse(msg):
+    print("case-selfcheck --replay: %s" % msg)
+    return 2
+
+
+def replay_prepare(repo, sha, opts, tree):
+    """Clone at the parent and lay the fix commit's tests over it. (error, tests, human_files)."""
+    rc, parents = git_lines(repo, ["rev-list", "--parents", "-n", "1", sha])
+    if rc != 0 or not parents or len(parents[0].split()) != 2:
+        return "%s is not a single-parent commit in %s" % (sha, repo), None, None
+    parent = parents[0].split()[1]
+    rc, changed = git_lines(repo, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--diff-filter=AM", sha])
+    if rc != 0:
+        return "cannot list the files of %s" % sha, None, None
+    tests = [f for f in changed if TEST_PATH.search(f)]
+    if not tests:
+        return "the fix commit %s adds no test; a replay needs a test that fails at the parent" % sha[:10], None, None
+    human = [f for f in changed if not TEST_PATH.search(f)]
+    rc, out = run(["git", "clone", "--quiet", "--no-hardlinks", repo, tree], None, {}, 300)
+    if rc != 0:
+        return "git clone failed: %s" % last_line(out), None, None
+    for cmd in (["checkout", "--quiet", parent], ["remote", "remove", "origin"]):
+        rc, out = run(["git", "-C", tree] + cmd, None, {}, 120)
+        if rc != 0:
+            return "git %s failed: %s" % (cmd[0], last_line(out)), None, None
+    for f in tests:
+        rc, data = git_bytes(repo, ["show", "%s:%s" % (sha, f)])
+        if rc != 0:
+            return "cannot read %s at %s" % (f, sha[:10]), None, None
+        dest = os.path.join(tree, f)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as fh:
+            fh.write(data)
+    return None, tests, human
+
+
+def replay_agent_files(tree, tests, repo, sha, base):
+    """Files the agent changed since `base` (the parent, so commits count): tracked edits and new files, minus the fix tests laid down
+    untouched (a test file the agent edited further still counts)."""
+    _rc, tracked = git_lines(tree, ["diff", "--name-only", base])
+    _rc, fresh = git_lines(tree, ["ls-files", "--others", "--exclude-standard"])
+    files = set(tracked) | set(fresh)
+    for f in tests:
+        rc, want = git_bytes(repo, ["show", "%s:%s" % (sha, f)])
+        try:
+            with open(os.path.join(tree, f), "rb") as fh:
+                same = rc == 0 and fh.read() == want
+        except OSError:
+            same = False
+        if same:
+            files.discard(f)
+    return sorted(f for f in files if "__pycache__" not in f and not f.endswith(".pyc") and ".pytest_cache" not in f)
+
+
+def replay_issue_text(repo, sha, opts):
+    if opts.get("issue"):
+        return (read_text(opts["issue"]) or "").strip()
+    _rc, out = git_bytes(repo, ["log", "-1", "--format=%s", sha])
+    return out.decode("utf-8", "replace").strip()
+
+
+def replay_main(opts):
+    spec = opts["replay"]
+    if "@" not in spec:
+        return replay_refuse("want <repo-path>@<fix-sha>, got %r" % spec)
+    repo, sha = spec.rsplit("@", 1)
+    repo = os.path.abspath(os.path.expanduser(repo))
+    rc, full = git_lines(repo, ["rev-parse", "--verify", "--quiet", sha + "^{commit}"])
+    if rc != 0 or not full:
+        return replay_refuse("%s is not a commit in %s" % (sha, repo))
+    sha = full[0]
+    ledger = os.path.abspath(os.path.expanduser(opts["ledger_path"] or REPLAY_LEDGER))
+    if (os.path.realpath(ledger) + os.sep).startswith(os.path.join(PLUGIN, "evals") + os.sep):
+        return replay_refuse("the ledger goes to ~/.flow/replays/, never plugins/flow/evals (got %s)" % ledger)
+    issue = replay_issue_text(repo, sha, opts)
+    if not issue:
+        return replay_refuse("no issue text: the commit subject is empty and --issue was not given")
+    defaults = read_contract("[c.DEFAULT_MODELS.model].join(' ')", "DEFAULT_MODELS")
+    if defaults is None:
+        return 2
+    model = opts["model"] or defaults[0]
+    out_dir = os.path.abspath(opts["out"] or tempfile.mkdtemp(prefix="case-replay."))
+    os.makedirs(out_dir, exist_ok=True)
+    tree = os.path.join(out_dir, "tree")
+    err, tests, human = replay_prepare(repo, sha, opts, tree)
+    if err:
+        return replay_refuse(err)
+    _rc, heads = git_lines(tree, ["rev-parse", "HEAD"])
+    base = heads[0] if heads else "HEAD"
+    cmd = replay_test_cmd(opts, tests)
+    if cmd is None:
+        shutil.rmtree(tree, ignore_errors=True)
+        return replay_refuse("cannot guess how to run %s; pass --test-cmd with {files}" % ", ".join(tests))
+    rc, pout = run(["bash", "-c", cmd], tree, NO_BYTECODE, 600)
+    if rc == 0:
+        shutil.rmtree(tree, ignore_errors=True)
+        return replay_refuse("the fix commit's test passes at the parent; it does not reproduce the bug")
+    case = {"execution": {"prompt": "/flow:fix --unattended " + issue, "max_turns": 60, "timeout_seconds": 1800,
+                          "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill", "Agent"]}}
+    trace, stderr_path = os.path.join(out_dir, "trace.jsonl"), os.path.join(out_dir, "stderr.log")
+    timed_out = run_agent(case, tree, trace, stderr_path, model)
+    events = trace_events(trace)
+    why = errored_reason(events, read_text(stderr_path), timed_out)
+    if why:
+        print("ERRORED replay %s@%s: %s (not graded, no ledger line)" % (repo, sha[:10], why))
+        if not opts["keep"]:
+            shutil.rmtree(tree, ignore_errors=True)
+        return 1
+    clear_bytecode(tree)  # a same-size edit within one second would load the stale .pyc
+    rc, _pout = run(["bash", "-c", cmd], tree, NO_BYTECODE, 600)
+    agent = replay_agent_files(tree, tests, repo, sha, base)
+    overlap = sorted(set(agent) & set(human))
+    agent_only = sorted(set(agent) - set(human))
+    human_only = sorted(set(human) - set(agent))
+    cost = cost_of(result_event(events))
+    verdict = "pass" if rc == 0 else "fail"
+    print("REPLAY %s@%s fix-test=%s agent-files=%d human-files=%d overlap=%d cost=%s%s" % (
+        repo, sha[:10], verdict.upper(), len(agent), len(human), len(overlap), money(cost),
+        " [timed out]" if timed_out else ""))
+    for label, files in (("overlap", overlap), ("agent-only", agent_only), ("human-only", human_only)):
+        if files:
+            print("  %s: %s" % (label, ", ".join(files)))
+    row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "repo": repo, "fix_sha": sha, "model": model,
+           "fix_test": verdict, "agent_files": agent, "human_files": human, "overlap": overlap,
+           "costUsd": cost, "timed_out": timed_out}
+    os.makedirs(os.path.dirname(ledger), exist_ok=True)
+    with open(ledger, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, separators=(",", ":")) + "\n")
+    if not opts["keep"]:
+        shutil.rmtree(tree, ignore_errors=True)
+    return 0
 
 
 def main(argv):
@@ -736,10 +1186,15 @@ def main(argv):
     keep = False
     names = []
     live = False
+    probe = False
     opts = {"model": None, "judge_model": None, "runs": 1, "jobs": 1, "out": None, "keep": False,
-            "ledger": False, "ledger_path": os.path.join(PLUGIN, "evals", "ledger.jsonl")}
+            "ledger": False, "ledger_path": os.path.join(PLUGIN, "evals", "ledger.jsonl"),
+            "replay": None, "issue": None, "test_cmd": None}
     valued = {"--model": "model", "--judge-model": "judge_model", "--runs": "runs", "-j": "jobs",
-              "--out": "out", "--ledger-path": "ledger_path"}
+              "--out": "out", "--ledger-path": "ledger_path", "--replay": "replay", "--issue": "issue",
+              "--test-cmd": "test_cmd"}
+    if "--replay" in argv and "--ledger-path" not in argv:
+        opts["ledger_path"] = None  # a replay keeps its own ledger under ~/.flow/replays/
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -748,6 +1203,8 @@ def main(argv):
             i += 1
         elif a == "--live":
             live = True
+        elif a == "--probe-judges":
+            probe = True
         elif a == "--ledger":
             opts["ledger"] = True
         elif a == "--root" and i + 1 < len(argv):
@@ -761,6 +1218,11 @@ def main(argv):
         else:
             names.append(a)
         i += 1
+    if opts["replay"]:
+        opts["keep"] = keep
+        return replay_main(opts)
+    if probe:
+        return probe_judges(root, names, opts)
     if live:
         try:
             opts["runs"] = max(1, int(opts["runs"]))
@@ -790,7 +1252,10 @@ def main(argv):
             else:
                 try:
                     ok, line = check_case(case_dir, name, tags_ok, tmps)
-                except Exception as e:                    ok, line = False, "FAIL %s: internal error %s: %s" % (name, type(e).__name__, e)
+                except Exception as e:
+                    ok, line = False, "FAIL %s: internal error %s: %s" % (name, type(e).__name__, e)
+                for w in case_warnings(case_dir, name):
+                    print(w)
             print(line)
             passed += ok
             failed += not ok

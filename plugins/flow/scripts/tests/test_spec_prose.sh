@@ -375,3 +375,131 @@ t_spec_prep_not_yet_specified_is_deferred_nongoal() {
 		'`## Not yet specified` lines go to §2.2 Non-goals as "deferred: <line>", never into scope' \
 		"spec/SKILL.md §1 sends PREP.md's Not yet specified lines to §2.2 Non-goals as deferred"
 }
+
+t_famousd1_archived_behaviors_join_on_files() {
+	local s
+	s=$(cat "$SPEC_SKILL")
+	assert_contains "$s" 'Behaviors rows' "spec/SKILL.md: archived Behaviors rows are cited"
+	assert_contains "$s" 'overlapping the footprint' "spec/SKILL.md: the Behaviors join runs through the task files: overlap"
+	assert_contains "$s" 'Keeps <id> from' "spec/SKILL.md: the prior-behavior position has a fixed shape"
+	assert_contains "$s" 'legacy `B' "spec/SKILL.md: archived rows may carry legacy B-ids as well as FR-NN"
+	assert_contains "$s" 'at most 5' "spec/SKILL.md: prior-behavior positions are capped"
+}
+
+t_famousd1_reader_pass_beside_judge() {
+	local s
+	s=$(cat "$SPEC_SKILL")
+	assert_contains "$s" 'cold reader' "spec/SKILL.md §5: a cold-reader subagent is spawned"
+	assert_contains "$s" 'at most 8' "spec/SKILL.md §5: the reader returns at most 8 questions"
+	assert_contains "$s" 'reader: N asked, N answered, N open' "spec/SKILL.md §5: the score line carries the reader counts"
+	assert_contains "$s" 'never run it' "spec/SKILL.md §5: oneshot and bounded never run the reader"
+}
+
+t_famousd1_must_never_break_item() {
+	local s q
+	s=$(cat "$SPEC_SKILL")
+	q=$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")
+	assert_contains "$s" 'Three items are never dropped' "spec/SKILL.md names three never-dropped items"
+	assert_contains "$s" 'must-never-break' "spec/SKILL.md names the must-never-break item"
+	assert_contains "$q" 'Must never break:' "question-bank lists the must-never-break position"
+	assert_not_contains "$s" 'Behaviors row B1' "spec/SKILL.md does not number the must-never-break row B1"
+	assert_not_contains "$q" 'Behaviors row B1' "question-bank does not number the must-never-break row B1"
+	assert_contains "$s" 'FR-01' "spec/SKILL.md ties must-never-break to the spec's FR id"
+	assert_contains "$s" 'On `dispatch` it is the P0 MUST requirement (FR-01 in spec §4.1)' "spec/SKILL.md: FR-01 anchor is dispatch only"
+	assert_contains "$s" 'on `oneshot` it is the first P0 Behaviors row in `TASKS.md`' "spec/SKILL.md: oneshot has no spec to cite"
+	assert_contains "$q" 'on `oneshot` it is the first P0 Behaviors row' "question-bank: oneshot has no spec to cite"
+	assert_not_contains "$s" 'On `oneshot` and `dispatch` it is the P0' "spec/SKILL.md does not send oneshot to a spec FR"
+	assert_not_contains "$q" 'On `oneshot` and `dispatch` it becomes' "question-bank does not send oneshot to a spec FR"
+	assert_contains "$s" 'still run the cold reader on its own' "spec/SKILL.md says what the cold reader does without spec-judge"
+	assert_contains "$q" 'Budget: 4 items on `bounded`' "question-bank keeps the bounded budget at 4"
+}
+
+t_famousd1_no_invented_content() {
+	assert_contains "$(cat "$SPEC_SKILL")" 'Never invent content to clear a lint error' \
+		"spec/SKILL.md §6 step 2 forbids inventing content for lint or the judge"
+}
+
+t_famousd1_revert_grep_install_channel_llm_failures() {
+	local s q
+	s=$(cat "$SPEC_SKILL")
+	q=$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")
+	assert_contains "$s" '--grep=revert' "spec/SKILL.md greps the footprint's history for reverts"
+	assert_contains "$q" 'install channel' "question-bank row 7 asks for the install channel"
+	assert_contains "$q" 'malformed' "question-bank row 5 names malformed model output"
+	assert_contains "$q" 'refusal' "question-bank row 5 names refusal"
+}
+
+t_famousd1_external_check() {
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'External check:' "spec.md §6 carries an External check line"
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")" 'external check' "question-bank row 8 asks for an external check"
+}
+
+t_famousd2_spec_or_not_test() {
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'without changing what a caller observes' \
+		"spec.md §4.1 carries the spec-or-not test for requirement lines"
+}
+
+t_famousd2_screen_states_table() {
+	local t
+	t=$(cat "$SCAN_DIR/../flow-templates/spec.md")
+	assert_contains "$t" '### Screen states' "spec.md §3 has an optional Screen states section"
+	assert_contains "$t" '| Screen | Loading | Empty | Error | Success | Partial |' "Screen states table has the five state columns"
+	assert_contains "$t" 'delete the section otherwise' "Screen states is conditional on a journey having a screen"
+}
+
+# famous-borrows Z4: F94 (blocks: tasks), F98 (discovery is not a task), F112 (Ask first), F04, F93
+t_z4_spec_template_blocks_marker() {
+	assert_contains "$(cat "$SCAN_DIR/../flow-templates/spec.md")" 'blocks: tasks]' \
+		"spec.md §8 shows the optional blocks: tasks marker"
+}
+
+t_z4_spec_template_ask_first_section() {
+	local t
+	t=$(cat "$SCAN_DIR/../flow-templates/spec.md")
+	assert_contains "$t" '### 2.3 Ask first' "spec.md carries the Ask first tier"
+	assert_contains "$t" 'new runtime dependency' "default bullet: new runtime dependency"
+	assert_contains "$t" 'CI/workflow config' "default bullet: CI/workflow config"
+	assert_contains "$t" 'schema migration' "default bullet: schema migration"
+}
+
+t_z4_execution_prompt_ask_first_row() {
+	assert_contains "$(cat "$SCAN_DIR/../skills/next/execution-prompt.md")" 'Ask-first' \
+		"the failure table stops on an Ask-first item"
+	assert_contains "$(cat "$SCAN_DIR/../skills/next/execution-prompt.md")" 'report BLOCKED naming it' \
+		"and reports BLOCKED naming it"
+}
+
+t_z4_question_bank_observed_or_assumed() {
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")" 'observed:' \
+		"a position about current code cites observed: path:line or says assumed"
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/question-bank.md")" 'assumed' \
+		"question-bank names the assumed marker"
+}
+
+t_z4_next_drafting_rules() {
+	local n
+	n=$(cat "$NEXT_SKILL")
+	assert_contains "$n" 'Discovery happens while drafting, never as a task' "F98: discovery is not a task"
+	assert_contains "$n" 'read `spec.md` §8 first' "F94: drafting reads the open questions first"
+	assert_contains "$n" 'baseline-tests.txt' "F04: T000 writes the Test: baseline"
+	assert_contains "$n" 'git worktree add --detach' "F04: a red at Base needs a baseline or a Base rerun"
+	assert_contains "$n" 'is `unverified`' "F04: an unproven red at Base is unverified"
+	assert_contains "$n" 'spec-criterion-changed' "F93: gating names the rule"
+}
+
+t_z4_review_cross_file_diffs_the_contract() {
+	assert_contains "$(cat "$SCAN_DIR/../skills/next/review.md")" 'diffs `spec.md` and `design.md` against Base' \
+		"F93: the cross-file lens diffs the contract files against Base"
+}
+
+t_z4_fix_skill_red_needs_baseline() {
+	assert_contains "$(cat "$SCAN_DIR/../skills/fix/SKILL.md")" 'git worktree add --detach' \
+		"F04: fix calls a red pre-existing only with a Base rerun"
+}
+
+t_famousd2_split_position_in_discovery() {
+	assert_contains "$(cat "$SPEC_SKILL")" "split: <A> / <B>" \
+		"spec/SKILL.md discovery carries the split position"
+	assert_contains "$(cat "$SPEC_SKILL")" "one feature because <reason>" \
+		"spec/SKILL.md discovery lets the split position resolve to one feature"
+}

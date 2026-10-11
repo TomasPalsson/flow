@@ -367,4 +367,134 @@ function referenceDocsCheck(push, repoRoot) {
   for (const w of warnings) push('reference-docs', 'WARN', w);
 }
 
-module.exports = { REPO_ROOT, worktreeHygieneCheck, personalPathsCheck, referenceDocsCheck };
+// Skill dirs (those holding a SKILL.md) directly under `dir`, as
+// Map name -> realpath. Missing or unreadable dir -> empty map.
+function dupSkillDirs(dir) {
+  const out = new Map();
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    const abs = path.join(dir, e.name);
+    if (fs.existsSync(path.join(abs, 'SKILL.md'))) out.set(e.name, realpath(abs));
+  }
+  return out;
+}
+
+// Every on-disk place Claude loads skills from: plugin dirs linked under
+// ~/.claude/skills, installPath of each entry in installed_plugins.json, and
+// <project>/.claude/skills. Each source: { label, kind, plugin, skills }.
+function dupSkillSources(home, projectDir) {
+  const sources = [];
+  const linkRoot = path.join(home, '.claude', 'skills');
+  let linked = [];
+  try {
+    linked = fs.readdirSync(linkRoot);
+  } catch {
+    linked = [];
+  }
+  for (const name of linked) {
+    const skills = dupSkillDirs(path.join(linkRoot, name, 'skills'));
+    if (skills.size > 0) sources.push({ label: `skills-dir ${name}`, kind: 'skills-dir', plugin: name, skills });
+  }
+  let installed = {};
+  try {
+    installed = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'plugins', 'installed_plugins.json'), 'utf8')).plugins || {};
+  } catch {
+    installed = {};
+  }
+  for (const key of Object.keys(installed)) {
+    const list = Array.isArray(installed[key]) ? installed[key] : [installed[key]];
+    for (const ent of list) {
+      if (!ent || typeof ent.installPath !== 'string') continue;
+      const skills = dupSkillDirs(path.join(ent.installPath, 'skills'));
+      if (skills.size > 0) sources.push({ label: key, kind: 'installed', plugin: key.split('@')[0], skills });
+    }
+  }
+  if (projectDir) {
+    const skills = dupSkillDirs(path.join(projectDir, '.claude', 'skills'));
+    if (skills.size > 0) sources.push({ label: 'project .claude/skills', kind: 'project', plugin: null, skills });
+  }
+  return sources;
+}
+
+// A plugin present in two sources (same plugin name, every skill of the
+// smaller side shared) is one finding, not one row per skill. The shared
+// names are dropped from the later source so the per-name pass skips them.
+function dupKindLabel(src) {
+  return src.kind === 'skills-dir' ? 'skills-dir' : src.label;
+}
+
+function dupCollapsePlugins(sources) {
+  const rows = [];
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      const a = sources[i];
+      const b = sources[j];
+      if (!a.plugin || a.plugin !== b.plugin || a.kind === b.kind) continue;
+      const shared = [...a.skills.keys()].filter((n) => b.skills.has(n) && b.skills.get(n) !== a.skills.get(n));
+      if (shared.length === 0 || shared.length !== Math.min(a.skills.size, b.skills.size)) continue;
+      rows.push(`plugin ${a.plugin} loads from both ${dupKindLabel(a)} and ${dupKindLabel(b)} — every skill in it is listed twice; keep one`);
+      for (const n of shared) b.skills.delete(n);
+    }
+  }
+  return rows;
+}
+
+function duplicateSkillsCheck(push, home, projectDir) {
+  const sources = dupSkillSources(home, projectDir);
+  const warnings = dupCollapsePlugins(sources);
+  const byName = new Map();
+  for (const s of sources) {
+    for (const [name, real] of s.skills) {
+      if (!byName.has(name)) byName.set(name, []);
+      byName.get(name).push({ label: s.label, real });
+    }
+  }
+  for (const [name, where] of byName) {
+    const distinct = new Map();
+    for (const w of where) if (!distinct.has(w.real)) distinct.set(w.real, w.label);
+    if (distinct.size > 1) warnings.push(`skill ${name} loads from both ${[...distinct.values()].join(' and ')} — routing sees two copies; remove one`);
+  }
+  if (warnings.length === 0) {
+    push('duplicate-skills', 'PASS', 'no skill name loads from two sources');
+    return;
+  }
+  for (const w of warnings) push('duplicate-skills', 'WARN', w);
+}
+
+// referenced-paths (F22): a backticked path in CLAUDE.md, .claude/rules/*.md or
+// a PROGRESS.md "Ruling:" line that no longer exists misleads every session.
+// The path heuristics (globs, <placeholders>, C16 stems, fences) and the
+// Ruling-line regex (the one digest.js uses) live in skills-lint-frontmatter.py
+// --claude-md, so the lint and this check cannot disagree. WARN only; quiet
+// when python3 is missing or the project has none of those files.
+function referencedPathsCheck(push, projectDir) {
+  const have = ['CLAUDE.md', 'PROGRESS.md', path.join('.claude', 'rules')].some((f) => {
+    try {
+      fs.statSync(path.join(projectDir, f));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  if (!have) return;
+  const script = path.join(__dirname, '..', '..', 'scripts', 'skills-lint-frontmatter.py');
+  const r = spawnSync('python3', ['-I', script, '--claude-md', projectDir], { encoding: 'utf8' });
+  if (r.error || r.status === null || r.status > 1) return;
+  const warnings = [];
+  for (const line of (r.stdout || '').split('\n')) {
+    const m = /^MISSING (.+):(\d+) (\S+)$/.exec(line);
+    if (m) warnings.push(`${path.relative(projectDir, m[1])}:${m[2]} cites ${m[3]}, which does not exist`);
+  }
+  if (warnings.length === 0) {
+    push('referenced-paths', 'PASS', 'every path cited in CLAUDE.md, rules and PROGRESS.md rulings exists');
+    return;
+  }
+  for (const w of warnings) push('referenced-paths', 'WARN', w);
+}
+
+module.exports = { REPO_ROOT, worktreeHygieneCheck, personalPathsCheck, referenceDocsCheck, duplicateSkillsCheck, referencedPathsCheck };

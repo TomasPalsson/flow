@@ -326,7 +326,8 @@ def main():
             sys.stderr.write(m + "\n")
         sys.stderr.write(
             "Large files and functions are hard to review and test; split before"
-            " continuing. (escape: CC_NO_SIZE_GUARD=1 for this command,"
+            " continuing, along a cohesive responsibility or phase, never by"
+            " moving lines to meet the count. (escape: CC_NO_SIZE_GUARD=1 for this command,"
             ' "sizeGuard": false in .claude/flow.config.json, or raise'
             " maxFileLines/maxFuncLines there)\n"
         )

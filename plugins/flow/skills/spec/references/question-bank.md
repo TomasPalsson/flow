@@ -1,6 +1,6 @@
 ---
 name: question-bank
-description: The one batched discovery turn for /flow:spec — a numbered list of pre-answered assumptions covering the eight categories, plus the negative-scope probe, the quantification probe, and the "I don't know" fallback. Load this entire file before writing the discovery turn.
+description: The one batched discovery turn for /flow:spec — a numbered list of pre-answered assumptions covering the eight categories, plus the negative-scope probe, the quantification probe, the must-never-break probe, and the "I don't know" fallback. Load this entire file before writing the discovery turn.
 ---
 
 # Discovery — one turn, pre-answered
@@ -23,6 +23,8 @@ Before writing the turn, sort each position by what settles it. An **empirical f
 
 If the probe would take more than a few minutes, do not run it here: state the position as an assumption and route the question to a `/flow:prep` spike.
 
+**Observed or assumed.** A position about what the code does today cites `observed: path:line` in its `Why:`, or says `assumed`. The marker tells the user which positions they can trust without checking, and it keeps a guess about existing behaviour from reading as a finding.
+
 ## The categories, in order of impact-if-missed
 
 Cover each one that carries real risk for this idea; skip a category only when the description already settles it, and say which you skipped.
@@ -33,12 +35,16 @@ Cover each one that carries real risk for this idea; skip a category only when t
 | 2 | **Success** | the one measurable outcome that means this worked | hidden acceptance criteria |
 | 3 | **Negative scope** | the adjacent things this will NOT do | see below — never skip this one |
 | 4 | **NFR numbers** | a number for every adjective in play | "fast" and "secure" as testable thresholds |
-| 5 | **Failure paths** | what the user sees when the main action fails, and what state survives | the error journeys the happy path hides |
+| 5 | **Failure paths** | what the user sees when the main action fails, and what state survives. When the footprint calls a model, name refusal, empty output, malformed or schema-invalid JSON, and timeout as separate states, each with what the user sees | the error journeys the happy path hides |
 | 6 | **Integration** | what this reads from and writes to that it does not own | contracts with systems you cannot change |
-| 7 | **Constraints & maintenance** | stack, deadline, and *who maintains this after launch and what they know* | architecture the description never mentions |
-| 8 | **Acceptance** | how a reviewer other than the author proves it works, and the test seam: an existing one, the highest available, ideally one; each with what it catches and misses | untestable ACs, caught before they ship |
+| 7 | **Constraints & maintenance** | stack, deadline, and *who maintains this after launch and what they know*. When the deliverable is a new binary, package or plugin, also take a position on the install channel (cargo install or a GitHub release, the npm registry, marketplace.json plus a version bump) or defer it to Non-goals | architecture the description never mentions |
+| 8 | **Acceptance** | how a reviewer other than the author proves it works, and the test seam: an existing one, the highest available, ideally one; each with what it catches and misses, and at least one external check the agent cannot make pass with wrong code (type checker, axe/real browser run, osv-scanner); default: the type checker | untestable ACs, caught before they ship |
 
-## The two probes that are never optional
+## The three standing items that are never optional
+
+**Must never break (any route).** State it as a position, not a question: `Must never break: <the one case whose failure makes this feature worthless>`. On `dispatch` it becomes the P0 MUST requirement (FR-01 in spec §4.1), with its Behaviors row in `TASKS.md` citing that FR id; on `oneshot` it is the first P0 Behaviors row in `TASKS.md`, with no spec reference; on `bounded` it is the test named in the plan. It counts toward the budget above, so `bounded` keeps its 4 items.
+
+### The two probes
 
 **Negative scope (category 3) is mandatory on every route.** Ten seconds to state, and it prevents the scope arguments that eat weeks. State it as three bullets of what is out, not as a question. Its answer becomes §2.2 Non-goals verbatim, and §2.2 is binding: a later change to it is an `--amend`, not an interpretation.
 

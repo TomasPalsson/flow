@@ -12,7 +12,7 @@ const { countTestFiles, targetSha, envSha } = require('./tamper.js');
 const { appendLog } = require('./log.js');
 const { sha1, slugify, ensureLoopGitignore } = require('./util.js');
 const { cmdStop } = require('./status.js');
-const { initMetric, dirtyOutsideLoop } = require('./metric.js');
+const { initMetric, dirtyOutsideLoop, appendHoldout, fmtNum } = require('./metric.js');
 const { EVALS_ROOT } = require('../eval/contract.js');
 
 const DEFAULT_PROMPT = [
@@ -45,7 +45,7 @@ function parseInitArgs(argv) {
     maxIterations: null, maxMinutes: null, maxUsd: null, stallAfter: null, verifyTimeout: 600,
     permissionMode: 'auto', model: '', maxTurns: 0, allowGreen: false, force: false, testFiles: [],
     target: null, negControlFile: null, yolo: false,
-    metric: null, direction: null, runs: 3, minAttempts: 0, metricTarget: null,
+    metric: null, holdout: null, direction: null, runs: 3, minAttempts: 0, metricTarget: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -69,6 +69,7 @@ function parseInitArgs(argv) {
     else if (a === '--neg-control-file') out.negControlFile = argv[++i];
     else if (a === '--yolo') out.yolo = true;
     else if (a === '--metric') out.metric = argv[++i];
+    else if (a === '--holdout') out.holdout = argv[++i];
     else if (a === '--direction') out.direction = argv[++i];
     else if (a === '--runs') out.runs = argv[++i];
     else if (a === '--min-attempts') out.minAttempts = argv[++i];
@@ -106,12 +107,29 @@ function refuseIfActive(toplevel, args, stderrW) {
   return 0;
 }
 
+// holdoutPaths(toplevel, cmd) -> the files and directories named in a
+// --holdout command. They join protected_files so the agent cannot edit the
+// scorer or its cases to pass the veto. Cases the script reads without naming
+// them on its command line need --test-files.
+function holdoutPaths(toplevel, cmd) {
+  const found = [];
+  for (const raw of String(cmd || '').split(/\s+/)) {
+    const tok = raw.replace(/^['"]|['"]$/g, '').replace(/\/+$/, '');
+    if (!tok || tok.startsWith('-') || tok === '.' || tok === '..' || path.isAbsolute(tok)) continue;
+    try {
+      fs.statSync(path.join(toplevel, tok));
+      found.push(tok);
+    } catch { /* not a path */ }
+  }
+  return found;
+}
+
 // protectedFilesFront(toplevel, testFiles) -> the comma list tamper.js reads.
 // FR-008: the eval suite is tamper-protected in any repo that has it, with or
 // without --test-files, so an optimisation loop cannot rewrite the cases it is
 // being scored on (AC-011). Repos without plugins/flow/evals are unaffected.
-function protectedFilesFront(toplevel, testFiles) {
-  const paths = testFiles.filter(Boolean);
+function protectedFilesFront(toplevel, testFiles, holdout) {
+  const paths = testFiles.filter(Boolean).concat(holdoutPaths(toplevel, holdout));
   if (fs.existsSync(path.join(toplevel, EVALS_ROOT))) paths.push(EVALS_ROOT);
   return [...new Set(paths)].join(',');
 }
@@ -254,7 +272,7 @@ function buildInitFront(toplevel, args, base, env) {
     // addition to test_files above so a caller can protect data dirs the
     // isTestPath heuristic never matches, without weakening the auto-detected
     // count check. FR-008 wires plugins/flow/evals in by default.
-    protected_files: protectedFilesFront(toplevel, args.testFiles),
+    protected_files: protectedFilesFront(toplevel, args.testFiles, args.holdout),
     target,
     target_script: targetScript,
     verify_script: verifyScript,
@@ -359,6 +377,11 @@ function cmdInit(argv, toplevel, env) {
   if (metricInit) Object.assign(front, metricInit.front, { metric_head: base });
   const body = initBody(args, base);
   writeContract(toplevel, front, body);
+  if (metricInit && metricInit.holdout) {
+    // a fresh holdout ledger per loop: an earlier loop's best must not veto this one
+    fs.rmSync(path.join(toplevel, '.claude', 'loop', 'holdout.tsv'), { force: true });
+    appendHoldout(toplevel, { sha: 'init', value: fmtNum(metricInit.holdout.median), noise: fmtNum(metricInit.holdout.spread), kept: 'yes' });
+  }
   ensureLoopGitignore(toplevel);
 
   const learningsPath = path.join(toplevel, '.claude', 'loop', 'LEARNINGS.md');

@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,4 +34,24 @@ test('native platform reads .swift sources and reports fold N/A', () => {
   const s = run('native');
   assert.equal(s.fold, 'N/A');
   assert.equal(s['concept-contract'], 'PASS');
+});
+
+const microcopy = dir => {
+  const r = spawnSync('node', [join(here, 'check.mjs'), join(here, 'fixtures/check', dir), '--json'], { encoding: 'utf8' });
+  return JSON.parse(r.stdout).checks.find(c => c.id === 'microcopy-tells');
+};
+test('microcopy tells: each of the four detectors fires and stays WARN, never FAIL', () => {
+  const c = microcopy('microcopy-tells');
+  assert.equal(c.status, 'WARN');
+  const tells = c.evidence.map(e => e.tell).join('|');
+  assert.match(tells, /dot-separated meta string/);
+  assert.match(tells, /WORD — fragment label/);
+  assert.match(tells, /trailing arrow/);
+  assert.match(tells, /01\/02\/03 markers/);
+});
+test('microcopy tells: footer dots, breadcrumb dots, <ol> and [data-sequence] numbering stay clean', () => {
+  assert.equal(microcopy('microcopy-clean').status, 'PASS');
+});
+test('no near-black colour detector exists (dark modes legitimately use tinted near-black)', () => {
+  assert.doesNotMatch(readFileSync(join(here, 'check.mjs'), 'utf8'), /#0b0b0b|#111\b/i);
 });

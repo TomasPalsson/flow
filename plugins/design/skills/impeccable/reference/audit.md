@@ -60,6 +60,25 @@ Run the bundled detector and verify each finding in context. Look for repeated i
 
 **Score 0-4**: 0=systemic drift, 1=major repeated failures, 2=several verified issues, 3=minor isolated issues, 4=coherent and intentional
 
+### Web interface checks
+
+A pinned slice of vercel-labs/web-interface-guidelines @ 434b7f91364665f2f733b310ec54809bf8f37937 (command.md). It is vendored on purpose: upstream's own skill fetches `main` live, and an audit should not run rules that change underneath it. Only rules that nothing else in `plugins/design` states are listed in full. Score each under the dimension named in brackets.
+
+- **[Responsive] Zoom blocked**: `user-scalable=no` or `maximum-scale=1` in the viewport meta. Users who need zoom lose it.
+- **[Theming] Browser chrome**: `<meta name="theme-color">` should match the page background in each theme.
+- **[Accessibility] Machine translation**: wrap brand names, code tokens, and identifiers in `translate="no"` so auto-translation does not garble them.
+- **[Accessibility] Spellcheck**: switch spellcheck off on email, code, and username inputs, where red underlines mislead.
+- **[Implementation Integrity] URL reflects UI state**: filters, tabs, pagination, and expanded panels belong in the URL so a refresh, a shared link, and the back button keep the view. Flag state held only in `useState` that a user would expect to share.
+- **[Implementation Integrity] Language detection**: pick the language from `Accept-Language` or `navigator.languages`, not from the IP address.
+
+Rules that already exist elsewhere are checked by pointer, not restated:
+
+- `touch-action: manipulation` on tappable controls (removes the double-tap delay): see `ui-ux-pro-max` rule `tap-delay`.
+- Dates, times, numbers, and currency go through `Intl.DateTimeFormat` and `Intl.NumberFormat`, not hard-coded formats (matters for Icelandic dates and decimal commas): see [harden.md](harden.md) internationalization.
+- Number columns use tabular figures: see `vary/references/build-craft.md` (tabular-nums).
+
+Credit: adapted from vercel-labs/web-interface-guidelines command.md @ 434b7f9 (MIT).
+
 ## Generate Report
 
 ### Audit Health Score

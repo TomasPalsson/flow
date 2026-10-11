@@ -558,3 +558,249 @@ t_v2_review_dir_is_gitignored() {
 	OUT=$(grep -c '^\.specs/\*/review/$' "$root/.gitignore" || true)
 	assert_eq "$OUT" "1" ".gitignore excludes .specs/*/review/"
 }
+
+# ---------------------------------------------------------------------------
+# famous-borrows F01 — flow tick runs the task's verify: and ticks only on exit 0.
+# ---------------------------------------------------------------------------
+
+# v2_verify_repo <verify-text> — a v2_wave_repo whose T002 carries <verify-text>
+# (written verbatim after "verify: "). Echoes "<repo> <b-sha> <head-sha>".
+v2_verify_repo() {
+	local set d
+	set=$(v2_wave_repo)
+	d=${set%% *}
+	awk -v v="$1" '{ if (index($0, "T002 still open")) print "- [ ] T002 still open — files: b.py — verify: " v; else print }' \
+		"$d/.specs/001-x/TASKS.md" >"$d/t.tmp" && mv "$d/t.tmp" "$d/.specs/001-x/TASKS.md"
+	printf '%s' "$set"
+}
+
+t_v2_tick_failing_verify_leaves_tasks_byte_identical() {
+	local home set proj before after
+	home=$(tmp_dir)
+	set=$(v2_verify_repo '`echo oops; false`')
+	proj=${set%% *}
+	before=$(cksum <"$proj/.specs/001-x/TASKS.md")
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a verify: that exits non-zero refuses the tick"
+	assert_contains "$ERR" "verify exited 1; T002 NOT ticked" "the message names the exit code and the task"
+	assert_contains "$ERR" "oops" "the tail of the log is printed"
+	assert_contains "$ERR" "verify/T002.log" "the message names the log path"
+	after=$(cksum <"$proj/.specs/001-x/TASKS.md")
+	assert_eq "$after" "$before" "TASKS.md is byte-identical after a refused tick"
+	assert_contains "$(grep '^- \[ \] T002' "$proj/.specs/001-x/TASKS.md")" "- [ ] T002" "T002 stays open"
+	assert_file_exists "$proj/.specs/001-x/verify/T002.log" "the log is written even on failure"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_passing_verify_ticks_and_writes_a_log() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_verify_repo '`true`')
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "a verify: that exits 0 ticks"
+	assert_contains "$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md")" "— done:" "T002 is ticked"
+	assert_file_exists "$proj/.specs/001-x/verify/T002.log" "the log exists even when the verify prints nothing"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_runs_a_backtick_wrapped_verify_unwrapped_from_the_repo_root() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_verify_repo '`pwd > ran.flag && test -f b.py`')
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "the backticks are stripped, so the command runs"
+	assert_file_exists "$proj/ran.flag" "the verify ran"
+	assert_eq "$(cat "$proj/ran.flag")" "$(cd "$proj" && pwd -P)" "from the repo root"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_sha_override_does_not_bypass_the_verify() {
+	local home set proj head
+	home=$(tmp_dir)
+	set=$(v2_verify_repo '`false`')
+	proj=${set%% *}
+	head=${set##* }
+	v2_cli_in "$proj" "$home" tick T002 --sha "$head"
+	assert_rc 1 "--sha still runs the verify and refuses on failure"
+	assert_contains "$ERR" "NOT ticked" "and says so"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_human_verify_on_a_task_is_not_runnable() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_verify_repo 'human: user says yes')
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a T### with a human: verify is refused"
+	assert_contains "$ERR" "no runnable verify:" "the message says why"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_by_user_external_task_never_runs_its_verify() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_repo)
+	proj=${set%% *}
+	awk '{ if (index($0, "T002 still open")) print "- [ ] T002 still open — files: b.py — verify: `touch ran.flag`"; else print }' \
+		"$proj/.specs/001-x/TASKS.md" >"$proj/t.tmp" && mv "$proj/t.tmp" "$proj/.specs/001-x/TASKS.md"
+	v2_cli_in "$proj" "$home" tick T002 --by user
+	assert_rc 0 "an external task ticked --by user exits 0"
+	assert_file_missing "$proj/ran.flag" "its verify: was never executed"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_failure_prints_only_the_last_twenty_log_lines() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_verify_repo '`i=1; while [ $i -le 30 ]; do echo row$i; i=$((i+1)); done; false`')
+	proj=${set%% *}
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a noisy failing verify is refused"
+	assert_contains "$ERR" "row30" "the last log line is shown"
+	assert_contains "$ERR" "row11" "the 20th line from the end is shown"
+	assert_not_contains "$ERR" "row10" "earlier lines are not"
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
+# famous-borrows F02 — a PASS file dated on/after PASS_EXECUTED_FROM carries the
+# Executed column and a "Not checked:" line, and no test row at 0.
+# ---------------------------------------------------------------------------
+
+# v2_pass_repo <date> <pass-body> — a v2_repo with PASS-abc1234.md committed on
+# <date>. Echoes the repo path.
+v2_pass_repo() {
+	local set d
+	set=$(v2_repo)
+	d=${set%% *}
+	printf '%s\n' "$2" >"$d/.specs/001-x/PASS-abc1234.md"
+	(
+		cd "$d" || exit 1
+		git add -A
+		GIT_COMMITTER_DATE="$1T12:00:00" GIT_AUTHOR_DATE="$1T12:00:00" git commit -qm "pass"
+	) >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+_V2_PASS_GOOD='| Gate | Command | Exit | Executed |
+|------|---------|------|----------|
+| test | pytest -q | 0 | 12 |
+| lint | ruff check | 0 | n/a |
+
+Not checked: none'
+
+t_v2_lint_new_pass_with_executed_column_is_clean() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_pass_repo 2026-10-20 "$_V2_PASS_GOOD")
+	v2_cli_in "$d" "$home" lint
+	assert_rc 0 "a complete new PASS file lints clean"
+	assert_not_contains "$OUT" "pass-" "no pass rule fires"
+	rm -rf "$home" "$d"
+}
+
+t_v2_lint_new_pass_without_executed_column_errors() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_pass_repo 2026-10-20 '| Gate | Command | Exit |
+|------|---------|------|
+| test | pytest -q | 0 |
+
+Not checked: none')
+	v2_cli_in "$d" "$home" lint
+	assert_rc 1 "a new PASS file with no Executed column is an ERROR"
+	assert_contains "$OUT" "pass-executed-missing" "rule name"
+	assert_contains "$OUT" "fix:" "carries a fix"
+	rm -rf "$home" "$d"
+}
+
+t_v2_lint_new_pass_with_zero_executed_test_row_errors() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_pass_repo 2026-10-20 '| Gate | Command | Exit | Executed |
+|------|---------|------|----------|
+| test | cargo test | 0 | 0 |
+| lint | ruff check | 0 | n/a |
+
+Not checked: none')
+	v2_cli_in "$d" "$home" lint
+	assert_rc 1 "a test row with Executed 0 is an ERROR"
+	assert_contains "$OUT" "pass-executed-zero" "rule name"
+	rm -rf "$home" "$d"
+}
+
+t_v2_lint_new_pass_without_not_checked_line_errors() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_pass_repo 2026-10-20 '| Gate | Command | Exit | Executed |
+|------|---------|------|----------|
+| test | pytest -q | 0 | 3 |')
+	v2_cli_in "$d" "$home" lint
+	assert_rc 1 "a new PASS file with no Not checked: line is an ERROR"
+	assert_contains "$OUT" "pass-not-checked-missing" "rule name"
+	rm -rf "$home" "$d"
+}
+
+t_v2_lint_old_dated_pass_without_executed_is_accepted() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_pass_repo 2026-10-01 '| Gate | Command | Exit |
+|------|---------|------|
+| test | pytest -q | 0 |')
+	v2_cli_in "$d" "$home" lint
+	assert_rc 0 "a PASS file dated before PASS_EXECUTED_FROM is spared"
+	assert_not_contains "$OUT" "pass-" "no pass rule fires"
+	rm -rf "$home" "$d"
+}
+
+# v2_two_pass <good-name> <good-date> <bad-name> <bad-date>: two committed PASS
+# files, one complete and one lacking the Executed column.
+v2_two_pass() {
+	local set d
+	set=$(v2_repo)
+	d=${set%% *}
+	printf '%s\n' "$_V2_PASS_GOOD" >"$d/.specs/001-x/$1"
+	printf '| Gate | Command | Exit |\n|---|---|---|\n| test | pytest -q | 0 |\n' >"$d/.specs/001-x/$3"
+	(
+		cd "$d" || exit 1
+		git add ".specs/001-x/$1"
+		GIT_COMMITTER_DATE="$2T12:00:00" GIT_AUTHOR_DATE="$2T12:00:00" git commit -qm "good"
+		git add ".specs/001-x/$3"
+		GIT_COMMITTER_DATE="$4T12:00:00" GIT_AUTHOR_DATE="$4T12:00:00" git commit -qm "bad"
+	) >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+t_v2_lint_checks_newest_dated_pass_not_alphabetically_last() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_two_pass PASS-fffffff.md 2026-10-19 PASS-1111bbb.md 2026-10-21)
+	v2_cli_in "$d" "$home" lint
+	assert_rc 1 "a newer bad PASS is checked even though an older one sorts later"
+	assert_contains "$OUT" "pass-executed-missing" "rule name"
+	rm -rf "$home" "$d"
+}
+
+t_v2_lint_ignores_superseded_bad_pass_with_larger_sha() {
+	local home d
+	home=$(tmp_dir)
+	d=$(v2_two_pass PASS-0000aaa.md 2026-10-21 PASS-fffffff.md 2026-10-19)
+	v2_cli_in "$d" "$home" lint
+	assert_not_contains "$OUT" "pass-executed-missing" "the superseded bad PASS is not flagged"
+	rm -rf "$home" "$d"
+}
+
+t_v2_next_skill_pins_pass_table_and_tick_runs_verify() {
+	local nx ex
+	nx=$(cat "$SCAN_DIR/../skills/next/SKILL.md")
+	ex=$(cat "$SCAN_DIR/../skills/next/execution-prompt.md")
+	assert_contains "$nx" '`| Gate | Command | Exit | Executed |`' "PASS table gains Executed"
+	assert_contains "$nx" "Not checked: <gate: reason>" "PASS carries a Not checked line"
+	assert_contains "$nx" "A test gate with Executed 0 is not green" "Executed 0 is not green"
+	assert_contains "$nx" "The tick runs the verify." "the tick runs the verify"
+	assert_contains "$nx" "verify/<ID>.log" "the tick log is named"
+	assert_contains "$ex" "fails the test; a test never skips because its data is absent" "missing fixture fails, never skips"
+}

@@ -212,7 +212,7 @@ Write ALL files in the manifest. Start with SKILL.md, then supporting files.
 2. **WHEN** should it trigger? (specific scenarios)
 3. **KEYWORDS** that should activate it
 
-Write plain "Use when..." scenarios in the third person, 1024 characters or fewer. Where a neighbouring skill covers a near-miss case, name it: "Not for X — use Y." Avoid "MUST be used whenever" wording and keyword dumps — they raise the false-trigger rate instead of fixing under-triggering.
+Write plain "Use when..." scenarios in the third person, 1024 characters or fewer. Cover the explicit asks and at least one implicit or proactive situation (a state of the repo or the conversation, not only a command), because users rarely name a skill they have not met. Where a neighbouring skill covers a near-miss case, name it: "Not for X — use Y." Avoid "MUST be used whenever" wording and keyword dumps — they raise the false-trigger rate instead of fixing under-triggering.
 
 **Body content** — maximize knowledge delta:
 - Lead with the domain's decisions and their consequences ("when X happens, do Y, because Z")
@@ -222,6 +222,10 @@ Write plain "Use when..." scenarios in the third person, 1024 characters or fewe
 - Eliminate anything Claude already knows
 - Explain the reason behind each non-obvious rule in calm language; keep all-caps emphasis for at most one rule that testing shows gets skipped
 - Every paragraph must earn its tokens
+
+**Library and API skills** — hallucinated APIs are the failure here, so add two sections the model cannot supply from memory: a **What <X> does NOT have** section (the features, flags and methods people assume exist, each with the real alternative), and a **stale-prior table** (old API -> current API, with the version that changed it). Fill both from Wave 1 research or a baseline failure, never from memory.
+
+**A rule catalog of 20 or more rules** — one rule per file in a rules subfolder of references, grouped by a prefix in the file name (`async-`, `bundle-`), plus a symptom list in the catalog index that maps "what you see" to the rule file, so the agent loads only the rule it needs.
 
 **Structure decisions** — the skill-judge rubric (which will evaluate your draft) cares deeply about progressive disclosure and freedom calibration. Before writing, ask yourself:
 - Does this domain need >300 lines? If so, what belongs in `references/` vs the body?
@@ -233,6 +237,9 @@ Write plain "Use when..." scenarios in the third person, 1024 characters or fewe
 - Scripts should be invocable from the SKILL.md body via Bash tool (document the exact invocation)
 - Error handling: scripts should fail loudly with clear messages, not silently return empty results
 - The SKILL.md body must reference each script with its purpose and invocation syntax
+- Tell the agent to run a bundled script with `--help` instead of reading its source: the usage text costs a few lines, the source costs the whole file, and the script then stays free to change
+- A script that reaches a step it cannot do prints the exact manual next step (the command or the place to look), so the agent is never left at a bare error
+- Bash scripts use `set -euo pipefail`, send status to stderr, and install a cleanup `trap` for temp files. Output format follows the `lesson` skill's Script rung (`--json` only when an agent parses the output, plain text otherwise); this skill does not restate that rule, so the two cannot drift
 
 **Writing references** — follow these principles:
 - Each reference file gets frontmatter with `name` and `description`
@@ -274,7 +281,7 @@ Follow the skill-judge evaluation protocol EXACTLY:
 1. First Pass — Knowledge Delta Scan (mark each section E/A/R)
 2. Structure Analysis
 3. Score all 8 dimensions with evidence
-4. Calculate total and grade
+4. Calculate total and grade: emit the eight dimension scores as one JSON object and compute the total with the command in "Computing the total" below, never by hand
 5. Generate the full evaluation report
 
 Write the complete evaluation report to:
@@ -287,10 +294,16 @@ Highlight the TOP 3 highest-impact improvements with specific, actionable guidan
 
 Parse the evaluation report. Extract:
 - Pre-checks (PASS/FAIL, details)
-- Total score (X/120): the capped total when pre-checks failed, otherwise the raw total
+- Per-dimension scores as a JSON object, and the total (X/120): the capped total when pre-checks failed, otherwise the raw total
 - Per-dimension scores
 - Top 3 improvements
 - Critical issues
+
+**Computing the total.** The 96 stop line is a gate, and a hand-summed total that is off by a few points ends the loop early or late. Run this yourself on the judge's dimension scores; a total written by hand, including the judge's, is never compared against 96. Pass 95 as the cap when a pre-check failed.
+
+```bash
+node -e 'const s=JSON.parse(process.argv[1]);const t=Object.values(s).reduce((a,b)=>a+b,0);console.log(String(Math.min(t,Number(process.argv[2]||Infinity))))' '<dimension scores as JSON>' [cap]
+```
 
 ---
 
@@ -301,7 +314,7 @@ Apply the judge's feedback to improve the Skill:
 1. **Read the evaluation report** from `.skill-forge/<skill-name>/evaluations/pending-evaluation.md`, then rename it to `iteration-<N>.md`. The iteration number is orchestrator bookkeeping — it never enters the judge's context. **Rename before dispatching the next judge.** Every pass writes that same filename, so an un-renamed report is silently overwritten and its iteration vanishes from the score trajectory and from the regression-diff recovery path below. If `pending-evaluation.md` already exists when you dispatch, a rename was missed — do it first.
 2. **Prioritize fixes**: Critical issues first, then top 3 improvements, then other dimension-specific feedback
 3. **Apply improvements** to the Skill — edit in place at `.skill-forge/<skill-name>/skill-draft/SKILL.md`
-4. **Document changes** — keep a brief changelog of what you changed and why
+4. **Document changes** — keep a brief changelog of what you changed and why. Every entry that answers a behavioural failure (a Step 5.1 regression or a baseline failure still present) ends with `miss: <class>`, one of the three classes in "Diagnose a behavioural miss" below
 
 ### Diagnosing Low Scores — Before You Touch the Skill
 
@@ -312,20 +325,36 @@ Before refining, diagnose the root cause. Different low dimensions demand differ
 | Pre-checks fail | Dead reference or invalid frontmatter | Fix before anything else; do not re-judge until clean |
 | D1 (Knowledge Delta) low, research was thin | Research didn't surface expert knowledge | Launch a targeted Wave 2/3 research agent on the specific gap, then update skill |
 | D1 (Knowledge Delta) low, research was thorough | Synthesis failed to extract knowledge from artifacts | Re-read the research artifacts — the knowledge is there, you just didn't distill it |
-| D3 (Anti-Patterns) low | Research agents didn't focus on failure modes | Launch a dedicated "what goes wrong" research agent targeting practitioner complaints. A NEVER entry added between iterations counts only if it traces to a research artifact or a baseline failure |
+| D3 (Anti-Patterns) low | Research agents didn't focus on failure modes | Launch a dedicated "what goes wrong" research agent targeting practitioner complaints. A NEVER entry added between iterations counts only if it traces to a research artifact and passes the micro-test below; "a baseline failure" alone no longer counts for a prohibition |
 | D8 (Usability) low | Missing decision trees, fallbacks, error handling | Add a fallback only for a named, realistic failure; cut unmotivated ones; add a done-check where the output can be checked mechanically |
 | Score **regresses** from prior iteration | Refinement over-corrected or broke something | Diff the two skill versions; restore what was working, apply new changes more surgically |
 
 "Never apply judge feedback mechanically" means: identify which row applies before touching the skill.
 
+### Diagnose a behavioural miss — before editing for it
+
+Judge scores diagnose the text; a with-skill run that fails (a Step 5.1 regression, or a Step 1d baseline failure that is still present) diagnoses the behaviour. Ask the failing subagent, in the same context, how the skill could have made the right option the only one. Classify its answer, then edit only that layer:
+
+| Miss class | The subagent says | Edit |
+|---|---|---|
+| `clear-but-ignored` | The rule was clear and I did something else | A form problem: pick the row of the form table in [`../skill-improver/references/writing-for-agents.md`](../skill-improver/references/writing-for-agents.md) (prohibition, recipe, slot, conditional) and rewrite to it |
+| `should-have-said-X` | The skill never told me X | Missing content: add X, traced to a research artifact |
+| `didn't-see-section-Y` | Section Y had the answer; I never read it | Placement or disclosure: move Y earlier, or fix the load trigger that should have pointed at it |
+
+Record the class as `miss: <class>` in the Step 4.4 changelog entry.
+
+### Micro-test a new prohibition
+
+A new NEVER line or other prohibition (the D3 row above) needs a micro-test result, because a prohibition for a failure that does not occur is a no-op, and one that does occur may backfire. This extends Step 1d (which runs 2-3 prompts once with no skill); it does not replace it. Run the control arm first: give fresh-context subagents (`sonnet`) a tempting, realistic task with no rule and count how many fail; no rule lands if the control does not fail. Then run the same task with the variant placed as system or skill text. Use 5 or more reps per arm, read every grep match by hand, and report pass counts per arm (`control 4/5 failed, with rule 1/5`). Write the counts next to the entry in `baseline/failures.md`.
+
 ### Convergence Check
 
-After refining, loop back to Step 3 (Judge). Continue the loop until ONE of these conditions is met:
+After refining, loop back to Step 3 (Judge). Continue the loop until ONE of these conditions is met. Every score below is the total from the command in "Computing the total", never a hand-written one:
 
 | Condition | Meaning |
 |-----------|---------|
-| Score ≥ 96/120 (80%+) | Good enough to stop (counts only when pre-checks passed) — further gains are marginal |
-| Score delta < 3 points between iterations | Diminishing returns (counts only when pre-checks passed) — further iteration won't help much |
+| Computed score ≥ 96/120 (80%+) | Good enough to stop (counts only when pre-checks passed) — further gains are marginal |
+| Computed score delta < 3 points between iterations | Diminishing returns (counts only when pre-checks passed) — further iteration won't help much |
 | 5 iterations completed | Hard cap to prevent infinite loops |
 
 **Track iteration history:**
@@ -348,13 +377,13 @@ When converged, write `convergence.md` summarizing:
 
 Once the refinement loop converges:
 
-1. **Behavioural check** — before copying anything, rerun the baseline prompts (`baseline/prompt-N.md`) with the skill installed, in fresh subagents, and compare the outputs to `baseline/failures.md`. A clear regression seen in a transcript — the with-skill run does something worse than the baseline — is a Critical Issue: stop here and send the skill back to Step 4. A numeric delta on 2–3 prompts is not a gate; the transcript comparison is what decides it. Write "Behavioral evidence: `<prompts + outcome>` | NONE" into `convergence.md`. If the skill-creator skill is installed, its paired with/without subagent runs cover this same check.
+1. **Behavioural check** — before copying anything, rerun the baseline prompts (`baseline/prompt-N.md`) with the skill installed, in fresh subagents, and compare the outputs to `baseline/failures.md`. A clear regression seen in a transcript — the with-skill run does something worse than the baseline — is a Critical Issue: stop here and send the skill back to Step 4, where "Diagnose a behavioural miss" classifies it first. A numeric delta on 2–3 prompts is not a gate; the transcript comparison is what decides it. Write "Behavioral evidence: `<prompts + outcome>` | NONE" into `convergence.md`. If the skill-creator skill is installed, its paired with/without subagent runs cover this same check.
 2. **Copy the entire skill package** from `.skill-forge/<skill-name>/skill-draft/` to the actual skill location (ask the user where they want it). This includes SKILL.md, `references/`, `scripts/`, `data/`, execution prompts, planning templates — everything in the manifest.
 3. **Make scripts executable** — run `chmod +x` on any files in `scripts/`
 4. **Verify internal references** — confirm all `references/*.md` files referenced in SKILL.md body actually exist, all scripts referenced by invocation syntax exist, and frontmatter on reference files is correct
 5. **Present the convergence report** — show the score trajectory and final grade
 6. **Tell the user** the workspace path (`.skill-forge/<skill-name>/`) so they can browse all research artifacts and evaluation reports
-7. **Offer to run description optimization** — if the skill-creator skill's `run_loop.py` is available, offer to optimize the description for better triggering
+7. **Offer a trigger-rate measurement** — offer `skill-improver/scripts/trigger-eval` (and `optimise-description` for a held-out wording search) on the delivered skill. Both run only when the user says yes, because every query is a model call. Record the result in `.skill-forge/<skill-name>/trigger.json`; skill-judge D4 reads it.
 
 ---
 

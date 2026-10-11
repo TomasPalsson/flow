@@ -50,6 +50,14 @@
 - [The adjacent thing people will assume is included and is not]
 - [The scale/tier/platform this does not serve in v1]
 
+### 2.3 Ask first
+
+> Changes an unattended run never makes alone. A task that needs one stops and reports BLOCKED naming it; `task-brief` copies these bullets into every brief. Edit the list to fit the project.
+
+- new runtime dependency
+- CI/workflow config
+- schema migration
+
 ## 3. Journeys
 
 > Three paths per journey — happy, error, edge. Given / When / Then, observable outcomes only.
@@ -62,11 +70,19 @@
 | Error | [precondition] | [action that fails] | [what the user sees and what state survives] |
 | Edge | [boundary precondition] | [action] | [observable outcome] |
 
+### Screen states
+
+<!-- Only when a journey has a screen; Loading only when that screen fetches; delete the section otherwise. Each filled cell says what the user sees and becomes an acceptance row that /flow:next drafts into ## Behaviors. -->
+
+| Screen | Loading | Empty | Error | Success | Partial |
+|--------|---------|-------|-------|---------|---------|
+| [Name] | [what the user sees] | [what the user sees] | [what the user sees] | [what the user sees] | [what the user sees] |
+
 ## 4. Requirements
 
 ### 4.1 Functional requirements
 
-> No technology names — those live in `design.md`. One requirement, one behavior; split every "and".
+> No technology names — those live in `design.md`. One requirement, one behavior; split every "and". Test each line: if it could change without changing what a caller observes, it belongs in design.md.
 
 | ID | Priority | Requirement | Acceptance |
 |----|----------|-------------|------------|
@@ -89,6 +105,7 @@
 - [ ] [Every MUST in §4.1 has a passing test]
 - [ ] [The error path of each journey is exercised]
 - [ ] [The NFR numbers in §5 are measured, not assumed]
+- [ ] External check: [tool] — [what it proves the suite cannot]  <!-- a check the agent cannot argue with: type checker, axe/real browser, osv-scanner -->
 - [ ] Test seam(s): [seam] — catches: [what it proves] / misses: [what it cannot see]  <!-- at most 2; the highest existing seam -->
 
 ## 7. Assumptions
@@ -101,7 +118,8 @@
 
 > Cap: 3. More than 3 unknowns is not a buildability contract, it is a wishlist with placeholders.
 
-1. [NEEDS CLARIFICATION: question — owner: user|<name/role>]
+1. [NEEDS CLARIFICATION: question — owner: user|<name/role> — blocks: tasks]  <!-- blocks: is optional; keep it only when the answer changes how the work is split into tasks. `flow lint` refuses a TASKS.md while one remains: answer it with /flow:spec --amend -->
+
 
 ## Appendix A — Glossary
 

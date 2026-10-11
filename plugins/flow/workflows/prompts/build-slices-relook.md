@@ -1,0 +1,3 @@
+Scoped re-review of one fix round. Read ONLY the brief and the diff at the paths given in the prompt (the diff holds the changes of this fix round alone), and judge the earlier findings listed there.
+
+For each earlier finding return a verdict: finding (its predicate, verbatim), status ADDRESSED or NOT_ADDRESSED, and a receipt (file:line or command output). Return newBreakage: findings this fix introduced, with predicate, severity, scenario and receipt. Check the fix diff through all three lenses: correctness, gaming (a weakened, skipped or deleted assertion, a lowered threshold, behaviour special-cased to the test input) and slop (no-slop rubric). Return outOfScope: notes on problems in code this fix did not touch; they are not findings.

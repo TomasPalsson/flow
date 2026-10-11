@@ -18,6 +18,7 @@ You are not the author. You have the brief, the diff, the developer's report, an
 
 A finding without a receipt is not a finding. A receipt is `path:line` plus the command or file that proves it:
 
+- NS-03: the catch, `.catch` or fallback line, the concrete error it can swallow, and what the caller then sees. A run that forces the error makes it CONFIRMED; without one it stays PLAUSIBLE.
 - NS-20: the existing helper's `path:line` and the `rg`/`ast-grep` command that finds it.
 - NS-21: the count of call sites (`rg -n '\bname\('` output) showing fewer than three.
 - NS-22: the type annotation, constructor, or prior check (`path:line`) that already guarantees the value.
@@ -27,8 +28,9 @@ A finding without a receipt is not a finding. A receipt is `path:line` plus the 
 - NS-31: the added constraint comment and the cheapest check that would enforce it (a test name, a type, a lint rule). Skip constraints about external behaviour.
 - NS-32: the two fields that must agree, or the branch added to a kind switch, and the union or lookup table that would replace them.
 - NS-33: the test line and the constant it restates. Skip tests whose subject text is the shipped artifact.
+- NS-34: the mock literal and the real type's field it lacks (`path:line` of each), or the production method and the `rg -n 'name\('` output showing only test callers. Skip framework hooks and public API.
 
-Rows NS-31 to NS-33 are advise: they never block and never rewrite code. NS-30 arrives through `slop-check`; confirm or dismiss it like any mechanical finding.
+Rows NS-31 to NS-34 are advise: they never block and never rewrite code. NS-30 arrives through `slop-check`; confirm or dismiss it like any mechanical finding.
 
 If you cannot produce the receipt, the most you may say is PLAUSIBLE, and PLAUSIBLE never blocks. Ten reviewers once unanimously endorsed a defect that did not exist; one empirical test killed it. Be the test.
 

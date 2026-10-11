@@ -1,6 +1,6 @@
 ---
 name: api-explorer
-description: Reverse-engineer APIs and websites using Chrome DevTools MCP to produce detailed, agent-consumable specifications. Use when pointed at a URL to understand how an API or website works — discovering REST endpoints, GraphQL schemas, WebSocket protocols, auth flows, data models, and pagination patterns. Triggers on: "explore this API", "figure out how this site works", "reverse engineer", "create an API spec", "map this API", "discover endpoints", "understand this website's API", "reverse engineer this GraphQL API", "figure out this WebSocket protocol", "what endpoints does this site use". Produces structured three-tier specs other agents can use to build integrations.
+description: 'Reverse-engineer APIs and websites using Chrome DevTools MCP to produce detailed, agent-consumable specifications. Use when pointed at a URL to understand how an API or website works — discovering REST endpoints, GraphQL schemas, WebSocket protocols, auth flows, data models, and pagination patterns. Triggers on: "explore this API", "figure out how this site works", "reverse engineer", "create an API spec", "map this API", "discover endpoints", "understand this website''s API", "reverse engineer this GraphQL API", "figure out this WebSocket protocol", "what endpoints does this site use". Produces structured three-tier specs other agents can use to build integrations.'
 ---
 
 # API Explorer

@@ -70,7 +70,16 @@ Hunt for opportunities to refactor with leading words. A triad spelled out at th
 
 You win twice: fewer tokens, and a sharper hook for the agent to hang its thinking on. Assume every document is carrying restatements that leading words retire. Go find them.
 
-**Negation** is the failure mode beside this lever: steering by prohibition drags the forbidden behaviour into context and makes it _more_ available, not less. _Don't think of an elephant_, and the elephant is all there is; the negation is a weak modifier the strongly-activated concept overruns, so the ban half-reads as an instruction to do the thing. Prompt the **positive**: state the target behaviour ("write one-line comments") so the banned one is never spoken. A prohibition earns its place only as a hard guardrail you cannot phrase positively; even then, pair it with the positive target so attention lands on what to do.
+**Negation** is the failure mode beside this lever: steering by prohibition drags the forbidden behaviour into context and makes it _more_ available, not less. _Don't think of an elephant_, and the elephant is all there is; the negation is a weak modifier the strongly-activated concept overruns. So the form of an instruction follows the failure it answers. Name the failure first, then pick the row:
+
+| Failure | Form | What it looks like |
+|---|---|---|
+| Skips a step under pressure (the agent knows the rule and talks itself out of it) | **Prohibition** plus a rationalization row | A hard rule, with the excuses the agent used listed as rows (excuse -> why it fails), so the excuse is recognised when it appears |
+| Wrong shape (the output has the wrong structure, tone or format) | **Positive recipe** | State the target behaviour ("write one-line comments") so the banned shape is never spoken |
+| Omits an element | **Template slot** | A named, empty slot in the output template; a missing slot is visible, a missing sentence is not |
+| Depends on the situation | **Conditional keyed on an observable predicate** | "When the diff touches `hooks/`, run the hook suite", never "when it seems risky" |
+
+Two rules keep the table honest. First, no nuance clauses: once a rule works, an added "unless ..." or "except when ..." makes it noisier, because the clause hands the agent a way to decide the rule does not apply; if the exception is real, give it its own row with its own predicate. Second, exemption clauses do not scope a rule: "does not apply to X" names X, and the agent applies the behaviour to X more often, not less. Scope with the predicate in the conditional row instead. Whichever row you pick, confirm a new prohibition with a control arm first: run the situation with no rule and see the failure happen. A prohibition for a failure that never occurs is a no-op.
 
 ## Pruning
 

@@ -51,3 +51,14 @@ t_deepen_p22_win_is_a_number() {
 	assert_contains "$skill" 'AC-3 call-site number' "Win ties to AC-3"
 	assert_contains "$skill" '"Easier to maintain", "cleaner" and "more readable" are not wins' "banned phrases"
 }
+
+t_deepen_f55_test_id_set_not_just_count() {
+	local ref
+	ref=$(cat "$DEEPEN_REF")
+	assert_contains "$ref" '`pytest --collect-only -q`' "heuristics name the pytest collector"
+	assert_contains "$ref" '`cargo test -- --list`' "heuristics name the cargo collector"
+	assert_contains "$ref" '`vitest list`' "heuristics name the vitest collector"
+	assert_contains "$ref" 'an unknown runner falls back to the count' "heuristics keep the count as the fallback"
+	assert_contains "$ref" 'stays with the gaming lens' "a swapped body stays with the gaming lens"
+	assert_not_contains "$ref" 'keeps test count monotonic' "the count-only guard is gone"
+}

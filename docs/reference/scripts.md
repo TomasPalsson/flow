@@ -326,3 +326,122 @@ git-guard runs it before `gh pr create` / `gh pr ready` in a repo that has
 
 Exit codes: 0 clean · 1 drift (one line per plugin) · 2 usage or unreadable input
 ```
+
+## lesson-mine
+
+```
+lesson-mine — compact candidate rows from raw Claude Code session transcripts.
+
+Usage: lesson-mine [--skills <dir>]... [--max-bytes N] <session.jsonl>...
+
+/lesson --retro reads these rows instead of a raw jsonl: one transcript line can be
+a megabyte, and in Claude Code transcripts tool results, injected system-reminders
+and hook output arrive under the user role, so a reader of the raw file mistakes
+them for the human correcting the agent. Read-only; stdlib only.
+
+One JSON object per line: {"session", "line", "kind", "text"} with text <= 300 chars.
+  correction     a user-role message of plain text (never a tool_result) that is the
+                 human's own words once system-reminder, command and hook-output spans
+                 are removed, that follows at least one assistant tool_use since the
+                 previous human turn, and that reads as a correction
+  revert         an assistant Bash call that undoes work (git revert/restore/reset --hard/...)
+  hook_block     a hook that blocked or denied an action
+  skill_invoked  one row per distinct skill the Skill tool was called with, at its first use
+--skills <dir> (repeatable; each <dir>/<skill>/SKILL.md) adds "may_have_fired": the
+installed skills whose description shares at least two distinctive words with a
+correction and that the session never invoked. A hint to check by reading the
+description, not a verdict.
+Output is capped at --max-bytes (default 16000); rows drop lowest-priority first
+(revert, hook_block, skill_invoked, correction) and a notice goes to stderr.
+```
+
+## receipt-check
+
+```
+receipt-check - mechanical check of review findings' receipts.
+
+Usage: receipt-check --diff <review-package diff> --root <repo root> < findings.json
+
+stdin is a JSON array of findings (or {"findings": [...]}), each with file, line
+and an optional quote. Prints one compact JSON array, one object per finding in
+input order: {"index", "disposition", "line", "reason"}.
+
+  verified      the quote is within 5 lines of the cited line at head, or on a
+                '-' line of that file's hunks in the diff
+  moved         the quote is elsewhere in the same file; "line" is corrected
+  unsupported   the quote exists only in another file of the diff
+  failed        the file is neither at head nor deleted in the diff, the path
+                leaves the root, or the quote appears nowhere
+  unverifiable  no quote given, or the finding is malformed
+
+Only "failed" is meant to dismiss a finding. Never throws on a bad finding.
+Exit 2 on a usage error (bad flags, unreadable diff, unparseable stdin).
+
+Credit: adapted from vercel-labs/agent-skills vercel-optimize/lib/verify-claim.mjs @ 063bee9 (MIT).
+```
+
+## redact
+
+No `--help` (a stdin filter; `--help` prints nothing). Its header comment:
+
+```
+redact - stdin -> stdout with secrets, URL credentials and signed-URL query
+params masked. Used by /flow:issue before a body is written to .specs,
+ISSUES.md or gh. flow-extras handoff.sh keeps an identical copy of the
+function below (flow-extras cannot depend on flow); test_redact.sh pins them.
+bash 3.2 / BSD portable.
+```
+
+## spec-merge
+
+```
+spec-merge: fold an archived feature's Behaviors rows into the living SPEC.md.
+
+Usage: spec-merge <TASKS.md> [--into <SPEC.md>] [--slug <name>] [--base <hash>]
+
+The living file (default: .specs/SPEC.md, found by walking up from TASKS.md;
+under stealth .specs is a symlink, so the file lands inside the store) is the
+current truth of what the product does: one row per behaviour, keyed by the
+stable Key column of the Behaviors table. Rows without a Key are ignored, and
+nothing is backfilled.
+
+Key cell grammar (comma or semicolon separated):
+  tags/add-persists                          add a row
+  tags/add-persists, Replaces: tags/add      replace that row; keeps "(Previously: ...)"
+  Retire: tags/old                           remove that row (listed under ## Retired)
+
+Exit 0: merged, or nothing to do (a second run changes nothing, byte for byte).
+Exit 1: key collision with no Replaces, replaces/retire target missing, a
+        duplicate key inside the feature, or a base hash that does not match.
+Exit 2: usage error.
+
+A header line `Spec-base: <hash>` (or --base) pins the living file the feature
+was written against (the 12-hex prefix printed by the last merge); a living file
+that has moved on makes the merge refuse instead of guessing.
+```
+
+## version-ledger-lint
+
+No `--help` (`--help` is read as a ledger path, exit 2). Its docstring:
+
+```
+version-ledger-lint [--list] [<ledger.md> ...]
+
+Checks version-claims ledgers: markdown tables with the columns
+Claim | File | Anchor | Verified | Re-verify. A ledger row fails when
+  - the cited file does not exist,
+  - the anchor (exact text, quoted in backticks) is not on any line of that
+    file (the same test as `grep -F`; line numbers are never used, so
+    unrelated edits above the anchor cannot break a row),
+  - the Verified cell is not YYYY-MM-DD,
+  - the Re-verify command is empty.
+File paths are relative to the ledger's own directory. A cell may hold a
+literal pipe as \|.
+
+With no ledger arguments it checks every versions.md that has a ledger table
+under the plugins tree this script lives in (plugins/*/skills/*/references/).
+--list prints those paths and exits 0. Prints nothing when clean.
+Exit 0 clean, 1 at least one failing row (one line each, naming the row),
+2 on an unreadable ledger (missing, or not UTF-8). A ledger with no parsable
+table or zero rows fails (1).
+```

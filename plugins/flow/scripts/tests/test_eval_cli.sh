@@ -844,3 +844,286 @@ t_eval_test_files_flag_protects_directory_contents() {
 	assert_contains "$OUT" "data/goldens/one.txt" "t_eval_test_files_flag_protects_directory_contents path"
 	assert_contains "$OUT" "verdict: suspect" "t_eval_test_files_flag_protects_directory_contents verdict"
 }
+
+# ---------- F36: grader discrimination classes and spread ----------
+
+# _ev_disc_report <path>: a report shaped like the CLI's --json (per-run graders
+# under arms.with / arms.without), trimmed to synthetic grades. Case one has six
+# graders covering every class; case two only widens the delta range.
+_ev_disc_report() {
+	python3 -I - "$1" <<'PY'
+import json, sys
+
+def run(grades, error=None):
+    return {"score": 1, "passed": True, "turns": 3, "costUsd": 0.1, "error": error,
+            "graders": [{"name": n, "passed": p, "weight": 1, "withOnly": w, "scored": True}
+                        for n, p, w in grades]}
+
+def arm(table, i):
+    return run([(n, bool(v[i]), n == "g-arm-only") for n, v in table.items()])
+
+# grader -> pass/fail per run, [with x3, without x3]
+table_with = {"g-both-pass": [1, 1, 1], "g-both-fail": [0, 0, 0], "g-with-only": [1, 1, 1],
+              "g-hurts": [0, 0, 0], "g-flaky": [1, 0, 1], "g-arm-only": [1, 1, 1]}
+table_without = {"g-both-pass": [1, 1, 1], "g-both-fail": [0, 0, 0], "g-with-only": [0, 0, 0],
+                 "g-hurts": [1, 1, 1], "g-flaky": [0, 0, 0], "g-arm-only": [0, 0, 0]}
+one = {"name": "quality-reuse-slugify", "aggregates": {"score": 0.5, "delta": 0.2},
+       "arms": {"with": [arm(table_with, i) for i in range(3)],
+                "without": [arm(table_without, i) for i in range(3)]}}
+two = {"name": "quality-second", "aggregates": {"score": 0.9, "delta": 0.6},
+       "arms": {"with": [run([("g-a", True, False)])], "without": [run([("g-a", False, False)])]}}
+json.dump({"schemaVersion": 1, "costUsd": 1.0, "partial": False, "cases": [one, two]}, open(sys.argv[1], "w"))
+PY
+}
+
+t_eval_summary_classifies_graders_and_prints_the_range() {
+	local proj home fakebin report
+	proj=$(ev_repo)
+	mkdir -p "$proj/plugins/flow/evals/quality-second"
+	printf 'tags: [quality]\nexecution:\n  allowed_tools: [Read, Write, Edit]\n' >"$proj/plugins/flow/evals/quality-second/case.yaml"
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	report=$(tmp_dir)/report.json
+	_ev_disc_report "$report"
+	CLAUDE_STUB_JSON="$report" CLAUDE_STUB_EXIT=0 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	assert_rc 0 "t_eval_summary_classifies_graders rc"
+	assert_contains "$OUT" "delta=0.40 [0.20..0.60] (2 cases)" "mean delta carries its min..max"
+	assert_contains "$OUT" "grader quality-reuse-slugify/g-both-pass: both-pass" "both-pass class"
+	assert_contains "$OUT" "grader quality-reuse-slugify/g-both-fail: both-fail" "both-fail class"
+	assert_contains "$OUT" "grader quality-reuse-slugify/g-hurts: hurts" "hurts class"
+	assert_contains "$OUT" "grader quality-reuse-slugify/g-flaky: flaky" "flaky class (3 runs, varies within an arm)"
+	assert_not_contains "$OUT" "g-with-only" "a discriminating grader draws no line"
+	assert_not_contains "$OUT" "g-arm-only" "arm: with-only graders are skipped"
+}
+
+t_eval_summary_without_grader_data_is_unchanged() {
+	local proj home fakebin
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-ok CLAUDE_STUB_EXIT=0 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	assert_rc 0 "t_eval_summary_without_grader_data_is_unchanged rc"
+	assert_contains "$OUT" "quality: score=1.00 delta=0.60 (1 cases)" "old summary line"
+	assert_not_contains "$OUT" "grader " "no grader lines"
+	assert_not_contains "$OUT" "[" "no range"
+}
+
+t_eval_flaky_needs_three_runs() {
+	run_cmd node -e '
+const d = require(process.argv[1]);
+const mk = (n, vals) => vals.slice(0, n).map((p) => ({ graders: [{ name: "g", passed: p, weight: 1 }] }));
+const kase = (w, wo) => [{ name: "c", arms: { with: mk(w.length, w), without: mk(wo.length, wo) }, aggregates: { delta: 0 } }];
+const cls = (c) => (d.classifyGraders(c)[0] || {}).cls;
+console.log("two-runs", cls(kase([true, false], [false, false])));
+console.log("three-runs", cls(kase([true, false, true], [false, false, false])));
+console.log("with-only", cls(kase([true, true, true], [false, false, false])));
+console.log("errored-excluded", d.classifyGraders([{ name: "c", arms: { with: [{ error: "exit 1: You have hit your session limit", graders: [{ name: "g", passed: false }] }, { graders: [{ name: "g", passed: true }] }], without: [{ graders: [{ name: "g", passed: false }] }] } }])[0].cls);
+' "$SCAN_DIR/../bin/lib/eval/discrimination.js"
+	assert_contains "$OUT" "two-runs both-fail" "two runs never make a grader flaky (majority rule)"
+	assert_contains "$OUT" "three-runs flaky" "three runs that vary within an arm are flaky"
+	assert_contains "$OUT" "with-only with-only" "with-only is the discriminating class"
+	assert_contains "$OUT" "errored-excluded with-only" "an errored run's grades are left out"
+}
+
+# ---------- F38: errored runs leave the means ----------
+
+t_eval_mean_delta_excludes_errored_arm() {
+	local proj home fakebin ledger
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-errored-runs CLAUDE_STUB_EXIT=1 \
+		ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality --tag routing
+	assert_rc 2 "t_eval_mean_delta_excludes_errored_arm rc"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"meanDelta":0.24' "the session-limit arm's 0.6 is left out; the max-turns case stays"
+	assert_contains "$(cat "$ledger")" '"quality":{"score":0,"delta":0,"cases":1}' "tag delta leaves the unmeasured case out too"
+}
+
+t_eval_partly_errored_arm_is_recomputed_from_measured_runs() {
+	local proj home fakebin ledger report
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	report=$(tmp_dir)/report.json
+	python3 -I - "$report" <<'PY'
+import json, sys
+def r(score, error=None):
+    return {"score": score, "passed": score == 1, "turns": 2, "costUsd": 0.1, "error": error, "graders": []}
+case = {"name": "quality-reuse-slugify", "aggregates": {"score": 0.67, "delta": 0.67},
+        "arms": {"with": [r(1), r(1), r(0, "exit 1: You have hit your session limit")],
+                 "without": [r(0), r(0), r(0)]}}
+json.dump({"schemaVersion": 1, "costUsd": 1.0, "partial": False, "cases": [case]}, open(sys.argv[1], "w"))
+PY
+	CLAUDE_STUB_JSON="$report" CLAUDE_STUB_EXIT=1 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" '"meanDelta":1' "delta = mean(with, measured) - mean(without) = 1, not the CLI's 0.67"
+}
+
+# ---------- F39: grader hash per case in ledger lines ----------
+
+t_eval_ledger_line_carries_grader_hashes() {
+	local proj home fakebin ledger want
+	proj=$(ev_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	CLAUDE_STUB_RESULT=aggregate-ok CLAUDE_STUB_EXIT=0 ev_cli_stub_in "$proj" "$home" "$fakebin" eval --tag quality
+	want=$(python3 -I -c '
+import hashlib, sys
+print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$proj/plugins/flow/evals/quality-reuse-slugify/case.yaml")
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	assert_contains "$(cat "$ledger")" "\"graders\":{\"quality-reuse-slugify\":\"$want\"}" "sha256 of case.yaml (no postcheck.sh here)"
+}
+
+t_eval_history_marks_changed_graders() {
+	local proj home ledger
+	proj=$(tmp_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/plugins/flow/evals"
+	ledger="$proj/plugins/flow/evals/ledger.jsonl"
+	{
+		printf '{"ts":"2020-01-01T00:00:00.000Z","sha":"aaaaaaa","meanDelta":0,"costUsd":0,"partial":false}\n'
+		printf '{"ts":"2020-01-02T00:00:00.000Z","sha":"bbbbbbb","meanDelta":0,"costUsd":0,"partial":false,"graders":{"case-a":"h1","case-b":"k1"}}\n'
+		printf '{"ts":"2020-01-03T00:00:00.000Z","sha":"ccccccc","meanDelta":0,"costUsd":0,"partial":false,"graders":{"case-a":"h2","case-b":"k1","case-new":"n1"}}\n'
+		printf '{"ts":"2020-01-04T00:00:00.000Z","sha":"ddddddd","meanDelta":0,"costUsd":0,"partial":false,"graders":{"case-a":"h2","case-b":"k1","case-new":"n1"}}\n'
+	} >"$ledger"
+	ev_cli_in "$proj" "$home" eval --history
+	assert_rc 0 "t_eval_history_marks_changed_graders rc"
+	assert_contains "$OUT" "graders changed: case-a" "the row whose case-a hash differs is marked"
+	assert_not_contains "$OUT" "case-b" "an unchanged hash is not marked"
+	assert_not_contains "$OUT" "case-new" "a case new to the ledger is not a change"
+	assert_eq "$(printf '%s\n' "$OUT" | grep -c 'graders changed')" "1" "one marker only: old rows and identical rows draw none"
+}
+
+# ---------------------------------------------------------------------------
+# F46 — flow eval --changed: the cases affected by changed skills, the skills
+# that link a changed shared ref, and changed case dirs. Paths with no skill
+# mapping are reported as unmapped, never dropped silently.
+# ---------------------------------------------------------------------------
+
+# ev_changed_repo — a tmp_repo with three skills (fix, ship, other), a shared ref linked by
+# fix and ship, one routing case per skill, tagged `base0` on the commit before any change.
+ev_changed_repo() {
+	local d s
+	d=$(tmp_repo)
+	mkdir -p "$d/plugins/flow/skills/shared" "$d/plugins/flow/bin/lib" "$d/plugins/flow/scripts/tests"
+	for s in fix ship other; do
+		mkdir -p "$d/plugins/flow/skills/$s" "$d/plugins/flow/evals/routing-$s"
+		printf 'tags: [routing]\nexecution:\n  prompt: "/flow:%s do the thing"\n  allowed_tools: [Read, Skill]\n' "$s" \
+			>"$d/plugins/flow/evals/routing-$s/case.yaml"
+	done
+	printf -- '---\nname: fix\n---\nSee [pr body](../shared/pr-body.md).\n' >"$d/plugins/flow/skills/fix/SKILL.md"
+	printf -- '---\nname: ship\n---\nUses shared/pr-body.md for the body.\n' >"$d/plugins/flow/skills/ship/SKILL.md"
+	printf -- '---\nname: other\n---\nNo links.\n' >"$d/plugins/flow/skills/other/SKILL.md"
+	printf '# pr body\n' >"$d/plugins/flow/skills/shared/pr-body.md"
+	printf 'x\n' >"$d/plugins/flow/bin/lib/router.js"
+	printf 'x\n' >"$d/plugins/flow/scripts/tests/test_x.sh"
+	(
+		cd "$d" || exit 1
+		git add -A && git commit -q -m fixture && git tag base0
+	) >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+t_eval_changed_shared_ref_selects_every_linking_skill() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf '# pr body, edited\n' >"$proj/plugins/flow/skills/shared/pr-body.md"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_rc 0 "dry-run exits 0"
+	assert_contains "$OUT" "fix -> routing-fix" "the skill that links the ref by relative path"
+	assert_contains "$OUT" "ship -> routing-ship" "the skill that names shared/pr-body.md in prose"
+	assert_not_contains "$OUT" "other ->" "a skill that does not link it is not listed"
+	assert_not_contains "$OUT" "unmapped" "nothing unmapped"
+}
+
+t_eval_changed_skill_edit_selects_its_cases() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf 'edited\n' >>"$proj/plugins/flow/skills/other/SKILL.md"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_rc 0 "dry-run exits 0"
+	assert_contains "$OUT" "other -> routing-other" "an edited skill selects its case"
+	assert_not_contains "$OUT" "routing-fix" "an untouched skill's case is not selected"
+}
+
+t_eval_changed_uncommitted_and_untracked_count() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	mkdir -p "$proj/plugins/flow/skills/ship/references"
+	printf 'new\n' >"$proj/plugins/flow/skills/ship/references/new.md"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_contains "$OUT" "ship -> routing-ship" "an untracked file under a skill selects it"
+}
+
+t_eval_changed_bin_only_is_unmapped_not_silent() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf 'y\n' >"$proj/plugins/flow/bin/lib/router.js"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_rc 0 "dry-run exits 0"
+	assert_contains "$OUT" "unmapped: plugins/flow/bin/lib/router.js" "names the path"
+	assert_contains "$OUT" "run --tag pipeline --tag xhard" "says what to run instead"
+	assert_not_contains "$OUT" "-> routing-" "selects no case"
+}
+
+t_eval_changed_test_file_edit_is_not_unmapped() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf 'y\n' >"$proj/plugins/flow/scripts/tests/test_x.sh"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_not_contains "$OUT" "unmapped" "a test-file edit changes no behaviour an eval runs"
+}
+
+t_eval_changed_case_edit_selects_that_case() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf '# tweak\n' >>"$proj/plugins/flow/evals/routing-fix/case.yaml"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run
+	assert_contains "$OUT" "case routing-fix -> routing-fix" "an edited case.yaml selects the case"
+	assert_not_contains "$OUT" "routing-ship" "other cases stay out"
+}
+
+t_eval_changed_nothing_changed_runs_nothing() {
+	local proj home fakebin
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	fakebin=$(ev_fakebin)
+	ev_cli_stub_in "$proj" "$home" "$fakebin" eval --changed --base base0
+	assert_rc 0 "nothing affected exits 0"
+	assert_contains "$OUT" "no cases affected" "says so"
+	assert_not_contains "$OUT" "flow eval summary" "does not fall back to the whole suite"
+	assert_eq "$(ls "$proj/plugins/flow/evals/ledger.jsonl" 2>/dev/null | wc -l | tr -d ' ')" "0" "no ledger line"
+}
+
+t_eval_changed_case_flag_narrows_within_changed_set() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	printf 'edited\n' >>"$proj/plugins/flow/skills/other/SKILL.md"
+	ev_cli_in "$proj" "$home" eval --changed --base base0 --dry-run --case routing-fix
+	assert_contains "$OUT" "no cases affected" "--case narrows within the changed set"
+}
+
+t_eval_changed_bad_base_refuses() {
+	local proj home
+	proj=$(ev_changed_repo)
+	home=$(tmp_dir)
+	ev_cli_in "$proj" "$home" eval --changed --base no-such-ref --dry-run
+	assert_rc 1 "an unknown base refuses"
+	assert_contains "$ERR" "no-such-ref" "names the ref"
+}
+
+t_eval_changed_help_lists_flags() {
+	local home
+	home=$(tmp_dir)
+	ev_cli_in "$home" "$home" eval --help
+	assert_contains "$OUT" "--changed" "help lists --changed"
+	assert_contains "$OUT" "--base" "help lists --base"
+}

@@ -19,14 +19,39 @@ Validates a TASKS.md against the flow v2 task grammar:
            · Test: <cmd>          (optional Approved:/Verified: lines)
   sections ## Behaviors, ## Phase N — <title>, ## Gates
   task     - [ |x|~] <ID> [P]? <desc> — files: <p,p> — verify: <`cmd`|human: <obs>>
-                     [— after: <IDs>] [— dropped: <reason>] [— done: <sha>]
+                     [— after: <IDs>] [— follow: <path>] [— no_claim: <text>]
+                     [— dropped: <reason>] [— done: <sha>]
+           no_claim: what a green verify does not prove (a mocked model or
+           cloud call, an in-memory database); only for a verify that mocks
+           an external seam. Lint reads it as a known key and ignores the text.
   IDs      T### tasks · CHK### human checkpoints · G### gates
 
 ERRORS   [P] tasks whose files: intersect inside one wave; missing verify:;
          an [x] whose done: sha is not in Base..HEAD or whose commit touched
          none of its files:; an ID present at HEAD: and absent now; [~] with
-         no dropped:; unknown or cyclic after:; a malformed task line.
-WARNINGS a phase with no Goal: or no Independent test:; [x] with no done:.
+         no dropped:; unknown or cyclic after:; a malformed task line; a
+         follow: path that does not exist; a ## Review focus line naming an
+         unknown id, or more than 5 such lines; when Spec: numbers FR-NN rows
+         (and Approved: is absent or dated on/after BEHAVIORS_FROM): an FR with
+         no Behaviors row, a row citing an id the spec lacks, a row whose Task
+         cell names no task; design-marker (Design: names a file that does not
+         exist, or is none/absent while design.md sits beside TASKS.md) and
+         parity-marker (the Spec: file says **Behaviour-preserving**: yes but
+         the header lacks Parity: or no task T000 exists), both only for a
+         feature that is unapproved or approved on/after MARKERS_FROM;
+         baseline-missing (Test: is set and no task T000 records the suite at
+         Base), spec-criterion-changed (an FR-NN row of the Spec: file was
+         removed or reworded since Base, with no later ## Amendment and no
+         Ruling: naming it), open-question-blocks-tasks (the Spec: file still
+         holds a [NEEDS CLARIFICATION: ... blocks: tasks] marker); these three
+         apply when Approved: (else the Base commit) is dated on/after
+         NEW_RULES_FROM.
+WARNINGS a phase with no Goal: or no Independent test:; [x] with no done:;
+         a files: path the task's done: commit did not change (files-untouched);
+         a Parity: header with no task verify: naming verify/parity-redcheck.txt;
+         task-joined (a T### description that joins two actions with "and");
+         task-generic (a T### description that opens with explore, investigate,
+         research, look into or spike: discovery is done while drafting).
 INFO     Route: oneshot with more than 5 tasks.
 
 Every ERROR carries a fix: string. --json prints the machine form
@@ -321,7 +346,18 @@ H_ROUTE=""
 H_TEST=""
 H_APPROVED=""
 H_VERIFIED=""
+H_PARITY=""
 H_TITLE=""
+
+# Behaviors coverage by spec id (ERROR) applies to features approved on or
+# after this date, or not yet approved, so in-flight features keep linting as
+# before (the way lint.js gates claim-check).
+BEHAVIORS_FROM="2026-10-11"
+MARKERS_FROM="2026-10-12"
+# baseline-missing, spec-criterion-changed and open-question-blocks-tasks apply
+# to a feature whose Approved: date (else its Base commit date) is on or after
+# this, so plans already in flight keep linting clean.
+NEW_RULES_FROM="2026-10-13"
 
 T_ID=()
 T_STATE=()
@@ -332,6 +368,8 @@ T_AFTER=()
 T_DONE=()
 T_BYUSER=()
 T_DROPPED=()
+T_FOLLOW=()
+T_NOCLAIM=()
 T_PHASE=()
 T_LINE=()
 T_DESC=()
@@ -345,6 +383,10 @@ PHASE_GOAL=0
 PHASE_ITEST=0
 SEEN_BEHAVIORS=0
 SEEN_GATES=0
+BEH_ROWS=()
+BEH_LINES=()
+FOCUS_LINES=()
+FOCUS_LNS=()
 IN_FENCE=0
 FENCE_CH=""
 LN=0
@@ -358,6 +400,7 @@ flush_phase() {
 
 read_header_fields() { # one physical line, fields may be joined by ·
   local rest=$1 seg
+  case "$rest" in '<!--'*) return 0 ;; esac # a comment documents fields, it sets none
   while [ -n "$rest" ]; do
     case "$rest" in
     *·*)
@@ -379,6 +422,7 @@ read_header_fields() { # one physical line, fields may be joined by ·
     Test:*) trim_var "${seg#Test:}"; H_TEST=$R_TRIM ;;
     Approved:*) trim_var "${seg#Approved:}"; H_APPROVED=$R_TRIM ;;
     Verified:*) trim_var "${seg#Verified:}"; H_VERIFIED=$R_TRIM ;;
+    Parity:*) trim_var "${seg#Parity:}"; H_PARITY=$R_TRIM ;;
     esac
   done
 }
@@ -418,6 +462,12 @@ while IFS= read -r raw || [ -n "$raw" ]; do
     SEEN_BEHAVIORS=1
     continue
     ;;
+  '## Review focus'*)
+    flush_phase
+    PHASE=""
+    SECTION=focus
+    continue
+    ;;
   '## Gates'*)
     flush_phase
     PHASE=""
@@ -447,6 +497,26 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   'Goal:'*) [ -n "$PHASE" ] && PHASE_GOAL=1 ;;
   'Independent test:'*) [ -n "$PHASE" ] && PHASE_ITEST=1 ;;
   esac
+
+  # ## Review focus lines and ## Behaviors table rows are kept for the checks below
+  if [ "$SECTION" = focus ]; then
+    case "$stripped" in
+    '' | '<!--'* | '>'*) ;;
+    *)
+      FOCUS_LINES[${#FOCUS_LINES[@]}]=$stripped
+      FOCUS_LNS[${#FOCUS_LNS[@]}]=$LN
+      ;;
+    esac
+    continue
+  fi
+  if [ "$SECTION" = behaviors ]; then
+    case "$stripped" in
+    '|'*)
+      BEH_ROWS[${#BEH_ROWS[@]}]=$stripped
+      BEH_LINES[${#BEH_LINES[@]}]=$LN
+      ;;
+    esac
+  fi
 
   # header fields live above the first section
   if [ -z "$SECTION" ]; then
@@ -506,6 +576,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   f_done=""
   f_byuser=0
   f_dropped=""
+  f_follow=""
+  f_noclaim=""
   has_verify=0
   seg_rest="$rest"
   first=1
@@ -542,9 +614,11 @@ while IFS= read -r raw || [ -n "$raw" ]; do
         case "$R_TRIM" in *' by user') f_byuser=1 ;; esac
         ;;
       dropped:*) trim_var "${seg#dropped:}"; f_dropped=$R_TRIM ;;
+      follow:*) trim_var "${seg#follow:}"; f_follow=$R_TRIM ;;
+      no_claim:*) trim_var "${seg#no_claim:}"; f_noclaim=$R_TRIM ;;
       *)
         if seg_key "$seg"; then
-          add_err "$LN" "$id" "unknown-field" "$id has unknown field \"$R_KEY:\"" "known keys are files:, verify:, after:, done:, dropped: — fix \"$R_KEY:\" or move it into the description before the first em dash"
+          add_err "$LN" "$id" "unknown-field" "$id has unknown field \"$R_KEY:\"" "known keys are files:, verify:, after:, follow:, no_claim:, done:, dropped: — fix \"$R_KEY:\" or move it into the description before the first em dash"
         else
           desc="$desc — $seg"
         fi
@@ -570,6 +644,8 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   T_DONE[$N]=$f_done
   T_BYUSER[$N]=$f_byuser
   T_DROPPED[$N]=$f_dropped
+  T_FOLLOW[$N]=$f_follow
+  T_NOCLAIM[$N]=$f_noclaim
   T_PHASE[$N]=$PHASE
   T_LINE[$N]=$LN
   T_DESC[$N]=$desc
@@ -592,6 +668,25 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   fi
   if [ "$par" -eq 1 ] && [ -z "$f_files" ]; then
     add_err "$LN" "$id" "parallel-no-files" "$id is [P] but declares no files:" "add ' — files: <path,path>' so flow lint can prove the wave is disjoint"
+  fi
+  if [ "$kind" = task ]; then
+    # Two actions joined by "and" overflow one developer context. Needs an action
+    # verb after an object, so "Read and write cache" (one noun phrase) passes.
+    jn_low=$(printf '%s' "$desc" | tr '[:upper:]' '[:lower:]')
+    if [[ "$jn_low" =~ [^[:space:]]+[[:space:]]+.+[[:space:]]and[[:space:]]+(add|create|implement|build|export|import|remove|delete|migrate|wire|rename|replace)([^[:alnum:]_]|$) ]]; then
+      add_warn "$LN" "$id" "task-joined" "$id joins two actions with \"and\": $desc" "split into two tasks ordered with after:"
+    fi
+    # Discovery is done while drafting, so the task names the concrete change.
+    if [[ "$jn_low" =~ ^(explore|investigate|research|look[[:space:]]+into|spike)([^[:alnum:]_]|$) ]]; then
+      add_warn "$LN" "$id" "task-generic" "$id opens with a discovery verb: $desc" "do the discovery now and name the concrete change, or route it to /flow:prep"
+    fi
+  fi
+  if [ -n "$f_follow" ]; then
+    case "$f_follow" in
+    /*) fw_path=$f_follow ;;
+    *) fw_path="${TOPLEVEL:-.}/$f_follow" ;;
+    esac
+    [ -e "$fw_path" ] || add_err "$LN" "$id" "follow-missing" "$id follows $f_follow, which does not exist" "point follow: at an existing file (a repo-relative path), or drop it"
   fi
 done <"$FILE"
 flush_phase
@@ -749,6 +844,118 @@ while [ "$w" -le "$MAXW" ]; do
   w=$((w + 1))
 done
 
+# ---------- ## Review focus ----------
+# Up to 5 lines "<input class> — T###[, T###]"; every id must be a task here.
+FOCUS_MAX=5
+if [ "${#FOCUS_LINES[@]}" -gt "$FOCUS_MAX" ]; then
+  add_err "${FOCUS_LNS[$FOCUS_MAX]}" "" "review-focus-too-many" "## Review focus has ${#FOCUS_LINES[@]} lines (max $FOCUS_MAX)" "keep the $FOCUS_MAX input classes that matter most; the rest are covered by the generic review lenses"
+fi
+fi_i=0
+while [ "$fi_i" -lt "${#FOCUS_LINES[@]}" ]; do
+  fl=${FOCUS_LINES[$fi_i]}
+  fl=${fl#- }
+  case "$fl" in
+  *"$EMD"*)
+    for fid in ${fl##*"$EMD"}; do
+      fid=${fid//,/}
+      [ -z "$fid" ] && continue
+      idx_of "$fid" || add_err "${FOCUS_LNS[$fi_i]}" "$fid" "review-focus-unknown-id" "## Review focus names $fid, which is not a task in this file" "fix the id, or add the task"
+    done
+    ;;
+  esac
+  fi_i=$((fi_i + 1))
+done
+
+# ---------- Behaviors coverage by spec id ----------
+# Applies when Spec: names a file beside TASKS.md that numbers FR-NN rows, and
+# the feature is unapproved or approved on/after BEHAVIORS_FROM.
+spec_path=""
+if [ -n "$H_SPEC" ]; then
+  sp_name=${H_SPEC%% *}
+  spec_path="$(dirname "$FILE")/$sp_name"
+fi
+beh_apply=1
+case "$H_APPROVED" in
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*)
+  [[ "${H_APPROVED:0:10}" < "$BEHAVIORS_FROM" ]] && beh_apply=0
+  ;;
+esac
+if [ "$beh_apply" -eq 1 ] && [ -n "$spec_path" ] && [ -f "$spec_path" ]; then
+  SPEC_FRS=" "
+  sp_fence=0
+  while IFS= read -r sl || [ -n "$sl" ]; do
+    sl=${sl%$'\r'}
+    lstrip_var "$sl"
+    case "$R_TRIM" in
+    '```'* | '~~~'*) sp_fence=$((1 - sp_fence)); continue ;;
+    esac
+    [ "$sp_fence" -eq 1 ] && continue
+    case "$R_TRIM" in
+    '|'*)
+      IFS='|' read -r -a sp_cells <<<"$R_TRIM"
+      trim_var "${sp_cells[1]:-}"
+      case "$R_TRIM" in
+      FR-[0-9]*) SPEC_FRS="$SPEC_FRS${R_TRIM%% *} " ;;
+      esac
+      ;;
+    esac
+  done <"$spec_path"
+  # a table that cites no FR-NN at all is a legacy (B1, B2) table, not coverage
+  beh_cites_fr=0
+  for br_row in "${BEH_ROWS[@]}"; do
+    IFS='|' read -r -a br_c <<<"$br_row"
+    trim_var "${br_c[1]:-}"
+    case "$R_TRIM" in *FR-[0-9]*) beh_cites_fr=1 ;; esac
+  done
+  if [ "$SPEC_FRS" != " " ] && [ "$beh_cites_fr" -eq 1 ]; then
+    CITED=" "
+    br_i=0
+    while [ "$br_i" -lt "${#BEH_ROWS[@]}" ]; do
+      IFS='|' read -r -a br_cells <<<"${BEH_ROWS[$br_i]}"
+      trim_var "${br_cells[1]:-}"
+      br_id=$R_TRIM
+      # header row: the row just before the separator
+      if [ "$br_i" -eq 0 ] && [ "${#BEH_ROWS[@]}" -gt 1 ] && [ -z "${BEH_ROWS[1]//[-:| ]/}" ]; then br_i=$((br_i + 1)); continue; fi
+      case "$br_id" in
+      ID) br_i=$((br_i + 1)); continue ;;
+      esac
+      # separator row: nothing but '-', ':', '|' and spaces
+      br_sep=${BEH_ROWS[$br_i]//[-:| ]/}
+      if [ -z "$br_sep" ]; then br_i=$((br_i + 1)); continue; fi
+      br_ln=${BEH_LINES[$br_i]}
+      # id cell: drop "(P0)" and punctuation, each remaining word is a cited id
+      br_id=${br_id//(/ (}
+      br_cited=""
+      for br_w in ${br_id//,/ }; do
+        case "$br_w" in '('*) continue ;; esac
+        br_w=${br_w%:}
+        [ -z "$br_w" ] && continue
+        br_cited="$br_cited $br_w"
+        CITED="$CITED$br_w "
+        case "$SPEC_FRS" in
+        *" $br_w "*) ;;
+        *) add_err "$br_ln" "$br_w" "behaviors-unknown-id" "Behaviors row cites $br_w, which $sp_name does not number" "use the spec's own id (FR-NN) in the row, or add the requirement to the spec" ;;
+        esac
+      done
+      br_has_task=0
+      for br_t in ${br_cells[3]:-}; do
+        br_t=${br_t//,/}
+        case "$br_t" in
+        T[0-9][0-9][0-9] | CHK[0-9][0-9][0-9]) idx_of "$br_t" && br_has_task=1 ;;
+        esac
+      done
+      [ "$br_has_task" -eq 0 ] && add_err "$br_ln" "${br_cited# }" "behaviors-no-task" "Behaviors row${br_cited:+ for$br_cited} names no existing T### or CHK### in its Task cell" "put the task (or checkpoint) that proves this row in the Task cell"
+      br_i=$((br_i + 1))
+    done
+    for fr in $SPEC_FRS; do
+      case "$CITED" in
+      *" $fr "*) ;;
+      *) add_err 0 "$fr" "behaviors-missing-id" "$sp_name has $fr, but no ## Behaviors row cites it" "add a Behaviors row that opens with $fr, or remove the row from the spec" ;;
+      esac
+    done
+  fi
+fi
+
 # ---------- git joins ----------
 GIT_OK=0
 if [ -n "$TOPLEVEL" ] && git rev-parse --verify -q HEAD >/dev/null 2>&1; then GIT_OK=1; fi
@@ -807,6 +1014,15 @@ if [ "$GIT_OK" -eq 1 ] && [ -n "$H_BASE" ]; then
             esac
           elif [ "$hit" -eq 0 ]; then
             add_err "$ln" "$id" "done-touches-nothing" "$id claims $sha, but that commit touched none of ${T_FILES[$i]}" "uncheck $id and re-tick it against the commit that changed its files: (flow tick $id --sha <sha>), or fix files:"
+          elif [ "$ext" -eq 0 ]; then
+            for p in ${T_FILES[$i]//,/ }; do
+              trim_var "$p"
+              p=$R_TRIM
+              [ -z "$p" ] && continue
+              if [ -z "$(git -C "$TOPLEVEL" show --name-only --format= "$sha" -- "$p" 2>/dev/null)" ]; then
+                add_warn "$ln" "$id" "files-untouched" "$id lists $p in files:, but its done: commit $sha did not change it" "drop $p from files:, or land the missing change before ticking $id"
+              fi
+            done
           fi
         fi
       fi
@@ -871,6 +1087,154 @@ bounded | oneshot | dispatch) ;;
 esac
 [ -z "$H_BASE" ] && add_warn 0 "" "no-base" "no Base: sha in the header" "add 'Base: $(git rev-parse --short HEAD 2>/dev/null || echo '<sha>')' so done: shas can be checked"
 
+if [ -n "$H_PARITY" ]; then
+  par_ok=0
+  i=0
+  while [ "$i" -lt "$N" ]; do
+    case "${T_VERIFY[$i]}" in *verify/parity-redcheck.txt*) par_ok=1 ;; esac
+    i=$((i + 1))
+  done
+  [ "$par_ok" -eq 0 ] && add_warn 0 "" "parity-no-redcheck" "Parity: is declared but no task's verify: names verify/parity-redcheck.txt" "have T000 write verify/parity-redcheck.txt (alter one character of the raw output before the filter, re-diff, record the non-zero exit) and name it in its verify:"
+fi
+
+# Marker-vs-disk: the header says one thing, the files beside it say another.
+# Spared for a feature approved before MARKERS_FROM so in-flight ones do not flip.
+mk_apply=1
+case "$H_APPROVED" in
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*)
+  [[ "${H_APPROVED:0:10}" < "$MARKERS_FROM" ]] && mk_apply=0
+  ;;
+esac
+if [ "$mk_apply" -eq 1 ]; then
+  mk_dir=$(dirname "$FILE")
+  mk_design=${H_DESIGN%% *}
+  case "$mk_design" in
+  "" | none | None | NONE | -)
+    [ -f "$mk_dir/design.md" ] && add_err 0 "" "design-marker" "Design: is ${mk_design:-absent} but design.md sits beside TASKS.md" "set the header to 'Design: design.md' so the contract is read, or delete design.md if it is stale"
+    ;;
+  *)
+    case "$mk_design" in
+    /*) mk_dp=$mk_design ;;
+    *) mk_dp="$mk_dir/$mk_design" ;;
+    esac
+    if [ ! -e "$mk_dp" ] && { [ -z "$TOPLEVEL" ] || [ ! -e "$TOPLEVEL/$mk_design" ]; }; then
+      add_err 0 "" "design-marker" "Design: names $mk_design, which does not exist" "write that file, point Design: at the real design file, or write 'Design: none'"
+    fi
+    ;;
+  esac
+  if [ -n "$spec_path" ] && [ -f "$spec_path" ] && grep -Eiq '^[[:space:]]*([-*][[:space:]]+)?\*\*Behaviou?r-preserving\*\*:[[:space:]]*yes' "$spec_path"; then
+    if [ -z "$H_PARITY" ]; then
+      add_err 0 "" "parity-marker" "$sp_name says Behaviour-preserving: yes, but the header has no Parity:" "add '· Parity: <cmd>' (a command whose output is the behaviour) to the header, or change the spec if behaviour is allowed to change"
+    fi
+    mk_t000=0
+    mk_i=0
+    while [ "$mk_i" -lt "$N" ]; do
+      [ "${T_ID[$mk_i]}" = T000 ] && mk_t000=1
+      mk_i=$((mk_i + 1))
+    done
+    if [ "$mk_t000" -eq 0 ]; then
+      add_err 0 "" "parity-marker" "$sp_name says Behaviour-preserving: yes, but there is no task T000 to record the baseline" "add T000 first: it runs the Parity: command at Base into verify/baseline.txt before any other task commits"
+    fi
+  fi
+fi
+
+# ---------- rules for plans dated on/after NEW_RULES_FROM ----------
+# nr_date: the Approved: date; empty while the plan is unapproved, which exempts
+# it (a Base commit date would flip the verdict the moment the plan is approved,
+# and would date fixtures by a commit made at run time).
+nr_date=""
+case "$H_APPROVED" in
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*) nr_date=${H_APPROVED:0:10} ;;
+esac
+nr_apply=0
+if [ -n "$nr_date" ] && [[ ! "$nr_date" < "$NEW_RULES_FROM" ]]; then nr_apply=1; fi
+
+# fr_rows (stdin: spec.md text) -> "FR-NN<TAB>normalised row" per FR table row
+fr_rows() {
+  awk '
+    BEGIN { fence = 0 }
+    { line = $0; sub(/\r$/, "", line); t = line; sub(/^[ \t]+/, "", t) }
+    t ~ /^```/ || t ~ /^~~~/ { fence = !fence; next }
+    fence { next }
+    t ~ /^\|[ \t]*FR-[0-9]+/ {
+      id = t; sub(/^\|[ \t]*/, "", id); sub(/[^A-Za-z0-9-].*$/, "", id)
+      gsub(/[ \t]+/, " ", t); sub(/ \|$/, "|", t)
+      print id "\t" t
+    }'
+}
+
+# check_spec_criteria <gitdir> <rel> — compare the Spec: file's FR rows with
+# the baseline: the file at Base, else at the first commit that added it after
+# Base (a stealth store does not hold Base, so its first commit stands in).
+check_spec_criteria() {
+  local gitdir=$1 relp=$2 sc_commit="" sc_base_ok=0 sc_old sc_new sc_date sc_id sc_oldrow sc_newrow sc_notes
+  [ -n "$H_BASE" ] && git -C "$gitdir" rev-parse --verify -q "$H_BASE^{commit}" >/dev/null 2>&1 && sc_base_ok=1
+  if [ "$sc_base_ok" -eq 1 ] && git -C "$gitdir" cat-file -e "$H_BASE:$relp" 2>/dev/null; then
+    sc_commit=$H_BASE
+  else
+    sc_commit=$(git -C "$gitdir" log --diff-filter=A --format=%H --reverse -- "$relp" 2>/dev/null | sed -n 1p)
+    [ -n "$sc_commit" ] || return 0
+    if [ "$sc_base_ok" -eq 1 ] && ! git -C "$gitdir" merge-base --is-ancestor "$H_BASE" "$sc_commit" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  sc_oldtext=$(git -C "$gitdir" show "$sc_commit:$relp" 2>/dev/null || true)
+  sc_old=$(printf '%s\n' "$sc_oldtext" | fr_rows)
+  [ -n "$sc_old" ] || return 0
+  sc_new=$(fr_rows <"$spec_path")
+  sc_date=$(git -C "$gitdir" show -s --format=%cs "$sc_commit" 2>/dev/null || true)
+  sc_notes="$(dirname "$FILE")/NOTES.md"
+  while IFS=$'\t' read -r sc_id sc_oldrow; do
+    [ -n "$sc_id" ] || continue
+    sc_newrow=$(printf '%s\n' "$sc_new" | awk -F'\t' -v id="$sc_id" '$1 == id { print $2; exit }')
+    [ "$sc_newrow" = "$sc_oldrow" ] && continue
+    if [ -n "$sc_date" ] && grep -E '^##[[:space:]]+Amendment[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}' "$spec_path" 2>/dev/null |
+      grep -vxFf <(printf '%s\n' "$sc_oldtext") |
+      awk -v d="$sc_date" '{ for (i = 1; i <= NF; i++) if ($i ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ && substr($i, 1, 10) >= d) ok = 1 } END { exit ok ? 0 : 1 }'; then
+      continue
+    fi
+    if [ -f "$sc_notes" ] && grep -Eq "Ruling:.*$sc_id([^0-9]|\$)" "$sc_notes"; then continue; fi
+    if [ -z "$sc_newrow" ]; then
+      add_err 0 "$sc_id" "spec-criterion-changed" "$sc_id was in $sp_name at its baseline commit and is gone from the working copy" "restore the row, or record the change: /flow:spec --amend (appends ## Amendment <date>), or a NOTES.md 'Ruling:' naming $sc_id"
+    else
+      add_err 0 "$sc_id" "spec-criterion-changed" "$sc_id was reworded in $sp_name since its baseline commit" "restore the row, or record the change: /flow:spec --amend (appends ## Amendment <date>), or a NOTES.md 'Ruling:' naming $sc_id"
+    fi
+  done <<<"$sc_old"
+}
+
+if [ "$nr_apply" -eq 1 ]; then
+  case "$H_TEST" in
+  "" | none | None | NONE | -) ;;
+  *)
+    nr_t000=0
+    nr_i=0
+    while [ "$nr_i" -lt "$N" ]; do
+      [ "${T_ID[$nr_i]}" = T000 ] && nr_t000=1
+      nr_i=$((nr_i + 1))
+    done
+    if [ "$nr_t000" -eq 0 ]; then
+      add_err 0 "" "baseline-missing" "Test: is set but no task T000 records the suite at Base" "add T000 first: it runs the Test: command at Base into verify/baseline-tests.txt (exit code plus failing test names); with Parity: the same T000 also writes verify/baseline.txt"
+    fi
+    ;;
+  esac
+  if [ -n "$spec_path" ] && [ -f "$spec_path" ]; then
+    if grep -Eq '\[NEEDS CLARIFICATION[^]]*blocks:[[:space:]]*tasks' "$spec_path"; then
+      add_err 0 "" "open-question-blocks-tasks" "$sp_name has an open question marked blocks: tasks" "answer it via /flow:spec --amend, then remove the marker"
+    fi
+    if [ "$GIT_OK" -eq 1 ]; then
+      sc_phys=$(cd "$(dirname "$spec_path")" 2>/dev/null && pwd -P || true)
+      sc_top=""
+      [ -n "$sc_phys" ] && sc_top=$(git -C "$sc_phys" rev-parse --show-toplevel 2>/dev/null || true)
+      if [ -n "$sc_top" ]; then
+        sc_rel="${sc_phys#"$sc_top"}"
+        sc_rel="${sc_rel#/}"
+        sc_rel="${sc_rel:+$sc_rel/}${sp_name##*/}"
+        check_spec_criteria "$sc_top" "$sc_rel"
+      fi
+    fi
+  fi
+fi
+
 NTASK=0
 i=0
 while [ "$i" -lt "$N" ]; do
@@ -924,6 +1288,8 @@ if [ "$JSON" -eq 1 ]; then
     j_kind=$R_JS
     jstr_var "${T_VERIFY[$i]}"
     j_verify=$R_JS
+    jstr_var "${T_NOCLAIM[$i]}"
+    j_noclaim=$R_JS
     jstr_var "${T_DONE[$i]}"
     j_done=$R_JS
     jstr_var "${T_DROPPED[$i]}"
@@ -932,7 +1298,7 @@ if [ "$JSON" -eq 1 ]; then
     j_phase=$R_JS
     jstr_var "${T_DESC[$i]}"
     j_desc=$R_JS
-    tj="$tj${tj:+,}{\"id\":$j_id,\"state\":$j_state,\"kind\":$j_kind,\"parallel\":$pbool,\"wave\":$wv,\"files\":$(jlist "${T_FILES[$i]}"),\"verify\":$j_verify,\"after\":$(jlist "${T_AFTER[$i]}"),\"done\":$j_done,\"dropped\":$j_dropped,\"phase\":$j_phase,\"line\":${T_LINE[$i]},\"description\":$j_desc}"
+    tj="$tj${tj:+,}{\"id\":$j_id,\"state\":$j_state,\"kind\":$j_kind,\"parallel\":$pbool,\"wave\":$wv,\"files\":$(jlist "${T_FILES[$i]}"),\"verify\":$j_verify,\"no_claim\":$j_noclaim,\"after\":$(jlist "${T_AFTER[$i]}"),\"done\":$j_done,\"dropped\":$j_dropped,\"phase\":$j_phase,\"line\":${T_LINE[$i]},\"description\":$j_desc}"
     i=$((i + 1))
   done
 

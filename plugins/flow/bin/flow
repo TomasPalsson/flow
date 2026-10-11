@@ -174,6 +174,8 @@ ${C.accent}Commands:${C.reset}
   digest [--feature <d>] [--json]                   List what needs a human after an unattended run, from
                                                      NOTES.md: unfiled defers, assumptions, rulings
   use <NNN-slug>                                    Point .specs/.current at one feature
+  archive [<slug>]                                  Move a shipped, merged feature to .specs/archive/<date>-<slug>
+                                                     (refuses an existing target), append the LEDGER line
   pass                                              Exit 0 when a PASS-<sha>.md covers HEAD
                                                      for the active feature, 1 otherwise
   stealth [<store>] [--check [--offline] [--json]]  Move .specs/ into a private store repo
@@ -1227,6 +1229,7 @@ const CONFIG_SCHEMA = {
   shfmt: (v) => (typeof v === 'boolean' ? null : 'a boolean'),
   plan: (v) => (typeof v === 'string' && v !== '' ? null : 'a path to the active plan'),
   ignore: (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? null : 'an array of path substrings'),
+  gates: (v) => (Array.isArray(v) && v.every((g) => g !== null && typeof g === 'object' && typeof g.name === 'string' && g.name !== '' && typeof g.cmd === 'string' && g.cmd !== '') ? null : 'an array of {name, cmd} objects, both non-empty strings'),
   deny: (v) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? null : 'an array of command prefixes'),
 };
 
@@ -1341,7 +1344,8 @@ function doctorGatesRunnableCheck(push) {
     push('gates-runnable', 'FAIL', `gate binary cannot run: ${named}; no flow command starts a runner that is not installed — install it, or correct the script it names`, false);
     return;
   }
-  push('gates-runnable', 'PASS', `${parsed.ecosystem}: ${gates.length} gate(s), every runner executable`);
+  const ran = gates.filter((g) => g && g.status !== 'skipped').length;
+  push('gates-runnable', 'PASS', `${parsed.ecosystem}: ${ran} gate(s), every runner executable`);
 }
 
 // live-hooks-match-cwd: editing hooks in a worktree while ~/.claude/hooks
@@ -2126,6 +2130,11 @@ function cmdInit(argv) {
   const detected = runDetectProject(cwd);
   const stackKey = resolveStackKey(stackArg, detected, cwd);
   const cmds = detected || { test_cmd: '', lint_cmd: '', format_cmd: '', typecheck_cmd: '', dev_cmd: '', language: '', pkg_mgr: '' };
+  // detect-project may name a machine-local <root>/.venv/bin/<tool>; committed files (CI, CLAUDE.md) must name the bare runner.
+  const venvBin = path.join(cwd, '.venv', 'bin') + path.sep;
+  for (const k of ['test_cmd', 'lint_cmd', 'format_cmd', 'typecheck_cmd']) {
+    if (typeof cmds[k] === 'string' && cmds[k].startsWith(venvBin)) cmds[k] = cmds[k].slice(venvBin.length);
+  }
 
   const templates = templatesDir();
   const actions = [];
@@ -3142,7 +3151,47 @@ function cmdStatusline(argv) {
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'finish', 'digest', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline', 'pass'];
+const COMMANDS = ['doctor', 'init', 'install', 'check', 'skills-lint', 'next', 'lint', 'tick', 'finish', 'digest', 'use', 'stealth', 'publish', 'loop', 'eval', 'tutorial', 'off', 'on', 'statusline', 'pass', 'archive'];
+
+// Declared flags per subcommand (F128). An unknown flag stops the command
+// before any state is computed: a mistyped `--peek` would otherwise move the
+// loop counter silently, and `--jsno` would print text where JSON was meant.
+// `check`, `skills-lint`, `loop`, `eval` and `tutorial` parse their own argv
+// and are not listed. `values` are flags that consume the next token.
+const FLAG_SPECS = {
+  doctor: { flags: ['--json', '--verbose', '--deep'], usage: 'flow doctor [--json] [--verbose] [--deep]' },
+  init: { flags: ['--stack', '--dry-run', '--force'], values: ['--stack'], usage: 'flow init [--stack auto|node|python|rust|go] [--dry-run] [--force]' },
+  install: { flags: ['--dry-run', '--dotfiles', '--marketplace', '--force'], values: ['--dotfiles', '--marketplace'], usage: 'flow install [--dry-run] [--dotfiles <path>] [--marketplace <path>] [--force]' },
+  next: { flags: ['--json', '--force', '--peek'], usage: 'flow next [--json] [--force] [--peek]' },
+  lint: { flags: ['--json', '--waves'], usage: 'flow lint [<TASKS.md>] [--json] [--waves]' },
+  tick: { flags: ['--dir', '--by', '--sha'], values: ['--dir', '--by', '--sha'], usage: 'flow tick <ID> [--dir <d>] [--by user] [--sha <c>]' },
+  finish: { flags: ['--dir', '--note', '--json', '--hook', '--session'], values: ['--dir', '--note', '--session'], usage: 'flow finish <on|off|status|check> [--dir <d>] [--note <t>] [--json] [--hook] [--session <id>]' },
+  digest: { flags: ['--feature', '--json'], values: ['--feature'], usage: 'flow digest [--feature <d>] [--json]' },
+  use: { flags: [], usage: 'flow use <NNN-slug>' },
+  stealth: { flags: ['--check', '--offline', '--json'], usage: 'flow stealth [<store>] [--check [--offline] [--json]]' },
+  publish: { flags: ['--dry-run'], usage: 'flow publish [--dry-run]' },
+  pass: { flags: [], usage: 'flow pass' },
+  archive: { flags: [], usage: 'flow archive [<slug>]' },
+  off: { flags: ['--unsafe'], usage: 'flow off [<dir>] [--unsafe]' },
+  on: { flags: ['--unsafe'], usage: 'flow on [<dir>]' },
+  statusline: { flags: ['--refresh', '--install', '--print', '--no-color', '--force'], usage: 'flow statusline [--refresh] [--install] [--print] [--no-color] [--force]' },
+};
+
+// unknownFlag(cmd, rest) -> the first undeclared flag, or null.
+function unknownFlag(cmd, rest) {
+  const spec = FLAG_SPECS[cmd];
+  if (!spec) return null;
+  const values = spec.values || [];
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    if (a === '--') return null;
+    if (a.charAt(0) !== '-' || a === '-') continue;
+    if (a === '--help' || a === '-h' || a === '--verbose') continue;
+    if (spec.flags.indexOf(a) === -1) return a;
+    if (values.indexOf(a) !== -1) i++;
+  }
+  return null;
+}
 
 // editDistance(a, b) — plain Levenshtein, used only to name the nearest known
 // command when the user mistypes one ("did you mean").
@@ -3219,6 +3268,15 @@ function main() {
     process.exit(0);
   }
 
+  const bad = unknownFlag(cmd, rest);
+  if (bad) {
+    stderr.write(`${C.error}flow ${cmd}: unknown option '${bad}'${C.reset}\n  usage: ${FLAG_SPECS[cmd].usage}\n`);
+    process.exit(2);
+  }
+  // Test seam: validate the argv and stop, so a test can ask whether a
+  // documented invocation is accepted without running the command.
+  if (process.env.FLOW_ARGV_CHECK === '1' && FLAG_SPECS[cmd]) process.exit(0);
+
   if (cmd === 'doctor') process.exit(cmdDoctor(rest));
   else if (cmd === 'init') process.exit(cmdInit(rest));
   else if (cmd === 'install') process.exit(cmdInstall(rest));
@@ -3239,6 +3297,7 @@ function main() {
     process.exit(require('./lib/stealth.js').run(rest, stealthRoot, { stdout, stderr }, process.env));
   }
   else if (cmd === 'publish') process.exit(require('./lib/publish.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
+  else if (cmd === 'archive') process.exit(require('./lib/archive.js').run(rest, gitToplevel(process.cwd()) || process.cwd(), { stdout, stderr }, process.env));
   else if (cmd === 'pass') {
     const r = require('./lib/router.js').passCommand(gitToplevel(process.cwd()) || process.cwd());
     stdout.write(`${r.message}\n`);

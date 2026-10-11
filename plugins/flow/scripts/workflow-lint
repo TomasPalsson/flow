@@ -13,7 +13,10 @@
 # agentType: or model: (a same-named key nested inside a nested object/array,
 # e.g. a schema property, never counts); (8) the file parses — a stubbed .mjs
 # copy passes `node --check`; (9) build-slices.js specifically must contain at
-# least one parallel( call (C13 wave scheduling).
+# least one parallel( call (C13 wave scheduling); (10) an agent with agentType
+# adversary or developer, or a lens:/score:/panel: label, never sets model
+# 'haiku'; (11) the prompt of an adversary or lens:/score:/panel: agent never
+# contains 'do not flag', 'at most minor' or 'the plan chose'.
 #
 # Prints "OK <file>" or "<file>: <rule>: <problem>" lines; exit 1 on any problem.
 set -u
@@ -26,7 +29,9 @@ Validates each saved Workflow-tool script (*.js) against the C11/C13 rules:
 meta purity/name (top-level keys only), phase() titles (quoted or backtick,
 failing closed on anything else), no Date.now/Math.random/new Date, no
 TypeScript syntax, every agent() call pins a top-level agentType or model,
-the file parses, and build-slices.js schedules slices via parallel().
+the file parses, build-slices.js schedules slices via parallel(), no judgment
+agent (adversary, developer, or a lens:/score:/panel: label) runs on haiku, and
+no reviewer prompt pre-judges ('do not flag', 'at most minor', 'the plan chose').
 
 With no arguments, scans ${CLAUDE_PLUGIN_ROOT:-<script dir>/..}/workflows
 when that directory exists, else ~/.claude/skills/flow/workflows when
@@ -459,6 +464,117 @@ findCallArgs(srcNoComments, codeOnly, 'agent').forEach(function (callArgs) {
     fail('agent-model', 'agent(...) call options object sets neither agentType: nor model: at the top level');
   }
 });
+
+// ---- rules 10 and 11: judgment agents keep their strength and their independence.
+// A judgment agent is one with agentType 'adversary' or 'developer' (rule 10 only for
+// developer), or a label starting 'lens:', 'score:' or 'panel:'. Labels and prompts are
+// often built by a helper function or a variable in the same file, so the literal text of
+// one level of those is read too. This sees saved workflows only; an orchestrator's inline
+// prompts are out of reach.
+function literalsOf(text) {
+  const out = [];
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1;
+      let lit = '';
+      while (j < text.length && text[j] !== c) {
+        if (text[j] === '\\') { lit += text[j + 1] || ''; j += 2; continue; }
+        lit += text[j];
+        j++;
+      }
+      out.push(lit);
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  return out;
+}
+// The text of the value that starts at idx, up to the first top-level comma or closing bracket.
+function valueAt(text, idx) {
+  let depth = 0;
+  let inStr = null;
+  let i = idx;
+  for (; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) {
+      if (c === '\\') { i++; continue; }
+      if (c === inStr) { inStr = null; }
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
+    if (c === '(' || c === '[' || c === '{') { depth++; continue; }
+    if (c === ')' || c === ']' || c === '}') {
+      if (depth === 0) { break; }
+      depth--;
+      continue;
+    }
+    if (c === ',' && depth === 0) { break; }
+  }
+  return text.slice(idx, i);
+}
+// Literal text of an expression, plus that of any function declared in the file whose name
+// it calls, and of any variable it reads (from its declaration to the call site).
+function resolveLiterals(expr, callIdx) {
+  const out = literalsOf(expr);
+  const names = {};
+  stripStrings(expr).replace(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g, function (m0, pre, name) { names[name] = true; return m0; });
+  Object.keys(names).forEach(function (name) {
+    const safe = name.replace(/\$/g, '\\$');
+    const fm = new RegExp('function\\s+' + safe + '\\s*\\(').exec(srcNoComments);
+    if (fm) {
+      const open = srcNoComments.indexOf('{', fm.index + fm[0].length);
+      const close = open === -1 ? -1 : scanBalanced(srcNoComments, open, '{', '}');
+      if (close !== -1) { Array.prototype.push.apply(out, literalsOf(srcNoComments.slice(open, close + 1))); }
+      return;
+    }
+    // The nearest declaration before the call: a short name is reused across functions.
+    const declRe = new RegExp('(?:let|const|var)\\s+' + safe + '\\b', 'g');
+    let dm;
+    let nearest = -1;
+    while ((dm = declRe.exec(srcNoComments)) && dm.index < callIdx) { nearest = dm.index; }
+    if (nearest !== -1) {
+      Array.prototype.push.apply(out, literalsOf(srcNoComments.slice(nearest, callIdx)));
+    }
+  });
+  return out;
+}
+const PREJUDGING = ['do not flag', 'at most minor', 'the plan chose'];
+(function () {
+  const re = /(^|[^.\w$])agent\s*\(/g;
+  let m;
+  while ((m = re.exec(codeOnly))) {
+    const openIdx = m.index + m[0].length - 1;
+    const closeIdx = scanBalanced(srcNoComments, openIdx, '(', ')');
+    if (closeIdx === -1) { continue; }
+    const callArgs = srcNoComments.slice(openIdx + 1, closeIdx);
+    const optsObj = findFirstObjectLiteral(callArgs);
+    if (!optsObj) { continue; }
+    const firstArg = valueAt(callArgs, 0);
+    const optsTop = stripNested(optsObj);
+    const typeM = optsTop.match(/agentType\s*:\s*(['"])([^'"]*)\1/);
+    const agentType = typeM ? typeM[2] : '';
+    const modelM = optsTop.match(/model\s*:\s*(['"])([^'"]*)\1/);
+    const labelM = /label\s*:\s*/.exec(optsTop);
+    const labelLits = labelM ? resolveLiterals(valueAt(optsObj, labelM.index + labelM[0].length), openIdx) : [];
+    const labelPrefix = labelLits.filter(function (l) { return /^(lens|score|panel):/.test(l); })[0];
+    const judgment = agentType === 'adversary' || agentType === 'developer' || !!labelPrefix;
+    const who = agentType === 'adversary' || agentType === 'developer' ? 'agentType ' + agentType : 'label ' + labelPrefix;
+    if (judgment && modelM && modelM[2] === 'haiku') {
+      fail('no-haiku-judgment', 'agent(...) with ' + who + ' sets model haiku; a judgment agent needs a stronger model (haiku is for mechanical transforms and file discovery)');
+    }
+    if (agentType === 'adversary' || labelPrefix) {
+      const text = resolveLiterals(firstArg, openIdx).join(' ').toLowerCase();
+      PREJUDGING.forEach(function (phrase) {
+        if (text.indexOf(phrase) !== -1) {
+          fail('no-prejudging', 'the prompt of agent(...) with ' + who + ' contains "' + phrase + '"; a reviewer is not told what to find or skip before it reads');
+        }
+      });
+    }
+  }
+})();
 
 // ---- rule 9: build-slices.js must schedule independent slices via parallel()
 // (C13). Applies only to a file whose name is build-slices.js — the

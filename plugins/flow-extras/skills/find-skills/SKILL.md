@@ -45,9 +45,9 @@ When a user asks for help with something, identify:
 
 Before running a CLI search, check the [skills.sh leaderboard](https://skills.sh/) to see if a well-known skill already exists for the domain. The leaderboard ranks skills by total installs, surfacing the most popular and battle-tested options.
 
-For example, top skills for web development include:
-- `vercel-labs/agent-skills` — React, Next.js, web design (100K+ installs each)
-- `anthropics/skills` — Frontend design, document processing (100K+ installs)
+Read the install counts from the page or CLI output, not from memory: they change, and a remembered figure is a claim nobody checked. Sources that have carried popular web-development skills (verify the current counts before quoting any):
+- `vercel-labs/agent-skills` — React, Next.js, web design
+- `anthropics/skills` — Frontend design, document processing
 
 ### Step 3: Search for Skills
 
@@ -67,6 +67,9 @@ For example:
 
 **Do not recommend a skill based solely on search results.** Always verify:
 
+- Recommend only skills whose name, slug and install count appear in `npx skills find` or leaderboard output fetched this conversation, and never construct a slug from memory. A remembered slug can point at a different or missing skill.
+- If the match needs a caveat ("doesn't cover exactly, but..."), drop it and say none was found. A caveat means the match failed.
+
 1. **Install count** — Prefer skills with 1K+ installs. Be cautious with anything under 100.
 2. **Source reputation** — Official sources (`vercel-labs`, `anthropics`, `microsoft`) are more trustworthy than unknown authors.
 3. **GitHub stars** — Check the source repository. A skill from a repo with <100 stars should be treated with skepticism.
@@ -83,9 +86,9 @@ When you find relevant skills, present them to the user with:
 Example response:
 
 ```
-I found a skill that might help! The "react-best-practices" skill provides
-React and Next.js performance optimization guidelines from Vercel Engineering.
-(185K installs)
+The "react-best-practices" skill provides React and Next.js performance
+optimization guidelines from Vercel Engineering.
+(<install count from the fetched `npx skills find` output> installs)
 
 To install it:
 npx skills add vercel-labs/agent-skills@react-best-practices
@@ -140,3 +143,5 @@ I can still help you with this task directly! Would you like me to proceed?
 If this is something you do often, you could create your own skill:
 npx skills init my-xyz-skill
 ```
+
+Credit: adapted from anthropics/skills skills/academy-guide/SKILL.md @ dbd4588 (Apache-2.0).

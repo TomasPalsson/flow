@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""lesson-mine — compact candidate rows from raw Claude Code session transcripts.
+
+Usage: lesson-mine [--skills <dir>]... [--max-bytes N] <session.jsonl>...
+
+/lesson --retro reads these rows instead of a raw jsonl: one transcript line can be
+a megabyte, and in Claude Code transcripts tool results, injected system-reminders
+and hook output arrive under the user role, so a reader of the raw file mistakes
+them for the human correcting the agent. Read-only; stdlib only.
+
+One JSON object per line: {"session", "line", "kind", "text"} with text <= 300 chars.
+  correction     a user-role message of plain text (never a tool_result) that is the
+                 human's own words once system-reminder, command and hook-output spans
+                 are removed, that follows at least one assistant tool_use since the
+                 previous human turn, and that reads as a correction
+  revert         an assistant Bash call that undoes work (git revert/restore/reset --hard/...)
+  hook_block     a hook that blocked or denied an action
+  skill_invoked  one row per distinct skill the Skill tool was called with, at its first use
+--skills <dir> (repeatable; each <dir>/<skill>/SKILL.md) adds "may_have_fired": the
+installed skills whose description shares at least two distinctive words with a
+correction and that the session never invoked. A hint to check by reading the
+description, not a verdict.
+Output is capped at --max-bytes (default 16000); rows drop lowest-priority first
+(revert, hook_block, skill_invoked, correction) and a notice goes to stderr.
+
+Credit: adapted from obra/superpowers skills/diagnosing-superpowers/references/context-safety.md @ bb92a77 (MIT).
+Credit: adapted from obra/superpowers skills/diagnosing-superpowers/SKILL.md @ bb92a77 (MIT).
+Credit: adapted from anthropics/claude-plugins-official plugins/hookify/agents/conversation-analyzer.md @ a9fd216 (Apache-2.0).
+Credit: adapted from anthropics/claude-plugins-official plugins/receipts/skills/receipts/SKILL.md @ a9fd216 (Apache-2.0).
+Credit: adapted from garrytan/gstack retro/SKILL.md.tmpl @ 5b9b837 (MIT)."""
+import json
+import os
+import re
+import sys
+
+TEXT_MAX = 300
+DEFAULT_MAX_BYTES = 16000
+CAPS = {"correction": 25, "revert": 10, "hook_block": 10, "skill_invoked": 30}
+DROP_ORDER = ("revert", "hook_block", "skill_invoked", "correction")
+
+SPANS = re.compile(
+    r"<(system-reminder|local-command-stdout|local-command-stderr|local-command-caveat|command-name|"
+    r"command-message|command-args|task-notification|[\w-]*hook[\w-]*)>.*?</\1>", re.S | re.I)
+HOOK_OUTPUT = re.compile(
+    r"^\s*(?:[\w:()-]+\s+)?hook\s+(?:feedback|output|blocking error|error)\b|"
+    r"^\s*(?:Stop|SubagentStop|PreToolUse|PostToolUse|UserPromptSubmit|SessionStart)(?::[\w*|-]+)?\s+hook\b", re.I)
+CORRECTION_CUE = re.compile(
+    r"\b(no[,.!:\s-]|nope|stop\b|don'?t|do not|never|wrong|undo|revert|that'?s not|not what|"
+    r"i (?:said|asked|told|meant)|why did you|you (?:did|just|keep|again)|again|instead|"
+    r"shouldn'?t|should not|isn'?t what)", re.I)
+REVERT_CMD = re.compile(r"\bgit\s+(?:revert|restore|reset\s+--hard|checkout\s+--|stash\s+drop|clean\s+-\w*f)")
+HOOK_BLOCK_TEXT = re.compile(
+    r"(?:PreToolUse|PostToolUse|UserPromptSubmit|Stop)[^\n]{0,60}hook[^\n]{0,40}(?:blocked|denied|error)|"
+    r"hook[^\n]{0,20}(?:blocked|denied)", re.I)
+STOPWORDS = frozenset("""this that with from have when what were your they them then than into only also
+use used using skill skills user users agent agents claude should would could there their about which
+while where after before just like make made does done more most some such other same each very will""".split())
+
+
+def squash(text, limit=TEXT_MAX):
+    return " ".join(str(text).split())[:limit]
+
+
+def blocks(message):
+    """(plain_text_parts, has_tool_result, tool_uses) of one message's content."""
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, str):
+        return [content], False, []
+    texts, result, uses = [], False, []
+    for b in content if isinstance(content, list) else []:
+        if not isinstance(b, dict):
+            continue
+        kind = b.get("type")
+        if kind == "text":
+            texts.append(str(b.get("text") or ""))
+        elif kind == "tool_result":
+            result = True
+        elif kind == "tool_use":
+            uses.append(b)
+    return texts, result, uses
+
+
+def tool_result_text(message):
+    out = []
+    for b in message.get("content") if isinstance(message.get("content"), list) else []:
+        if isinstance(b, dict) and b.get("type") == "tool_result":
+            c = b.get("content")
+            if isinstance(c, list):
+                c = " ".join(str(x.get("text", "")) for x in c if isinstance(x, dict))
+            out.append(str(c or ""))
+    return " ".join(out)
+
+
+def human_text(parts):
+    """The human's own words: reminder, command and hook spans removed; hook-output blocks dropped."""
+    kept = []
+    for part in parts:
+        if HOOK_OUTPUT.search(part):
+            continue
+        kept.append(SPANS.sub(" ", part))
+    return squash(" ".join(kept), 100000)
+
+
+def read_events(path):
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for n, raw in enumerate(fh, 1):
+            try:
+                ev = json.loads(raw)
+            except ValueError:
+                continue
+            if isinstance(ev, dict):
+                yield n, ev
+
+
+def mine(path):
+    session = os.path.basename(path)
+    session = session[:-6] if session.endswith(".jsonl") else session
+    rows, skills_seen = [], {}
+    acted = False
+    for n, ev in read_events(path):
+        kind = ev.get("type")
+        if ev.get("isSidechain"):
+            continue
+        if kind == "attachment":
+            att = ev.get("attachment")
+            if isinstance(att, dict) and att.get("type") in ("hook_blocking_error", "hook_stopped_continuation"):
+                err = att.get("blockingError")
+                detail = err.get("blockingError") if isinstance(err, dict) else (err or att.get("content") or att.get("stderr"))
+                rows.append((n, "hook_block", "%s: %s" % (att.get("hookName", "hook"), detail or "blocked")))
+            continue
+        message = ev.get("message") if isinstance(ev.get("message"), dict) else {}
+        if kind == "assistant":
+            for use in blocks(message)[2]:
+                acted = True
+                inp = use.get("input") if isinstance(use.get("input"), dict) else {}
+                if use.get("name") == "Skill":
+                    name = str(inp.get("skill") or inp.get("name") or "").strip()
+                    if name and name not in skills_seen:
+                        skills_seen[name] = n
+                        rows.append((n, "skill_invoked", name))
+                elif use.get("name") == "Bash" and REVERT_CMD.search(str(inp.get("command") or "")):
+                    rows.append((n, "revert", inp.get("command")))
+        elif kind == "user":
+            texts, has_result, _uses = blocks(message)
+            if has_result:
+                body = tool_result_text(message)
+                if HOOK_BLOCK_TEXT.search(body):
+                    rows.append((n, "hook_block", body))
+                continue
+            if ev.get("isMeta"):
+                continue
+            text = human_text(texts)
+            if not text:
+                continue
+            if acted and CORRECTION_CUE.search(text):
+                rows.append((n, "correction", text))
+            acted = False
+    return session, rows, set(skills_seen)
+
+
+def description_words(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            head = fh.read(6000)
+    except OSError:
+        return None
+    m = re.search(r"^description:\s*(.+)$", head, re.M)
+    return distinctive(m.group(1)) if m else None
+
+
+def distinctive(text):
+    return {w for w in re.findall(r"[a-z][a-z0-9]{3,}", text.lower()) if w not in STOPWORDS}
+
+
+def load_skills(dirs):
+    skills = {}
+    for d in dirs:
+        try:
+            names = sorted(os.listdir(d))
+        except OSError:
+            continue
+        for name in names:
+            words = description_words(os.path.join(d, name, "SKILL.md"))
+            if words:
+                skills[name] = words
+    return skills
+
+
+def may_have_fired(text, invoked, skills):
+    """Skills never invoked in this session whose description shares >= 2 distinctive words."""
+    ran = {s.split(":")[-1] for s in invoked}
+    words = distinctive(text)
+    scored = sorted(((len(words & w), name) for name, w in skills.items() if name not in ran), reverse=True)
+    return [name for score, name in scored if score >= 2][:3]
+
+
+def render(session, rows, invoked, skills):
+    out, seen = {k: [] for k in CAPS}, set()
+    for n, kind, text in rows:
+        text = squash(text)
+        if (kind, text) in seen or len(out[kind]) >= CAPS[kind]:
+            continue
+        seen.add((kind, text))
+        row = {"session": session, "line": n, "kind": kind, "text": text}
+        if kind == "correction" and skills:
+            hint = may_have_fired(text, invoked, skills)
+            if hint:
+                row["may_have_fired"] = hint
+        out[kind].append(row)
+    return out
+
+
+def emit(by_kind, max_bytes):
+    def size(rows):
+        return sum(len(json.dumps(r, ensure_ascii=False)) + 1 for rows_ in rows.values() for r in rows_)
+    dropped = 0
+    for kind in DROP_ORDER:
+        while size(by_kind) > max_bytes and by_kind[kind]:
+            by_kind[kind].pop()
+            dropped += 1
+    if dropped:
+        sys.stderr.write("lesson-mine: output capped at %d bytes, dropped %d row(s)\n" % (max_bytes, dropped))
+    rows = sorted((r for v in by_kind.values() for r in v), key=lambda r: (r["line"], r["kind"]))
+    for r in rows:
+        sys.stdout.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def main(argv):
+    files, skill_dirs, max_bytes = [], [], DEFAULT_MAX_BYTES
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-h", "--help"):
+            print(__doc__.split("\nCredit:")[0].strip())
+            return 0
+        if a == "--skills" and i + 1 < len(argv):
+            skill_dirs.append(argv[i + 1])
+            i += 1
+        elif a == "--max-bytes" and i + 1 < len(argv):
+            try:
+                max_bytes = int(argv[i + 1])
+            except ValueError:
+                sys.stderr.write("lesson-mine: --max-bytes takes an integer\n")
+                return 2
+            i += 1
+        elif a.startswith("-"):
+            sys.stderr.write("lesson-mine: unknown argument %s\n" % a)
+            return 2
+        else:
+            files.append(a)
+        i += 1
+    if not files:
+        sys.stderr.write("usage: lesson-mine [--skills <dir>]... [--max-bytes N] <session.jsonl>...\n")
+        return 2
+    skills = load_skills(skill_dirs)
+    status = 0
+    for path in files:
+        try:
+            session, rows, invoked = mine(path)
+        except OSError as e:
+            sys.stderr.write("lesson-mine: cannot read %s: %s\n" % (path, e.strerror))
+            status = 2
+            continue
+        emit(render(session, rows, invoked, skills), max_bytes)
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

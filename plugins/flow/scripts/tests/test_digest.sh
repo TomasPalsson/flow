@@ -116,3 +116,112 @@ NOTES
 	assert_not_contains "$OUT" "b.py" "the filed defer is not listed"
 	rm -rf "$home" "$proj"
 }
+
+# Tagged assumptions: text hides [mechanical], shows taste, challenge (first)
+# and untagged lines; --json keeps all four with their tag.
+t_digest_tagged_assumptions_text_hides_only_mechanical() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	cat >"$proj/.specs/001-x/NOTES.md" <<'NOTES'
+# Notes
+- Assumption: [mechanical] used the existing lint config
+- Assumption: [taste] chose the shorter flag name
+- Assumption: [challenge] kept REST; GraphQL would change spec.md
+- Assumption: staging db is disposable — evidence: transcript:12 (audit)
+NOTES
+	dg_cli_in "$proj" "$home" digest
+	assert_rc 0 "digest exits 0"
+	assert_not_contains "$OUT" "existing lint config" "mechanical is omitted from text"
+	assert_contains "$OUT" "Assumption [taste]: chose the shorter flag name" "taste is shown"
+	assert_contains "$OUT" "Assumption [challenge]: kept REST" "challenge is shown"
+	assert_contains "$OUT" "Assumption: staging db is disposable" "untagged line is shown"
+	case $OUT in
+	*"[challenge]"*"[taste]"*) _pass "challenge is listed before taste" ;;
+	*) _fail "challenge before taste" "$OUT" ;;
+	esac
+	rm -rf "$home" "$proj"
+}
+
+t_digest_tagged_assumptions_json_keeps_all_with_tags() {
+	local home proj n
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	cat >"$proj/.specs/001-x/NOTES.md" <<'NOTES'
+# Notes
+- Assumption: [mechanical] used the existing lint config
+- Assumption: [taste] chose the shorter flag name
+- Assumption: [challenge] kept REST; GraphQL would change spec.md
+- Assumption: staging db is disposable
+NOTES
+	dg_cli_in "$proj" "$home" digest --json
+	assert_rc 0 "digest --json exits 0"
+	n=$(printf '%s' "$OUT" | grep -c '"kind": "assumption"')
+	assert_eq "4" "$n" "all four assumptions are in the JSON"
+	assert_contains "$OUT" '"tag": "mechanical"' "mechanical tag"
+	assert_contains "$OUT" '"tag": "taste"' "taste tag"
+	assert_contains "$OUT" '"tag": "challenge"' "challenge tag"
+	assert_contains "$OUT" '"tag": null' "untagged is null"
+	rm -rf "$home" "$proj"
+}
+
+# famous-borrows F143: `flow digest` reports, per security rule, how many logged
+# hits are fixed (the matched text is gone from the file) and how many are open.
+dg_sec_log() {
+	printf '%s\t%s\t%s\n' "$2" "$3" "$4" >>"$1/.git/flow-security-hits.tsv"
+}
+
+t_digest_security_hit_removed_is_fixed() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	printf 'const x = 1;\n' >"$proj/a.js"
+	dg_sec_log "$proj" innerHTML "$proj/a.js" 'el.innerHTML = s;'
+	dg_cli_in "$proj" "$home" digest
+	assert_rc 0 "digest exits 0"
+	assert_contains "$OUT" "security rules: innerHTML fixed=1 open=0" "removed line counts as fixed"
+	rm -rf "$home" "$proj"
+}
+
+t_digest_security_hit_left_is_open() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	printf 'el.innerHTML = s;\n' >"$proj/a.js"
+	dg_sec_log "$proj" innerHTML "$proj/a.js" 'el.innerHTML = s;'
+	dg_cli_in "$proj" "$home" digest
+	assert_contains "$OUT" "security rules: innerHTML fixed=0 open=1" "line left in place counts as open"
+	rm -f "$proj/a.js"
+	dg_cli_in "$proj" "$home" digest
+	assert_contains "$OUT" "security rules: innerHTML fixed=1 open=0" "a deleted file counts as fixed"
+	rm -rf "$home" "$proj"
+}
+
+t_digest_security_mixed_and_duplicate_hits() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	printf 'el.innerHTML = s;\n' >"$proj/a.js"
+	dg_sec_log "$proj" innerHTML "$proj/a.js" 'el.innerHTML = s;'
+	dg_sec_log "$proj" innerHTML "$proj/a.js" 'el.innerHTML = s;'
+	dg_sec_log "$proj" innerHTML "$proj/a.js" 'b.innerHTML = t;'
+	dg_cli_in "$proj" "$home" digest
+	assert_contains "$OUT" "security rules: innerHTML fixed=1 open=1" "a repeated hit counts once"
+	rm -rf "$home" "$proj"
+}
+
+t_digest_no_security_state_prints_no_security_line() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	dg_feature "$proj"
+	dg_notes "$proj"
+	dg_cli_in "$proj" "$home" digest
+	assert_not_contains "$OUT" "security rules" "no state file, no security line"
+	rm -rf "$home" "$proj"
+}

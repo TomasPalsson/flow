@@ -15,6 +15,8 @@ Before writing any animation code, answer these four questions in order.
 
 Never animate keyboard-initiated actions. They repeat hundreds of times daily — animation makes them feel slow and disconnected.
 
+**Fixed-size lists:** when a list has a known maximum size, pad it to a constant slot count with invisible fillers. Nothing below the list moves when items come and go, so there is no layout shift to animate and no morph to write.
+
 ## 2. What is the purpose?
 
 Answer "why does this animate?" before writing code.
@@ -27,6 +29,15 @@ Answer "why does this animate?" before writing code.
 | **Delight** | Adds personality (use sparingly) | Stagger reveals, spring overshoot |
 
 If the purpose is just "it looks cool" and the user will see it often, don't animate.
+
+**State holds what is true; visuals derive from it.** Store the fact (pressed, open, progress from 0 to 1), then derive scale, opacity and offset from it by interpolation or a CSS rule keyed on the state. Never store the visual value itself. One source of truth means an interrupted or reversed animation lands correctly, and there are no two values to keep in sync.
+
+```tsx
+// fact in state, visuals derived from it
+const progress = useMotionValue(0)            // 0 = closed, 1 = open
+const y = useTransform(progress, [0, 1], [24, 0])
+const opacity = useTransform(progress, [0, 1], [0, 1])
+```
 
 ## 3. What easing should it use?
 
@@ -80,3 +91,5 @@ Enter can be slightly slower than exit. Example: hold-to-delete uses 2s linear o
   transition: clip-path 2s linear;
 }
 ```
+
+Credit: adapted from vercel-labs/agent-skills skills/react-view-transitions/references/patterns.md and skills/react-native-skills/rules/state-ground-truth.md @ 063bee9 (MIT).

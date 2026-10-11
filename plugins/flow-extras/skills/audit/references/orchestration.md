@@ -50,7 +50,7 @@ Additional reference — load EXACTLY ONE of the following based on your dimensi
 - security agent → references/security-playbook.md
 - performance agent → references/language-playbooks.md (performance sections only)
 - design agent → references/triage.md
-- tests agent → none (use this prompt only)
+- tests agent → none (use this prompt only); append the `NO_ASSERTION:` / `NEAR_DUPLICATE:` lines from `.audit/test-prefilter.txt` (made by `scripts/test-prefilter.sh`) as leads to check, not verdicts
 - style agent → none (use this prompt only)
 
 ## What to flag

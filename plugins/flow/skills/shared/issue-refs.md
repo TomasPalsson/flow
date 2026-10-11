@@ -75,6 +75,10 @@ about what to do next.
 
 ## 4. The two write moments
 
+Every comment body is passed through `${CLAUDE_PLUGIN_ROOT}/scripts/redact`
+first, the same filter `/flow:issue` uses, so a pasted presigned URL, a
+`user:pass@` URL or a key never lands in a public thread.
+
 Exactly two comments per issue, ever. Both carry a marker so a re-run, an
 `--amend` or a resumed session updates the existing comment instead of posting
 a second one. **Check the marker before every post:**

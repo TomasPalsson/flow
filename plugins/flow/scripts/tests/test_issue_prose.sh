@@ -36,3 +36,31 @@ t_issue_dedupe_synonyms_confirm_and_searched() {
 	assert_contains "$content" '`Filed: I-003 — <title> — searched: <queries> in <ISSUES.md|gh>`' "issue Filed template carries the searched: clause"
 	assert_contains "$content" 'phrasing, because GitHub search ANDs' "issue dedupe runs one query per phrasing"
 }
+
+# The body is redacted before it is written anywhere, and a failed duplicate
+# search is a failure, never "no duplicates".
+t_issue_redacts_before_writing_and_search_failure() {
+	local content
+	content=$(cat "$ISSUE_SKILL")
+	assert_contains "$content" '${CLAUDE_PLUGIN_ROOT}/scripts/redact' \
+		"issue pipes the body through scripts/redact"
+	assert_contains "$content" 'an `Also:` line or `gh` comment, and the `Discovered:`' \
+		"issue redacts Also lines, gh comments and NOTES lines too"
+	assert_contains "$content" 'search failed: <err>' \
+		"issue names the search failed report"
+	assert_contains "$content" 'never treated as no duplicates' \
+		"issue forbids reading a failed search as no duplicates"
+}
+
+VERIFICATION_MD="$SCAN_DIR/../skills/shared/verification.md"
+
+# A leftover screenshot from an earlier run must not pass; an unattended UX
+# check gets fresh eyes; long commands stream and never answer apply prompts.
+t_verification_fresh_artefacts_judge_and_long_commands() {
+	local content
+	content=$(cat "$VERIFICATION_MD")
+	assert_contains "$content" 'newer than' "verification: artefact must be newer than the run start"
+	assert_contains "$content" 'fresh read-only' "verification: unattended UX check uses a fresh read-only judge"
+	assert_contains "$content" 'Long commands' "verification: Long commands paragraph"
+	assert_contains "$content" 'never answer' "verification: never answer an apply or destroy prompt"
+}

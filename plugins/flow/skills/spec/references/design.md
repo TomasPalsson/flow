@@ -35,6 +35,10 @@ Cap: **≤90 lines** plus the contract file. Signatures yes, bodies no.
 | 6 | **Deliberately duplicated** | bullets naming the prohibited consolidation *and what to do instead* — retry/backoff, date formatting, validation helpers, `utils/`. If genuinely none, write `none — because <reason>`: an empty section and a complete one are otherwise indistinguishable. |
 | 7 | **Decisions** | ≤6 lines: *"In the context of `<component>`, facing `<force, as a checkable fact>`, we chose `<mechanism + signature>` and rejected `<option>`, to achieve `<benefit>`, accepting `<named cost>`."* Plus one `Makes hard:` line per decision naming the files a reversal touches. The rejected option has a different shape (another module, data flow or ownership), not a parameter of the chosen one: a flag variant is the same design, not an alternative. When a decision's `Makes hard:` line names callers outside the module (an external contract), do not pick alone: spawn 3 subagents with `model: sonnet`, each designing the interface under one constraint (fewest entry points; the most common caller made trivial; ports and adapters at the seam). Compare them on depth, locality and seam placement, record the pick as the decision and the strongest rejected design as its `rejected` option. Decisions that stay inside the module skip this. |
 
+### Constraints (optional, after the table)
+
+`## Constraints` holds at most 5 literal lines that every task must honour: a maximum length, an enum, a runtime version, a locale rule (for example "Icelandic text is stored and shown as typed, never transliterated"). Values, never `NEVER` lines: those count toward the 5-prohibition budget of a brief. `task-brief --design` appends this block to every brief, so a limit written here reaches a task agent that never opens the spec. Omit the heading when there are none; a design without it produces the same briefs as before.
+
 ## Pattern adoption gate
 
 Run this before ANY structure enters the file. Every field filled, or do not adopt.
@@ -77,6 +81,7 @@ CONTRACT   <path> — import from it. A type you need that is not there is an es
 NAMES      <the naming-table rows this task touches, verbatim, banned synonyms included>
 MODULE     <path> · layer N · may import: <closed list> · exports: <closed list>
 CALLS      <the exact signatures this task implements or calls>
+LIMITS     <field: literal constraint, from spec §N> — one line per field this task touches
 DUPLICATE  <the section-6 bullets that touch this task — do not consolidate these>
 THE FIVE   (1) NEVER invent an error type, field name or result shape that already exists in the
            contract — copy the literal declaration. (2) NEVER type a boundary function's parameter
@@ -96,3 +101,5 @@ THE FIVE is the whole prose budget and the set is closed — do not substitute i
 - **NEVER** paste this file, or any part of it but a `## Contract` block, into a task agent's prompt. Naming the pattern behind a decision moves output away from a correct implementation, not toward it.
 - **NEVER** let a task agent edit the contract file. It has exactly one owner: the orchestrator.
 - **NEVER** write a section whose seam is consumed by fewer than two tasks. Delete the section instead.
+
+Credit: adapted from github/spec-kit templates/plan-template.md @ 0443760 (MIT). Re-baselined 2026-10-10: the borrow-time sha is not recoverable.

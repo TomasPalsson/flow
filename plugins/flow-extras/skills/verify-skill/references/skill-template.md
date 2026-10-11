@@ -16,7 +16,8 @@ description: Drives <project> (<web|CLI|API>) the way a user does and captures e
 # Verify <project>
 
 ## Launch
-<exact start command, port, env vars (names only), seed step>. Ready when: <log line or port answering>.
+<exact start command, port, env vars (names only), seed step>. Ready when: <log line or port answering>. Readiness poll: check every 1-5 s up to a stated timeout (<N>s). Connection refused (curl status `000`) and 5xx mean still starting; `000` is never ready, because it is what a server that is not listening yet returns. A 2xx-4xx answer means the server is up. On timeout write "could not verify: not ready after <N>s" and stop; never drive a server that has not answered.
+CLI only: isolate the run so it cannot touch real user data or pass on host state: `SANDBOX=$(mktemp -d); export HOME=$SANDBOX XDG_CONFIG_HOME=$SANDBOX/.config XDG_DATA_HOME=$SANDBOX/.local/share`. Copy in only the named config the scenario needs (an AWS profile, a token file) and say which in the skill; a blanket sandbox hides credentials the tool legitimately needs.
 Teardown: kill the PIDs this run started, never by process name.
 
 ## Doctor
@@ -29,6 +30,7 @@ Prefer role/label/route handles over coordinates.
 ## Evidence
 Written to `<Feature>/verify/` when run from flow, otherwise `.claude/verify-evidence/`.
 Capture the action and the resulting state: screenshot or transcript, console errors (same-origin errors fail), failed network calls, and side effects (rows, files, messages).
+CLI: stdout, stderr, exit code, and `find $SANDBOX` before and after each scenario.
 Real user path only: no test-only endpoints. Cleanup removes processes and scratch state, never this directory.
 Report "could not verify: <reason>" rather than skipping a check silently.
 

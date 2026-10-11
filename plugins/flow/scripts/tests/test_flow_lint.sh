@@ -335,7 +335,7 @@ t_flowlint_done_gate_without_files_is_not_warned() {
 		sha_a=$(git rev-parse --short HEAD)
 		{
 			printf '# Tasks — x\n'
-			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n\n' "$base"
+			printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\nApproved: 2026-09-08 by user\n\n' "$base"
 			printf '## Phase 1 — p\nGoal: g\nIndependent test: `true`\n'
 			printf -- '- [x] T001 make a — files: src/a.py — verify: `true` — done: %s\n' "$sha_a"
 			printf -- '- [x] T009 no paths — verify: `true` — done: %s\n' "$sha_a"
@@ -675,7 +675,7 @@ t_flowlint_done_sha_with_by_who_is_accepted() {
 	base=$(cd "$d" && git rev-parse --short HEAD~1)
 	{
 		printf '# Tasks — x\n'
-		printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\n' "$base"
+		printf 'Spec: spec.md · Base: %s · Route: dispatch · Test: `true`\nApproved: 2026-09-08 by user\n' "$base"
 		printf '\n## Behaviors\n'
 		printf '| ID | Given / When / Then | Task | Proven by |\n'
 		printf '|----|---------------------|------|-----------|\n'
@@ -876,4 +876,511 @@ t_flowlint_claimcheck_old_date_missing_file_clean() {
 	_cc_lint "$d2"
 	assert_rc 0 "a hand Verified: line (not pre-approved) needs no claim-check file"
 	rm -rf "$d" "$d2"
+}
+
+# ---------------------------------------------------------------------------
+# famous-borrows slice B1 — follow:, ## Review focus, files-untouched,
+# behaviors coverage by FR id, parity-no-redcheck, design ## Constraints.
+# ---------------------------------------------------------------------------
+
+FB_NEXT_SKILL="$SCAN_DIR/../skills/next/SKILL.md"
+FB_DESIGN_REF="$SCAN_DIR/../skills/spec/references/design.md"
+FB_TEMPLATE="$SCAN_DIR/../flow-templates/TASKS.md"
+
+# _fb_lint <dir> — runs flow-lint on <dir>/TASKS.md from inside <dir>
+_fb_lint() {
+	run_cmd bash -c 'cd "$1" || exit 1; bash "$2" TASKS.md' _ "$1" "$FLOW_LINT"
+}
+
+# _fb_tasks <dir> <header-extra> <task-lines> <tail-sections> — writes a TASKS.md
+_fb_tasks() {
+	local d=$1 hdr=$2 tasks=$3 tail=$4
+	{
+		printf '# Tasks — fb\nSpec: spec.md · Design: none · Base: abc1234 · Route: dispatch · Test: `true`%s\n\n' "$hdr"
+		printf '## Behaviors\n| ID | Given / When / Then | Task | Proven by |\n|----|----|----|----|\n'
+		printf '| B1 | g w t | T001 | t |\n\n'
+		printf '## Phase 1 — One\nGoal: g.\nIndependent test: `true`\n%s\n\n' "$tasks"
+		printf '%s\n' "$tail"
+		printf '## Gates\n- [ ] G001 clean — files: . — verify: `true`\n'
+	} >"$d/TASKS.md"
+}
+
+_FB_T001='- [ ] T001 One — files: a.txt — verify: `true`'
+
+t_flowlint_follow_existing_path_passes() {
+	local d
+	d=$(tmp_repo)
+	printf 'x\n' >"$d/exemplar.py"
+	_fb_tasks "$d" "" '- [ ] T001 One — files: a.txt — verify: `true` — follow: exemplar.py' ""
+	_fb_lint "$d"
+	assert_rc 0 "follow: naming an existing path lints clean"
+	assert_not_contains "$OUT" "unknown-field" "follow: is a known key"
+	assert_not_contains "$OUT" "follow-missing" "an existing follow: path raises nothing"
+	rm -rf "$d"
+}
+
+t_flowlint_follow_missing_path_errors() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" '- [ ] T001 One — files: a.txt — verify: `true` — follow: src/nope.py' ""
+	_fb_lint "$d"
+	assert_rc 1 "follow: naming a missing path is an ERROR"
+	assert_contains "$OUT" "follow-missing" "the ERROR names the follow-missing rule"
+	assert_contains "$OUT" "src/nope.py" "the ERROR names the missing path"
+	rm -rf "$d"
+}
+
+t_taskbrief_follow_prints_under_prior_art() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" '- [ ] T001 One — files: a.txt — verify: `true` — follow: exemplar.py' ""
+	(cd "$d" && bash "$TASK_BRIEF" TASKS.md T001 --out "$d/b.md" >/dev/null)
+	OUT=$(cat "$d/b.md")
+	assert_contains "$OUT" "Follow: exemplar.py" "the brief names the follow: exemplar"
+	_fb_tasks "$d" "" "$_FB_T001" ""
+	(cd "$d" && bash "$TASK_BRIEF" TASKS.md T001 --out "$d/c.md" >/dev/null)
+	OUT=$(cat "$d/c.md")
+	assert_not_contains "$OUT" "Follow:" "a task without follow: gets no Follow line"
+	rm -rf "$d"
+}
+
+t_flowlint_review_focus_unknown_id_errors() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" "$_FB_T001" "$(printf '## Review focus\nIcelandic text — T001, T099\n')"
+	_fb_lint "$d"
+	assert_rc 1 "a Review focus line naming an unknown id is an ERROR"
+	assert_contains "$OUT" "review-focus-unknown-id" "the ERROR names the rule"
+	assert_contains "$OUT" "T099" "the ERROR names the unknown id"
+	rm -rf "$d"
+}
+
+t_flowlint_review_focus_over_five_lines_errors() {
+	local d body
+	d=$(tmp_repo)
+	body=$(printf '## Review focus\nc1 — T001\nc2 — T001\nc3 — T001\nc4 — T001\nc5 — T001\nc6 — T001\n')
+	_fb_tasks "$d" "" "$_FB_T001" "$body"
+	_fb_lint "$d"
+	assert_rc 1 "six Review focus lines is an ERROR"
+	assert_contains "$OUT" "review-focus-too-many" "the ERROR names the rule"
+	body=$(printf '## Review focus\nc1 — T001\nc2 — T001\nc3 — T001\nc4 — T001\nc5 — T001\n')
+	_fb_tasks "$d" "" "$_FB_T001" "$body"
+	_fb_lint "$d"
+	assert_rc 0 "five Review focus lines lints clean"
+	rm -rf "$d"
+}
+
+t_taskbrief_review_focus_reaches_only_named_task() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" "$(printf '%s\n%s' "$_FB_T001" '- [ ] T002 Two — files: b.txt — verify: `true`')" "$(printf '## Review focus\nIcelandic text in tag names — T001\n')"
+	(cd "$d" && bash "$TASK_BRIEF" TASKS.md T001 --out "$d/b1.md" >/dev/null && bash "$TASK_BRIEF" TASKS.md T002 --out "$d/b2.md" >/dev/null)
+	OUT=$(cat "$d/b1.md")
+	assert_contains "$OUT" "Icelandic text in tag names" "the named task's brief carries its focus line"
+	OUT=$(cat "$d/b2.md")
+	assert_not_contains "$OUT" "Icelandic text" "an unnamed task's brief does not"
+	rm -rf "$d"
+}
+
+# _fb_two_files <dir> — commits a.txt and b.txt; prints the Base before them
+_fb_two_files() {
+	local base
+	base=$(git -C "$1" rev-parse --short HEAD)
+	printf '1\n' >"$1/a.txt"
+	printf '1\n' >"$1/b.txt"
+	git -C "$1" add a.txt b.txt
+	git -C "$1" commit -q -m both
+	printf '%s' "$base"
+}
+
+t_flowlint_files_untouched_warns_per_missing_path() {
+	local d base sha
+	d=$(tmp_repo)
+	base=$(_fb_two_files "$d")
+	printf '2\n' >"$d/a.txt"
+	git -C "$d" commit -q -am "only a"
+	sha=$(git -C "$d" rev-parse --short HEAD)
+	_fb_tasks "$d" "$(printf '\nApproved: 2026-09-08 by user')" "- [x] T001 One — files: a.txt, b.txt — verify: \`true\` — done: $sha" ""
+	sed -i.bak "s/Base: abc1234/Base: $base/" "$d/TASKS.md"
+	_fb_lint "$d"
+	assert_rc 0 "files-untouched is a WARN, exit 0"
+	assert_contains "$OUT" "files-untouched" "the WARN names the rule"
+	assert_contains "$OUT" "b.txt" "the WARN names the untouched file"
+	assert_not_contains "$(printf '%s' "$OUT" | grep files-untouched)" "a.txt" "the touched file is not named"
+	rm -rf "$d"
+}
+
+t_flowlint_files_untouched_silent_when_all_touched() {
+	local d base sha
+	d=$(tmp_repo)
+	base=$(_fb_two_files "$d")
+	sha=$(git -C "$d" rev-parse --short HEAD)
+	_fb_tasks "$d" "" "- [x] T001 One — files: a.txt, b.txt — verify: \`true\` — done: $sha" ""
+	sed -i.bak "s/Base: abc1234/Base: $base/" "$d/TASKS.md"
+	_fb_lint "$d"
+	assert_not_contains "$OUT" "files-untouched" "a commit touching every file warns nothing"
+	rm -rf "$d"
+}
+
+# _fb_spec <dir> — spec.md numbering FR-01 and FR-02
+_fb_spec() {
+	printf '# Spec\n\n| ID | Priority | Requirement | Acceptance |\n|----|----|----|----|\n| FR-01 | MUST | a | t |\n| FR-02 | MUST | b | t |\n' >"$1/spec.md"
+}
+
+# _fb_rows <dir> <rows> [approved-line] — TASKS.md whose Behaviors table is <rows>
+_fb_rows() {
+	local d=$1
+	{
+		printf '# Tasks — fb\nSpec: spec.md · Design: none · Base: abc1234 · Route: dispatch · Test: `true`\n'
+		[ -n "${3:-}" ] && printf '%s\n' "$3"
+		printf '\n## Behaviors\n| ID | Given / When / Then | Task | Proven by |\n|----|----|----|----|\n%s\n\n' "$2"
+		printf '## Phase 1 — One\nGoal: g.\nIndependent test: `true`\n%s\n\n## Gates\n- [ ] G001 clean — files: . — verify: `true`\n' "$_FB_T001"
+	} >"$d/TASKS.md"
+}
+
+t_flowlint_behaviors_full_coverage_passes() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" "$(printf '| FR-01 (P0) | g w t | T001 | t |\n| FR-02 | g w t | T001 | t |')"
+	_fb_lint "$d"
+	assert_rc 0 "every FR row covered, every row with a task: clean"
+	assert_not_contains "$OUT" "behaviors-" "no behaviors rule fires"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_alignment_separator_is_not_a_row() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" "$(printf '| FR-01 | g w t | T001 | t |\n| FR-02 | g w t | T001 | t |')"
+	{ sed 's#^|----|----|----|----|$#|:---|:--------------------|:-----:|---:|#' "$d/TASKS.md" >"$d/T2.md" && mv "$d/T2.md" "$d/TASKS.md"; }
+	_fb_lint "$d"
+	assert_rc 0 "an alignment-colon separator row is not a Behaviors row"
+	assert_not_contains "$OUT" "behaviors-" "no behaviors rule fires on the separator"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_missing_id_errors() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" '| FR-01 | g w t | T001 | t |'
+	_fb_lint "$d"
+	assert_rc 1 "an FR with no Behaviors row is an ERROR"
+	assert_contains "$OUT" "behaviors-missing-id" "the ERROR names the rule"
+	assert_contains "$OUT" "FR-02" "the ERROR names the dropped FR"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_unknown_id_errors() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" "$(printf '| FR-01 | g w t | T001 | t |\n| FR-02 | g w t | T001 | t |\n| FR-09 | g w t | T001 | t |')"
+	_fb_lint "$d"
+	assert_rc 1 "a row citing an id the spec lacks is an ERROR"
+	assert_contains "$OUT" "behaviors-unknown-id" "the ERROR names the rule"
+	assert_contains "$OUT" "FR-09" "the ERROR names the unknown id"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_legacy_ids_are_not_spec_coverage() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" "$(printf '| B1 (P0) | g w t | T001 | t |\n| B2 | g w t | T001 | t |')"
+	_fb_lint "$d"
+	assert_rc 0 "a table of legacy B-ids that cites no FR is not spec coverage"
+	assert_not_contains "$OUT" "behaviors-" "no behaviors rule fires on a legacy table"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_spec_cell_trailing_text_and_other_header() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	sed -i.bak 's/^| FR-02 |/| FR-02 (dropped) |/' "$d/spec.md"
+	_fb_rows "$d" "$(printf '| FR-01 | g w t | T001 | t |\n| FR-02 | g w t | T001 | t |')"
+	sed -i.bak 's/^| ID | Given/| Criterion | Given/' "$d/TASKS.md"
+	_fb_lint "$d"
+	assert_rc 0 "trailing text in a spec id cell and a non-ID header row are tolerated"
+	assert_not_contains "$OUT" "behaviors-" "no behaviors rule fires"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_no_task_errors() {
+	local d
+	d=$(tmp_repo)
+	_fb_spec "$d"
+	_fb_rows "$d" "$(printf '| FR-01 | g w t | T001 | t |\n| FR-02 | g w t | T077 | t |')"
+	_fb_lint "$d"
+	assert_rc 1 "a row whose Task cell names no existing task is an ERROR"
+	assert_contains "$OUT" "behaviors-no-task" "the ERROR names the rule"
+	rm -rf "$d"
+}
+
+t_flowlint_behaviors_unchecked_without_spec_or_before_cutoff() {
+	local d
+	d=$(tmp_repo)
+	_fb_rows "$d" '| B1 | g w t | T001 | t |'
+	_fb_lint "$d"
+	assert_rc 0 "no spec.md beside TASKS.md: behaviors rules do not apply"
+	_fb_spec "$d"
+	_fb_rows "$d" '| FR-01 | g w t | T001 | t |' 'Approved: 2026-10-01 by user'
+	_fb_lint "$d"
+	assert_rc 0 "a pre-cutoff Approved: lints as today"
+	assert_not_contains "$OUT" "behaviors-" "no behaviors rule on a pre-cutoff feature"
+	_fb_rows "$d" '| FR-01 | g w t | T001 | t |' 'Approved: 2026-10-12 by user'
+	_fb_lint "$d"
+	assert_rc 1 "a post-cutoff Approved: is checked"
+	rm -rf "$d"
+}
+
+t_flowlint_parity_without_redcheck_warns() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" " · Parity: ./run.sh" '- [ ] T000 Baseline — files: verify/baseline.txt — verify: `test -s verify/baseline.txt`' ""
+	_fb_lint "$d"
+	assert_rc 0 "parity-no-redcheck is a WARN, exit 0"
+	assert_contains "$OUT" "parity-no-redcheck" "Parity: with no redcheck reference warns"
+	_fb_tasks "$d" " · Parity: ./run.sh" '- [ ] T000 Baseline — files: verify/baseline.txt — verify: `test -s verify/baseline.txt && test -s verify/parity-redcheck.txt`' ""
+	_fb_lint "$d"
+	assert_not_contains "$OUT" "parity-no-redcheck" "a verify: naming parity-redcheck.txt silences it"
+	_fb_tasks "$d" "" "$_FB_T001" ""
+	_fb_lint "$d"
+	assert_not_contains "$OUT" "parity-no-redcheck" "no Parity: header, no warning"
+	rm -rf "$d"
+}
+
+t_taskbrief_constraints_reach_every_brief() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" "$(printf '%s\n%s' "$_FB_T001" '- [ ] T002 Two — files: b.txt — verify: `true`')" ""
+	{
+		printf '# Design\n\n## Constraints\n- name: max 40 chars\n- Icelandic text is never transliterated\n\n'
+		printf '## Contract for T001 — one\nLIMITS    name: max 40 chars (spec §4)\n\n'
+		printf '## Contract for T002 — two\nLIMITS    note: max 200 chars (spec §5)\n'
+	} >"$d/design.md"
+	(cd "$d" && bash "$TASK_BRIEF" TASKS.md T001 --design design.md --out "$d/b1.md" >/dev/null && bash "$TASK_BRIEF" TASKS.md T002 --design design.md --out "$d/b2.md" >/dev/null)
+	OUT=$(cat "$d/b1.md")
+	assert_contains "$OUT" "- Icelandic text is never transliterated" "T001's brief carries the Constraints block"
+	assert_contains "$OUT" "name: max 40 chars (spec §4)" "T001's brief carries its own LIMITS row"
+	assert_not_contains "$OUT" "note: max 200 chars" "T001's brief carries no other LIMITS row"
+	OUT=$(cat "$d/b2.md")
+	assert_contains "$OUT" "- name: max 40 chars" "T002's brief carries the Constraints block"
+	assert_contains "$OUT" "note: max 200 chars (spec §5)" "T002's brief carries its own LIMITS row"
+	assert_not_contains "$OUT" "name: max 40 chars (spec" "T002's brief carries no other LIMITS row"
+	rm -rf "$d"
+}
+
+t_taskbrief_without_constraints_adds_nothing() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" "$_FB_T001" ""
+	printf '# Design\n\n## Contract for T001 — one\nUSAGE   x()\n' >"$d/design.md"
+	printf '# Design\n\n## Contract for T001 — one\nUSAGE   x()\n\n## Decisions\nnone\n' >"$d/design2.md"
+	(cd "$d" && bash "$TASK_BRIEF" TASKS.md T001 --design design.md --out "$d/b1.md" >/dev/null && bash "$TASK_BRIEF" TASKS.md T001 --design design2.md --out "$d/b2.md" >/dev/null)
+	assert_eq "$(cat "$d/b1.md")" "$(cat "$d/b2.md")" "a design without ## Constraints adds nothing to the brief"
+	assert_not_contains "$(cat "$d/b1.md")" "## Constraints" "no Constraints heading appears"
+	rm -rf "$d"
+}
+
+t_famous_b1_prose_pinned() {
+	local nx
+	nx=$(cat "$FB_NEXT_SKILL")
+	assert_contains "$nx" "states its breadth in the description" "Drafting: breadth rule"
+	assert_contains "$nx" "follow: <path>" "Drafting: names the follow: field"
+	assert_contains "$nx" "N identical one-line edits are one task listing every file, never N tasks." "Drafting: batch clause"
+	assert_contains "$nx" "verify/parity-redcheck.txt" "Drafting: parity red check artifact"
+	assert_contains "$nx" "no existing test fixture covers" "Drafting: parity input outside fixtures"
+	assert_contains "$nx" "## Review focus" "Drafting and Gates mention Review focus"
+	assert_contains "$nx" "(e.g. \`FR-01\`)" "Drafting: Behaviors rows open with the spec's FR id"
+	assert_contains "$(cat "$FB_DESIGN_REF")" "## Constraints" "design.md documents Constraints"
+	assert_contains "$(cat "$FB_DESIGN_REF")" "LIMITS" "design.md Contract block has a LIMITS row"
+	assert_contains "$(cat "$FB_TEMPLATE")" "follow:" "template documents follow:"
+	assert_contains "$(cat "$FB_TEMPLATE")" "## Review focus" "template carries a Review focus section"
+	assert_contains "$(cat "$FB_TEMPLATE")" "| FR-01" "template Behaviors rows use FR ids"
+}
+
+# ---------------------------------------------------------------------------
+# famous-borrows B2 — task-joined (F97), no_claim: (F114), design-marker and
+# parity-marker (F95)
+# ---------------------------------------------------------------------------
+
+t_flowlint_task_joined_warns_once_on_two_actions() {
+	run_cmd bash "$FLOW_LINT" "$FIX/tasks-joined.md"
+	assert_rc 0 "task-joined is a WARN, exit 0"
+	assert_contains "$OUT" "[task-joined]" "T001 joins two actions"
+	assert_eq "$(printf '%s\n' "$OUT" | grep -c '\[task-joined\]')" "1" "exactly one task-joined warning"
+	assert_contains "$(printf '%s\n' "$OUT" | grep '\[task-joined\]')" "T001" "it names T001"
+	assert_contains "$OUT" "split into two tasks ordered with after:" "the warning carries its fix"
+}
+
+t_flowlint_task_joined_ignores_noun_pairs() {
+	run_cmd bash "$FLOW_LINT" "$FIX/tasks-good.md"
+	assert_not_contains "$OUT" "task-joined" "'Migration and Tag model' is not two actions"
+	run_cmd bash "$FLOW_LINT" "$FIX/tasks-joined.md"
+	assert_not_contains "$(printf '%s\n' "$OUT" | grep '\[task-joined\]')" "T002" "'Read and write cache' is not flagged"
+}
+
+t_flowlint_no_claim_field_is_known() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" '- [ ] T001 One — files: a.txt — verify: `pytest -q` — no_claim: model call mocked; live Bedrock not exercised' ""
+	_fb_lint "$d"
+	assert_rc 0 "a no_claim: field lints with no errors"
+	assert_not_contains "$OUT" "unknown-field" "no_claim: is a known key"
+	run_cmd bash -c 'cd "$1" || exit 1; bash "$2" TASKS.md --json' _ "$d" "$FLOW_LINT"
+	assert_contains "$OUT" '"verify":"`pytest -q`"' "json verify is the command alone"
+	assert_contains "$OUT" '"no_claim":"model call mocked; live Bedrock not exercised"' "json carries no_claim apart from verify"
+	rm -rf "$d"
+}
+
+t_flowlint_unknown_field_still_fails_beside_no_claim() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" '- [ ] T001 One — files: a.txt — verify: `true` — no_claim: x — bogus: y' ""
+	_fb_lint "$d"
+	assert_rc 1 "a bogus key still fails"
+	assert_contains "$OUT" 'unknown field "bogus:"' "the bogus key is named"
+	assert_not_contains "$OUT" 'unknown field "no_claim:"' "no_claim: itself is not flagged"
+	assert_contains "$OUT" "no_claim:" "the fix lists no_claim: as known"
+	rm -rf "$d"
+}
+
+# _f95 <dir> <design-field> <parity-field> <tasks> [approved] — a TASKS.md beside
+# a spec.md that says **Behaviour-preserving**: yes
+_f95() {
+	local d=$1 design=$2 parity=$3 tasks=$4 appr=${5:-}
+	printf '# Spec\n\n**Behaviour-preserving**: yes\n' >"$d/spec.md"
+	{
+		printf '# Tasks — f95\nSpec: spec.md%s · Base: abc1234 · Route: dispatch · Test: `true`%s\n' "$design" "$parity"
+		[ -n "$appr" ] && printf '%s\n' "$appr"
+		printf '\n## Behaviors\n| ID | Given / When / Then | Task | Proven by |\n|----|----|----|----|\n| B1 | g w t | T001 | t |\n\n'
+		printf '## Phase 1 — One\nGoal: g.\nIndependent test: `true`\n%s\n\n## Gates\n- [ ] G001 clean — files: . — verify: `true`\n' "$tasks"
+	} >"$d/TASKS.md"
+}
+
+_F95_T000='- [ ] T000 Baseline — files: verify/baseline.txt — verify: `test -s verify/baseline.txt && test -s verify/parity-redcheck.txt`
+- [ ] T001 One — files: a.txt — verify: `true` — after: T000'
+
+t_flowlint_design_marker_missing_path() {
+	local d
+	d=$(tmp_repo)
+	_f95 "$d" " · Design: design.md" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 1 "Design: naming a missing file fails"
+	assert_contains "$OUT" "[design-marker]" "rule name"
+	assert_contains "$OUT" "fix:" "carries a fix"
+	rm -rf "$d"
+}
+
+t_flowlint_design_marker_ignored_design_md() {
+	local d
+	d=$(tmp_repo)
+	printf '# Design\n' >"$d/design.md"
+	_f95 "$d" " · Design: none" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 1 "design.md beside TASKS.md with Design: none fails"
+	assert_contains "$OUT" "[design-marker]" "rule name"
+	_f95 "$d" "" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_contains "$OUT" "[design-marker]" "an absent Design: with design.md beside it fails too"
+	rm -rf "$d"
+}
+
+t_flowlint_design_marker_consistent_passes() {
+	local d
+	d=$(tmp_repo)
+	printf '# Design\n' >"$d/design.md"
+	_f95 "$d" " · Design: design.md" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 0 "Design: design.md with the file present is clean"
+	assert_not_contains "$OUT" "-marker]" "no marker rule fires"
+	rm -f "$d/design.md"
+	_f95 "$d" " · Design: none" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 0 "Design: none with no design.md is clean"
+	rm -rf "$d"
+}
+
+t_flowlint_parity_marker_no_parity_header() {
+	local d
+	d=$(tmp_repo)
+	_f95 "$d" " · Design: none" "" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 1 "Behaviour-preserving: yes with no Parity: fails"
+	assert_contains "$OUT" "[parity-marker]" "rule name"
+	assert_contains "$OUT" "Parity:" "it names the missing header field"
+	rm -rf "$d"
+}
+
+t_flowlint_parity_marker_no_t000() {
+	local d
+	d=$(tmp_repo)
+	_f95 "$d" " · Design: none" " · Parity: ./run.sh" "$_FB_T001"
+	_fb_lint "$d"
+	assert_rc 1 "Parity: with no T000 fails"
+	assert_contains "$OUT" "[parity-marker]" "rule name"
+	assert_contains "$OUT" "T000" "it names T000"
+	rm -rf "$d"
+}
+
+t_flowlint_parity_marker_consistent_passes() {
+	local d
+	d=$(tmp_repo)
+	_f95 "$d" " · Design: none" " · Parity: ./run.sh" "$_F95_T000"
+	_fb_lint "$d"
+	assert_rc 0 "Parity: plus T000 plus the redcheck verify is clean"
+	assert_not_contains "$OUT" "parity-marker" "no parity-marker"
+	rm -rf "$d"
+}
+
+t_flowlint_markers_spared_before_cutoff() {
+	local d
+	d=$(tmp_repo)
+	printf '# Design\n' >"$d/design.md"
+	_f95 "$d" " · Design: none" "" "$_FB_T001" "Approved: 2026-09-08 by user"
+	_fb_lint "$d"
+	assert_not_contains "$OUT" "-marker]" "a feature approved before the cutoff keeps linting clean"
+	rm -rf "$d"
+}
+
+t_flowlint_no_claim_prose_pinned() {
+	assert_contains "$(cat "$FB_TEMPLATE")" "— no_claim:" "template shows a no_claim: example"
+	assert_contains "$(cat "$FB_NEXT_SKILL")" "no_claim:" "Drafting names no_claim:"
+	assert_contains "$(cat "$FB_NEXT_SKILL")" "task-joined" "Drafting names the task-joined warning"
+	assert_contains "$(cat "$SCAN_DIR/../skills/next/execution-prompt.md")" "copy that text into the report's Evidence section" "RED step copies no_claim into Evidence"
+}
+
+t_flowlint_task_generic_warns_on_discovery_tasks() {
+	local d
+	d=$(tmp_repo)
+	_fb_tasks "$d" "" '- [ ] T001 Explore the auth module — files: a.txt — verify: `true`
+- [ ] T002 Planner caches results — files: b.txt — verify: `true`
+- [ ] T003 Look into the retry bug — files: c.txt — verify: `true`
+- [ ] T004 Spike a queue — files: d.txt — verify: `true`
+- [ ] T005 Researcher module returns rows — files: e.txt — verify: `true`' ''
+	_fb_lint "$d"
+	assert_contains "$OUT" "[task-generic]" "a generic discovery task warns"
+	assert_contains "$OUT" "T001" "Explore the auth module is named"
+	assert_contains "$OUT" "T003" "Look into is named"
+	assert_contains "$OUT" "T004" "Spike is named"
+	assert_contains "$OUT" "do the discovery now" "the fix says to do the discovery while drafting"
+	assert_not_contains "$OUT" "T002 " "Planner caches results does not warn"
+	assert_not_contains "$OUT" "T005 " "Researcher module does not warn (word boundary)"
+	rm -rf "$d"
+}
+
+t_flowlint_marker_rules_listed_in_help() {
+	run_cmd bash "$FLOW_LINT" --help
+	assert_contains "$OUT" "task-generic" "help lists task-generic"
+	assert_contains "$OUT" "baseline-missing" "help lists baseline-missing"
+	assert_contains "$OUT" "spec-criterion-changed" "help lists spec-criterion-changed"
+	assert_contains "$OUT" "open-question-blocks-tasks" "help lists open-question-blocks-tasks"
+	assert_contains "$OUT" "design-marker" "help lists design-marker"
+	assert_contains "$OUT" "parity-marker" "help lists parity-marker"
+	assert_contains "$OUT" "task-joined" "help lists task-joined"
+	assert_contains "$OUT" "no_claim:" "help documents no_claim:"
 }

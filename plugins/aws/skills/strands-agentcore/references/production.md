@@ -57,6 +57,10 @@ aws logs put-resource-policy --policy-name AgentCoreObs --policy-document '{
 aws xray update-trace-segment-destination --destination CloudWatchLogs
 ```
 
+**Verify the telemetry before trusting it.** After the first deploy, make one tool fail on purpose (a bad id, a revoked credential in a test stage) and find that failure in CloudWatch or the OTel backend using the session id alone. If that takes more than the session id, the logs are missing a field; fix it before real traffic arrives, because the first real incident is the wrong time to learn it.
+
+**Fields every run log carries.** The session id plus `entry_point` (`scheduler`, `api` or `cli`), so a bad run can be traced to the path that started it. For calls to external services log metadata only: host, status, latency and response size. Request and response bodies stay out of logs, since they carry customer data and credentials.
+
 ### Self-Hosted Observability
 
 For agents not on AgentCore Runtime:

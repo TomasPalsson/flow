@@ -66,6 +66,18 @@ case "$file_path" in
 	;;
 esac
 
+# CI definitions are gate config too: a job that may fail without failing the
+# run is a gate turned off. Their numbers (timeout-minutes, ...) are not judged.
+_is_ci_config=0
+case "$file_path" in
+*/.github/workflows/*.yml | .github/workflows/*.yml | \
+	*/.github/workflows/*.yaml | .github/workflows/*.yaml | \
+	*/.gitlab-ci.yml | .gitlab-ci.yml)
+	_is_gate_config=1
+	_is_ci_config=1
+	;;
+esac
+
 # B6: a hook script, a skill/agent doc, or a hooks/mcp config — a zero-width or
 # bidi control character added here can hide text from a human reviewer.
 _is_hidden_unicode_file=0
@@ -231,6 +243,7 @@ if [ "$_tn_snapdir_ok" -eq 1 ] && mkdir -p "$_tn_snapdir" 2>/dev/null; then
 fi
 
 _matched=""
+_tn_unknown=""
 
 if [ "$_is_test_file" -eq 1 ]; then
 	_tn_hits=$(printf '%s\n' "$_added" | grep -E '\.skip\(|\.only\(|it\.todo\(|xfail|@pytest\.mark\.skip|#\[ignore\]|t\.Skip\(' || true)
@@ -247,27 +260,67 @@ if [ "$_is_gate_config" -eq 1 ]; then
 $_tn_stopgate"
 	fi
 
-	# A numeric value change on a max*/complexity/threshold-like key: the same
-	# key name appears in both a removed line (old value) and an added line
-	# (new, different value).
-	_kv_extract() {
-		sed 's/^[+-]//' | grep -oE '"?[A-Za-z_][A-Za-z0-9_-]*"?[[:space:]]*[:=][[:space:]]*-?[0-9]+' |
-			sed -E 's/^"?([A-Za-z_][A-Za-z0-9_-]*)"?[[:space:]]*[:=][[:space:]]*(-?[0-9]+)$/\1 \2/'
-	}
-	_removed_kv=$(printf '%s\n' "$_removed" | _kv_extract | grep -E '^(max[-_A-Za-z]*|complexity|threshold)[[:space:]]' || true)
-	_added_kv=$(printf '%s\n' "$_added" | _kv_extract | grep -E '^(max[-_A-Za-z]*|complexity|threshold)[[:space:]]' || true)
+	if [ "$_is_ci_config" -eq 1 ]; then
+		_tn_ci=$(printf '%s\n' "$_added" | grep -E '^\+[[:space:]-]*(continue-on-error|allow_failure)[[:space:]]*:[[:space:]]*true([[:space:]]|#|$)' || true)
+		if [ -n "$_tn_ci" ]; then
+			_matched="$_matched
+$_tn_ci"
+		fi
+	fi
 
-	if [ -n "$_added_kv" ]; then
-		while IFS=' ' read -r _tn_k _tn_v; do
+	# A numeric value change on a gate-number key that loosens it. Same
+	# direction table as bin/lib/loop/tamper.js (keep the two in step): an
+	# increase loosens max*/complexity*/timeout*/retries*; a decrease loosens
+	# min*/threshold/coverage*/fail_under/branches/lines/functions/statements.
+	# Any other gate-looking key that changed is flagged as direction unknown.
+	_kv_extract() {
+		sed 's/^[+-]//' | grep -oE '"?[A-Za-z_][A-Za-z0-9_-]*"?[[:space:]]*[:=][[:space:]]*-?[0-9]+(\.[0-9]+)?' |
+			sed -E 's/^"?([A-Za-z_][A-Za-z0-9_-]*)"?[[:space:]]*[:=][[:space:]]*(-?[0-9]+(\.[0-9]+)?)$/\1 \2/'
+	}
+	_removed_kv=""
+	_added_kv=""
+	if [ "$_is_ci_config" -eq 0 ]; then
+		_removed_kv=$(printf '%s\n' "$_removed" | _kv_extract || true)
+		_added_kv=$(printf '%s\n' "$_added" | _kv_extract || true)
+	fi
+
+	if [ -n "$_added_kv" ] && [ -n "$_removed_kv" ]; then
+		# Last value wins on both sides (as in tamper.js). Output: "W key" for a
+		# loosening, "U key" for a changed key whose direction is unknown.
+		_tn_assessed=$(
+			{
+				printf '%s\n' "$_removed_kv" | sed 's/^/R /'
+				printf '%s\n' "$_added_kv" | sed 's/^/A /'
+			} | awk '
+				function dir(key) {
+					if (key ~ /^(max|complexity|timeout|retries)/) return "up"
+					if (key ~ /^(min|coverage|fail[-_]?under|threshold)/ || key ~ /^(branches|lines|functions|statements)$/) return "down"
+					if (key ~ /(max|min|complexity|threshold|timeout|retries|coverage|fail[-_]?under|branches|lines|functions|statements)/) return "unknown"
+					return ""
+				}
+				$1 == "R" { old[$2] = $3 + 0; next }
+				$1 == "A" { if (!($2 in nw)) order[++n] = $2; nw[$2] = $3 + 0 }
+				END {
+					for (i = 1; i <= n; i++) {
+						k = order[i]
+						if (!(k in old) || old[k] == nw[k]) continue
+						d = dir(tolower(k))
+						if ((d == "up" && nw[k] > old[k]) || (d == "down" && nw[k] < old[k])) print "W " k
+						else if (d == "unknown") print "U " k
+					}
+				}'
+		)
+		while IFS=' ' read -r _tn_t _tn_k; do
 			[ -z "$_tn_k" ] && continue
-			_tn_rv=$(printf '%s\n' "$_removed_kv" | awk -v k="$_tn_k" '$1==k{print $2; exit}')
-			if [ -n "$_tn_rv" ] && [ "$_tn_rv" != "$_tn_v" ]; then
-				_tn_line=$(printf '%s\n' "$_added" | grep -F "$_tn_k" | head -1)
-				_matched="$_matched
-$_tn_line"
+			if [ "$_tn_t" = "U" ]; then
+				_tn_unknown="$_tn_unknown${_tn_unknown:+, }$_tn_k"
+				continue
 			fi
+			_tn_line=$(printf '%s\n' "$_added" | grep -F "$_tn_k" | head -1)
+			_matched="$_matched
+$_tn_line"
 		done <<EOF
-$_added_kv
+$_tn_assessed
 EOF
 	fi
 fi
@@ -305,6 +358,16 @@ _tn_weakened_block=""
 if [ -n "$_matched" ]; then
 	_tn_weakened_block="$_matched
 You just disabled or weakened a check. If that is intentional and correct, state which check and why in your reply; otherwise revert it. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
+fi
+
+if [ -n "$_tn_unknown" ]; then
+	_tn_unknown_block="Gate setting changed, direction unknown: $_tn_unknown. If it loosens a check, state which and why in your reply; otherwise continue. (escape: state the reason in your reply and continue, or \`flow off\` in this directory to silence this hook)"
+	if [ -n "$_tn_weakened_block" ]; then
+		_tn_weakened_block="$_tn_weakened_block
+$_tn_unknown_block"
+	else
+		_tn_weakened_block="$_tn_unknown_block"
+	fi
 fi
 
 _tn_unicode_block=""

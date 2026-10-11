@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""version-ledger-lint [--list] [<ledger.md> ...]
+
+Checks version-claims ledgers: markdown tables with the columns
+Claim | File | Anchor | Verified | Re-verify. A ledger row fails when
+  - the cited file does not exist,
+  - the anchor (exact text, quoted in backticks) is not on any line of that
+    file (the same test as `grep -F`; line numbers are never used, so
+    unrelated edits above the anchor cannot break a row),
+  - the Verified cell is not YYYY-MM-DD,
+  - the Re-verify command is empty.
+File paths are relative to the ledger's own directory. A cell may hold a
+literal pipe as \\|.
+
+With no ledger arguments it checks every versions.md that has a ledger table
+under the plugins tree this script lives in (plugins/*/skills/*/references/).
+--list prints those paths and exits 0. Prints nothing when clean.
+Exit 0 clean, 1 at least one failing row (one line each, naming the row),
+2 on an unreadable ledger (missing, or not UTF-8). A ledger with no parsable
+table or zero rows fails (1).
+"""
+import os
+import re
+import sys
+
+COLS = ("claim", "file", "anchor", "verified", "re-verify")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def cells(line):
+    inner = line.strip()
+    if inner.startswith("|"):
+        inner = inner[1:]
+    if inner.endswith("|") and not inner.endswith("\\|"):
+        inner = inner[:-1]
+    parts = re.split(r"(?<!\\)\|", inner)
+    return [p.replace("\\|", "|").strip() for p in parts]
+
+
+def unquote(s):
+    if len(s) >= 2 and s[0] == "`" and s[-1] == "`":
+        return s[1:-1]
+    return s
+
+
+def rows(path):
+    """Yield (lineno, dict) for every ledger row in the file."""
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().splitlines()
+    idx = None
+    for n, line in enumerate(lines, 1):
+        if not line.lstrip().startswith("|"):
+            idx = None
+            continue
+        c = cells(line)
+        low = [x.lower() for x in c]
+        if idx is None:
+            if all(k in low for k in COLS):
+                idx = {k: low.index(k) for k in COLS}
+            continue
+        if all(re.fullmatch(r":?-{3,}:?", x) for x in c if x):
+            continue
+        yield n, {k: (c[i] if i < len(c) else "") for k, i in idx.items()}
+
+
+def check(path):
+    problems = []
+    base = os.path.dirname(os.path.abspath(path))
+    seen = 0
+    for n, r in rows(path):
+        seen += 1
+        name = r["claim"] or "(unnamed row)"
+        where = "%s:%d [%s]" % (path, n, name)
+        target = unquote(r["file"])
+        full = target if os.path.isabs(target) else os.path.join(base, target)
+        if not os.path.isfile(full):
+            problems.append("%s file not found: %s" % (where, target))
+        else:
+            anchor = unquote(r["anchor"])
+            if not anchor:
+                problems.append("%s anchor is empty" % where)
+            else:
+                with open(full, encoding="utf-8", errors="replace") as fh:
+                    if not any(anchor in ln for ln in fh):
+                        problems.append("%s anchor not found in %s: %s" % (where, target, anchor))
+        if not DATE.match(r["verified"]):
+            problems.append("%s verified date must be YYYY-MM-DD, got: %s" % (where, r["verified"] or "(empty)"))
+        if not unquote(r["re-verify"]):
+            problems.append("%s has no re-verify command" % where)
+    if not seen:
+        problems.append("%s no ledger rows: need a table with the columns Claim | File | Anchor | Verified | Re-verify" % path)
+    return problems
+
+
+def discover():
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.abspath(os.path.join(here, "..", ".."))
+    found = []
+    for dp, dn, fn in os.walk(root):
+        dn[:] = [d for d in dn if d not in ("node_modules", ".git", "tests")]
+        if "versions.md" in fn:
+            p = os.path.join(dp, "versions.md")
+            try:
+                if any(True for _ in rows(p)) or "| Anchor |" in open(p, encoding="utf-8").read():
+                    found.append(p)
+            except (OSError, UnicodeDecodeError):
+                found.append(p)
+    return sorted(found)
+
+
+def main(argv):
+    args = [a for a in argv if a != "--list"]
+    if "--list" in argv:
+        print("\n".join(discover()))
+        return 0
+    targets = args or discover()
+    bad = []
+    for t in targets:
+        try:
+            bad += check(t)
+        except (OSError, UnicodeDecodeError) as e:
+            sys.stderr.write("version-ledger-lint: cannot read %s: %s\n" % (t, getattr(e, "strerror", None) or e))
+            return 2
+    for line in bad:
+        print(line)
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

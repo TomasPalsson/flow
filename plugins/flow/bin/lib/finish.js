@@ -66,6 +66,40 @@ function disarm(dir) {
   return had;
 }
 
+// dirtyOpenTaskFiles(root, dir) -> modified tracked paths (repo-relative) listed in
+// the `files:` of an open `[ ]` task of dir/TASKS.md. Paths under .specs/ and paths
+// no task owns are ignored. A task commit takes the whole file, so a user's edit
+// there would be committed unattended.
+function dirtyOpenTaskFiles(root, dir) {
+  let tasks;
+  try { tasks = fs.readFileSync(path.join(dir, 'TASKS.md'), 'utf8'); } catch { return []; }
+  const owned = new Set();
+  for (const line of tasks.split('\n')) {
+    const m = /^\s*[-*]\s+\[ \]\s.*?\bfiles:\s*(.*?)(?:\s+[—–]\s+\w+:|$)/.exec(line);
+    if (!m) continue;
+    for (const f of m[1].split(',')) { const t = f.trim().replace(/^\.\//, ''); if (t) owned.add(t); }
+  }
+  if (!owned.size) return [];
+  // -z + core.quotePath=false: raw NUL-separated paths, so non-ASCII, quotes and
+  // backslashes compare equal to the `files:` text. A rename/copy record carries
+  // its source path as a second NUL field.
+  const r = spawnSync('git', ['-C', root, '-c', 'core.quotePath=false', 'status', '--porcelain', '-z', '--untracked-files=no'], { encoding: 'utf8', timeout: 15000 });
+  if (r.status !== 0) return [];
+  const hits = [];
+  const recs = r.stdout.split('\0');
+  for (let i = 0; i < recs.length; i++) {
+    const l = recs[i];
+    if (l.length < 4) continue;
+    const paths = [l.slice(3)];
+    if ('RC'.includes(l[0]) || 'RC'.includes(l[1])) paths.push(recs[++i] || '');
+    for (const p of paths) {
+      if (p.startsWith('.specs/')) continue;
+      if (owned.has(p)) hits.push(p);
+    }
+  }
+  return hits;
+}
+
 function cmdOn(root, o, io, env) {
   const f = feature(root, o, env);
   if (!f.dir) {
@@ -81,6 +115,11 @@ function cmdOn(root, o, io, env) {
   if (fs.existsSync(file)) {
     io.stdout.write(`finish: already armed for ${rel}\n`);
     return 0;
+  }
+  const dirty = dirtyOpenTaskFiles(root, f.dir);
+  if (dirty.length) {
+    io.stderr.write(`flow finish: uncommitted edits to files that open tasks will commit:\n${dirty.map((p) => `  ${p}\n`).join('')}  fix: commit or stash these, then flow finish on\n`);
+    return 1;
   }
   const note = o.note && o.note.trim() ? o.note.trim().replace(/\s*\n\s*/g, ' ') : 'none';
   const body = `# Finish mode — ${f.slug}
