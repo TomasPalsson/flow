@@ -1,0 +1,15 @@
+{
+  "_note": "A constraint shifts the shape of the solution; none bans a topic. roll.mjs applies one to about half the cells. 'not_with' lists lens ids it contradicts or repeats.",
+  "constraints": [
+    { "id": "one-day", "text": "it must be shippable in one day", "not_with": [] },
+    { "id": "one-month", "text": "it is worth a whole month, so think bigger than a patch", "not_with": ["subtract"] },
+    { "id": "no-new-dep", "text": "it may not add a dependency or a new config file", "not_with": [] },
+    { "id": "net-negative", "text": "it must delete at least as much code as it adds", "not_with": ["subtract"] },
+    { "id": "invisible", "text": "it must be invisible until something goes wrong", "not_with": ["make-visible"] },
+    { "id": "zero-config", "text": "it must work with zero configuration and undo with one command", "not_with": [] },
+    { "id": "never-reads-docs", "text": "it must help someone who will never read the docs", "not_with": [] },
+    { "id": "thirty-seconds", "text": "it must be demonstrable in a thirty-second screen recording", "not_with": [] },
+    { "id": "avoid-hot-file", "text": "it may not touch the most-changed file named in the evidence", "not_with": [] },
+    { "id": "one-default", "text": "it may change exactly one default and nothing else", "not_with": ["flip-default"] }
+  ]
+}

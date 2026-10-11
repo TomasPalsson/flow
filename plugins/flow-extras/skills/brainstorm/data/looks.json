@@ -1,0 +1,122 @@
+[
+  {
+    "id": "warm-paper",
+    "mood": "warm, bookish, unhurried, serif",
+    "fonts": {
+      "body": "Georgia, 'Iowan Old Style', 'Palatino Linotype', serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "Georgia, 'Iowan Old Style', 'Palatino Linotype', serif",
+      "google_href": null
+    },
+    "light": { "paper": "#f5efe3", "card": "#fffbf2", "ink": "#2a2017", "muted": "#675a49", "line": "#d9ccb5", "accent": "#a23f1c", "accent_soft": "#f1d7c5", "safe": "#2f6b3f", "stretch": "#8a5a00", "wild": "#8a2f6b", "remove": "#8c2f2f", "fix": "#0f6a78" },
+    "dark": { "paper": "#1e1914", "card": "#28211a", "ink": "#f1e9db", "muted": "#b8ab96", "line": "#4a3f33", "accent": "#ec8b5c", "accent_soft": "#4a2e20", "safe": "#7cc48e", "stretch": "#e0b04f", "wild": "#e08cc3", "remove": "#ee8c8c", "fix": "#6fcad8" },
+    "corner": 10,
+    "stroke": "1px",
+    "card_style": "flat"
+  },
+  {
+    "id": "crisp-mono",
+    "mood": "technical, precise, terminal-cool, monospaced",
+    "fonts": {
+      "body": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "google_href": null
+    },
+    "light": { "paper": "#f4f5f7", "card": "#ffffff", "ink": "#14181f", "muted": "#556070", "line": "#cfd5dd", "accent": "#0b5fd1", "accent_soft": "#dbe8fb", "safe": "#1a7a43", "stretch": "#8a5f00", "wild": "#7a32c8", "remove": "#b32626", "fix": "#007a8a" },
+    "dark": { "paper": "#0f1318", "card": "#171c23", "ink": "#e6eaf0", "muted": "#9aa6b5", "line": "#2e3744", "accent": "#6aa8ff", "accent_soft": "#1c2f4d", "safe": "#5fd08b", "stretch": "#e6b455", "wild": "#c39bff", "remove": "#ff8585", "fix": "#4fd0e0" },
+    "corner": 4,
+    "stroke": "1px",
+    "card_style": "outlined"
+  },
+  {
+    "id": "poster-sans",
+    "mood": "bold, loud, high-contrast poster sans",
+    "fonts": {
+      "body": "'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "google_href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap"
+    },
+    "light": { "paper": "#fff1c9", "card": "#ffffff", "ink": "#111111", "muted": "#474747", "line": "#111111", "accent": "#d92f14", "accent_soft": "#ffd3ca", "safe": "#0f6b2f", "stretch": "#8a4b00", "wild": "#6b21c7", "remove": "#b3121b", "fix": "#006b7a" },
+    "dark": { "paper": "#141414", "card": "#1f1f1f", "ink": "#fafafa", "muted": "#b8b8b8", "line": "#d0d0d0", "accent": "#ff7059", "accent_soft": "#4a2018", "safe": "#69d98d", "stretch": "#ffc158", "wild": "#c9a2ff", "remove": "#ff8c8c", "fix": "#5ad6e6" },
+    "corner": 2,
+    "stroke": "2px",
+    "card_style": "raised-paper"
+  },
+  {
+    "id": "soft-pastel",
+    "mood": "gentle, rounded, friendly pastel",
+    "fonts": {
+      "body": "'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "google_href": "https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
+    },
+    "light": { "paper": "#f3f0fa", "card": "#ffffff", "ink": "#2b2740", "muted": "#625c7e", "line": "#dcd6ef", "accent": "#6d4bd1", "accent_soft": "#e6defa", "safe": "#23704a", "stretch": "#8a5a12", "wild": "#a02a7a", "remove": "#a8323e", "fix": "#12708a" },
+    "dark": { "paper": "#1b1930", "card": "#26233f", "ink": "#efecff", "muted": "#b4aed6", "line": "#3b3760", "accent": "#b49cff", "accent_soft": "#382f66", "safe": "#7fd8a6", "stretch": "#eab96a", "wild": "#f09ad2", "remove": "#f59aa4", "fix": "#7ad3ea" },
+    "corner": 18,
+    "stroke": "1.5px",
+    "card_style": "flat"
+  },
+  {
+    "id": "dark-ink",
+    "mood": "deep ink, moody, night-desk, quiet",
+    "fonts": {
+      "body": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif",
+      "google_href": null
+    },
+    "light": { "paper": "#e9ebf0", "card": "#f9fafc", "ink": "#10131c", "muted": "#505a6e", "line": "#c3c9d6", "accent": "#3b3fb8", "accent_soft": "#dcdcf7", "safe": "#1b6b46", "stretch": "#82560a", "wild": "#8a2a8c", "remove": "#a62b3a", "fix": "#0f6a82" },
+    "dark": { "paper": "#0b0d14", "card": "#131724", "ink": "#e8eaf2", "muted": "#a2a9bd", "line": "#262c40", "accent": "#9ea3ff", "accent_soft": "#23265a", "safe": "#6fd3a1", "stretch": "#e8b960", "wild": "#e49ae6", "remove": "#ff9aa6", "fix": "#68cfe8" },
+    "corner": 8,
+    "stroke": "1px",
+    "card_style": "tabbed"
+  },
+  {
+    "id": "newspaper",
+    "mood": "editorial, black-and-white print, hairline rules",
+    "fonts": {
+      "body": "'Times New Roman', Times, 'Liberation Serif', serif",
+      "mono": "'Courier New', Courier, 'Liberation Mono', monospace",
+      "display": "Georgia, 'Times New Roman', serif",
+      "google_href": null
+    },
+    "light": { "paper": "#ece7dc", "card": "#f8f5ee", "ink": "#111111", "muted": "#4f4f4f", "line": "#1a1a1a", "accent": "#8f1d1d", "accent_soft": "#ead3cf", "safe": "#1f5c2e", "stretch": "#7a4d00", "wild": "#6e2a78", "remove": "#8f1d1d", "fix": "#17606b" },
+    "dark": { "paper": "#181716", "card": "#222120", "ink": "#eeebe4", "muted": "#b0aca3", "line": "#5a5750", "accent": "#ee8a82", "accent_soft": "#4a2623", "safe": "#86cf98", "stretch": "#e3b565", "wild": "#d9a0e3", "remove": "#ee8a82", "fix": "#78c8d4" },
+    "corner": 0,
+    "stroke": "1px",
+    "card_style": "outlined"
+  },
+  {
+    "id": "blueprint",
+    "mood": "drafting table, cyan lines on blue, engineered",
+    "fonts": {
+      "body": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "google_href": null
+    },
+    "light": { "paper": "#dfeaf7", "card": "#f4f9ff", "ink": "#0d2a4d", "muted": "#3f5f87", "line": "#9ab8de", "accent": "#b04a06", "accent_soft": "#fde3c4", "safe": "#16663f", "stretch": "#7d5200", "wild": "#6a2fa8", "remove": "#a62727", "fix": "#0a6577" },
+    "dark": { "paper": "#0c2340", "card": "#12305a", "ink": "#e8f1ff", "muted": "#a9c3e6", "line": "#3a6199", "accent": "#ffd166", "accent_soft": "#4a4320", "safe": "#7be0a8", "stretch": "#ffc861", "wild": "#d6b0ff", "remove": "#ff9d9d", "fix": "#5fe0ef" },
+    "corner": 2,
+    "stroke": "1px",
+    "card_style": "tabbed"
+  },
+  {
+    "id": "playful-zine",
+    "mood": "playful, photocopied zine, mint and hot pink, chunky",
+    "fonts": {
+      "body": "'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      "mono": "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+      "display": "'Caprasimo', 'DM Sans', Georgia, serif",
+      "google_href": "https://fonts.googleapis.com/css2?family=Caprasimo&family=DM+Sans:wght@400;700&display=swap"
+    },
+    "light": { "paper": "#dff5e8", "card": "#fffdf5", "ink": "#1b1b1b", "muted": "#4a524d", "line": "#1b1b1b", "accent": "#c4155f", "accent_soft": "#fbd0e2", "safe": "#16683a", "stretch": "#85520a", "wild": "#6c22b8", "remove": "#b3201f", "fix": "#0b6b73" },
+    "dark": { "paper": "#18201b", "card": "#232d27", "ink": "#f5f3ea", "muted": "#b3bdb5", "line": "#6c7d72", "accent": "#ff7ab8", "accent_soft": "#58203d", "safe": "#7fdba3", "stretch": "#f0bf6a", "wild": "#cfa6ff", "remove": "#ff9490", "fix": "#68d8de" },
+    "corner": 10,
+    "stroke": "2px",
+    "card_style": "raised-paper"
+  }
+]
