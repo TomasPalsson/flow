@@ -38,5 +38,5 @@ Also: a defect sweep (Quick fix slot, 4 cards), a whole-repo reader and a whole-
 ## Open
 
 - prr lost rounds 1-5a: three picks rested on false premises; fixed by the Opus refuter (4 dead vs 1), after which prr flipped to v2 under the taste judge.
-- Cost: ~55-85 agents, ~1-4M tokens per run (Opus generators, Sonnet refuters).
+- Cost: ~60-90 agents, ~3-6M tokens, 5-8 minutes per run (Opus generators, refuters and ranking; Sonnet only shortens captions).
 - Term clashes across cards (one word, two meanings on different cards) are not detected.
