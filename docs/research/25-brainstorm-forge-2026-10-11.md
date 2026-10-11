@@ -29,6 +29,7 @@ Also: a defect sweep (Quick fix slot, 4 cards), a whole-repo reader and a whole-
 | 4 (fair format) | 6/6 clear | v1 6/6 | v2 4/6 (meal-planner, granted both orders); prr v1 |
 | 5 (fresh dice, big bets, Opus refuter on prr) | 6/6 (2 "huge") | v1 4/6, prr tie 1-1 | **v2 6/6: all 3 fixtures, both orders** |
 | Unseen repo (worklog), installed plugin run end to end incl. blind read | 2/2 clear; ELI5 needed: v2 no, v1 yes | tie 1-1 | **v2 2/2** (novelty 7 vs 4) |
+| worklog, fresh full re-run with the folded "More bugs worth fixing" list | - | tie 1-1 (v2 novelty 7-8 vs 6) | **v2 2/2** again (novelty 7 vs 4-5) |
 
 - Tired-reader page scores, round 4: clarity v2 7-8 vs v1 4-6; pictures helped v2 7-8 vs v1 2-5; "would still need an ELI5": v2 0/3, v1 3/3.
 - User-taste judge novelty, round 5: v2 7/6.5/7 vs v1 4/4/5.5.
