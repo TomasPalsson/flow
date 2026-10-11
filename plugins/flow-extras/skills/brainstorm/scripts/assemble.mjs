@@ -124,6 +124,7 @@ function validate(data, path) {
   const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
   if (!isObj(data)) bad('top level must be an object');
   for (const k of ['repo', 'key', 'generated_at', 'headline']) if (!isStr(data[k])) bad(`"${k}" must be a non-empty string`);
+  if (data.about !== undefined && !isStr(data.about)) bad('"about" must be a non-empty string when present');
   if (!Array.isArray(data.ideas) || data.ideas.length === 0) bad('"ideas" must be a non-empty array');
   const seen = new Set();
   data.ideas.forEach((idea, i) => {
@@ -227,10 +228,12 @@ a:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-of
 .howto .k-remove{--slot:var(--remove)}
 .howto .k-fix{--slot:var(--fix)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 28px;padding:0;list-style:none}
-.chips a{display:inline-flex;gap:6px;align-items:baseline;text-decoration:none;color:var(--ink);background:var(--card);border:var(--stroke) solid var(--line);border-radius:999px;padding:6px 12px;min-height:2.25rem;font-size:.9rem}
+.chips a{display:inline-flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;text-decoration:none;color:var(--ink);background:var(--card);border:var(--stroke) solid var(--line);border-radius:999px;padding:6px 12px;min-height:2.25rem;font-size:.9rem}
 .chips a:hover{border-color:var(--accent)}
 .chips .n{font-weight:700;color:var(--accent)}
-.chips .k{color:var(--muted)}
+.chips .k{color:var(--muted);white-space:nowrap}
+.chips .t{min-width:0;overflow-wrap:break-word}
+.about{color:var(--muted);margin:0 0 12px;max-width:46rem}
 .idea{background:var(--card);border-radius:var(--corner);padding:18px 16px;margin:0 0 24px;--slot:var(--muted);scroll-margin-top:12px}
 .idea[data-slot="safe"]{--slot:var(--safe)}
 .idea[data-slot="stretch"]{--slot:var(--stretch)}
@@ -404,7 +407,7 @@ export function buildPage(data, look, { artifact = false, runDir }) {
   const body = `<main class="style-${look.card_style}" data-look="${look.id}">
 <header>
 <h1>${esc(title)}</h1>
-<p class="headline">${esc(data.headline)}</p>
+${data.about ? `<p class="about">${esc(data.about)}</p>\n` : ''}<p class="headline">${esc(data.headline)}</p>
 ${howTo(new Set(ordered.map((i) => i.slot)))}
 <nav aria-label="Ideas"><ul class="chips">
 ${chips}

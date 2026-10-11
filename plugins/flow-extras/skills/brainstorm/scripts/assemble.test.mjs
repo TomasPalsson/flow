@@ -347,3 +347,21 @@ test('glosses are unified: first gloss in page order wins, case-insensitive', ()
   assert.ok(html.includes('<b>PR</b>: safe wording'));
   assert.ok(!html.includes('wild wording') && !html.includes('other wording'));
 });
+
+test('about renders under h1 before the headline; absent means no about paragraph', () => {
+  const html = assembleOk(makeRun([idea('a', 'safe')], { about: 'Demo is a CLI for <devs>.' }));
+  const h1 = html.indexOf('</h1>');
+  const about = html.indexOf('<p class="about">Demo is a CLI for &lt;devs&gt;.</p>');
+  assert.ok(h1 > -1 && about > h1 && html.indexOf('<p class="headline">') > about);
+  assert.ok(!assembleOk(makeRun([idea('a', 'safe')])).includes('<p class="about">'));
+});
+
+test('about must be a non-empty string when present', () => {
+  assert.equal(run(['--run', makeRun([idea('a', 'safe')], { about: 5 })]).status, 3);
+  assert.equal(run(['--run', makeRun([idea('a', 'safe')], { about: '' })]).status, 3);
+});
+
+test('chip kind word never breaks inside a word', () => {
+  const html = assembleOk(makeRun([idea('a', 'safe')]));
+  assert.match(html, /\.chips \.k\{[^}]*white-space:nowrap/);
+});

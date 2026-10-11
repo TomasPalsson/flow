@@ -73,7 +73,7 @@ const CARD = { type: 'object', required: ['title', 'sentence', 'for_whom', 'why_
     change: str(80, 'the element that gets the accent colour, or "none"') } } } } }
 const DRAWN = { type: 'object', required: ['pictures'], properties: { pictures: { type: 'array', items: { type: 'object',
   required: ['id', 'file', 'caption'], properties: { id: str(8), file: str(200), caption: str(110, '16 words or fewer') } } }, problems: str(300) } }
-const HEAD = { type: 'object', required: ['headline'], properties: { headline: str(170, 'one sentence, 20 words or fewer') } }
+const HEAD = { type: 'object', required: ['headline', 'about'], properties: { headline: str(170, 'one sentence, 20 words or fewer'), about: str(170, 'one plain sentence: what the project is and who uses it') } }
 
 // Ambition is dealt by cell position, outside the model, so every run has bets as well as fixes.
 const SIZES = {
@@ -190,7 +190,7 @@ Write:
 - sentence: 20 words or fewer, active voice, what changes for whom. Everyday words; no function, file or flag names (those go in evidence).
 - words: at most 3 terms the title and sentence cannot avoid (the project's real names, tools), glossed in 6 words or fewer. Never invent a new name for a thing.
 - why_here: one plain sentence a friend would say ("This is the one most people would feel every day"). Never mention scores, ranks, judges, slots or evidence numbers.
-- first_test: 20 words or fewer.
+- first_test: 20 words or fewer, plain words; no function, variable or file names.
 - size: blocks 1 = hours, 2 = days, 3 = weeks, 0 = not sure; words says it plainly.
 - evidence: path:line plus what it shows. risks: up to 3.
 - kind and pictures: pick the kind, then 2 to 4 pictures from the catalog in page.md. The FIRST picture shows what a person sees or does today (a screen, a terminal, a message, a moment). No picture of code structure (folders, files, functions, module boxes): readers new to the project cannot decode them; that detail belongs in evidence. Each picture proves ONE claim no other picture on the card proves, and lists at least 2 facts it will show (real names, real values from the evidence; never invented numbers). Before/after pairs count as two pictures. A tidy idea may need only 1-2.
@@ -350,12 +350,13 @@ const cards = await pipeline(picks,
     return { id, slot: p.slot, ...rest, pictures: (d?.pictures || []).slice(0, 4).map(({ id, file, caption }) => ({ id, file, caption })), needs: [] }
   })
 const final = cards.filter(Boolean)
-const head = await agent(`Write one headline sentence (20 words or fewer, plain words, no hype) that says what these ideas for ${A.repo} have in common, as a reader would want to hear it first:\n${final.map(c => `- ${c.title}: ${c.sentence}`).join('\n')}`, { label: 'headline', phase: 'Explain', schema: HEAD, model: GEN_MODEL })
+const head = await agent(`Read ${PROJECT}. Write about: one plain sentence (20 words or fewer) saying what this project is and who uses it, for a reader who has never heard of it. Then write one headline sentence (20 words or fewer, plain words, no hype) that says what these ideas for ${A.repo} have in common, as a reader would want to hear it first:\n${final.map(c => `- ${c.title}: ${c.sentence}`).join('\n')}`, { label: 'headline', phase: 'Explain', schema: HEAD, model: GEN_MODEL })
 
 return {
   repo: A.repo.split('/').filter(Boolean).pop(),
   generated_at: A.date || '',
   headline: head?.headline || '',
+  ...(head?.about ? { about: head.about } : {}),
   ideas: final,
   dropped: {
     obvious: [...new Set(anchors.map(a => a.title))].slice(0, 10),

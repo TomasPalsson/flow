@@ -16,6 +16,7 @@ One card per idea, the same frame on every card, so the reader learns how to rea
   "repo": "prr",
   "key": "9f2c1a77",
   "generated_at": "2026-10-11",
+  "about": "prr is a command-line tool that tells developers which pull request their branch belongs to.",
   "headline": "prr guesses where you are; these ideas make it look first.",
   "ideas": [{
     "id": "i3",
@@ -41,6 +42,7 @@ One card per idea, the same frame on every card, so the reader learns how to rea
 }
 ```
 
+- `about` (optional) = one sentence: what the project is and who uses it. The page prints it right under the title, before the headline, so a cold reader knows what this is about.
 - `slot` words on the page: safe = "Safe bet", stretch = "Stretch", wild = "Wild card", remove = "Remove", fix = "Quick fix".
 - `title` <= 8 words, starts with a verb. `sentence` <= 20 words, active voice, says what changes for whom.
 - `size.blocks` 1 = hours, 2 = days, 3 = weeks, 0 = not sure. The page prints a fixed word per block count; `words` is kept for the record only.
