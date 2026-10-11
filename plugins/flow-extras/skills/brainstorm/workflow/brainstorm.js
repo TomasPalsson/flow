@@ -44,6 +44,7 @@ const GEN = { type: 'object', required: ['ideas'], properties: {
       share: { type: 'integer', minimum: 0, maximum: 100, description: 'of 100 AI assistants shown this repo, how many would suggest this' },
       subtracts: { type: 'boolean', description: 'true if the idea mainly removes, merges or defaults something away' },
     } } } } }
+const GEN6 = { ...GEN, properties: { ...GEN.properties, ideas: { ...GEN.properties.ideas, maxItems: 6 } } }
 const ANCHOR = { type: 'object', required: ['ideas'], properties: { ideas: { type: 'array', minItems: 6, maxItems: 14, items: {
   type: 'object', required: ['title', 'mechanism', 'target'],
   properties: { title: str(90), mechanism: str(200), target: str(160) } } } } }
@@ -106,12 +107,17 @@ For each kept idea fill seen_through first (a sentence in ${c.persona.line}'s ow
 const auditPrompt = `Find the sharpest real defects in this project that a user or the maintainer would actually hit. ${DATA_RULE}
 Repo: ${A.repo}. Start with ${PROJECT} and ${A.run}/tree.txt, then read the biggest and most-changed source files in full.${FOCUS}
 Look for places where the code silently does something other than what it promises (its docs, names, messages, defaults), loses or corrupts data, crashes on an ordinary input, or breaks for users unlike the author (time zone, language, network, platform). Verify each by reading the exact lines; a defect you did not verify does not count.
-Return at most 4, sharpest first. For each: seen_through = one sentence from the person who hits it; move = the fix in one sentence; user_sees = what changes for them; first_test = how to reproduce it in under an hour; share = how many of 100 AI assistants would spot it; subtracts = true only if the fix removes something. Plain words.`
+Return at most 6, sharpest first. For each: seen_through = one sentence from the person who hits it; move = the fix in one sentence; user_sees = what changes for them; first_test = how to reproduce it in under an hour; share = how many of 100 AI assistants would spot it; subtracts = true only if the fix removes something. Plain words.`
 
 // One whole-repo reader: the old single-pass skill was strong on ideas tied tightly to the code; keep that voice in the pool.
 const deepPrompt = `Read this project the way its maintainer would after a long break: README, ${PROJECT}, ${A.run}/tree.txt, then the main source files in full. ${DATA_RULE}
 Repo: ${A.repo}.${FOCUS}${ASK}
 Return the 4 improvement ideas you would most want the maintainer to see: at least one bold idea that changes what the project does or who it is for, and at least one that removes something. Every idea must rest on lines you opened; quote them in observed_in. Skip ideas any assistant would give for any project of this kind. Fill the fields as asked; share = how many of 100 AI assistants would suggest it. Plain words.`
+
+// Slice-fed generators rarely see the whole product, so the boldest product-level bets get their own whole-repo reader.
+const betsPrompt = `Read this whole project: README, ${PROJECT}, ${A.run}/tree.txt, then the main source files in full. ${DATA_RULE}
+Repo: ${A.repo}.${FOCUS}${ASK}
+Propose the 4 boldest ideas that would change what this project does, who it is for, or how people use it: new verbs, new workflows, a different shape of the product. No fixes and no polish. Each must grow from something specific you read here (quote it in observed_in), name the concrete mechanism in move, and give a first test that could kill it within an hour. Write 7 short titles first, rewrite them bolder and more different from each other, then keep the 4 that only make sense for this project. share = how many of 100 AI assistants would suggest it. Plain words.`
 
 const anchorPrompt = i => `List the improvement ideas a typical AI coding assistant would put at the top of its list for this project. ${DATA_RULE}
 Repo: ${A.repo}. Read ${PROJECT}, ${A.run}/tree.txt, the README, and skim the files listed in ${A.run}/slices.json packets.${FOCUS}
@@ -139,7 +145,7 @@ Do all four, in order, with real commands:
 1. Exists: search the code, docs, changelog and dependency manifests for this behaviour under at least 3 different names.
 2. Deliberate: run git log -S'<key symbol>' --oneline and git blame on the cited lines (skip if no git); read commit messages for "intentional", "revert", "workaround", "because".
 3. Tracker: gh issue list --search '<terms>' --state all if gh works; else search TODO/FIXME and docs.
-4. Premise: open each cited location and check it says what the idea claims.
+4. Premise: open each cited location and check it says what the idea claims. Then trace the code path the idea talks about and look for code that ALREADY does what the idea says is missing (a message already printed, an error already handled, a value already shown). Also check every claim about how an outside tool behaves (git, gh, the framework, the browser): if the idea needs a tool to behave in a way it does not, the premise is false.
 Rules: premise false, or it already exists with the same mechanism = dead. Deliberate with a stated reason that still applies = dead. Exists partly = rewrite. Otherwise survives. Quote what you found. If you found nothing after an honest search, say so; never invent.`
 
 const plainCard = (x, r) => `CHANGE: ${x.move}
@@ -208,14 +214,16 @@ const mean = xs => xs.reduce((a, b) => a + b, 0) / (xs.length || 1)
 
 // ---------- 1. generate (blind) + anchors (hidden from generators) ----------
 phase('Generate')
-const [gens, anchorRuns, audit, deep] = await Promise.all([
+const [gens, anchorRuns, audit, bets, deep] = await Promise.all([
   parallel(A.cells.map(c => () => agent(genPrompt(c), { label: `gen:${c.id}:${c.lens.id}`, phase: 'Generate', schema: GEN, model: GEN_MODEL }))),
   parallel([0, 1, 2].map(i => () => agent(anchorPrompt(i), { label: `anchor:${i + 1}`, phase: 'Generate', schema: ANCHOR, model: GEN_MODEL }))),
-  agent(auditPrompt, { label: 'gen:audit', phase: 'Generate', schema: GEN, model: GEN_MODEL }),
+  agent(auditPrompt, { label: 'gen:audit', phase: 'Generate', schema: GEN6, model: GEN_MODEL }),
+  agent(betsPrompt, { label: 'gen:bets', phase: 'Generate', schema: GEN, model: GEN_MODEL }),
   agent(deepPrompt, { label: 'gen:deep', phase: 'Generate', schema: GEN, model: GEN_MODEL }),
 ])
 const ideas = []
 gens.forEach((g, i) => { if (g) g.ideas.forEach((x, k) => ideas.push({ ...x, id: `${A.cells[i].id}-${k + 1}`, cell: A.cells[i].id, lens: A.cells[i].lens.id, wildcell: !!A.cells[i].wildcard })) })
+if (bets) bets.ideas.forEach((x, k) => ideas.push({ ...x, id: `bets-${k + 1}`, cell: 'bets', lens: 'bet', wildcell: false }))
 if (deep) deep.ideas.forEach((x, k) => ideas.push({ ...x, id: `deep-${k + 1}`, cell: 'deep', lens: 'deep', wildcell: false }))
 if (audit) audit.ideas.forEach((x, k) => ideas.push({ ...x, id: `audit-${k + 1}`, cell: 'audit', lens: 'fix', wildcell: false }))
 const anchors = anchorRuns.filter(Boolean).flatMap(a => a.ideas)
@@ -238,7 +246,7 @@ log(`${ideas.length} ideas -> ${groups.length} groups; ${groups.filter(g => g.an
 
 // ---------- 3. refute each group's best member ----------
 const refuted = await pipeline(groups, g =>
-  agent(refutePrompt(byId[g.best]), { label: `refute:${g.best}`, phase: 'Refute', schema: REFUTE, model: READ_MODEL }).then(r => ({ g, r })))
+  agent(refutePrompt(byId[g.best]), { label: `refute:${g.best}`, phase: 'Refute', schema: REFUTE, model: GEN_MODEL }).then(r => ({ g, r })))
 // A refuter that errored (rate limit, crash) proves nothing: keep the idea, marked unchecked, instead of killing it.
 refuted.forEach(j => { if (j && !j.r) j.r = { exists: 'no', deliberate: 'maybe', premise_holds: true, verdict: 'survives', quotes: [], note: 'not checked: the checker failed' } })
 const dead = refuted.filter(j => j && j.r.verdict === 'dead')
@@ -261,7 +269,7 @@ for (const run of runs.filter(x => x && x.r)) {
 }
 alive.forEach(j => { const p = pct[j.g.best]; j.s = { surprise: +(1 - mean(p.surprise)).toFixed(2), value: +(1 - mean(p.value)).toFixed(2), fit: +(1 - mean(p.fit)).toFixed(2) } })
 
-// ---------- 5. portfolio (deterministic): 3 safe, 2 wild, 2 stretch, 3 quick fixes, >= 1 remove ----------
+// ---------- 5. portfolio (deterministic): 3 safe, 2 wild, 2 stretch, 4 quick fixes, >= 1 remove ----------
 // One idea per theme across the whole page: two cards on the same problem read as padding.
 const taken = new Set(), themes = new Set()
 const theme = j => (j.g.theme || j.g.best).trim().toLowerCase()
@@ -288,12 +296,12 @@ const pickFresh = (n, slot, key, minFit) => {
 }
 const PICK = {
   safe: n => take([...ideasOnly].sort(by(j => j.s.value + j.s.fit / 4 + j.s.surprise / 10)), n, 'safe'),
-  wild: n => pickFresh(n, 'wild', j => j.s.surprise + (appetite(bet(j)) === 'bet' ? 0.1 : 0) - j.g.hits / 20, 0.3),
+  wild: n => pickFresh(n, 'wild', j => j.s.surprise + (appetite(bet(j)) === 'bet' || byId[j.g.best].lens === 'bet' ? 0.15 : 0) - j.g.hits / 20, 0.3),
   stretch: n => pickFresh(n, 'stretch', j => j.s.surprise + j.s.value, 0.4),
   fix: n => take(alive.filter(isFix).sort(by(j => j.s.value + j.s.fit / 2)), n, 'fix'),
   remove: n => take(ideasOnly.filter(isSub).sort(by(j => j.s.value + j.s.surprise)), n, 'remove'),
 }
-let picks = [...PICK.safe(3), ...PICK.wild(2), ...PICK.stretch(2), ...PICK.fix(3)]
+let picks = [...PICK.safe(3), ...PICK.wild(2), ...PICK.stretch(2), ...PICK.fix(4)]
 const firstSub = picks.find(p => p.slot === 'safe' && isSub(p))
 if (firstSub) firstSub.slot = 'remove'
 else if (!picks.some(isSub)) picks.push(...PICK.remove(1))
@@ -333,6 +341,12 @@ const cards = await pipeline(picks,
     const d = c.pictures.length ? await agent(drawPrompt(id, c), { label: `draw:${id}`, phase: 'Explain', schema: DRAWN, model: DRAW_MODEL }) : { pictures: [] }
     const { kind, pictures: plan, ...rest } = c
     if (d?.problems) drawNotes.push(`${id}: ${d.problems}`)
+    // Drawers overshoot the 16-word caption limit often enough to fail the page check; shorten here, once.
+    const long = (d?.pictures || []).filter(q => words(q.caption) > 16)
+    if (long.length) {
+      const fixed = await agent(`Shorten each caption to 16 words or fewer. Keep its claim, its real names and numbers; plain words. Return them in the same order.\n${long.map(q => `- ${q.caption}`).join('\n')}`, { label: `captions:${id}`, phase: 'Explain', schema: { type: 'object', required: ['captions'], properties: { captions: { type: 'array', items: str(110) } } }, model: READ_MODEL })
+      long.forEach((q, k) => { const c = fixed?.captions?.[k]; if (c && words(c) <= 16) q.caption = c })
+    }
     return { id, slot: p.slot, ...rest, pictures: (d?.pictures || []).slice(0, 4).map(({ id, file, caption }) => ({ id, file, caption })), needs: [] }
   })
 const final = cards.filter(Boolean)

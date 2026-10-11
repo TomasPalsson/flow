@@ -39,12 +39,12 @@ test('script src and chart library names fail', () => {
   assert.ok(has(r.fails, 'chart library'));
 });
 
-test('idea count: none fails, twelve fails, eleven ok', () => {
+test('idea count: none fails, thirteen fails, twelve ok', () => {
   assert.ok(has(staticCheck(page('<p>x</p>')).fails, 'no <article class="idea">'));
-  const twelve = Array.from({ length: 12 }, (_, i) => article(i + 1, '')).join('');
-  assert.ok(has(staticCheck(page(twelve)).fails, '12 ideas'));
-  const eleven = Array.from({ length: 11 }, (_, i) => good(i + 1)).join('');
-  assert.ok(!has(staticCheck(page(eleven)).fails, 'ideas, at most'));
+  const thirteen = Array.from({ length: 13 }, (_, i) => article(i + 1, '')).join('');
+  assert.ok(has(staticCheck(page(thirteen)).fails, '13 ideas'));
+  const twelve = Array.from({ length: 12 }, (_, i) => good(i + 1)).join('');
+  assert.ok(!has(staticCheck(page(twelve)).fails, 'ideas, at most'));
 });
 
 test('more than 4 svgs fails, zero svgs warns', () => {

@@ -102,7 +102,7 @@ export function staticCheck(html) {
     if (c && c.split(/\s+/).includes('idea')) articles.push({ tag: m[1], body: m[2] });
   }
   if (articles.length === 0) F('page', 'no <article class="idea"> found');
-  else if (articles.length > 11) F("page", `${articles.length} ideas, at most 11 allowed`);
+  else if (articles.length > 12) F("page", `${articles.length} ideas, at most 12 allowed`);
   else oks.push(`ok page: ${articles.length} ideas`);
 
   // duplicate ids
