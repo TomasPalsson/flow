@@ -26,8 +26,8 @@
 #   hook_soft <msg>       Stop-only additionalContext, exit 0, turn continues
 #   hook_once <key>       rc 0 the first time <key> is seen this session
 #   hook_count <sig>      record <sig>, print how often it was recorded
-#   hook_ok               exit 0;  hook_log <text>: append a line to
-#                         ${CLAUDE_HOOK_LOG:-/dev/null}
+#   hook_ok               exit 0;  hook_ask <reason>: permissionDecision ask;
+#   hook_log <text> + a "<hook> <decision> <reason80>" line per exit: lib/hooklog.sh
 #   hook_off_here / hook_skip_if_off  .claude/flow.off here or above: judging
 #                         hooks exit 0, bookkeeping hooks keep running
 #   hook_git_managed <f>  in a git work tree and not git-ignored (that call is
@@ -292,6 +292,8 @@ _HOOKOUT_DIR=${BASH_SOURCE[0]%/*}
 [ "$_HOOKOUT_DIR" = "${BASH_SOURCE[0]}" ] && _HOOKOUT_DIR="."
 # shellcheck source=hookpath.sh
 . "$_HOOKOUT_DIR/hookpath.sh"
+# shellcheck source=hooklog.sh
+. "$_HOOKOUT_DIR/hooklog.sh"
 
 hook_git_managed() {
 	[ "${CC_HOOKS_ALL_FILES:-}" = "1" ] && return 0
@@ -354,45 +356,42 @@ hook_count() {
 
 # Blocking helpers record the reason and emit it unchanged: the message a hook
 # writes is the message the model reads.
-_hook_record() { hook_count "${0##*/} ${1%%
+_hook_record() { _hook_trace "$2" "$1"; hook_count "${0##*/} ${1%%
 *}" >/dev/null 2>&1 || true; }
 
 hook_deny() {
-	_hook_record "$1"
+	_hook_record "$1" deny
 	printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":%s}}\n' "$(_json_str "$1")"
 	exit 0
 }
 
 hook_block() {
-	_hook_record "$1"
+	_hook_record "$1" block
 	printf '{"decision":"block","reason":%s}\n' "$(_json_str "$1")"
 	exit 0
 }
 
 hook_feedback() {
-	_hook_record "$1"
+	_hook_record "$1" feedback
 	printf '%s\n' "$1" >&2
 	exit 2
 }
 
 # Not a block: a line the user sees while the turn continues.
 hook_note() {
+	_hook_trace note "$1"
 	printf '{"systemMessage":%s}\n' "$(_json_str "$1")"
 	exit 0
 }
 
 # Stop only: extra context for the model, no hook-error styling, turn continues.
 hook_soft() {
+	_hook_trace soft "$1"
 	printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' "$(_json_str "$1")"
 	exit 0
 }
 
-hook_ok() { exit 0; }
-
-hook_log() {
-	local f="${CLAUDE_HOOK_LOG:-/dev/null}"
-	printf '%s %s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$1" >>"$f" 2>/dev/null || true
-}
+hook_ok() { _hook_trace ok ""; exit 0; }
 
 # Resolve the input fields and the project dir once, here in the parent, so
 # every later $(...) call is a cache hit (see _hook_input_fields).

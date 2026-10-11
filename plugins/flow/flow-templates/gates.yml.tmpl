@@ -18,3 +18,12 @@ jobs:
         run: {{LINT_CMD}}
       - name: test
         run: {{TEST_CMD}}
+      # Secrets scan through the gitleaks container: the packaged GitHub
+      # action needs a licence secret on org accounts. --redact keeps secret
+      # values out of the CI log. Dependency advisories are deliberately not
+      # a blocking step: unrelated transitive ones would turn CI red.
+      - name: secrets
+        run: >-
+          docker run --rm -v "$PWD:/repo" --entrypoint sh ghcr.io/gitleaks/gitleaks:latest
+          -c 'git config --global --add safe.directory /repo &&
+          gitleaks detect --source /repo --redact --no-banner'

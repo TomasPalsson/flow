@@ -54,6 +54,7 @@ Never use grep/sed for rename — it misses string references, reflection, dynam
 ### Remove Dead Code
 **Safe when**: Code coverage confirms path is never executed (100% line coverage OR mutation testing shows removing it doesn't kill any tests), no `#ifdef`/conditional compilation, no reflection that could invoke it by name.
 **Auto-fix verdict**: Yes, only with coverage evidence. Flag for human review if coverage < 80% on the module.
+**Build proof**: coverage evidence is not enough on its own. Remove the code in a scratch `git worktree` (`git worktree add ../scratch-<id> HEAD`, edit there), then run the typecheck/build there. It must pass with the code gone, which catches static references a grep missed (re-exports, aliased imports). A passing build does not catch string-based dynamic imports, so the reflection rule above still applies. Remove the scratch worktree afterwards; the real tree is untouched until the fix commit.
 
 ### Slide Statements (reorder locals with no dependency)
 **Safe when**: No data dependency, no exception side effects.

@@ -55,6 +55,7 @@ The script prints each failing check's link. When the link is a GitHub Actions r
 - A check tagged `(external)` (Vercel or another outside app; `external: true` in `--json`) has no run id, so `gh run view` and `gh run rerun` do not apply. Open its link to find the failing command, reproduce it locally with the project's build command, and fix it with a push. Never `gh run rerun` it. If it looks like a flake, the provider's own redeploy is the retry; report it as a flake the same way.
 - Failure in code the diff never touched: check `git merge-base --is-ancestor <base> HEAD`. A stale base needs a conflict-style update (section 4), not a retry.
 - Failure that looks like a flake (timeout, network, a test unrelated to the diff): re-run once with `gh run rerun <run-id> --failed`, and pass `--flake <check> --reruns 1` on later reads (`--flake <check> --reruns 0` makes `pr-watch` itself answer `rerun-flake`). A pass after a rerun is reported as a flake with the check name and run URL, not as proof the change is sound. A second identical failure was never a flake; read the logs and treat it as real.
+- Never push an empty commit (`--allow-empty`) to retrigger CI: it restarts every check, hides the cause, and adds noise to the history. A flake gets `gh run rerun --failed`, an external check gets the provider's redeploy, and a check that never appeared stays `wait` and is reported.
 - Failure in the diff's own code: a real defect. Hand it to `/flow:fix` (reproduce, root cause, smallest change).
 
 ## 4. Conflicts

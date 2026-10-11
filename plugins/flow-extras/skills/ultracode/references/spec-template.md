@@ -34,8 +34,8 @@ description: Grill question bank + SPEC.md template for ultracode Phase 1. The s
 <interfaces, types, schemas, naming — pasted verbatim. Anything two units share.>
 
 ## Unit map (ownership = files no other unit touches)
-| Unit | Owns (files/dirs) | Depends on | Notes |
-|---|---|---|---|
+| Unit | Owns (files/dirs) | Depends on | Agents and the finding kind each looks for | Notes |
+|---|---|---|---|---|
 
 ## Standing orders
 <!-- Numbered, empty by default. A directive the user gives mid-run is appended here

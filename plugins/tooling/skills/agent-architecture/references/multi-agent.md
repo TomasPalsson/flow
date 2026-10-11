@@ -23,6 +23,7 @@ From Anthropic's production research system (BrowseComp): **single agent ≈ 4×
 - **Lead (Opus):** decomposes the query, writes the plan to **external memory** (context truncates at 200K), spawns workers, synthesizes. A separate **CitationAgent** verifies sources *after* research — not in the main loop.
 - **Workers (Sonnet):** 3–5 spawned in parallel, each given **objective + output format + tool/source guidance + explicit boundaries + what NOT to do**. Each runs in an **isolated context window** and returns a **1,000–2,000 token** summary (detail → files/memory), never raw output.
 - **Two levels of parallelism:** lead spawns workers concurrently AND each worker fires 3+ tool calls in parallel (sequential tool calls are "painfully slow"). Anthropic's lead waits synchronously for the worker batch before proceeding — async is better but not yet shipped; design around the slowest worker.
+- **Fan out after the first streamed token.** A cache entry is readable only once the first response begins streaming, so N parallel workers over one prefix all pay full price. Send one request, wait for its first streamed token (not the full reply), then start the other N-1; they read what it wrote. Credit: adapted from anthropics/skills skills/claude-api/shared/prompt-caching.md @ dbd4588 (Apache-2.0).
 
 **Scaling rules — embed verbatim in the orchestrator's system prompt** (without them, early systems spawned 50 subagents for trivial queries):
 - Simple fact-finding → **1 subagent, 3–10 tool calls**

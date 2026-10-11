@@ -37,7 +37,7 @@ function run(argv, root, io, env) {
   }
   const open = [];
   for (const line of raw.split('\n')) {
-    const m = line.replace(/\r$/, '').match(/^- \[ \] (T\d{3})(?: \[P\])? (.+?)(?: — files:| — verify:|$)/);
+    const m = line.replace(/\r$/, '').match(/^- \[ \] (T\d{3,})(?: \[P\])? (.+?)(?: — files:| — verify:|$)/);
     if (m) open.push({ id: m[1], title: `${m[1]} ${m[2].trim()}` });
   }
   if (!open.length) {
@@ -48,16 +48,33 @@ function run(argv, root, io, env) {
     for (const t of open) stdout.write(`would create: ${t.title}\n`);
     return 0;
   }
-  const existing = gh(root, ['issue', 'list', '--state', 'all', '--limit', '400', '--json', 'title', '-q', '.[].title']);
+  const existing = gh(root, ['issue', 'list', '--state', 'all', '--limit', '400', '--json', 'title,body']);
   if (!existing.ok) {
     stderr.write(`flow publish: gh issue list failed (${existing.err.split('\n')[0] || 'is gh installed and authenticated?'})\n  fix: gh auth login, or run with --dry-run to see what would be created\n`);
     return 1;
   }
-  const have = new Set(existing.out.split('\n').map((s) => s.trim()).filter(Boolean));
+  let issues = [];
+  try {
+    issues = JSON.parse(existing.out || '[]');
+  } catch {
+    stderr.write('flow publish: gh issue list returned something that is not JSON\n  fix: update gh, or run with --dry-run to see what would be created\n');
+    return 1;
+  }
+  // Task ids restart in every feature, so the dedupe key is feature + id,
+  // carried in the issue body. Issues made before markers existed name the
+  // feature in their body (`.specs/<slug>/TASKS.md`) and start with the id.
+  const marker = (id) => `flow:${resolved.slug}/${id}`;
+  const legacy = `.specs/${resolved.slug}/TASKS.md`;
+  const alreadyThere = (t) => issues.some((i) => {
+    const body = String((i && i.body) || '');
+    const title = String((i && i.title) || '');
+    return new RegExp(marker(t.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\d)').test(body) || (body.includes(legacy) && title.startsWith(`${t.id} `));
+  });
   let made = 0;
   for (const t of open) {
-    if (have.has(t.title)) continue; // idempotent by title
-    const r = gh(root, ['issue', 'create', '--title', t.title, '--body', `From \`.specs/${resolved.slug}/TASKS.md\`. The build does not read this issue; \`flow next\` does.`]);
+    if (alreadyThere(t)) continue; // idempotent by feature-scoped marker
+    const body = `${marker(t.id)}\nFrom \`.specs/${resolved.slug}/TASKS.md\`. The build does not read this issue; \`flow next\` does.`;
+    const r = gh(root, ['issue', 'create', '--title', t.title, '--body', body]);
     if (!r.ok) {
       stderr.write(`flow publish: gh issue create failed for ${t.id} (${r.err.split('\n')[0]})\n`);
       return 1;

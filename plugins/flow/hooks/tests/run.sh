@@ -46,6 +46,18 @@ for f in $(bash_files); do
 done
 [ "$port_bad" -eq 0 ] && _pass "no non-portable constructs under ${SCAN_DIR##*/}/"
 
+# F25: ((n++)) under `set -e` — hooks/ here, and the sibling scripts/ dir.
+printf 'post-increment\n'
+inc_bad=0
+for f in $(bash_files) $(SCAN_DIR="$SCAN_DIR/../scripts" bash_files); do
+	hits=$(postinc_hits "$f")
+	if [ -n "$hits" ]; then
+		inc_bad=1
+		_fail "set -e post-increment: ${f#"$SCAN_DIR"/}" "$(printf '%s' "$hits" | head -3 | tr '\n' ' ')"
+	fi
+done
+[ "$inc_bad" -eq 0 ] && _pass "no ((n++)) under set -e in hooks/ or scripts/"
+
 printf 'shellcheck\n'
 if command -v shellcheck >/dev/null 2>&1; then
 	for f in $(bash_files); do

@@ -150,6 +150,27 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
   const status = hits.length >= 3 ? 'FAIL' : hits.length || emPer600 > 7 ? 'WARN' : 'PASS';
   checks.push({ id: 'banned-phrase-scan', status, evidence: hits.slice(0, 8), detail: `${hits.length} AI-vocabulary phrases; ${em} em dashes in ${words} words (${emPer600.toFixed(1)} per 600; >7 reads machine-written)` });
 }
+// ---- 9b. microcopy tells (WARN only: footers, breadcrumbs and real sequences are legitimate) -------------
+// Credit: adapted from anthropics/skills skills/frontend-design/SKILL.md @ dbd4588 (Apache-2.0).
+{
+  const body = all.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi, ' ')
+    .replace(/<footer\b[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<nav\b[^>]*aria-label=["']breadcrumbs?["'][^>]*>[\s\S]*?<\/nav>/gi, ' ')
+    .replace(/<ol\b[\s\S]*?<\/ol>/gi, ' ')
+    .replace(/<(\w+)\b[^>]*\bdata-sequence\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/&middot;|&#183;|&#xb7;/gi, '·').replace(/&mdash;|&#8212;/gi, '—').replace(/&rarr;|&#8594;/gi, '→');
+  const texts = [...body.matchAll(/>([^<>]+)</g)].map(m => m[1].replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const tells = [];
+  const meta = texts.filter(t => (t.match(/\s·\s/g) || []).length >= 2);
+  if (meta.length) tells.push(`${meta.length}× dot-separated meta string ("${meta[0].slice(0, 40)}")`);
+  const label = texts.filter(t => /^[A-Z][A-Z0-9 &]{2,}\s—\s\S/.test(t));
+  if (label.length) tells.push(`${label.length}× WORD — fragment label ("${label[0].slice(0, 40)}")`);
+  const arrows = [...body.matchAll(/<(a|button)\b[^>]*>([\s\S]*?)<\/\1>/gi)].filter(m => /→\s*$/.test(m[2].replace(/<[^>]+>/g, '').trim()));
+  if (arrows.length) tells.push(`${arrows.length}× trailing arrow in link or button text`);
+  const markers = texts.filter(t => /^0\d$/.test(t));
+  if (markers.length >= 2) tells.push(`${markers.length}× 01/02/03 markers outside <ol> or [data-sequence]`);
+  checks.push({ id: 'microcopy-tells', status: tells.length ? 'WARN' : 'PASS', evidence: tells.map(t => ({ tell: t })), detail: tells.length ? `${tells.join('; ')}; confirm each carries information` : 'no microcopy template tells detected' });
+}
 // ---- 10. template tells (structural) ------------------------------------------------------------------------
 {
   const tells = [];

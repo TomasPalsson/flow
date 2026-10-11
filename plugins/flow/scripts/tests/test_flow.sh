@@ -495,6 +495,64 @@ t_flow_review_package_bad_ref_exit1() {
 	cd "$prevdir" || true
 }
 
+t_flow_review_package_removes_stale_out_and_stamps_range() {
+	local repo prevdir base out first
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: review-package stale setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	mkdir -p r
+	printf 'STALE\n' >r/T1.diff
+	run_cmd "$SCAN_DIR/review-package" HEAD HEAD --out r/T1.diff
+	assert_rc 1 "flow: review-package empty diff exits 1 even with a stale --out file"
+	assert_file_missing r/T1.diff "flow: review-package removes a stale --out file before it can fail"
+	base=$(git rev-parse HEAD)
+	printf 'y\n' >y.txt
+	git add y.txt
+	git commit -q -m "add y"
+	out="$repo/r/T2.diff"
+	run_cmd "$SCAN_DIR/review-package" "$base" HEAD --out "$out"
+	assert_rc 0 "flow: review-package real range rc0 (stamp)"
+	first=$(head -1 "$out")
+	if printf '%s\n' "$first" | grep -Eq '^# review-package base=[0-9a-f]{40} head=[0-9a-f]{40}$'; then
+		_pass "flow: review-package line 1 names the full base and head shas"
+	else
+		_fail "flow: review-package line 1 names the full base and head shas (got: $first)"
+	fi
+	cd "$prevdir" || true
+}
+
+t_flow_review_package_refuses_non_ancestor_base() {
+	local repo prevdir sib out
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || {
+		_fail "flow: review-package ancestor setup cd"
+		cd "$prevdir" || true
+		return
+	}
+	git checkout -q -b sibling
+	printf 's\n' >s.txt
+	git add s.txt
+	git commit -q -m "sibling work"
+	sib=$(git rev-parse HEAD)
+	git checkout -q -
+	printf 'm\n' >m.txt
+	git add m.txt
+	git commit -q -m "main work"
+	out="$repo/anc.diff"
+	run_cmd "$SCAN_DIR/review-package" "$sib" HEAD --out "$out"
+	assert_rc 3 "flow: review-package exits 3 when BASE is not an ancestor of HEAD"
+	assert_contains "$ERR" "merge-base" "flow: review-package names merge-base on stderr"
+	assert_file_missing "$out" "flow: review-package writes no file for a non-ancestor base"
+	run_cmd "$SCAN_DIR/review-package" --help
+	assert_contains "$OUT" "Exit 3" "flow: review-package --help documents exit 3"
+	cd "$prevdir" || true
+}
+
 t_flow_review_package_default_out_path() {
 	local repo prevdir base short_base short_head
 	prevdir=$(pwd)
@@ -660,4 +718,254 @@ t_flow_task_brief_prior_art_skips_test_paths() {
 	out=$(_flow_prior_art_brief "$d" tests/test_tags.py)
 	assert_not_contains "$out" "Prior art: tests/test_tags.py" "flow: a test path in files: is not its own prior art"
 	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# new-spec slug transliteration (F133)
+# ---------------------------------------------------------------------------
+
+_flow_slug_of() { # <title>; prints the slug new-spec computes, or "rc=<n>"
+	local repo prevdir
+	prevdir=$(pwd)
+	repo=$(tmp_repo)
+	cd "$repo" || return
+	run_cmd "$SCAN_DIR/new-spec" "$1" --no-branch
+	if [ "$RC" -eq 0 ]; then
+		printf '%s' "$OUT" | sed -n 's/.*"slug":"\([^"]*\)".*/\1/p'
+	else
+		printf 'rc=%s' "$RC"
+	fi
+	cd "$prevdir" || true
+}
+
+t_flow_new_spec_slug_transliterates_icelandic() {
+	assert_eq "$(_flow_slug_of 'Skráning þjónustu')" "skraning-thjonustu" "flow: new-spec slug maps Icelandic letters to ascii"
+	assert_eq "$(_flow_slug_of 'ÞÐÆÖ')" "thdaeo" "flow: new-spec slug of an all-Icelandic-capitals title is not empty"
+	assert_eq "$(_flow_slug_of 'Hún fór út í bæ ýmis')" "hun-for-ut-i-bae-ymis" "flow: new-spec slug maps accented vowels and ae"
+}
+
+t_flow_new_spec_slug_does_not_duplicate_input_when_iconv_fails() {
+	assert_eq "$(_flow_slug_of "$(printf 'abc def \351 tail')")" "abc-def-tail" "flow: new-spec slug does not duplicate the title when iconv fails on a Latin-1 byte"
+}
+
+t_flow_new_spec_slug_still_exits_1_when_nothing_survives() {
+	assert_eq "$(_flow_slug_of '!!! ... ---')" "rc=1" "flow: new-spec still exits 1 when nothing survives the ascii filter"
+}
+
+t_flow_new_spec_usage_names_transliteration() {
+	run_cmd "$SCAN_DIR/new-spec" --help
+	assert_contains "$OUT" "Icelandic letters are transliterated" "flow: new-spec usage documents transliteration"
+}
+
+# ---------------------------------------------------------------------------
+# gates.yml secrets step (F131)
+# ---------------------------------------------------------------------------
+
+t_flow_gates_template_has_redacted_secrets_step() {
+	local proj home gates
+	proj=$(tmp_dir)
+	home=$(tmp_dir)
+	printf '{"name":"x","scripts":{"test":"vitest run"}}\n' >"$proj/package.json"
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; unset DOTFILES; node "$3" init' _ "$proj" "$home" "$SCAN_DIR/../bin/flow"
+	gates=$(cat "$proj/.github/workflows/gates.yml")
+	assert_contains "$gates" "- name: secrets" "flow: rendered gates.yml has a secrets step"
+	assert_contains "$(printf '%s\n' "$gates" | sed -n '/- name: secrets/,$p')" "gitleaks detect" "flow: secrets step runs gitleaks detect"
+	assert_contains "$(printf '%s\n' "$gates" | sed -n '/- name: secrets/,$p')" "--redact" "flow: secrets step redacts findings"
+	assert_not_contains "$gates" "gitleaks-action" "flow: secrets step avoids gitleaks-action (needs a licence secret on orgs)"
+	assert_not_contains "$gates" "osv-scanner" "flow: dependency scan is not a blocking gate"
+	rm -rf "$proj" "$home"
+}
+
+t_flow_audit_gitleaks_commands_are_redacted() {
+	local bad
+	bad=$(grep -rnE 'gitleaks (detect|git|dir|protect)' "$SCAN_DIR/../../flow-extras/skills/audit" | grep -v -e '--redact' || true)
+	assert_eq "$bad" "" "flow: every gitleaks command under audit passes --redact"
+}
+
+# ---------------------------------------------------------------------------
+# audit coverage ledger and test prefilter (F170, F171)
+# ---------------------------------------------------------------------------
+
+_flow_audit_dir() { printf '%s' "$SCAN_DIR/../../flow-extras/skills/audit"; }
+
+_flow_audit_fixture() { # prints a git repo with dirs src/, lib/ and a root file
+	local d
+	d=$(tmp_repo)
+	mkdir -p "$d/src" "$d/lib"
+	printf 'x\n' >"$d/src/a.ts"
+	printf 'y\n' >"$d/lib/b.ts"
+	printf 'z\n' >"$d/README.md"
+	git -C "$d" add -A >/dev/null 2>&1
+	git -C "$d" -c user.email=t@t -c user.name=t commit -qm fixture >/dev/null 2>&1
+	printf '%s' "$d"
+}
+
+t_flow_audit_coverage_names_unlisted_dir() {
+	local d
+	d=$(_flow_audit_fixture)
+	cat >"$d/plan.md" <<'EOF'
+## Scanned
+| Dir | Why |
+|-----|-----|
+| src | hot-spot |
+| . | root files |
+
+## Skipped
+| Dir | Reason |
+|-----|--------|
+EOF
+	run_cmd bash "$(_flow_audit_dir)/scripts/audit-coverage.sh" "$d/plan.md" "$d"
+	assert_rc 1 "flow: audit-coverage exits 1 when a top-level dir is in neither table"
+	assert_contains "$OUT$ERR" "lib" "flow: audit-coverage names the unlisted dir"
+	rm -rf "$d"
+}
+
+t_flow_audit_coverage_accepts_skipped_with_reason() {
+	local d
+	d=$(_flow_audit_fixture)
+	cat >"$d/plan.md" <<'EOF'
+## Scanned
+| Dir | Why |
+|-----|-----|
+| `src/` | hot-spot |
+| . | root files |
+
+## Skipped
+| Dir | Reason |
+|-----|--------|
+| lib | sampled out: medium tier, no churn |
+EOF
+	run_cmd bash "$(_flow_audit_dir)/scripts/audit-coverage.sh" "$d/plan.md" "$d"
+	assert_rc 0 "flow: audit-coverage exits 0 when the dir is listed as Skipped with a reason"
+	rm -rf "$d"
+}
+
+t_flow_audit_coverage_accepts_bold_labels() {
+	local d
+	d=$(_flow_audit_fixture)
+	cat >"$d/plan.md" <<'EOF'
+- **Scanned**:
+
+| Dir | Why |
+|-----|-----|
+| src | hot |
+| . | root |
+
+- **Skipped**:
+
+| Dir | Reason |
+|-----|--------|
+| lib | sampled out |
+EOF
+	run_cmd bash "$(_flow_audit_dir)/scripts/audit-coverage.sh" "$d/plan.md" "$d"
+	assert_rc 0 "flow: audit-coverage reads tables under bold Scanned/Skipped labels"
+	rm -rf "$d"
+}
+
+t_flow_audit_coverage_handles_space_and_non_ascii_dirs() {
+	local d
+	d=$(_flow_audit_fixture)
+	mkdir -p "$d/my docs" "$d/þjónusta"
+	printf 'q\n' >"$d/my docs/a.md"
+	printf 'q\n' >"$d/þjónusta/b.md"
+	git -C "$d" add -A >/dev/null 2>&1
+	git -C "$d" -c user.email=t@t -c user.name=t commit -qm more >/dev/null 2>&1
+	cat >"$d/plan.md" <<'EOF'
+## Scanned
+| Dir | Why |
+|-----|-----|
+| src | hot |
+| my docs | docs |
+| þjónusta | service |
+| . | root |
+
+## Skipped
+| Dir | Reason |
+|-----|--------|
+| lib | sampled out |
+EOF
+	run_cmd bash "$(_flow_audit_dir)/scripts/audit-coverage.sh" "$d/plan.md" "$d"
+	assert_rc 0 "flow: audit-coverage matches dirs with spaces and non-ASCII names"
+	rm -rf "$d"
+}
+
+t_flow_audit_coverage_rejects_skipped_without_reason() {
+	local d
+	d=$(_flow_audit_fixture)
+	cat >"$d/plan.md" <<'EOF'
+## Scanned
+| Dir | Why |
+|-----|-----|
+| src | hot-spot |
+| . | root |
+
+## Skipped
+| Dir | Reason |
+|-----|--------|
+| lib | |
+EOF
+	run_cmd bash "$(_flow_audit_dir)/scripts/audit-coverage.sh" "$d/plan.md" "$d"
+	assert_rc 1 "flow: audit-coverage exits 1 when a Skipped row has no reason"
+	assert_contains "$OUT$ERR" "lib" "flow: audit-coverage names the dir with no reason"
+	rm -rf "$d"
+}
+
+t_flow_audit_test_prefilter_prints_leads() {
+	local d lines
+	d=$(tmp_dir)
+	mkdir -p "$d/tests"
+	printf 'test("a", () => {\n  doThing()\n})\n' >"$d/tests/empty.test.ts"
+	printf 'test("b", () => {\n  expect(f(1)).toBe(2)\n})\n' >"$d/tests/one.test.ts"
+	printf 'test("b", () => {\n  expect(f(1)).toBe(2)\n})\n' >"$d/tests/two.test.ts"
+	run_cmd bash "$(_flow_audit_dir)/scripts/test-prefilter.sh" "$d"
+	assert_rc 0 "flow: test-prefilter exits 0"
+	lines=$(printf '%s\n' "$OUT" | grep -c '^NO_ASSERTION:' || true)
+	assert_eq "$lines" "1" "flow: test-prefilter prints exactly one NO_ASSERTION line"
+	assert_contains "$OUT" "NO_ASSERTION:tests/empty.test.ts" "flow: test-prefilter names the assertion-free file relative to the dir"
+	lines=$(printf '%s\n' "$OUT" | grep -c '^NEAR_DUPLICATE:' || true)
+	assert_eq "$lines" "1" "flow: test-prefilter prints exactly one NEAR_DUPLICATE line"
+	assert_contains "$OUT" "NEAR_DUPLICATE:tests/one.test.ts tests/two.test.ts" "flow: test-prefilter pairs the identical files"
+	rm -rf "$d"
+}
+
+t_flow_audit_templates_and_rules_carry_new_sections() {
+	local a
+	a=$(_flow_audit_dir)
+	assert_contains "$(cat "$a/references/finding-schema.md")" "Not investigated" "flow: audit report templates have a Not investigated section"
+	assert_eq "$(grep -c 'Not investigated' "$a/references/finding-schema.md" | tr -d ' ')" "2" "flow: Not investigated appears in both report templates"
+	assert_contains "$(cat "$a/references/fix-safety.md")" "worktree" "flow: fix-safety asks for a scratch worktree build proof"
+	assert_contains "$(cat "$a/references/finding-schema.md")" "retirement card" "flow: finding-schema defines the test retirement card"
+	assert_contains "$(cat "$a/SKILL.md")" "audit-coverage.sh" "flow: audit SKILL runs the coverage ledger check"
+	assert_contains "$(cat "$a/SKILL.md")" "second-look" "flow: audit SKILL has a second-look pass"
+	assert_contains "$(cat "$a/SKILL.md")" "refute" "flow: audit SKILL has a refute pass"
+	assert_contains "$(cat "$a/references/orchestration.md")" "test-prefilter.sh" "flow: orchestration passes prefilter leads to the tests agent"
+}
+
+# ---------------------------------------------------------------------------
+# playbook additions (F172, F173)
+# ---------------------------------------------------------------------------
+
+t_flow_audit_playbooks_carry_vercel_entries() {
+	local a lp ts py
+	a=$(_flow_audit_dir)
+	lp=$(cat "$a/references/language-playbooks.md")
+	ts=$(printf '%s\n' "$lp" | sed -n '/^## TypeScript/,/^## Rust/p')
+	py=$(printf '%s\n' "$lp" | sed -n '/^## Python/,/^## TypeScript/p')
+	assert_contains "$ts" "per-item" "flow: TS playbook has per-item promise chaining"
+	assert_contains "$ts" "optimizePackageImports" "flow: TS playbook has optimizePackageImports"
+	assert_contains "$ts" "lastIndex" "flow: TS playbook has the /g regex lastIndex trap"
+	assert_contains "$py" "TaskGroup" "flow: Python playbook keeps TaskGroup"
+	assert_contains "$py" "start-early" "flow: Python playbook has the start-early entry"
+	assert_eq "$(printf '%s\n' "$py" | grep -c 'gather(' | tr -d ' ')" "4" "flow: Python playbook adds no new gather( call (4 existing)"
+	assert_contains "$lp" "vercel-labs/agent-skills" "flow: playbook credits vercel-labs/agent-skills"
+	assert_contains "$lp" "module-level" "flow: language-playbooks flags module-level shared state"
+}
+
+t_flow_server_action_and_module_state_entries() {
+	local a vc
+	a=$(_flow_audit_dir)
+	vc="$SCAN_DIR/../../tooling/skills/pentest/references/vuln-cookbook.md"
+	assert_contains "$(cat "$a/references/security-playbook.md")" "use server" "flow: security playbook has the Server Action auth rule"
+	assert_contains "$(cat "$vc")" "use server" "flow: vuln-cookbook has the Server Action auth entry"
+	assert_contains "$(cat "$vc")" "module-level" "flow: vuln-cookbook has the module-level shared state entry"
 }

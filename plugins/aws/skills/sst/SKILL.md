@@ -50,7 +50,7 @@ Read [patterns.md](references/patterns.md) when designing multi-service architec
 
 - **Never use `.env` files for resource credentials** — SST's linking system (`link: [resource]` + `Resource.X.name`) is type-safe, auto-rotates credentials, and manages IAM permissions automatically. `.env` files are insecure, stage-unaware, and cause credential drift across team members.
 
-- **Never forget `/// <reference path="./.sst/platform/config.d.ts" />` at the top of sst.config.ts** — without it, TypeScript won't know about `$config`, `sst.aws.*`, or `$app`. Run `sst dev` once to generate the types if they're missing.
+- **Never forget `/// <reference path="./.sst/platform/config.d.ts" />` at the top of sst.config.ts** — without it, TypeScript won't know about `$config`, `sst.aws.*`, or `$app`. Run `sst install` to generate them if they're missing; it does not deploy. If the file is still missing afterwards, the user starts `sst dev` once on their personal stage; the agent does not, because it deploys.
 
 - **Never set `removal: "remove"` in production** — this deletes all resources (including databases with your data) when you run `sst remove`. Production must use `"retain"`: `removal: input?.stage === "production" ? "retain" : "remove"`.
 
@@ -67,6 +67,8 @@ Read [patterns.md](references/patterns.md) when designing multi-service architec
 - **Never deploy containers without setting `health.path`** — ECS services will repeatedly restart without proper health checks. Use a lightweight `/health` endpoint returning 200, not your main handler.
 
 - **Never use VPC for Lambda unless you actually need private resource access** — VPC adds cold start latency (seconds, not ms) and requires NAT Gateway ($32+/month) for internet access. Most Lambda functions don't need VPC. DynamoDB, S3, SQS, SNS, EventBridge are all accessible without VPC.
+
+- **Deploy and remove only on the personal stage** — the agent runs `sst deploy` and `sst remove` only on the personal stage. `--stage production` or any other shared stage needs the user's explicit ask in this conversation. To inspect, use `sst diff` and read `sst.config.ts`; discovery never deploys.
 
 - **Never run `sst dev` on shared or production stages** — `sst dev` replaces Lambda functions with stub proxies. If you kill the CLI, the stubs remain deployed and all invocations will timeout. Run `sst deploy` to restore real functions. Personal stages only.
 
@@ -253,7 +255,7 @@ new sst.aws.Bucket("MyBucket", {
 1. No logs → handler path doesn't match file location (paths are relative to project root)
 2. Timeout → trying to reach VPC resource without VPC config, or cold start exceeding timeout
 3. "Resource is not defined" → missing `link: [resource]` on the function
-4. Type errors → delete `.sst/` and run `sst dev` to regenerate types
+4. Type errors → delete `.sst/` and run `sst install` to regenerate types (no deploy)
 
 **Frontend can't access API?**
 1. CORS → add `cors: true` to `ApiGatewayV2` and return CORS headers from Lambda

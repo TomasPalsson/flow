@@ -35,6 +35,34 @@ Slack-thread example: concise **72** vs detailed **206** tokens (≈65% off). Co
 
 The last defense against retry loops. ❌ `ERROR 429` / raw traceback → the model retries identically. ✅ `Found 847 expenses. Narrow the date range or add a category filter.` Include the correct input-format example. Also return explicit **terminal states** — `SUCCESS: booking HT79265 confirmed`, `FAILED: fully booked — no retry will succeed`, `PARTIAL: 3 of 10 found, rest don't exist`. Clear terminal states cut one task from 14 tool calls to 2 in AWS's experiment.
 
+## MCP annotations and result contract
+
+"Prompt-engineer the descriptions" means describe the tool, not direct the model. A description states the purpose, the inputs, the limits and what the tool does *not* cover ("Does not search comments; use `search_comments`"). It never tells Claude how to behave ("always call X first", "you must..."): hosts treat that as prompt injection, and it welds tools together. Steering belongs in result and error text, which describes state.
+
+- **Annotations are hints, not a security boundary.** Unset ones default to the worst case (`destructiveHint` and `openWorldHint` true), so set all four on purpose. Mark `readOnlyHint: true` only on a tool proven free of side effects, never readOnlyHint on an exec tool (shell, SQL, "run this script"). A tool that mixes reads and writes cannot carry an honest hint; split it.
+- **Confirmation is a result, not a flag-guess.** A destructive call without the confirm argument does nothing and returns a structured `confirmation_required`. A machine-output flag (`--json`) never implies force.
+- **Failures are `isError: true` results, not thrown exceptions**, and each says whether a retry can help: retryable ("rate limited, retry in 30s") or terminal ("no such repo, retrying will not help").
+
+```json
+{"name": "run_command", "annotations": {"title": "Run command", "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": true}}
+{"status": "confirmation_required", "action": "delete 14 files under ./build", "confirm_with": {"confirm": true}}
+{"isError": true, "content": [{"type": "text", "text": "TERMINAL: repo acme/x not found; retrying will not help. Check the owner/name."}]}
+```
+
+Server construction (stdout logging, bind address, Origin checks) lives in the `tooling:mcp-server` skill, not here.
+
+Credit: adapted from anthropics/skills skills/mcp-builder/reference/mcp_best_practices.md @ dbd4588 (Apache-2.0).
+Credit: adapted from anthropics/claude-plugins-official plugins/mcp-server-dev/skills/build-mcp-server/references/tool-design.md @ a9fd216 (Apache-2.0).
+
+## Promote bash to a typed tool
+
+A bash tool gives the harness one opaque string for every action. Promote an action to its own typed tool when the harness must gate, render, audit or parallelize it:
+- **Gate:** hard-to-reverse actions (`send_email`, delete) can sit behind confirmation; `bash -c "curl -X POST ..."` cannot.
+- **Render / audit:** typed arguments can draw a modal or land in an audit log.
+- **Parallelize:** read-only tools (`grep`, `glob`) can be marked parallel-safe; through bash the harness cannot tell `grep` from `git push` and must serialize.
+
+Start with bash for breadth, promote on the first of these needs. Credit: adapted from anthropics/skills skills/claude-api/shared/agent-design.md @ dbd4588 (Apache-2.0).
+
 ## Dynamic tool loading — Tool Search Tool
 
 `betas=["advanced-tool-use-2025-11-20"]`. Mark catalog tools `defer_loading:true`; **never** defer the search tool itself (all-deferred → 400). Keep 3–5 most-used tools non-deferred. Returns 3–5 relevant tools/search; max catalog 10,000. Deferred tools live in the system-prefix and **don't consume context until discovered — caching is preserved**.
@@ -52,7 +80,7 @@ The last defense against retry loops. ❌ `ERROR 429` / raw traceback → the mo
 
 ## Let Claude optimize your tools
 
-Paste eval transcripts into Claude Code, ask it to find failure patterns and refactor all tool definitions at once, re-run evals. Works because Claude has seen vast API docs and can spot idiomatic, selection-friendly descriptions.
+Paste eval transcripts into Claude Code, ask it to find failure patterns and refactor all tool definitions at once, re-run evals. Works because Claude has seen vast API docs and can spot idiomatic, selection-friendly descriptions. To build those evals for an MCP server, load the `agent-evals` skill (`../../agent-evals/references/mcp-server-evals.md`); its harness also collects the model's own feedback on each tool.
 
 ## AgentCore Gateway specifics (when tools live behind Gateway)
 

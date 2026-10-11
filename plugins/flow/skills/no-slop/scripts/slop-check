@@ -3,17 +3,26 @@
 
 Usage: slop-check [--base <ref>] [--head <ref>] [--json] [--strict]
                    [--no-tools] [--files <path>...] [--all-lines]
-       slop-check --prose <file.md>... [--json] [--strict]
+       slop-check --prose <file.md>... [--claims [--root <dir>]] [--json] [--strict]
 
 --prose scans markdown (code fences and inline code skipped) for the
-script-detectable rows NP-04 to NP-09 and NP-12 of references/prose-rubric.md; same
-output shape and exit behaviour, no git needed.
+script-detectable rows NP-04 to NP-09, NP-12 and NP-14 of references/prose-rubric.md; same
+output shape and exit behaviour, no git needed. --claims adds a check of the
+document's own claims: repo paths, path:line ranges and backticked snippets
+beside a path:line, resolved against --root (default: the git toplevel, else
+the cwd). It prints `CLAIM <doc>:<line> <MISSING-PATH|LINE-OUT-OF-RANGE|
+SNIPPET-NOT-FOUND> <reason>` (a "claims" array under --json) and never changes
+the exit code.
 
 Only reports on lines *added* between --base and --head. With --all-lines,
 every line of each --files path is treated as added and no git repository
 is required at all (--base/--head are ignored); same finding ids, messages
-and --json shape. Exit code is always 0 unless --strict is passed and
-findings > 0. Missing optional tools (ruff/tsc/jscpd/lizard, in slop_tools.py)
+and --json shape. Exit code is 0 unless --strict is passed and
+findings > 0, or 2 when the diff could not be computed (the base or head
+does not resolve, git diff fails, not a git repository, a one-commit repo
+with no --base); stderr carries `slop-check: unavailable: <reason>` and
+--json carries an "unavailable" field. 2 means "could not run", never clean.
+Missing optional tools (ruff/tsc/jscpd/lizard, in slop_tools.py)
 never fail the run; those checks are silently skipped.
 """
 import argparse
@@ -64,6 +73,16 @@ TEST_WEAKEN_ADD_RE = re.compile(
     r"@pytest\.mark\.skip|@pytest\.mark\.xfail|\bxit\(|\bxdescribe\(|"
     r"describe\.skip\(|it\.skip\(|@Disabled|#\[ignore\]|"
     r"pytest\.raises\(Exception|assertRaises\(Exception|\.toThrow\(\)")
+SUPPRESSION_RE = re.compile(
+    r"eslint-disable(?:-next-line|-line)?|biome-ignore|\bnoqa\b|istanbul ignore|c8 ignore|"
+    r"Stryker disable|nosemgrep|gitleaks:allow")
+# A reason on the same line: "-- why", " - why", an em dash, "because"/"since",
+# or biome's "rule: why".
+SUPPRESSION_REASON_RE = re.compile(
+    r"\s--\s*\S|\s[-\u2013\u2014]\s+\S|\b(?:because|since)\b|biome-ignore\s+\S+\s*:\s*\S")
+TEST_ENV_RE = re.compile(r"process\.env\.(?:CI|VITEST|JEST_WORKER_ID)\b|PYTEST_CURRENT_TEST")
+BOUND_ADDED_RE = re.compile(r"\.toBeGreaterThan(?:OrEqual)?\(")
+EXACT_REMOVED_RE = re.compile(r"\.toBe\(\s*-?\d")
 COMMENTED_ASSERT_RE = re.compile(r"#\s*assert|//\s*expect\(")
 ASSERT_RE = re.compile(r"assert|expect\(")
 
@@ -175,6 +194,15 @@ def _test_weakening_findings(findings, path, lineno, text, stripped, is_test_fil
     if COMMENTED_ASSERT_RE.search(text):
         add(findings, path, lineno, "NS-13", f"commented-out assertion: {stripped!r}")
 
+def _suppression_finding(findings, path, lineno, text, stripped):
+    m = SUPPRESSION_RE.search(text)
+    if m and not SUPPRESSION_REASON_RE.search(text[m.start():]):
+        add(findings, path, lineno, "NS-09", f"suppression without a reason: {stripped!r}")
+
+def _test_env_finding(findings, path, lineno, text, stripped, is_test_file):
+    if not is_test_file and TEST_ENV_RE.search(text):
+        add(findings, path, lineno, "NS-09", f"test-runner check in non-test code: {stripped!r}")
+
 def scan_added_lines(path, added, is_test_file):
     """NS-04/07/08/09/10/13/15/30: regex checks needing one added line."""
     findings = []
@@ -189,6 +217,8 @@ def scan_added_lines(path, added, is_test_file):
         _debug_print_findings(findings, path, lineno, text, is_py, is_js_like, debug_ok)
         _type_escape_finding(findings, path, lineno, text, stripped, escape_re)
         _compat_shim_finding(findings, path, lineno, text, stripped)
+        _suppression_finding(findings, path, lineno, text, stripped)
+        _test_env_finding(findings, path, lineno, text, stripped, is_test_file)
         if is_ts and not is_test_file:
             for msg in slop_ts.ts_partiality(text):
                 add(findings, path, lineno, "NS-30", msg)
@@ -203,6 +233,18 @@ def hunk_test_weakening(path, hunks):
         if removed and not any(ASSERT_RE.search(t) for _, t in hunk.added):
             add(findings, path, removed[0], "NS-13",
                 "assertion removed without replacement in same hunk")
+    return findings
+
+def hunk_bound_loosening(path, hunks):
+    """NS-13: an exact toBe(<n>) removed and a toBeGreaterThan bound added in the same hunk."""
+    findings = []
+    for hunk in hunks:
+        if not any(EXACT_REMOVED_RE.search(t) for _, t in hunk.removed):
+            continue
+        for ln, t in hunk.added:
+            if BOUND_ADDED_RE.search(t):
+                add(findings, path, ln, "NS-13",
+                    f"exact count loosened to a bound: {t.strip()!r}")
     return findings
 
 def js_func_name(text):
@@ -305,6 +347,7 @@ def collect_stdlib_findings(root, head, added_by_file, hunks_by_file, all_lines=
         findings.extend(scan_added_lines(path, added, is_test_file))
         if is_test_file and path in hunks_by_file:
             findings.extend(hunk_test_weakening(path, hunks_by_file[path]))
+            findings.extend(hunk_bound_loosening(path, hunks_by_file[path]))
     return findings, py_trees, existing_ns03
 
 def collect_name_similarity(root, head, added_by_file, py_trees):
@@ -340,8 +383,18 @@ def run_tool_checks(root, base, added_by_file, existing_ns03, all_lines=False):
         findings.extend(slop_tools.run_lizard(root, base, code_files, added_by_file))
     return findings
 
+def claims_for(args):
+    import slop_claims
+    root = args.root
+    if root is None:
+        r = slop_diff.sh(["git", "rev-parse", "--show-toplevel"])
+        root = r.stdout.strip() if r.returncode == 0 else os.getcwd()
+    return slop_claims.scan_files(args.prose, os.path.abspath(root))
+
+
 def emit(findings, file_status, added_by_file, args):
     findings.sort(key=lambda f: (f[0], f[1]))
+    claims = getattr(args, "claim_list", None)
     files_added = sum(1 for s in file_status.values() if s == "added")
     files_modified = sum(1 for s in file_status.values() if s == "modified")
     lines_added = sum(len(a) for a in added_by_file.values())
@@ -354,11 +407,15 @@ def emit(findings, file_status, added_by_file, args):
         }
         for f in findings:
             out["summary"]["by_id"][f[2]] = out["summary"]["by_id"].get(f[2], 0) + 1
+        if claims is not None:
+            out["claims"] = [{"doc": d, "line": ln, "kind": k, "reason": why} for d, ln, k, why in claims]
         print(jsonlib.dumps(out))
     else:
         for p, ln, fid, msg, _src in findings:
             print(f"{p}:{ln}: {fid} {msg}")
         advisory = sum(1 for f in findings if f[2] == "NS-16")
+        for d, ln, k, why in claims or []:
+            print(f"CLAIM {d}:{ln} {k} {why}")
         sys.stderr.write(f"slop-check: {len(findings)} findings ({advisory} advisory)\n")
     return 1 if args.strict and findings else 0
 
@@ -372,22 +429,31 @@ def main():
     ap.add_argument("--files", nargs="+", default=None)
     ap.add_argument("--all-lines", action="store_true")
     ap.add_argument("--prose", nargs="+", metavar="FILE", default=None)
+    ap.add_argument("--claims", action="store_true")
+    ap.add_argument("--root", default=None)
     args = ap.parse_args()
 
     if args.prose:
         import slop_prose
         statuses = {p: "modified" for p in args.prose}
+        args.claim_list = claims_for(args) if args.claims else None
         rc = emit(slop_prose.scan_files(args.prose), statuses, {}, args)
         return 1 if args.strict and slop_prose.UNREADABLE else rc
 
-    if args.all_lines:
-        root, base = os.getcwd(), None
-        added_by_file, hunks_by_file, file_status = slop_diff.build_all_lines(args.files or [])
-    else:
-        root = slop_diff.repo_root()
-        base = args.base or slop_diff.default_base(root)
-        pathspecs = args.files or [f"*{e}" for e in CODE_EXTS]
-        added_by_file, hunks_by_file, file_status = slop_diff.parse_diff(root, base, args.head, pathspecs)
+    try:
+        if args.all_lines:
+            root, base = os.getcwd(), None
+            added_by_file, hunks_by_file, file_status = slop_diff.build_all_lines(args.files or [])
+        else:
+            root = slop_diff.repo_root()
+            base = args.base or slop_diff.default_base(root)
+            pathspecs = args.files or [f"*{e}" for e in CODE_EXTS]
+            added_by_file, hunks_by_file, file_status = slop_diff.parse_diff(root, base, args.head, pathspecs)
+    except slop_diff.Unavailable as e:
+        sys.stderr.write(f"slop-check: unavailable: {e}\n")
+        if args.json:
+            print(jsonlib.dumps({"findings": [], "unavailable": str(e)}))
+        return 2
     added_by_file = {p: a for p, a in added_by_file.items() if p.endswith(CODE_EXTS)}
 
     findings, py_trees, existing_ns03 = collect_stdlib_findings(

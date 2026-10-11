@@ -43,6 +43,8 @@ During codebase exploration, also look for existing documentation:
 
 ### File structure
 
+The trees below show the default layout. A repo that already keeps its ADRs elsewhere keeps them there (see ADR-FORMAT.md).
+
 Most repos have a single context:
 
 ```
@@ -71,7 +73,7 @@ If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The ma
 │       └── docs/adr/
 ```
 
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. For ADRs, follow the match-the-existing-convention rule in [ADR-FORMAT.md](./ADR-FORMAT.md): continue the repo's ADR directory and numbering, and use `docs/adr/` only when none exists.
 
 ## During the session
 

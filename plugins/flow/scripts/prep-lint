@@ -25,6 +25,9 @@ Validates a PREP.md file against the prep grammar:
   - <text>
   ## Open
   - Q: <question> → <resolution or "deferred to spec">
+  ## Split   (optional, anywhere after the header)
+  | id | capability | depends-on | order |
+  at most 10 rows; depends-on is "-" or a comma list of ids in the table
 
 Route must be one of: spike, bounded, oneshot, dispatch.
 Status must be one of: interviewing, ready for spec, done in chat.
@@ -116,6 +119,9 @@ dec_ids=""
 assum_ids=""
 dup_ids=""
 max_q=0
+split_count=0
+split_ids=""
+split_deps=""
 
 HEADER_QN_RE='Questions:[[:space:]]*([0-9]+)[[:space:]]+of[[:space:]]+([0-9]+)'
 HEADER_ROUTE_RE='Route:[[:space:]]*([A-Za-z]+)'
@@ -206,11 +212,40 @@ while IFS= read -r line || [ -n "$line" ]; do
     seq="$seq OPEN"
     continue
     ;;
+  '## Split')
+    cur_section=SPLIT
+    continue
+    ;;
   '## '*)
     cur_section=""
     continue
     ;;
   esac
+
+  if [ "$cur_section" = SPLIT ]; then
+    case "$trimmed" in
+    '|'*)
+      # cells: id | capability | depends-on | order. The header row and the
+      # separator row are not data rows.
+      row=${trimmed#|}
+      row_id=$(printf '%s' "${row%%|*}" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+      rest=${row#*|}
+      rest=${rest#*|}
+      row_dep=$(printf '%s' "${rest%%|*}" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+      row_id_lc=$(printf '%s' "$row_id" | tr '[:upper:]' '[:lower:]')
+      row_chars=$(printf '%s' "$trimmed" | tr -d '|:[:space:]-')
+      if [ -z "$row_chars" ]; then row_id_lc=""; fi
+      case "$row_id_lc" in
+      id | '') ;;
+      *)
+        split_count=$((split_count + 1))
+        split_ids="$split_ids $row_id"
+        split_deps="$split_deps$row_id=$row_dep;"
+        ;;
+      esac
+      ;;
+    esac
+  fi
 
   case "$line" in
   '- '*)
@@ -330,6 +365,32 @@ fi
 if [ "$open_count" -gt 3 ]; then
   k=$((open_count - 3))
   problems+=("ERROR: ## Open has $open_count bullets, more than 3 — fix: more than 3 open questions means the scope is too large — split, or resolve $k of them now")
+fi
+
+# ---- rule 10: ## Split table, at most 10 rows, depends-on ids must exist ----
+if [ "$split_count" -gt 10 ]; then
+  problems+=("ERROR: ## Split has $split_count rows, more than 10 — fix: a split of more than 10 pieces is a roadmap, not a split — group the pieces")
+fi
+if [ "$split_count" -gt 0 ]; then
+  rest_deps=$split_deps
+  while [ -n "$rest_deps" ]; do
+    entry=${rest_deps%%;*}
+    rest_deps=${rest_deps#*;}
+    entry_id=${entry%%=*}
+    entry_dep=${entry#*=}
+    entry_dep=$(printf '%s' "$entry_dep" | tr ',' ' ')
+    set -f
+    for dep in $entry_dep; do
+      case "$dep" in
+      - | none) continue ;;
+      esac
+      case " $split_ids " in
+      *" $dep "*) : ;;
+      *) problems+=("ERROR: ## Split row $entry_id depends on unknown id $dep — fix: depends-on is \"-\" or ids from the id column") ;;
+      esac
+    done
+    set +f
+  done
 fi
 
 # ---- rule 13 (WARN): ready for spec with zero Decisions ----

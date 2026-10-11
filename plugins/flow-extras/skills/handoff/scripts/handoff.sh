@@ -14,8 +14,10 @@ redact() {
 		!skip { print }
 		/-----END [A-Z ]*PRIVATE KEY-----/ { skip = 0 }
 	' | sed -E \
+		-e 's|(://)[^/@?#[:space:]]+@|\1[REDACTED]@|g' \
+		-e 's/([?\&;])([Tt]oken|[Aa]ccess_[Tt]oken|[Ss]ig|[Ss]ignature|[Kk]ey|[Aa]pi_?[Kk]ey|[Xx]-[Aa]mz-[A-Za-z0-9-]+|[Xx]-[Gg]oog-[A-Za-z0-9-]+)=[^\&[:space:]#"'"'"')>]*/\1\2=[REDACTED]/g' \
 		-e 's/[sr]k_(live|test)_[A-Za-z0-9]{8,}/[REDACTED]/g' \
-		-e 's/sk-[A-Za-z0-9_-]{8,}/[REDACTED]/g' \
+		-e 's/(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{8,}/\1[REDACTED]/g' \
 		-e 's/(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{16,}/[REDACTED]/g' \
 		-e 's/github_pat_[A-Za-z0-9_]{16,}/[REDACTED]/g' \
 		-e 's/xox[abprs]-[A-Za-z0-9-]{8,}/[REDACTED]/g' \
@@ -31,6 +33,18 @@ slug_of() {
 	printf '%s' "$1" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//'
 }
 
+# warn_unverified <file>: stderr note when an "Open." step marked (assumed),
+# (code read) or a non-zero (run) sits outside the "Verify first:" group.
+# Silent on a well-formed draft.
+warn_unverified() {
+	awk '
+		/^Verify first:[[:space:]]*$/ { inverify = 1; next }
+		/^[A-Za-z][A-Za-z ]*:[[:space:]]*$/ { inverify = 0 }
+		/Open\./ && (/\(assumed\)/ || /\(code read\)/ || /\(run\) exit [1-9]/) && !inverify { n++ }
+		END { if (n) printf "handoff: %d step(s) marked (assumed), (code read) or failed (run) are not under \"Verify first:\"; move them there\n", n > "/dev/stderr" }
+	' "$1"
+}
+
 case "${1:-}" in
 redact)
 	redact
@@ -43,6 +57,7 @@ write)
 	umask 077
 	rm -f "$file"
 	redact >"$file"
+	warn_unverified "$file"
 	printf '%s\n' "$file"
 	;;
 command | launch)

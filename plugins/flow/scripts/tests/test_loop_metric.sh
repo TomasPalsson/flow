@@ -250,3 +250,198 @@ t_loop_metric_help_names_the_flags() {
 	assert_contains "$OUT" "--min-attempts" "t_loop_metric_help_names_the_flags min-attempts"
 	rm -rf "$home"
 }
+
+t_loop_metric_pivot_note_buckets_failures_after_three_rejects() {
+	local proj home i
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_cli_in "$proj" "$home" loop init "pivot buckets" --direction max --runs 1 --min-attempts 9 --metric "cat score.txt"
+	for i in 1 2; do
+		lm_edit "$proj" "$((3 - i))" "worse $i"
+		lm_cli_in "$proj" "$home" loop tick --json
+	done
+	assert_not_contains "$OUT" "artifact gap" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects two rejects: no bucket note"
+	assert_not_contains "$OUT" "variance" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects two rejects: no variance bucket"
+	lm_edit "$proj" 0 "worse 3"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_contains "$OUT" "artifact gap" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects names artifact gap"
+	assert_contains "$OUT" "grader" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects names grader"
+	assert_contains "$OUT" "harness" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects names harness"
+	assert_contains "$OUT" "variance" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects names variance"
+	assert_contains "$OUT" "BLOCKED.md" "t_loop_metric_pivot_note_buckets_failures_after_three_rejects stop route"
+	rm -rf "$home" "$proj"
+}
+
+# lm_holdout_init <proj> <home> — the holdout moves against the score
+# (7790 - score), so a higher score is a holdout regression: the overfit case.
+lm_holdout_init() {
+	lm_cli_in "$1" "$2" loop init "holdout" --direction max --runs 1 --metric "cat score.txt" \
+		--holdout 'echo $((7790 - $(cat score.txt)))'
+}
+
+t_loop_metric_holdout_regression_reverts_candidate() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_holdout_init "$proj" "$home"
+	assert_rc 0 "t_loop_metric_holdout_regression_reverts_candidate init rc"
+	lm_edit "$proj" 5 "overfit"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/score.txt")" "3" "t_loop_metric_holdout_regression_reverts_candidate candidate undone"
+	assert_contains "$(sed -n 2p "$proj/.claude/loop/decisions.tsv")" "overfit	3	5	2	no (holdout)" "t_loop_metric_holdout_regression_reverts_candidate row"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_holdout_pass_keeps_candidate() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_cli_in "$proj" "$home" loop init "holdout ok" --direction max --runs 1 --metric "cat score.txt" --holdout 'cat score.txt'
+	assert_rc 0 "t_loop_metric_holdout_pass_keeps_candidate init rc"
+	lm_edit "$proj" 5 "real gain"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/score.txt")" "5" "t_loop_metric_holdout_pass_keeps_candidate kept"
+	assert_contains "$(sed -n 2p "$proj/.claude/loop/decisions.tsv")" "real gain	3	5	2	yes" "t_loop_metric_holdout_pass_keeps_candidate row"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions() {
+	local proj home i
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_holdout_init "$proj" "$home"
+	for i in 1 2 3; do
+		lm_edit "$proj" "$((4 + i))" "overfit $i"
+		lm_cli_in "$proj" "$home" loop tick --json
+		assert_not_contains "$OUT" "778" "t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions tick $i prompt"
+	done
+	assert_not_contains "$(cat "$proj/.claude/loop/decisions.tsv")" "778" "t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions decisions.tsv"
+	assert_not_contains "$(cat "$proj/.claude/loop/loop.md")" "778" "t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions loop.md"
+	assert_contains "$OUT" "pivot" "t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions note still ran"
+	assert_contains "$(cat "$proj/.claude/loop/holdout.tsv")" "778" "t_loop_metric_holdout_values_stay_out_of_prompt_and_decisions holdout.tsv holds them"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_holdout_script_edit_trips_tamper() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	printf 'echo 5\n' >"$proj/hold.sh"
+	(cd "$proj" && git add hold.sh && git commit -q -m "holdout script") >/dev/null 2>&1
+	lm_cli_in "$proj" "$home" loop init "holdout guard" --direction max --runs 1 --metric "cat score.txt" --holdout 'sh hold.sh'
+	assert_rc 0 "t_loop_metric_holdout_script_edit_trips_tamper init rc"
+	assert_contains "$(cat "$proj/.claude/loop/loop.md")" "protected_files: hold.sh" "t_loop_metric_holdout_script_edit_trips_tamper script protected"
+	printf 'echo 99\n' >"$proj/hold.sh"
+	(cd "$proj" && git add hold.sh && git commit -q -m "raise the holdout") >/dev/null 2>&1
+	lm_cli_in "$proj" "$home" loop check --json
+	assert_contains "$OUT" "protected file changed: hold.sh" "t_loop_metric_holdout_script_edit_trips_tamper tamper finding"
+	rm -rf "$home" "$proj"
+}
+
+# lm_confirm_init <proj> <home> — a metric that counts its own calls in
+# .git/cnt. Calls 0-1 (init) read score+0 and score+1: median +0.5, noise 1.
+# Calls 4-5 (the confirm re-measure of a near-bar candidate) read score plus
+# whatever .git/conf holds.
+lm_confirm_init() {
+	lm_cli_in "$1" "$2" loop init "confirm" --direction max --runs 2 --metric \
+		'gd=$(git rev-parse --git-dir); c=$(cat "$gd/cnt" 2>/dev/null || echo 0); echo $((c+1)) >"$gd/cnt"; s=$(cat score.txt); if [ "$c" -lt 2 ]; then j=$c; elif [ "$c" -ge 4 ]; then j=$(cat "$gd/conf" 2>/dev/null || echo 0); else j=0; fi; echo $((s+j))'
+}
+
+t_loop_metric_near_bar_candidate_is_measured_one_extra_time() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_confirm_init "$proj" "$home"
+	assert_rc 0 "t_loop_metric_near_bar_candidate_is_measured_one_extra_time init rc"
+	assert_eq "$(cat "$proj/.git/cnt")" "2" "t_loop_metric_near_bar_candidate_is_measured_one_extra_time init calls"
+	lm_edit "$proj" 5 "near the bar"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/.git/cnt")" "6" "t_loop_metric_near_bar_candidate_is_measured_one_extra_time one extra measure of --runs calls"
+	assert_eq "$(cat "$proj/score.txt")" "5" "t_loop_metric_near_bar_candidate_is_measured_one_extra_time both medians beat: kept"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_near_bar_candidate_reverts_when_confirm_fails() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_confirm_init "$proj" "$home"
+	printf -- '-3\n' >"$proj/.git/conf"
+	lm_edit "$proj" 5 "lucky run"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/score.txt")" "3" "t_loop_metric_near_bar_candidate_reverts_when_confirm_fails undone"
+	assert_contains "$(sed -n 2p "$proj/.claude/loop/decisions.tsv")" "lucky run	3.5	5	1.5	no" "t_loop_metric_near_bar_candidate_reverts_when_confirm_fails row keeps the first median"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_clear_win_is_not_re_measured() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_confirm_init "$proj" "$home"
+	lm_edit "$proj" 9 "clear win"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/.git/cnt")" "4" "t_loop_metric_clear_win_is_not_re_measured no extra measure"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_second_holdout_loop_ignores_previous_holdout_best() {
+	local proj home
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	printf '100\n' >"$proj/h.txt"
+	(cd "$proj" && git add h.txt && git commit -q -m "holdout 100") >/dev/null 2>&1
+	lm_cli_in "$proj" "$home" loop init "first" --direction max --runs 1 --metric "cat score.txt" --holdout 'cat h.txt'
+	lm_cli_in "$proj" "$home" loop stop
+	printf '1\n' >"$proj/h.txt"
+	(cd "$proj" && git add h.txt && git commit -q -m "holdout 1") >/dev/null 2>&1
+	lm_cli_in "$proj" "$home" loop init "second" --direction max --runs 1 --metric "cat score.txt" --holdout 'cat h.txt'
+	assert_rc 0 "t_loop_metric_second_holdout_loop_ignores_previous_holdout_best second init rc"
+	lm_edit "$proj" 5 "real gain"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_eq "$(cat "$proj/score.txt")" "5" "t_loop_metric_second_holdout_loop_ignores_previous_holdout_best gain kept"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_pivot_note_asks_for_the_change_after_the_bucket_round() {
+	local proj home i
+	proj=$(lm_repo)
+	home=$(tmp_dir)
+	lm_cli_in "$proj" "$home" loop init "pivot once" --direction max --runs 1 --min-attempts 9 --metric "cat score.txt"
+	for i in 1 2 3; do
+		lm_edit "$proj" "$((3 - i))" "worse $i"
+		lm_cli_in "$proj" "$home" loop tick --json
+	done
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_contains "$OUT" "Spend this round with no content edit" "t_loop_metric_pivot_note_asks_for_the_change_after_the_bucket_round bucket round asked"
+	printf 'artifact gap: 4\n' >>"$proj/.claude/loop/LEARNINGS.md"
+	lm_cli_in "$proj" "$home" loop tick --json
+	assert_not_contains "$OUT" "Spend this round with no content edit" "t_loop_metric_pivot_note_asks_for_the_change_after_the_bucket_round no repeat"
+	assert_contains "$OUT" "largest artifact gap bucket" "t_loop_metric_pivot_note_asks_for_the_change_after_the_bucket_round change asked"
+	rm -rf "$home" "$proj"
+}
+
+t_loop_metric_help_names_holdout() {
+	local home
+	home=$(tmp_dir)
+	lm_cli_in "$home" "$home" loop init --metric --help
+	assert_contains "$OUT" "--holdout" "t_loop_metric_help_names_holdout flag"
+	rm -rf "$home"
+}
+
+t_loop_metric_text_pins_famous_borrows() {
+	local plug
+	plug=$(cd "$SCAN_DIR/../.." && pwd -P)
+	assert_contains "$(cat "$plug/flow/skills/loop/references/loop-prompt.md")" "what result would falsify it" "t_loop_metric_text_pins_famous_borrows falsifier in the commit message"
+	assert_contains "$(cat "$plug/flow/skills/loop/references/verifier-design.md")" "--holdout" "t_loop_metric_text_pins_famous_borrows holdout documented"
+	assert_contains "$(cat "$plug/flow/skills/loop/SKILL.md")" "--holdout" "t_loop_metric_text_pins_famous_borrows holdout in skill"
+	assert_contains "$(cat "$plug/flow/skills/shared/aws-context.md")" "ACCOUNT_MATCH=unverified" "t_loop_metric_text_pins_famous_borrows account check absence rule"
+	assert_contains "$(cat "$plug/flow/skills/shared/aws-context.md")" "ACCOUNT_MATCH\`: true|false|unverified" "t_loop_metric_text_pins_famous_borrows account output field"
+	assert_contains "$(cat "$plug/aws/skills/strands-agentcore/SKILL.md")" "probe invoke" "t_loop_metric_text_pins_famous_borrows probe invoke"
+	assert_contains "$(cat "$plug/aws/skills/strands-agentcore/SKILL.md")" "entry_point" "t_loop_metric_text_pins_famous_borrows entry_point"
+	assert_contains "$(cat "$plug/aws/skills/strands-agentcore/SKILL.md")" "induced" "t_loop_metric_text_pins_famous_borrows induced failure"
+	assert_not_contains "$(cat "$plug/aws/skills/strands-steering-hooks/references/recipes.md")" 'event.messages.append({"role": "user"' "t_loop_metric_text_pins_famous_borrows recipe 6 no per-call user message"
+	assert_contains "$(cat "$plug/aws/skills/sst/SKILL.md")" "needs the user's explicit ask" "t_loop_metric_text_pins_famous_borrows sst stage rule"
+	assert_not_contains "$(cat "$plug/aws/skills/sst/SKILL.md")" 'Run `sst dev` once to generate' "t_loop_metric_text_pins_famous_borrows sst dev not for types"
+	assert_not_contains "$(cat "$plug/aws/skills/sst/SKILL.md")" 'run `sst dev` to regenerate' "t_loop_metric_text_pins_famous_borrows sst dev not for regenerating"
+}

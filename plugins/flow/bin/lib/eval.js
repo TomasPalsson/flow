@@ -14,7 +14,9 @@ const { spawnSync } = require('node:child_process');
 const { TAGS, EVALS_ROOT, LEDGER_PATH, CONFIG_KEYS, DEFAULT_MODELS, ledgerLine } = require('./eval/contract.js');
 const { resolveOnPath, headSha, gitToplevel } = require('./loop/util.js');
 const postcheck = require('./eval/postcheck.js');
-const { caseTags, anyCaseNeedsBash, selectCases } = require('./eval/cases.js');
+const { caseTags, anyCaseNeedsBash, selectCases, changedCases, formatChanged } = require('./eval/cases.js');
+const { isErroredRun, caseDelta, summarize } = require('./eval/discrimination.js');
+const { graderHashes, changedGraders } = require('./eval/graders.js');
 
 const { stdout, stderr } = process;
 
@@ -38,12 +40,15 @@ function printHelp() {
       '',
       'Usage:',
       '  flow eval [--tag <tag>]... [--case <name>]... [--runs N] [--threshold N] [--max-cost-usd N]',
-      '            [--ablation <arm>] [--history] [--dry-run]',
+      '            [--ablation <arm>] [--changed [--base <ref>]] [--history] [--dry-run]',
       '',
       'Options:',
       '  --tag <tag>          one of ' + TAGS.join(', ') + ' (repeatable;',
       '                       default: all tags)',
       '  --case <name>        only this case, within the selected tags (repeatable)',
+      '  --changed            only the cases a diff affects: changed skills, the skills that link a changed',
+      '                       shared ref, changed case dirs; other bin/hooks/scripts paths print as unmapped',
+      '  --base <ref>         the ref --changed diffs against (default main)',
       '  --runs N             repetitions per case (default 3)',
       '  --threshold N        minimum per-case score to pass (forwarded to the CLI)',
       '  --max-cost-usd N     cost ceiling per case before that case\'s run goes partial (default 25)',
@@ -107,14 +112,13 @@ function parseAggregate(text) {
 // budget the routing cases sit on by design). The CLI still grades an
 // errored run's empty workspace and exits 1, which would ledger a
 // session-limit outage as a plain fail.
-const BENIGN_RUN_ERROR = /maximum number of turns/i;
 function runErrors(cases) {
   const out = [];
   for (const c of cases || []) {
     const arms = c.arms || {};
     for (const arm of ['with', 'without']) {
       for (const r of arms[arm] || []) {
-        if (r && r.error && !BENIGN_RUN_ERROR.test(String(r.error))) out.push(String(r.error));
+        if (isErroredRun(r)) out.push(String(r.error));
       }
     }
   }
@@ -128,11 +132,12 @@ function tagRollup(toplevel, cases, selectedTags, postResults) {
   for (const c of cases || []) {
     const tags = caseTags(toplevel, c.name);
     const agg = c.aggregates || {};
+    const measuredDelta = caseDelta(c); // errored runs stay out of the mean
     const post = postResults[c.name];
     for (const tag of tags) {
       if (!buckets[tag]) continue;
       if (typeof agg.score === 'number') buckets[tag].scores.push(agg.score);
-      if (typeof agg.delta === 'number') buckets[tag].deltas.push(agg.delta);
+      if (measuredDelta !== null) buckets[tag].deltas.push(measuredDelta);
       if (post) {
         buckets[tag].hasPost = true;
         buckets[tag].postPass += post.pass;
@@ -151,7 +156,7 @@ function tagRollup(toplevel, cases, selectedTags, postResults) {
 }
 
 function parseArgs(argv) {
-  const out = { tags: [], cases: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, concurrency: null, history: false, dryRun: false };
+  const out = { tags: [], cases: [], runs: null, threshold: null, maxCostUsd: null, ablation: null, concurrency: null, history: false, dryRun: false, changed: false, base: 'main' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--tag') out.tags.push(argv[++i]);
@@ -163,6 +168,8 @@ function parseArgs(argv) {
     else if (a === '-j' || a === '--concurrency') out.concurrency = argv[++i];
     else if (a === '--history') out.history = true;
     else if (a === '--dry-run') out.dryRun = true;
+    else if (a === '--changed') out.changed = true;
+    else if (a === '--base') out.base = argv[++i];
   }
   return out;
 }
@@ -175,26 +182,31 @@ function printHistory(toplevel) {
     stdout.write('flow eval: no ledger yet\n');
     return EXIT.ok;
   }
-  const lines = raw.split('\n').filter(Boolean).slice(-10);
-  stdout.write('ts                        sha       meanDelta  costUsd  partial\n');
-  for (const line of lines) {
-    let obj;
+  const rows = [];
+  for (const line of raw.split('\n').filter(Boolean)) {
     try {
-      obj = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    stdout.write(`${obj.ts}  ${String(obj.sha || '').slice(0, 7)}  ${obj.meanDelta}  ${obj.costUsd}  ${obj.partial}\n`);
+      rows.push(JSON.parse(line));
+    } catch { /* skip an unparsable line */ }
   }
+  stdout.write('ts                        sha       meanDelta  costUsd  partial\n');
+  rows.forEach((obj, i) => {
+    if (i < rows.length - 10) return;
+    stdout.write(`${obj.ts}  ${String(obj.sha || '').slice(0, 7)}  ${obj.meanDelta}  ${obj.costUsd}  ${obj.partial}\n`);
+    const changed = i ? changedGraders(rows[i - 1].graders, obj.graders) : [];
+    if (changed.length) stdout.write(`  graders changed: ${changed.join(', ')}\n`);
+  });
   return EXIT.ok;
 }
 
-function printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines) {
+function printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines, discrimination) {
   stdout.write('flow eval summary\n');
   for (const tag of Object.keys(rollup)) {
     const r = rollup[tag];
-    stdout.write(`  ${tag}: score=${r.score.toFixed(2)} delta=${r.delta.toFixed(2)} (${r.cases} cases)\n`);
+    const s = discrimination && discrimination.ranges[tag];
+    const range = s ? ` [${s.min.toFixed(2)}..${s.max.toFixed(2)}]` : '';
+    stdout.write(`  ${tag}: score=${r.score.toFixed(2)} delta=${r.delta.toFixed(2)}${range} (${r.cases} cases)\n`);
   }
+  for (const line of (discrimination && discrimination.lines) || []) stdout.write(`  ${line}\n`);
   stdout.write(`  meanDelta: ${meanDelta}  cost: $${costUsd}\n`);
   if (partial) stdout.write(`  partial: ${reason || 'yes'}\n`);
   for (const line of postcheckLines || []) stdout.write(`  ${line}\n`);
@@ -301,7 +313,7 @@ function executeAndReport(claudePath, specs, toplevel, selectedTags, model, judg
   const postFailed = postcheck.anyFailed(postResults);
   const postcheckLines = postcheck.formatSummaryLines(postResults);
   const rollup = tagRollup(toplevel, mergedCases, selectedTags, postResults);
-  const allDeltas = mergedCases.map((c) => c.aggregates && c.aggregates.delta).filter((n) => typeof n === 'number');
+  const allDeltas = mergedCases.map(caseDelta).filter((n) => typeof n === 'number');
   const meanDelta = avg(allDeltas);
   const erroredRuns = runErrors(mergedCases);
   const partial = anyChildPartial || erroredRuns.length > 0;
@@ -319,9 +331,10 @@ function executeAndReport(claudePath, specs, toplevel, selectedTags, model, judg
       costUsd,
       partial,
       reason,
+      graders: graderHashes(toplevel, EVALS_ROOT, mergedCases.map((c) => c.name)),
     })
   );
-  printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines);
+  printSummary(rollup, meanDelta, costUsd, partial, reason, postcheckLines, summarize(mergedCases, (n) => caseTags(toplevel, n)));
   if (partial) return EXIT.partial;
   if (postFailed && worstExit === EXIT.ok) return EXIT.fail;
   return worstExit;
@@ -378,6 +391,26 @@ function dispatchEval(args, toplevel, claudePath, selectedTags, socatPath, env) 
   return executeAndReport(claudePath, specs, toplevel, selectedTags, model, judgeModel, postcheckNames, env);
 }
 
+// applyChanged(args, toplevel) -> an exit code when --changed ends the run here (an error,
+// nothing affected, or --dry-run), else null with args.cases narrowed to the affected cases.
+function applyChanged(args, toplevel) {
+  const result = changedCases(toplevel, args.base);
+  if (result.error) {
+    stderr.write(`flow eval: --changed: ${result.error}\n`);
+    return EXIT.fail;
+  }
+  const names = result.cases.filter((n) => fs.existsSync(path.join(toplevel, EVALS_ROOT, n, 'case.yaml')) && (!args.cases.length || args.cases.includes(n)));
+  stdout.write(`flow eval --changed (base ${args.base})\n`);
+  for (const line of formatChanged(result)) stdout.write(`  ${line}\n`);
+  if (!names.length) {
+    stdout.write('flow eval --changed: no cases affected, nothing to run\n');
+    return EXIT.ok;
+  }
+  if (args.dryRun) return EXIT.ok;
+  args.cases = names;
+  return null;
+}
+
 function run(argv, cwd, env) {
   env = env || process.env;
   if (argv.includes('--help') || argv.includes('-h')) {
@@ -398,6 +431,11 @@ function run(argv, cwd, env) {
     return EXIT.fail;
   }
   if (args.history) return printHistory(toplevel);
+
+  if (args.changed) {
+    const done = applyChanged(args, toplevel);
+    if (done !== null) return done;
+  }
 
   const claudePath = resolveOnPath('claude', env);
   if (!claudePath) {

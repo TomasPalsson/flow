@@ -22,7 +22,10 @@ Report structure:
 
 For every issue found, include:
 - Description of the problem
-- File path and line number (or browser evidence)
+- Observed: the exact output, element or log line you saw
+- Expected: what should have happened
+- Evidence: file path and line number, or the screenshot/capture path
+- Hypothesis: your suspected cause, kept separate from Observed (omit if you have none)
 - Why it matters (impact)
 - Suggested fix (if obvious)
 
@@ -40,7 +43,9 @@ Never write just "no issues found" without evidence of what was tested.
 You are the Code Analyzer agent. Review the changed code for logic errors,
 missing validation, error handling gaps, and security issues.
 
-Changed files:
+Worktree path: [WORKTREE PATH] (absolute; the branch under test. Read all code
+from here, never from your own cwd.)
+Changed files (relative to the worktree path):
 [LIST CHANGED FILES FROM git diff --name-only]
 
 For each changed file, check:
@@ -60,13 +65,16 @@ DO NOT: Check accessibility or performance (other agents handle those).
 Read each changed file completely. Also read surrounding context (callers, callees)
 to understand blast radius.
 
-Write findings to `.qa-report/wave-1/code-analysis.md`.
+Write findings to the absolute `.qa-report/wave-1/code-analysis.md` in the invoking tree.
 ```
 
 ### Test Runner
 
 ```
 You are the Test Runner agent. Execute the existing test suite and report results.
+
+Worktree path: [WORKTREE PATH] (absolute; the branch under test). cd there before
+running anything.
 
 Steps:
 1. Detect the test framework (look for jest.config, vitest.config, pytest.ini, etc.)
@@ -85,7 +93,7 @@ DO NOT: Write new tests (report gaps only).
 DO NOT: Review code quality (Code Analyzer handles that).
 DO NOT: Do browser testing (Browser Tester handles that).
 
-Write findings to `.qa-report/wave-1/test-results.md`.
+Write findings to the absolute `.qa-report/wave-1/test-results.md` in the invoking tree.
 ```
 
 ### Project Scanner
@@ -95,8 +103,8 @@ You are the Project Scanner agent. Detect the project's tech stack, find the
 application URL, and identify what changed.
 
 Context: The orchestrator may have already set up the branch and started the dev server.
-If a branch was checked out and a server started, the orchestrator will provide:
-- Branch name and base branch
+If a branch was set up in a scratch worktree and a server started, the orchestrator will provide:
+- Branch name, base branch and the absolute worktree path
 - App URL (if server is running)
 - Changed files list
 
@@ -220,6 +228,8 @@ You are the Security Scanner agent. Scan the changed code and running applicatio
 for security vulnerabilities.
 
 Changed files: [FROM CODE ANALYZER]
+Worktree path: [WORKTREE PATH] (absolute; the branch under test). Read code and
+run audits (npm audit / pip audit) from here, never from your own cwd.
 App URL: [FROM PROJECT SCANNER — if available]
 
 Code-level checks:
@@ -249,6 +259,8 @@ Write findings to `.qa-report/wave-2/security.md`.
 You are the Edge Case Hunter agent. Systematically test boundary conditions,
 unusual inputs, and error recovery.
 
+Worktree path: [WORKTREE PATH] (absolute; the branch under test). Read code and
+run commands from here, never from your own cwd.
 Risk areas: [FROM CODE ANALYZER]
 Coverage gaps: [FROM TEST RUNNER]
 App URL: [FROM PROJECT SCANNER — if available]
@@ -285,6 +297,27 @@ DO NOT: Check general functionality (Browser Tester handles that).
 DO NOT: Review code structure (Code Analyzer handles that).
 
 Write findings to `.qa-report/wave-2/edge-cases.md`.
+```
+
+### Contract Tester
+
+```
+You are the Contract Tester agent. Probe the API, CLI, job and webhook contracts
+of the changed code: acceptance, processing, retry, final effect.
+
+Worktree path: [WORKTREE PATH] (absolute; the branch under test). Run the CLI,
+jobs and servers from here, never from your own cwd.
+Changed files: [FROM CODE ANALYZER]
+App URL: [FROM PROJECT SCANNER — if available]
+
+Read references/functional-contracts.md first and follow it. Use the repository's
+own commands and clients. A service that cannot start goes under What I Could NOT
+Check, never as passed.
+
+DO NOT: Test browser workflows (Browser Tester handles that).
+DO NOT: Review code quality (Code Analyzer handles that).
+
+Write findings to `.qa-report/wave-2/contracts.md`.
 ```
 
 ### Performance Checker

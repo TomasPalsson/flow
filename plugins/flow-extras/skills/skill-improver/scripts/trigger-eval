@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""trigger-eval: measure how often a skill's description makes `claude -p` call it.
+
+  trigger-eval --plugin-dir <plugin> --skill <name> --queries <queries.json>
+               [--description <text>] [--runs 3] [--max-turns 3] [--timeout 120]
+               [--model M] [--workers 4] [--claude claude] [--out trigger.json]
+
+queries.json is a list of {"query": str, "should_trigger": bool}.
+
+What it does differently from a command-file clone test, and why:
+  * The plugin is loaded with --plugin-dir, so the model sees the real
+    namespaced skill (plugin:skill) competing with whatever else is installed.
+    A fake file in the caller's .claude/commands tests a clone instead.
+  * It runs in a scratch directory outside any checkout, so nothing is written
+    under the invoking repo's .claude/ and the repo's own settings do not leak in.
+  * It stops at the first Skill tool call. A Grep or Read before that call is
+    not a miss; it reads on until --max-turns ends the run.
+  * Each query runs several times; triggered means a rate above 0.5.
+
+Credit: adapted from anthropics/claude-plugins-official plugins/skill-creator/skills/skill-creator/scripts/run_eval.py @ a9fd216 (Apache-2.0).
+Credit: adapted from anthropics/skills skills/skill-creator/scripts/run_eval.py @ dbd4588 (Apache-2.0).
+"""
+
+import argparse
+import json
+import os
+import random
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+DESC_LIMIT = 1024
+
+
+def plugin_name(plugin_dir):
+    """Namespace of the plugin, from .claude-plugin/plugin.json (empty if absent)."""
+    manifest = Path(plugin_dir) / ".claude-plugin" / "plugin.json"
+    try:
+        return json.loads(manifest.read_text()).get("name", "")
+    except (OSError, ValueError):
+        return ""
+
+
+def full_skill_name(plugin_dir, skill):
+    ns = plugin_name(plugin_dir)
+    return f"{ns}:{skill}" if ns else skill
+
+
+def skill_called(line):
+    """Name passed to the first Skill tool call on one stream-json line, else None."""
+    try:
+        event = json.loads(line)
+    except ValueError:
+        return None
+    if event.get("type") != "assistant":
+        return None
+    for item in event.get("message", {}).get("content", []) or []:
+        if item.get("type") == "tool_use" and item.get("name") == "Skill":
+            return (item.get("input") or {}).get("skill", "")
+    return None
+
+
+def classify_events(lines, skill_full):
+    """True when the first Skill tool call names skill_full.
+
+    Non-Skill tool calls before it are skipped, not counted as a miss. A
+    different Skill, or a run that ends with no Skill call, is a miss.
+    """
+    for raw in lines:
+        called = skill_called(raw.strip())
+        if called is not None:
+            return called == skill_full
+    return False
+
+
+class EvalError(RuntimeError):
+    """The claude CLI did not produce a usable run; no measurement exists."""
+
+
+def scratch_env():
+    return {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
+
+def run_once(claude, query, plugin_dir, skill_full, cwd, max_turns, timeout, model):
+    cmd = [claude, "-p", query, "--output-format", "stream-json", "--verbose",
+           "--plugin-dir", str(plugin_dir), "--max-turns", str(max_turns)]
+    if model:
+        cmd += ["--model", model]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            cwd=cwd, env=scratch_env(), text=True)
+    timed_out = []
+    timer = threading.Timer(timeout, lambda: (timed_out.append(1), proc.kill()))
+    timer.start()
+    events, finished = 0, False
+    try:
+        for line in proc.stdout:
+            try:
+                event = json.loads(line.strip())
+            except ValueError:
+                continue
+            events += 1
+            finished = finished or event.get("type") == "result"
+            called = skill_called(line.strip())
+            if called is not None:
+                return called == skill_full
+        if timed_out:
+            return False
+        rc = proc.wait()
+        if events == 0 or (rc != 0 and not finished):
+            err = (proc.stderr.read() or "").strip().splitlines()
+            raise EvalError(f"claude failed (exit {rc}, {events} events): "
+                            f"{err[-1] if err else 'no stderr'}")
+        return False
+    finally:
+        timer.cancel()
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        proc.stdout.close()
+        proc.stderr.close()
+
+
+def split_queries(queries, holdout=0.4, seed=7):
+    """Split 60/40 within each polarity. Returns (train, held_out)."""
+    rng = random.Random(seed)
+    train, held = [], []
+    for polarity in (True, False):
+        group = [q for q in queries if bool(q["should_trigger"]) == polarity]
+        rng.shuffle(group)
+        n_held = int(round(len(group) * holdout))
+        if len(group) >= 2:
+            n_held = min(max(n_held, 1), len(group) - 1)
+        held += group[:n_held]
+        train += group[n_held:]
+    return train, held
+
+
+def _patched_description_text(text, description):
+    """Replace the frontmatter description value, whatever form it takes."""
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        raise ValueError("SKILL.md has no frontmatter")
+    out, skipping = [], False
+    for line in m.group(1).split("\n"):
+        if skipping and (line.startswith((" ", "\t")) or not line.strip()):
+            continue
+        skipping = False
+        if line.startswith("description:"):
+            out.append("description: " + json.dumps(description))
+            skipping = True
+        else:
+            out.append(line)
+    return "---\n" + "\n".join(out) + "\n---\n" + text[m.end():]
+
+
+def stage_plugin(plugin_dir, skill, description, scratch):
+    """Copy the plugin into scratch with the candidate description swapped in."""
+    dest = Path(scratch) / "plugin"
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(plugin_dir, dest, ignore=shutil.ignore_patterns(".git", "node_modules"))
+    skill_md = dest / "skills" / skill / "SKILL.md"
+    skill_md.write_text(_patched_description_text(skill_md.read_text(), description))
+    return dest
+
+
+def read_description(plugin_dir, skill):
+    text = (Path(plugin_dir) / "skills" / skill / "SKILL.md").read_text()
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        raise ValueError("SKILL.md has no frontmatter")
+    lines = m.group(1).split("\n")
+    for i, line in enumerate(lines):
+        if line.startswith("description:"):
+            value = line[len("description:"):].strip()
+            if value[:1] in ("|", ">"):
+                block = []
+                for nxt in lines[i + 1:]:
+                    if nxt.startswith((" ", "\t")) or not nxt.strip():
+                        block.append(nxt.strip())
+                    else:
+                        break
+                return " ".join(b for b in block if b)
+            if value[:1] in ('"', "'") and value[-1:] == value[:1] and len(value) > 1:
+                try:
+                    return json.loads(value) if value[0] == '"' else value[1:-1]
+                except ValueError:
+                    return value[1:-1]
+            return value
+    raise ValueError("SKILL.md has no description")
+
+
+def evaluate(queries, plugin_dir, skill, description=None, runs=3, max_turns=3,
+             timeout=120, model=None, workers=4, claude="claude", scratch=None):
+    """Run every query `runs` times. Returns {"results": [...], "summary": {...}}."""
+    own_scratch = scratch is None
+    scratch = scratch or tempfile.mkdtemp(prefix="trigger-eval-")
+    try:
+        staged = Path(plugin_dir)
+        if description is not None:
+            staged = stage_plugin(plugin_dir, skill, description, scratch)
+        skill_full = full_skill_name(staged, skill)
+        cwd = Path(scratch) / "work"
+        cwd.mkdir(exist_ok=True)
+
+        def task(q):
+            return run_once(claude, q["query"], staged, skill_full, str(cwd),
+                            max_turns, timeout, model)
+
+        jobs = [(q, i) for q in queries for i in range(runs)]
+        with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+            outcomes = list(pool.map(lambda j: task(j[0]), jobs))
+        results = []
+        for qi, q in enumerate(queries):
+            hits = sum(1 for ok in outcomes[qi * runs:(qi + 1) * runs] if ok)
+            rate = hits / runs
+            triggered = rate > 0.5
+            results.append({"query": q["query"], "should_trigger": bool(q["should_trigger"]),
+                            "triggers": hits, "runs": runs, "trigger_rate": rate,
+                            "pass": triggered == bool(q["should_trigger"])})
+        passed = sum(1 for r in results if r["pass"])
+        return {"skill": skill_full, "results": results,
+                "summary": {"total": len(results), "passed": passed, "failed": len(results) - passed}}
+    finally:
+        if own_scratch:
+            shutil.rmtree(scratch, ignore_errors=True)
+
+
+def load_queries(path):
+    data = json.loads(Path(path).read_text())
+    for q in data:
+        if "query" not in q or "should_trigger" not in q:
+            raise ValueError("each query needs 'query' and 'should_trigger'")
+    texts = [q["query"] for q in data]
+    if len(set(texts)) != len(texts):
+        raise ValueError("queries must be unique; duplicates would collapse in the results")
+    return data
+
+
+def write_trigger_json(path, payload):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="Measure a skill description's trigger rate")
+    p.add_argument("--plugin-dir", required=True)
+    p.add_argument("--skill", required=True)
+    p.add_argument("--queries", required=True)
+    p.add_argument("--description")
+    p.add_argument("--runs", type=int, default=3)
+    p.add_argument("--max-turns", type=int, default=3)
+    p.add_argument("--timeout", type=int, default=120)
+    p.add_argument("--model")
+    p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--claude", default="claude")
+    p.add_argument("--out", help="default: .skill-forge/<skill>/trigger.json under the current directory")
+    args = p.parse_args(argv)
+    try:
+        queries = load_queries(args.queries)
+        out = evaluate(queries, args.plugin_dir, args.skill, args.description, args.runs,
+                       args.max_turns, args.timeout, args.model, args.workers, args.claude)
+    except (OSError, ValueError, EvalError) as e:
+        print(f"trigger-eval: {e}", file=sys.stderr)
+        return 2
+    out["description"] = args.description if args.description is not None else read_description(
+        args.plugin_dir, args.skill)
+    write_trigger_json(args.out or f".skill-forge/{args.skill}/trigger.json", out)
+    for r in out["results"]:
+        print(("PASS" if r["pass"] else "FAIL"), f"{r['triggers']}/{r['runs']}",
+              "expect=" + str(r["should_trigger"]).lower(), r["query"][:70])
+    s = out["summary"]
+    print(f"{s['passed']}/{s['total']} passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

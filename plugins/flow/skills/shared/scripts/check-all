@@ -74,6 +74,8 @@ ${C.accent}Gate names:${C.reset}
   ${C.text}name${C.reset}. In a root with several ecosystems the first one keeps the plain
   name and the others are suffixed ${C.text}<kind>:<ecosystem>${C.reset} (e.g. lint:python),
   so select gates by ${C.text}kind${C.reset} — never by parsing the name.
+  Gates declared in ${C.text}.claude/flow.config.json${C.reset} as ${C.text}gates: [{name, cmd}]${C.reset} come last, with
+  kind ${C.text}custom${C.reset}, and always run in full (--since cannot scope them).
 
 ${C.accent}Gate status:${C.reset}
   pass | fail | skipped ${C.muted}(nothing to run)${C.reset} | unavailable
@@ -619,7 +621,29 @@ function tryDetectProject() {
 // Ecosystem detection — additive when a root carries several manifests
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Gates a project declares in .claude/flow.config.json as
+ * `gates: [{ name, cmd }]` — for the stacks no detector knows (Terraform, SST,
+ * a Makefile). They run after the detected gates, always in full: a declared
+ * command takes no file list, so --since cannot scope it. A malformed entry is
+ * skipped here; `flow doctor` (config-schema) is where it is reported.
+ */
+function declaredGates(root) {
+  const cfg = readJSON(path.join(root, '.claude', 'flow.config.json'));
+  if (!cfg || !Array.isArray(cfg.gates)) return [];
+  return cfg.gates
+    .filter(g => g && typeof g.name === 'string' && g.name !== '' && typeof g.cmd === 'string' && g.cmd !== '')
+    .map(g => ({ kind: 'custom', label: g.name, declared: true, cmd: ['sh', '-c', g.cmd] }));
+}
+
 function detectGates() {
+  const found = detectEcosystemGates();
+  const extra = declaredGates(ROOT);
+  if (extra.length === 0) return found;
+  return { ecosystem: found.ecosystem || 'config', gates: [...found.gates, ...extra] };
+}
+
+function detectEcosystemGates() {
   const ecosystems = [];
   if (findFile(['package.json'])) ecosystems.push('node');
   if (findFile(['pyproject.toml', 'setup.cfg', 'setup.py'])) ecosystems.push('python');
@@ -669,7 +693,7 @@ const CAPTURE_TAIL_BYTES = 512 * 1024;
  */
 const NOTHING_TO_RUN = 'nothing to run for this gate';
 
-function gateName(g) { return g.suffix ? `${g.kind}:${g.suffix}` : g.kind; }
+function gateName(g) { return g.label || (g.suffix ? `${g.kind}:${g.suffix}` : g.kind); }
 
 /** The last CAPTURE_TAIL_BYTES of a capture file, saying so when it cut. */
 function readTail(file) {
@@ -1041,7 +1065,60 @@ function runGate(g) {
     time_ms,
     output: failed ? truncateOutput(combined) : '',
     cmd: display,
+    ...(g.kind === 'test' ? testCounts(combined) : {}),
   };
+}
+
+/**
+ * How many tests the runner reports as executed (passed or failed) and as
+ * skipped, read from its summary. Gate status and exit code are untouched: a
+ * cargo or go run with zero tests still exits 0, so the count is the only
+ * place "nothing ran" shows. Returns executed: null with a note when the
+ * output has no summary this function knows (pytest, vitest, jest, bun, cargo,
+ * go), so a caller never mistakes "unknown" for zero.
+ */
+function testCounts(out) {
+  const text = String(out || '').replace(/\x1b\[[0-9;]*m/g, '');
+  const sum = (re, group = 1) => [...text.matchAll(re)].reduce((n, m) => n + Number(m[group]), 0);
+  const has = re => re.test(text);
+  const done = (executed, skipped) => ({ executed, skipped });
+
+  // cargo: one "test result:" line per test binary and per doctest run.
+  if (has(/^test result: /m)) {
+    return done(
+      sum(/^test result: \w+\. (\d+) passed;/gm) + sum(/^test result: \w+\. \d+ passed; (\d+) failed;/gm),
+      sum(/; (\d+) ignored;/g),
+    );
+  }
+  // vitest: "Tests  1 failed | 4 passed | 1 skipped (6)"; jest: "Tests:       1 failed, 4 passed, 5 total".
+  const tests = text.match(/^\s*Tests:?\s+(.*)$/m);
+  if (tests && /\b(passed|failed|skipped|total)\b/.test(tests[1])) {
+    const n = word => Number((tests[1].match(new RegExp(`(\\d+) ${word}`)) || [0, 0])[1]);
+    return done(n('passed') + n('failed'), n('skipped') + n('todo'));
+  }
+  // bun: " 5 pass", " 1 skip", " 0 fail", then "Ran 6 tests across 1 file".
+  if (has(/^Ran \d+ tests? across \d+ files?/m)) {
+    const n = word => Number((text.match(new RegExp(`^\\s*(\\d+) ${word}\\b`, 'm')) || [0, 0])[1]);
+    return done(n('pass') + n('fail'), n('skip'));
+  }
+  // unittest / Django: "Ran 5 tests in 0.002s", then "OK (skipped=1)" or "FAILED (failures=1, skipped=2)".
+  const ut = text.match(/^Ran (\d+) tests? in [\d.]+s/m);
+  if (ut) return done(Number(ut[1]), Number((text.match(/\bskipped=(\d+)/) || [0, 0])[1]));
+  // pytest: "5 passed, 1 skipped, 2 failed in 0.12s", or "no tests ran".
+  if (has(/\bno tests ran\b/)) return done(0, 0);
+  const py = text.match(/^=*\s*((?:\d+ (?:passed|failed|skipped|errors?|xfailed|xpassed|deselected|warnings?)(?:, )?)+)\s+in [\d.]+s/m);
+  if (py) {
+    const n = word => Number((py[1].match(new RegExp(`(\\d+) ${word}`)) || [0, 0])[1]);
+    return done(n('passed') + n('failed') + n('errors?') + n('xfailed') + n('xpassed'), n('skipped'));
+  }
+  // go: per-test lines only appear with -v; otherwise "no test files" everywhere means nothing ran.
+  if (has(/^\s*--- (PASS|FAIL|SKIP):/m)) {
+    const count = re => [...text.matchAll(re)].length;
+    return done(count(/^\s*--- (?:PASS|FAIL):/gm), count(/^\s*--- SKIP:/gm));
+  }
+  const goLines = text.split('\n').filter(l => /^(ok|FAIL|\?)\s/.test(l));
+  if (goLines.length && goLines.every(l => /no test files|no tests to run/.test(l))) return done(0, 0);
+  return { executed: null, skipped: null, count_note: 'count unavailable' };
 }
 
 /**
@@ -1058,6 +1135,7 @@ function orderGates(found) {
     if (present.length === 0) out.push(skipped(kind, NOTHING_TO_RUN));
     else out.push(...present);
   }
+  out.push(...found.filter(g => g.declared));
   return out;
 }
 

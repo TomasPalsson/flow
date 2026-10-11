@@ -209,6 +209,7 @@ Grade:
 
 ## Summary
 - **Composite Score:** X.XX / 5
+- **Lowest dimension:** <name> X.X
 - **Grade:** [A/B/C/D/F]
 - **Verdict:** [one-sentence overall judgment]
 
@@ -276,7 +277,8 @@ Rationale: [one sentence]
 4. ... (as many as needed)
 
 ## Iteration Recommendation
-- If score ≥ 4.0: SHIP
+- If composite ≥ 4.0 AND Usability, Interaction and Accessibility each ≥ 3.5 AND no dimension ≤ 2: SHIP
+- If composite ≥ 4.0 but a floor is missed: Apply the top fixes for the lowest dimension and re-evaluate
 - If score 3.0-3.9: Apply top 3 fixes and re-evaluate
 - If score < 3.0: Return to Phase 2 (UX Architecture) or Phase 4 (Execute) of the design skill, specifically fixing [which dimensions scored lowest]. If Specificity and creativity ≤ 2: return to Phase 3 (dossier and concept) regardless of composite, except under utility, when Phase 3 was skipped, or for a broken directive, which go to Phase 4 fix items
 ```

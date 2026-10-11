@@ -38,6 +38,7 @@ Usage:
 `,
   'init-metric': `flow loop init "<goal>" --metric "<cmd printing one number>" --direction max|min
   [--runs N] [--min-attempts N] [--target <value>] [--verify "<regression gate>"]
+  [--holdout "<cmd printing one number>"]
   [--shape session|fresh] [--max-iterations N] [--max-minutes N] [--max-usd N]
 
   Hillclimb form: keep a commit only if the median of --runs (default 3) beats
@@ -47,7 +48,13 @@ Usage:
   dirty tree, a metric that prints no number, and a spread larger than the
   distance to --target. With --metric, --target is the number to reach.
   --min-attempts N holds back stall stops and the target finish until N
-  attempts were judged.
+  attempts were judged. A candidate that wins by less than twice the noise is
+  measured once more and kept only if both medians beat.
+  --holdout runs only for a candidate that beats best; a holdout that regresses
+  by more than its own noise reverts the commit. Its values go to
+  .claude/loop/holdout.tsv, never to the prompt or decisions.tsv. Files named
+  in the command are tamper-protected; add cases it reads without naming them
+  with --test-files.
 `,
   check: `flow loop check [--json]
 

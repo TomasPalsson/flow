@@ -12,17 +12,27 @@ def sh(args, cwd=None, timeout=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
+class Unavailable(Exception):
+    """The diff could not be computed; a silent '0 findings' would read as clean."""
+
+
+def resolves(root, ref):
+    return sh(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], cwd=root).returncode == 0
+
+
 def repo_root():
     r = sh(["git", "rev-parse", "--show-toplevel"])
     if r.returncode != 0:
-        sys.stderr.write("slop-check: not a git repository\n")
-        sys.exit(0)
+        raise Unavailable("not a git repository")
     return r.stdout.strip()
 
 
 def default_base(root):
-    ok = sh(["git", "rev-parse", "--verify", "--quiet", "origin/main"], cwd=root).returncode == 0
-    return "origin/main" if ok else "HEAD~1"
+    if resolves(root, "origin/main"):
+        return "origin/main"
+    if resolves(root, "HEAD~1"):
+        return "HEAD~1"
+    raise Unavailable("no origin/main and no parent commit; pass --base")
 
 
 class Hunk:
@@ -35,8 +45,14 @@ class Hunk:
 
 def parse_diff(root, base, head, pathspecs):
     """Returns (added_by_file, hunks_by_file, file_status) keyed by path."""
+    for ref in (base, head):
+        if not resolves(root, ref):
+            raise Unavailable(f"ref '{ref}' does not resolve")
     cmd = ["git", "diff", "-U0", f"{base}...{head}", "--"] + list(pathspecs)
-    out = sh(cmd, cwd=root).stdout
+    r = sh(cmd, cwd=root)
+    if r.returncode != 0:
+        raise Unavailable("git diff failed: " + (r.stderr.strip().splitlines() or ["unknown error"])[0])
+    out = r.stdout
     added_by_file, hunks_by_file, file_status = {}, {}, {}
     cur = cur_hunk = None
     new_lineno = old_lineno = None

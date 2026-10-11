@@ -306,6 +306,10 @@ If `repair` is present, the previous Apply changed source but final validation f
 
 After source edits finish, reply exactly once with `node ${CLAUDE_PLUGIN_ROOT}/skills/impeccable/scripts/live-poll.mjs --reply EVENT_ID done --data '{"status":"done","appliedEntryIds":["8hexid"],"failed":[],"files":["src/page.html"],"notes":[]}'`. Use `status:"partial"` or `status:"error"` with `failed[]` when not every entry applied. Then poll again. Never reply without the event id; `--reply done --file ...` is invalid for manual Apply.
 
+## Discard pending manual edits
+
+Only when the user asks in chat to discard, throw away or clear their pending manual edits, and has not clicked Apply: run `node ${CLAUDE_PLUGIN_ROOT}/skills/impeccable/scripts/live-discard-manual-edits.mjs` (add `--page-url=/route` to drop only that route's entries). It empties `.impeccable/live/pending-manual-edits.json`, writes no source file, and prints `{discarded, entries, totalCount}`; tell the user how many entries went. Once Apply was clicked the batch belongs to the `manual_edit_apply` flow above, so never run it then.
+
 ## Exit
 
 The user stops live mode by saying so in chat, closing the tab (SSE drops; poll returns `exit` after 8s), or the browser's exit button. On `exit`, kill any still-running background poll, then clean up.

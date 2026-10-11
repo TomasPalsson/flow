@@ -31,6 +31,8 @@ Explore the project, then answer these questions — they directly map to CLAUDE
 
 **Critical:** Read the existing CLAUDE.md first if one exists — preserve team knowledge, don't replace it.
 
+**Dead paths (audit step):** when a CLAUDE.md exists, run `flow skills-lint --claude-md <repo-root>` (it also reads `.claude/rules/*.md` and the Ruling lines of PROGRESS.md) and list every `MISSING <file>:<line> <path>` hit in the audit report. A rule that cites a path that is gone misleads every session, so the fix is to update the path or delete the rule; the pruning test below then runs on what is left. Globs, `<placeholders>` and fenced examples are skipped by the lint.
+
 ### Scenario Router
 
 | Situation | Approach |

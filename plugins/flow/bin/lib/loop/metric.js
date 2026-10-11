@@ -7,6 +7,14 @@
 // keeps the attempt in history; the loop never discards work with a hard
 // reset. Every attempt is one row in .claude/loop/decisions.tsv.
 // Idea adapted from cursor/plugins pstack playbooks/hillclimb.md @ ccb5507 (MIT).
+//
+// Optional --holdout: a second command printing one number, measured only when
+// a candidate beats best. If it regresses by more than its own noise the
+// commit is reverted. Its numbers go to .claude/loop/holdout.tsv only; the
+// continuation prompt and decisions.tsv never carry them, so the agent cannot
+// climb the holdout. A candidate whose margin over best is under twice the
+// noise is measured once more and kept only if both medians beat.
+// Credit: adapted from anthropics/skills skills/claude-api/shared/evals/eval-hillclimb.md @ dbd4588 (Apache-2.0).
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -19,6 +27,37 @@ const PIVOT_AFTER = 3;
 
 function decisionsPath(toplevel) {
   return path.join(toplevel, '.claude', 'loop', 'decisions.tsv');
+}
+
+function holdoutPath(toplevel) {
+  return path.join(toplevel, '.claude', 'loop', 'holdout.tsv');
+}
+
+// holdout.tsv: sha, value, noise, kept. The `init` row is the baseline; the
+// best value is taken over `init` and every kept row.
+function appendHoldout(toplevel, row) {
+  const p = holdoutPath(toplevel);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  if (!fs.existsSync(p)) fs.writeFileSync(p, 'sha\tvalue\tnoise\tkept\n');
+  fs.appendFileSync(p, `${[row.sha, row.value, row.noise, row.kept].join('\t')}\n`);
+}
+
+// readHoldoutState(toplevel, dir) -> { best, noise } or null.
+function readHoldoutState(toplevel, dir) {
+  let raw = '';
+  try {
+    raw = fs.readFileSync(holdoutPath(toplevel), 'utf8');
+  } catch { return null; }
+  let best = null;
+  let noise = 0;
+  for (const line of raw.split('\n').slice(1).filter(Boolean)) {
+    const [sha, value, rowNoise, kept] = line.split('\t');
+    if (kept !== 'yes' && sha !== 'init') continue;
+    const v = Number(value);
+    if (sha === 'init') noise = Number(rowNoise);
+    if (best === null || (dir === 'min' ? v < best : v > best)) best = v;
+  }
+  return best === null ? null : { best, noise };
 }
 
 // The last number printed. A metric command may print progress before it.
@@ -71,6 +110,32 @@ function reachedTarget(direction, best, target) {
   return direction === 'min' ? best <= target : best >= target;
 }
 
+// judgeCandidate -> { kept, label, holdoutRow }. A candidate must beat best by
+// more than the noise and pass the gate. Inside twice the noise it is measured
+// once more and both medians must beat. Then, when a holdout is set, it is
+// measured once and must not regress past its own noise. `label` is the kept
+// column of decisions.tsv; it never carries a holdout number.
+function judgeCandidate(toplevel, front, verify, m, before, env) {
+  const noise = toFloat(front.metric_noise);
+  const runs = toInt(front.metric_runs) || 1;
+  const dir = front.metric_dir;
+  if (!(m.ok && verify.rc === 0 && beats(dir, m.median, before, noise))) return { kept: false, label: 'no' };
+  if (Math.abs(m.median - before) < 2 * noise) {
+    const again = measure(toplevel, front.metric, runs, front.verify_timeout, env);
+    if (!again.ok || !beats(dir, again.median, before, noise)) return { kept: false, label: 'no' };
+  }
+  if (!front.metric_holdout) return { kept: true, label: 'yes' };
+  const state = readHoldoutState(toplevel, dir);
+  const h = measure(toplevel, front.metric_holdout, runs, front.verify_timeout, env);
+  if (!state || !h.ok) return { kept: false, label: 'no (holdout)' };
+  const regressed = dir === 'min' ? h.median > state.best + state.noise : h.median < state.best - state.noise;
+  return {
+    kept: !regressed,
+    label: regressed ? 'no (holdout)' : 'yes',
+    holdoutRow: { value: fmtNum(h.median), noise: fmtNum(state.noise), kept: regressed ? 'no' : 'yes' },
+  };
+}
+
 function git(toplevel, args) {
   return spawnSync('git', ['-C', toplevel].concat(args), { encoding: 'utf8' });
 }
@@ -108,6 +173,18 @@ function initMetric(toplevel, args, env) {
       code: 1,
     };
   }
+  let holdout = null;
+  if (args.holdout) {
+    holdout = measure(toplevel, args.holdout, toInt(args.runs), args.verifyTimeout, env);
+    if (!holdout.ok) return { error: `flow loop init: holdout: ${holdout.reason}; refusing to arm`, code: 1 };
+    if (dirtyOutsideLoop(toplevel)) {
+      return {
+        error: `flow loop init: the holdout command wrote files into the repo (${dirtyFiles(toplevel)}); add them to .gitignore ` +
+          'or make it write outside the repo; refusing to arm',
+        code: 1,
+      };
+    }
+  }
   const hasTarget = args.metricTarget !== null && args.metricTarget !== undefined;
   if (hasTarget) {
     const target = Number(args.metricTarget);
@@ -133,7 +210,9 @@ function initMetric(toplevel, args, env) {
       metric_head: '',
       metric_attempts: '0',
       metric_rejects: '0',
+      ...(holdout ? { metric_holdout: args.holdout } : {}),
     },
+    holdout,
     median: m.median,
     spread: m.spread,
   };
@@ -194,12 +273,13 @@ function metricStep(toplevel, front, verify, env) {
   if (head !== front.metric_head) {
     const before = toFloat(front.metric_best);
     const m = measure(toplevel, front.metric, toInt(front.metric_runs) || 1, front.verify_timeout, env);
+    const verdict = judgeCandidate(toplevel, front, verify, m, before, env);
     if (dirtyOutsideLoop(toplevel)) {
       process.stderr.write(`flow loop: the metric command wrote files into the repo (${dirtyFiles(toplevel)}); gitignore them. Stopping.\n`);
       out.stopReason = 'metric-wrote-files';
       return out;
     }
-    const kept = m.ok && verify.rc === 0 && beats(front.metric_dir, m.median, before, toFloat(front.metric_noise));
+    const kept = verdict.kept;
     const subject = (git(toplevel, ['log', '-1', '--format=%s', head]).stdout || '').trim();
     appendDecision(toplevel, {
       sha: head.slice(0, 7),
@@ -207,8 +287,9 @@ function metricStep(toplevel, front, verify, env) {
       before: fmtNum(before),
       after: m.ok ? fmtNum(m.median) : '-',
       delta: m.ok ? fmtNum(m.median - before) : '-',
-      kept: kept ? 'yes' : 'no',
+      kept: verdict.label,
     });
+    if (verdict.holdoutRow) appendHoldout(toplevel, Object.assign({ sha: head.slice(0, 7) }, verdict.holdoutRow));
     front.metric_attempts = String(toInt(front.metric_attempts) + 1);
     if (kept) {
       front.metric_best = fmtNum(m.median);
@@ -216,6 +297,7 @@ function metricStep(toplevel, front, verify, env) {
       front.metric_rejects = '0';
     } else {
       front.metric_rejects = String(toInt(front.metric_rejects) + 1);
+      front.metric_pivot_size = String(learningsSize(toplevel));
       if (!revertCandidate(toplevel, front, head)) {
         out.stopReason = 'revert-failed';
         return out;
@@ -236,6 +318,12 @@ function stallSuppressed(front) {
   return Boolean(front.metric) && toInt(front.metric_attempts) < toInt(front.metric_min_attempts);
 }
 
+function learningsSize(toplevel) {
+  try {
+    return fs.statSync(path.join(toplevel, '.claude', 'loop', 'LEARNINGS.md')).size;
+  } catch { return 0; }
+}
+
 // metricNote(toplevel, front) -> text appended to the continuation prompt.
 function metricNote(toplevel, front) {
   const lines = [
@@ -246,12 +334,25 @@ function metricNote(toplevel, front) {
   const rows = readDecisions(toplevel, 5);
   if (rows.length) lines.push('last attempts (sha, hypothesis, before, after, delta, kept):', ...rows);
   if (toInt(front.metric_rejects) >= PIVOT_AFTER) {
-    lines.push(`${front.metric_rejects} attempts in a row were rejected: pivot to a different category of change, not another variation of the last idea.`);
+    const bucketed = front.metric_pivot_size !== undefined && learningsSize(toplevel) > toInt(front.metric_pivot_size);
+    if (bucketed) {
+      lines.push(
+        `${front.metric_rejects} attempts in a row were rejected and the failures are bucketed in LEARNINGS.md: now make the change aimed at the largest artifact gap bucket, a different category from the last idea. ` +
+          'If no failure is an artifact gap, write .claude/loop/BLOCKED.md and stop.'
+      );
+      return lines.join('\n');
+    }
+    lines.push(
+      `${front.metric_rejects} attempts in a row were rejected: pivot to a different category of change, not another variation of the last idea.`,
+      'Spend this round with no content edit. Read the failing cases and bucket each as artifact gap, grader, harness, structural or variance. ' +
+        'Append the counts to .claude/loop/LEARNINGS.md. Aim the next change at the largest artifact gap bucket; ' +
+        'if no failure is an artifact gap, write .claude/loop/BLOCKED.md and stop, because the artifact is not what is holding the number back.'
+    );
   }
   return lines.join('\n');
 }
 
 module.exports = {
   parseMetricOutput, median, measure, beats, initMetric, metricStep, stallSuppressed, metricNote,
-  dirtyOutsideLoop, decisionsPath, readDecisions, fmtNum,
+  dirtyOutsideLoop, decisionsPath, readDecisions, fmtNum, appendHoldout,
 };

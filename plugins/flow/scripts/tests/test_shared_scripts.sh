@@ -1468,3 +1468,223 @@ t_shared_start_dev_server_kill_without_port_leaves_the_spawned_server_alive() {
 	[ -n "$pid" ] && kill "$pid" 2>/dev/null
 	rm -rf "$d"
 }
+
+# famous-borrows F02 — check-all reports how many tests the runner executed.
+# Gate status and exit code stay as they were: the stop-gate runs check-all on
+# every sweep, so a zero count must never turn a green gate red.
+t_shared_check_all_test_gate_reports_executed_zero_and_stays_green() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/bin"
+	printf '[package]\nname = "x"\nversion = "0.1.0"\n' >"$d/Cargo.toml"
+	printf '#!/bin/sh\necho "running 0 tests"\necho "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out"\nexit 0\n' >"$d/bin/cargo"
+	chmod +x "$d/bin/cargo"
+	_ss_in_env "$d" "PATH=$d/bin:$PATH" check-all --json --continue
+	assert_rc 0 "cargo run with zero tests: check-all still exits 0"
+	assert_contains "$(_ss_gate "$OUT" test)" '"status": "pass"' "zero tests: the gate status is still pass"
+	assert_contains "$OUT" '"executed": 0' "zero tests: executed is 0"
+	rm -rf "$d"
+}
+
+t_shared_check_all_test_gate_counts_executed_and_skipped() {
+	local d
+	d=$(tmp_dir)
+	printf '{"name":"x","scripts":{"test":"echo \\"Tests:       1 skipped, 4 passed, 5 total\\""}}\n' >"$d/package.json"
+	_ss_in "$d" check-all --json --continue
+	assert_rc 0 "jest-style summary: check-all exits 0"
+	assert_contains "$OUT" '"executed": 4' "jest summary: executed counts passed plus failed"
+	assert_contains "$OUT" '"skipped": 1' "jest summary: skipped is reported"
+	rm -rf "$d"
+}
+
+t_shared_check_all_test_gate_unknown_summary_is_null_not_zero() {
+	local d
+	d=$(tmp_dir)
+	printf '{"name":"x","scripts":{"test":"exit 0"}}\n' >"$d/package.json"
+	_ss_in "$d" check-all --json --continue
+	assert_rc 0 "no recognisable summary: check-all exits 0"
+	assert_contains "$OUT" '"executed": null' "unknown summary: executed is null, never 0"
+	assert_contains "$OUT" 'count unavailable' "unknown summary: the note says the count is unavailable"
+	rm -rf "$d"
+}
+
+t_shared_check_all_test_gate_counts_python_unittest_output() {
+	local d
+	d=$(tmp_dir)
+	printf '{"name":"x","scripts":{"test":"echo Ran 2 tests in 0.001s; echo; echo OK \\\\(skipped=1\\\\)"}}\n' >"$d/package.json"
+	_ss_in "$d" check-all --json --continue
+	assert_rc 0 "unittest summary: check-all exits 0"
+	assert_contains "$OUT" '"executed": 2' "unittest summary: Ran N tests is the executed count"
+	assert_contains "$OUT" '"skipped": 1' "unittest summary: skipped=N is reported"
+	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# F130 — gates declared in .claude/flow.config.json run after the detected ones
+# ---------------------------------------------------------------------------
+
+t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/.claude"
+	printf 'resource "x" "y" {}\n' >"$d/main.tf"
+	printf '{"gates":[{"name":"fmt","cmd":"echo declared-ran"},{"name":"bad","cmd":""}]}\n' >"$d/.claude/flow.config.json"
+
+	_ss_in "$d" check-all --json --continue
+	assert_rc 0 "t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo rc"
+	assert_contains "$OUT" '"name": "fmt"' "t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo lists-fmt"
+	assert_contains "$(_ss_gate "$OUT" fmt)" '"status": "pass"' "t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo fmt-passes"
+	assert_contains "$(printf '%s' "$OUT" | grep -B1 '"name": "fmt"')" '"kind": "custom"' "t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo kind-custom"
+	assert_not_contains "$OUT" '"name": "bad"' "t_shared_check_all_runs_declared_gates_in_a_manifest_free_repo malformed-entry-skipped"
+	rm -rf "$d"
+}
+
+t_shared_check_all_declared_gate_failure_is_red_and_runs_in_full_under_since() {
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/.claude"
+	printf '{"name":"x","scripts":{"test":"exit 0"}}\n' >"$d/package.json"
+	printf '{"gates":[{"name":"tf","cmd":"exit 3"}]}\n' >"$d/.claude/flow.config.json"
+	_ss_git_init "$d"
+	(cd "$d" && git add -A && git commit -q -m init) >/dev/null 2>&1
+
+	_ss_in "$d" check-all --json --continue --since HEAD
+	assert_rc 1 "t_shared_check_all_declared_gate_failure_is_red_and_runs_in_full_under_since rc"
+	assert_contains "$(_ss_gate "$OUT" tf)" '"status": "fail"' "t_shared_check_all_declared_gate_failure_is_red_and_runs_in_full_under_since tf-red"
+	assert_contains "$OUT" '"scope": "all"' "t_shared_check_all_declared_gate_failure_is_red_and_runs_in_full_under_since not-scoped"
+	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# F132 — detect-project names the pytest runner check-all runs
+# ---------------------------------------------------------------------------
+
+# _ss_pytest_agrees <dir> <PATH> <label> — detect-project's test_cmd equals the
+# test gate's cmd in check-all --json; leaves it in PYT_DETECTED.
+_ss_pytest_agrees() {
+	local d=$1 p=$2 label=$3 detected gated
+	_ss_in_env "$d" "PATH=$p" detect-project
+	detected=$(printf '%s' "$OUT" | "$SS_NODE" -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).test_cmd))')
+	_ss_in_env "$d" "PATH=$p" check-all --json --continue
+	gated=$(printf '%s' "$OUT" | "$SS_NODE" -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).gates.filter(g=>g.kind==="test")[0].cmd||""))')
+	assert_eq "$detected" "$gated" "$label detect-project test_cmd equals the check-all test gate"
+	if [ -n "$detected" ]; then _pass "$label test_cmd is not empty"; else _fail "$label test_cmd is not empty" "empty"; fi
+	PYT_DETECTED=$detected
+}
+
+t_shared_detect_python_test_cmd_matches_check_all_venv() {
+	local d got
+	d=$(tmp_dir)
+	mkdir -p "$d/.venv/bin"
+	printf '[tool.pytest.ini_options]\n' >"$d/pyproject.toml"
+	printf '#!/bin/sh\nexit 0\n' >"$d/.venv/bin/pytest"
+	chmod +x "$d/.venv/bin/pytest"
+	_ss_pytest_agrees "$d" "$PATH" "t_shared_detect_python_test_cmd_matches_check_all_venv"
+	got=$PYT_DETECTED
+	assert_contains "$got" "/.venv/bin/pytest" "t_shared_detect_python_test_cmd_matches_check_all_venv uses-venv"
+	rm -rf "$d"
+}
+
+t_shared_detect_python_test_cmd_matches_check_all_uv_lock() {
+	local d got
+	d=$(tmp_dir)
+	mkdir -p "$d/bin"
+	printf '[tool.pytest.ini_options]\n' >"$d/pyproject.toml"
+	printf 'version = 1\n\n[[package]]\nname = "pytest"\nversion = "8.0"\n' >"$d/uv.lock"
+	printf '#!/bin/sh\nexit 0\n' >"$d/bin/uv"
+	chmod +x "$d/bin/uv"
+	_ss_pytest_agrees "$d" "$d/bin:$PATH" "t_shared_detect_python_test_cmd_matches_check_all_uv_lock"
+	got=$PYT_DETECTED
+	assert_eq "$got" "uv run --no-sync pytest" "t_shared_detect_python_test_cmd_matches_check_all_uv_lock uses-uv"
+	rm -rf "$d"
+}
+
+t_shared_detect_python_test_cmd_matches_check_all_bare_pytest() {
+	local d got
+	d=$(tmp_dir)
+	mkdir -p "$d/bin"
+	printf '[tool.pytest.ini_options]\n' >"$d/pyproject.toml"
+	printf '#!/bin/sh\nexit 0\n' >"$d/bin/pytest"
+	chmod +x "$d/bin/pytest"
+	_ss_pytest_agrees "$d" "$d/bin:$PATH" "t_shared_detect_python_test_cmd_matches_check_all_bare_pytest"
+	got=$PYT_DETECTED
+	assert_eq "$got" "pytest" "t_shared_detect_python_test_cmd_matches_check_all_bare_pytest bare"
+	rm -rf "$d"
+}
+
+# ---------------------------------------------------------------------------
+# F159 — start-dev-server wrap mode: run a command, always stop the server
+# ---------------------------------------------------------------------------
+
+# _ss_listening <port> — exit 0 when something accepts a TCP connection.
+_ss_listening() {
+	"$SS_NODE" -e 'const s=require("net").connect(+process.argv[1],"127.0.0.1");s.on("connect",()=>process.exit(0));s.on("error",()=>process.exit(1))' "$1"
+}
+
+# _ss_free_port — a port nothing listens on right now.
+_ss_free_port() {
+	"$SS_NODE" -e 'const s=require("net").createServer().listen(0,"127.0.0.1",()=>{process.stdout.write(String(s.address().port));s.close()})'
+}
+
+t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code() {
+	local d other_pid P1 P2
+	d=$(tmp_dir)
+	P1=$(_ss_free_port)
+	P2=$(_ss_free_port)
+	python3 -m http.server $P2 --bind 127.0.0.1 >/dev/null 2>&1 &
+	other_pid=$!
+	sleep 1
+
+	_ss_in "$d" start-dev-server --cmd "python3 -m http.server $P1" --port $P1 --timeout 15 -- false
+	assert_rc 1 "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code false-exits-1"
+	if _ss_listening $P1; then _fail "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code false-cleanup" "$P1 still listening"; else _pass "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code false-cleanup"; fi
+
+	_ss_in "$d" start-dev-server --cmd "python3 -m http.server $P1" --port $P1 --timeout 15 -- true
+	assert_rc 0 "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code true-exits-0"
+	if _ss_listening $P1; then _fail "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code true-cleanup" "$P1 still listening"; else _pass "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code true-cleanup"; fi
+
+	if _ss_listening $P2; then _pass "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code other-listener-survives"; else _fail "t_shared_start_dev_server_wrap_mode_stops_server_and_returns_command_code other-listener-survives" "$P2 gone"; fi
+	kill "$other_pid" 2>/dev/null
+	wait "$other_pid" 2>/dev/null
+	rm -rf "$d"
+}
+
+t_shared_start_dev_server_wrap_mode_passes_exit_code_through_and_keeps_stdout_clean() {
+	local d P3
+	d=$(tmp_dir)
+	P3=$(_ss_free_port)
+	_ss_in "$d" start-dev-server --cmd "python3 -m http.server $P3" --port $P3 --timeout 15 -- sh -c 'echo from-cmd; exit 7'
+	assert_rc 7 "t_shared_start_dev_server_wrap_mode_passes_exit_code_through_and_keeps_stdout_clean code-7"
+	assert_eq "$OUT" "from-cmd" "t_shared_start_dev_server_wrap_mode_passes_exit_code_through_and_keeps_stdout_clean stdout-is-the-commands"
+	if _ss_listening $P3; then _fail "t_shared_start_dev_server_wrap_mode_passes_exit_code_through_and_keeps_stdout_clean cleanup" "$P3 still listening"; else _pass "t_shared_start_dev_server_wrap_mode_passes_exit_code_through_and_keeps_stdout_clean cleanup"; fi
+	rm -rf "$d"
+}
+
+t_shared_start_dev_server_wrap_mode_server_crash_does_not_orphan_the_command() {
+	local d P4 n
+	n=t_shared_start_dev_server_wrap_mode_server_crash_does_not_orphan_the_command
+	d=$(tmp_dir)
+	P4=$(_ss_free_port)
+	cat >"$d/srv.sh" <<EOF
+#!/bin/sh
+python3 -m http.server $P4 &
+p=\$!
+sleep 3
+kill \$p
+exit 3
+EOF
+	chmod +x "$d/srv.sh"
+	_ss_in "$d" start-dev-server --cmd "$d/srv.sh" --port $P4 --timeout 15 -- sh -c 'sleep 5; echo from-cmd; exit 4'
+	assert_rc 4 "$n exits-with-the-commands-code"
+	assert_eq "$OUT" "from-cmd" "$n stdout-is-the-commands"
+	rm -rf "$d"
+}
+
+t_shared_start_dev_server_help_documents_wrap_mode() {
+	local d
+	d=$(tmp_dir)
+	_ss_in "$d" start-dev-server --help
+	assert_contains "$OUT" 'Wrap mode' "t_shared_start_dev_server_help_documents_wrap_mode section"
+	assert_contains "$OUT" '[-- <cmd...>]' "t_shared_start_dev_server_help_documents_wrap_mode usage"
+	rm -rf "$d"
+}

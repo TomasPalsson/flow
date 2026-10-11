@@ -7,16 +7,18 @@ description: "Create stunning, interactive single-file HTML explainer pages that
 
 Create self-contained, single-file HTML pages that explain code, projects, concepts, or processes through animation, diagrams, interactive elements, and beautiful design. The output is a premium interactive article — not a boring docs page.
 
-## Load the Frontend Design Skill First
+## Load the Design Skill First
 
-Invoke the frontend-design skill before writing any HTML. It provides the aesthetic guidelines that prevent generic, flat, AI-looking output — without it, the explainer will look like every other AI-generated page.
+Invoke the design:design skill before writing any HTML. It holds the aesthetic and UX rules that prevent generic, flat, AI-looking output; without it, the explainer will look like every other AI-generated page.
 
 ```
 Skill tool call:
-  skill: "frontend-design:frontend-design"
+  skill: "design:design"
 ```
 
-Apply the frontend-design skill's guidance to every visual decision — color palette, typography, spacing, component styling. The explainer skill handles the *structure and content*, the frontend-design skill handles the *aesthetics*.
+Apply design:design's guidance to every visual decision: color palette, typography, spacing, component styling. The explainer skill handles the *structure and content*, design:design handles the *aesthetics*.
+
+Inline `<script>` blocks often embed code or HTML as strings. In those strings, escape `<` as `\u003c` so a quoted `</script>` cannot end the script early. Before delivering, run `node <design plugin>/skills/smoothbrain/scripts/check.mjs <page.html>` and read only its "inline script" lines: it parses every inline script and reports the line of any that is cut short. Its other rows judge smoothbrain pages, not explainers.
 
 ## What You're Building
 

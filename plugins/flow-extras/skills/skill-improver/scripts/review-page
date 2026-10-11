@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""review-page: a static page for a human pass over subjective skill outputs.
+
+  review-page render --curr <iter-dir> [--prev <iter-dir>] [--feedback <file>] [--title T] --out <page.html>
+  review-page comments <feedback.json>
+  review-page carry --from <iter-dir> --to <iter-dir> --feedback <feedback.json>
+
+An iteration dir holds one subdirectory per case; each holds the output file(s)
+for that case (output.md, output.html, ...). The page shows the earlier
+iteration next to the current one with a comment box per case, and exports
+feedback.json as [{"case": "<id>", "comment": "<text>"}]. There is no server:
+open the file, comment, copy or download the JSON.
+
+`comments` lists only the cases that have a comment. `carry` copies every
+uncommented case from one iteration to the next byte for byte and prints the
+ids of the commented cases, which are the only ones to edit and re-run.
+"""
+
+import argparse
+import json
+import shutil
+import sys
+from pathlib import Path
+
+TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "review-page.html"
+
+
+def case_dirs(root):
+    return sorted(p for p in Path(root).iterdir() if p.is_dir() and not p.name.startswith("."))
+
+
+def output_file(case_dir):
+    files = sorted(f for f in case_dir.iterdir() if f.is_file() and not f.name.startswith("."))
+    for f in files:
+        if f.stem == "output":
+            return f
+    return files[0] if files else None
+
+
+def read_case(case_dir):
+    f = output_file(case_dir) if case_dir.is_dir() else None
+    if f is None:
+        return None
+    return {"kind": "html" if f.suffix in (".html", ".htm") else "text",
+            "text": f.read_text(encoding="utf-8", errors="replace")}
+
+
+def load_comments(path):
+    data = json.loads(Path(path).read_text())
+    return [{"case": str(e["case"]), "comment": str(e.get("comment", "")).strip()} for e in data]
+
+
+def cmd_render(args):
+    curr = Path(args.curr)
+    prev = Path(args.prev) if args.prev else None
+    old = {c["case"]: c["comment"] for c in load_comments(args.feedback)} if args.feedback else {}
+    cases = []
+    for d in case_dirs(curr):
+        cases.append({"id": d.name,
+                      "curr": read_case(d),
+                      "prev": read_case(prev / d.name) if prev else None,
+                      "prev_comment": old.get(d.name, "")})
+    payload = {"title": args.title or curr.name,
+               "prev_label": prev.name if prev else "(none)", "curr_label": curr.name,
+               "cases": cases}
+    blob = json.dumps(payload).replace("<", "\\u003c").replace("\u2028", "\\u2028")
+    page = TEMPLATE.read_text().replace("__DATA__", blob)
+    Path(args.out).write_text(page)
+    return 0
+
+
+def cmd_comments(args):
+    commented = [c for c in load_comments(args.feedback) if c["comment"]]
+    print(json.dumps(commented, indent=2))
+    return 0
+
+
+def cmd_carry(args):
+    src, dst = Path(args.from_dir), Path(args.to)
+    commented = {c["case"] for c in load_comments(args.feedback) if c["comment"]}
+    dst.mkdir(parents=True, exist_ok=True)
+    redo = []
+    for d in case_dirs(src):
+        if d.name in commented:
+            redo.append(d.name)
+            continue
+        target = dst / d.name
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(d, target)
+    for name in redo:
+        print(name)
+    return 0
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+    r = sub.add_parser("render")
+    r.add_argument("--curr", required=True)
+    r.add_argument("--prev")
+    r.add_argument("--feedback")
+    r.add_argument("--title")
+    r.add_argument("--out", required=True)
+    r.set_defaults(fn=cmd_render)
+    c = sub.add_parser("comments")
+    c.add_argument("feedback")
+    c.set_defaults(fn=cmd_comments)
+    k = sub.add_parser("carry")
+    k.add_argument("--from", dest="from_dir", required=True)
+    k.add_argument("--to", required=True)
+    k.add_argument("--feedback", required=True)
+    k.set_defaults(fn=cmd_carry)
+    args = p.parse_args(argv)
+    try:
+        return args.fn(args)
+    except (OSError, ValueError, KeyError) as e:
+        print(f"review-page: {e}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

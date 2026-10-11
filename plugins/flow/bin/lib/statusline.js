@@ -132,6 +132,61 @@ function flowSegment(entry, opts) {
   }
 }
 
+// ── Repo context segment: <worktree-or-repo>@<branch> ───────────────────────
+// Read from .git files only (no child_process, per the header contract). A
+// linked worktree has a `.git` file pointing at its own gitdir; the main
+// checkout has a `.git` directory. Either way HEAD says the branch.
+const CONTEXT_MAX_WIDTH = 32;
+
+function readGitContext(startDir) {
+  try {
+    let dir = path.resolve(startDir);
+    for (let i = 0; i < 40; i++) {
+      const dotgit = path.join(dir, '.git');
+      let st = null;
+      try { st = fs.statSync(dotgit); } catch (e) { st = null; }
+      if (st) {
+        let gitdir = dotgit;
+        if (st.isFile()) {
+          const m = fs.readFileSync(dotgit, 'utf8').match(/^gitdir:\s*(.+?)\s*$/m);
+          if (!m) return null;
+          gitdir = path.resolve(dir, m[1]);
+        }
+        const head = fs.readFileSync(path.join(gitdir, 'HEAD'), 'utf8').trim();
+        const ref = head.match(/^ref: refs\/heads\/(.+)$/);
+        return { name: path.basename(dir), branch: ref ? ref[1] : head.slice(0, 7) };
+      }
+      const up = path.dirname(dir);
+      if (up === dir) return null;
+      dir = up;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+function contextSegment(input, opts) {
+  try {
+    const i = input || {};
+    const start = (i.workspace && typeof i.workspace.current_dir === 'string' && i.workspace.current_dir)
+      || (typeof i.cwd === 'string' && i.cwd) || process.cwd();
+    const ctx = readGitContext(start);
+    if (!ctx || !ctx.name || !ctx.branch) return '';
+    let { name, branch } = ctx;
+    if (name.length + 1 + branch.length > CONTEXT_MAX_WIDTH) {
+      // The branch is the part that varies; keep it whole when it fits.
+      const room = CONTEXT_MAX_WIDTH - 1;
+      const nameMax = Math.max(8, room - branch.length);
+      name = elide(name, Math.min(name.length, nameMax));
+      branch = elide(branch, room - name.length);
+    }
+    return withTone(name + '@' + branch, 'muted', opts);
+  } catch (e) {
+    return '';
+  }
+}
+
 // ── The whole line ──────────────────────────────────────────────────────
 function renderLine(input, entry, opts) {
   const model = modelSegment(input, opts);
@@ -141,7 +196,9 @@ function renderLine(input, entry, opts) {
   } catch (e) {
     flow = '';
   }
-  return flow ? model + SEPARATOR + flow : model;
+  // FR-06: with no flow project the line stays the bare model segment.
+  const context = flow ? contextSegment(input, opts) : '';
+  return [model, flow, context].filter(Boolean).join(SEPARATOR);
 }
 
 // ── The cache (spec §5, design.md §5) ──────────────────────────────────────
@@ -186,6 +243,7 @@ module.exports = {
   renderLine,
   modelSegment,
   flowSegment,
+  contextSegment,
   elide,
   cachePath,
   readCache,

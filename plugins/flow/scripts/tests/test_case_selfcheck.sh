@@ -243,7 +243,7 @@ t_case_selfcheck_live_ledger_line() {
 import json, sys
 d = json.loads(open(sys.argv[1]).readline())
 print(list(d), d["model"], d["judgeModel"], d["tags"], d["meanDelta"], d["partial"], d["reason"], len(d["sha"]))' "$log/ledger.jsonl")" \
-		"['ts', 'sha', 'model', 'judgeModel', 'tags', 'meanDelta', 'costUsd', 'partial', 'reason'] claude-sonnet-5 claude-haiku-4-5 {'xhard': {'score': 1.0, 'delta': 0, 'cases': 1, 'post': {'pass': 1, 'total': 1}}} 0 False live runner (outside the eval sandbox) 40" "ledger line shape"
+		"['ts', 'sha', 'model', 'judgeModel', 'tags', 'meanDelta', 'costUsd', 'partial', 'reason', 'graders'] claude-sonnet-5 claude-haiku-4-5 {'xhard': {'score': 1.0, 'delta': 0, 'cases': 1, 'post': {'pass': 1, 'total': 1}}} 0 False live runner (outside the eval sandbox) 40" "ledger line shape"
 	rm -rf "$root" "$log"
 }
 
@@ -377,4 +377,345 @@ t_case_selfcheck_shipped_cases_are_neutral() {
 	# shellcheck disable=SC2086
 	run_cmd "$CSC" $names
 	assert_not_contains "$OUT" "candidate can see it is graded" "no shipped scaffold names the grading"
+}
+
+# ---------- F34: scaffold HEAD guard and self-assertions ----------
+
+_CSC_GUARD='if git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
+	git rev-parse --verify -q HEAD >/dev/null 2>&1; then
+	echo "refusing to scaffold inside an existing work tree" >&2
+	exit 1
+fi'
+_CSC_COMMIT='git init -q
+git config user.email dev@example.com
+git config user.name Dev
+git config commit.gpgsign false
+printf "x = 1\n" > a.py
+git add -A
+git commit -q -m "init"'
+_CSC_FILE_GRADER='  - name: g
+    type: regex
+    target: { source: file, path: a.py }
+    pattern: "x = 2"
+    match: contains'
+
+t_csc_commit_scaffold_without_guard_fails() {
+	_csc_no_yaml t_csc_commit_scaffold_without_guard_fails && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-noguard "$_CSC_FILE_GRADER" "$_CSC_COMMIT"
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "an unguarded git commit scaffold fails selfcheck"
+	assert_contains "$OUT" "FAIL xhard-noguard: scaffold.sh runs git add/commit without the HEAD guard" "failure names the missing guard"
+	rm -rf "$root"
+}
+
+t_csc_commit_scaffold_with_guard_passes() {
+	_csc_no_yaml t_csc_commit_scaffold_with_guard_passes && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-guard "$_CSC_FILE_GRADER" "$_CSC_GUARD
+$_CSC_COMMIT"
+	run_cmd "$CSC" --root "$root"
+	assert_rc 0 "a guarded git commit scaffold passes"
+	assert_not_contains "$OUT" "WARN" "a guarded scaffold draws no warning"
+	rm -rf "$root"
+}
+
+t_csc_guard_after_the_first_commit_does_not_count() {
+	_csc_no_yaml t_csc_guard_after_the_first_commit_does_not_count && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-late "$_CSC_FILE_GRADER" "$_CSC_COMMIT
+$_CSC_GUARD"
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "a guard placed after the commit is no guard"
+	assert_contains "$OUT" "without the HEAD guard" "late guard reported"
+	rm -rf "$root"
+}
+
+t_csc_unguarded_file_writer_warns_but_passes() {
+	_csc_no_yaml t_csc_unguarded_file_writer_warns_but_passes && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-writer "$_CSC_FILE_GRADER" 'printf "x = 1\n" > a.py'
+	run_cmd "$CSC" --root "$root"
+	assert_rc 0 "a plain file-writing scaffold still passes"
+	assert_contains "$OUT" "WARN xhard-writer: scaffold.sh writes files before any HEAD guard" "warning printed"
+	assert_contains "$OUT" "PASS xhard-writer" "case still passes"
+	rm -rf "$root"
+}
+
+t_csc_scaffold_self_assertion_failure_is_a_scaffold_error() {
+	_csc_no_yaml t_csc_scaffold_self_assertion_failure_is_a_scaffold_error && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-selfassert "$_CSC_FILE_GRADER" 'printf "x = 1\n" > a.py
+test -f trap.txt || { echo "trap.txt was not planted" >&2; exit 1; }'
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "a failing self-assertion fails the run"
+	assert_contains "$OUT" "FAIL xhard-selfassert: scaffold error (exit 1): trap.txt was not planted" "reported as a scaffold error"
+	assert_not_contains "$OUT" "pristine scaffold" "never reaches the pass/fail verdict on the case"
+	rm -rf "$root"
+}
+
+# ---------- F33: routing negatives name the skill they near-miss ----------
+
+_csc_routing_neg() { # <root> <name> <description>
+	local d="$1/$2"
+	mkdir -p "$d"
+	printf 'schema_version: "1.1"\nname: %s\ndescription: %s\ntags: [routing]\nruns: 1\nexecution:\n  prompt: "p"\n  max_turns: 5\ngraders:\n  - name: no-skill\n    type: tool_used\n    tool: Skill\n    input_match: "flow:"\n    min: 0\n    max: 0\n' "$2" "$3" >"$d/case.yaml"
+	printf '#!/usr/bin/env bash\nset -eu\nprintf "x = 1\\n" > a.py\n' >"$d/scaffold.sh"
+	chmod +x "$d/scaffold.sh"
+}
+
+t_csc_untagged_routing_negative_warns() {
+	_csc_no_yaml t_csc_untagged_routing_negative_warns && return
+	local root
+	root=$(mktemp -d)
+	_csc_routing_neg "$root" routing-none-a "A trivial rename must not fire any skill"
+	_csc_routing_neg "$root" routing-none-b "Mentions the word fix but is not a defect (near-miss of flow:fix)"
+	_csc_routing_neg "$root" routing-none-c "A pure chat turn, no-territory"
+	run_cmd "$CSC" --root "$root" routing-none-a routing-none-b routing-none-c
+	assert_rc 0 "the warning never fails the run"
+	assert_contains "$OUT" "WARN routing-none-a: negative routing case names no skill" "untagged negative warned"
+	assert_not_contains "$OUT" "WARN routing-none-b: negative" "near-miss tag accepted"
+	assert_not_contains "$OUT" "WARN routing-none-c: negative" "no-territory tag accepted"
+	rm -rf "$root"
+}
+
+t_csc_positive_routing_case_does_not_warn() {
+	_csc_no_yaml t_csc_positive_routing_case_does_not_warn && return
+	local root
+	root=$(mktemp -d)
+	_csc_routing_neg "$root" routing-pos "Fires fix"
+	printf '  - name: fires-fix\n    type: tool_used\n    tool: Skill\n    input_match: "flow:fix"\n    min: 1\n' >>"$root/routing-pos/case.yaml"
+	_csc_routing_neg "$root" routing-bad "Bad max"
+	sed "s/max: 0/max: none/" "$root/routing-bad/case.yaml" >"$root/routing-bad/c.new" && mv "$root/routing-bad/c.new" "$root/routing-bad/case.yaml"
+	run_cmd "$CSC" --root "$root" routing-pos routing-bad
+	assert_not_contains "$OUT" "WARN routing-pos: negative" "a case with a min>=1 Skill grader is positive"
+	assert_not_contains "$OUT" "Traceback" "a malformed max never crashes the run"
+	assert_contains "$OUT" "routing-bad" "the malformed case is still reported"
+	rm -rf "$root"
+}
+
+t_csc_git_global_options_do_not_hide_an_unguarded_commit() {
+	_csc_no_yaml t_csc_git_global_options_do_not_hide_an_unguarded_commit && return
+	local root
+	root=$(mktemp -d)
+	_csc_mkcase "$root" xhard-gopt "$_CSC_FILE_GRADER" 'git init -q
+printf "x = 1\n" > a.py
+git -c user.email=a@b -c user.name=a add -A
+git -c user.email=a@b -c user.name=a commit -qm init'
+	run_cmd "$CSC" --root "$root"
+	assert_rc 1 "an unguarded commit with -c options fails"
+	assert_contains "$OUT" "without the HEAD guard" "reported as a missing guard"
+	rm -rf "$root"
+}
+
+# ---------- F37: --probe-judges ----------
+
+_csc_stub_judge() { # <dir>: a stub claude that answers $STUB_REPLY
+	printf '#!/usr/bin/env bash\nprintf '"'"'{"result":"%%s","total_cost_usd":0.001}\\n'"'"' "$STUB_REPLY"\n' >"$1/claude"
+	chmod +x "$1/claude"
+}
+
+_csc_llm_case() { # <root> <name>
+	_csc_mkcase "$1" "$2" '  - name: says-done
+    type: llm
+    criteria: "PASS if the run finished the task"' 'printf "x = 1\n" > a.py'
+}
+
+t_csc_probe_judges_flags_a_grader_that_passes_noise() {
+	_csc_no_yaml t_csc_probe_judges_flags_a_grader_that_passes_noise && return
+	local root bin
+	root=$(mktemp -d)
+	bin=$(mktemp -d)
+	_csc_stub_judge "$bin"
+	_csc_llm_case "$root" q-probe
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" STUB_REPLY='PASS: ok' "$CSC" --probe-judges --root "$root"
+	assert_rc 1 "a judge that passes empty input exits 1"
+	assert_contains "$OUT" "q-probe/says-done passed" "names case and grader"
+	assert_contains "$OUT" "empty" "names the probe input"
+	rm -rf "$root" "$bin"
+}
+
+t_csc_probe_judges_clean_when_judge_fails_noise() {
+	_csc_no_yaml t_csc_probe_judges_clean_when_judge_fails_noise && return
+	local root bin
+	root=$(mktemp -d)
+	bin=$(mktemp -d)
+	_csc_stub_judge "$bin"
+	_csc_llm_case "$root" q-probe
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" STUB_REPLY='FAIL: x' "$CSC" --probe-judges --root "$root" q-probe
+	assert_rc 0 "a judge that fails every probe exits 0"
+	assert_contains "$OUT" "1 llm grader(s) probed, 0 passed noise" "summary line"
+	rm -rf "$root" "$bin"
+}
+
+t_csc_probe_judges_negative_ok_skips_and_is_validated() {
+	_csc_no_yaml t_csc_probe_judges_negative_ok_skips_and_is_validated && return
+	local root bin
+	root=$(mktemp -d)
+	bin=$(mktemp -d)
+	_csc_stub_judge "$bin"
+	_csc_mkcase "$root" q-skip '  - name: file-ok
+    type: regex
+    target: { source: file, path: a.py }
+    pattern: "x = 2"
+    match: contains
+  - name: not-scope-creep
+    type: llm
+    negative_ok: file-ok
+    criteria: "PASS if no extra files were added"' 'printf "x = 1\n" > a.py'
+	_csc_mkcase "$root" q-bad '  - name: not-scope-creep
+    type: llm
+    negative_ok: missing-name
+    criteria: "PASS if no extra files were added"' 'printf "x = 1\n" > a.py'
+	_csc_mkcase "$root" q-llm-sibling '  - name: other-llm
+    type: llm
+    criteria: "PASS if done"
+  - name: not-scope-creep
+    type: llm
+    negative_ok: other-llm
+    criteria: "PASS if no extra files were added"' 'printf "x = 1\n" > a.py'
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" STUB_REPLY='PASS: ok' "$CSC" --probe-judges --root "$root" q-skip
+	assert_rc 0 "a grader with a valid negative_ok is not probed"
+	assert_contains "$OUT" "skip q-skip/not-scope-creep (negative_ok: file-ok)" "skip reported"
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" STUB_REPLY='PASS: ok' "$CSC" --probe-judges --root "$root" q-bad
+	assert_rc 1 "negative_ok naming a missing grader fails the shape check"
+	assert_contains "$OUT" "negative_ok names 'missing-name'" "shape failure explains"
+	run_cmd "$CSC" --root "$root" q-llm-sibling
+	assert_rc 1 "negative_ok naming an llm sibling fails the shape check"
+	assert_contains "$OUT" "file_exists/regex/tool_used" "only deterministic siblings count"
+	rm -rf "$root" "$bin"
+}
+
+# ---------- F38: errored live runs ----------
+
+# A stub claude whose agent call number $STUB_ERROR_ON ends in an is_error usage-limit result.
+_csc_flaky_claude() { # <dir>
+	cat >"$1/claude" <<'STUB'
+#!/usr/bin/env bash
+case " $* " in
+*" --output-format json "*)
+	printf '{"result":"PASS: ok","total_cost_usd":0.001}\n'
+	exit 0
+	;;
+esac
+n=$(cat "$STUB_LOG/count" 2>/dev/null || echo 0)
+n=$((n + 1))
+printf '%s' "$n" >"$STUB_LOG/count"
+if [ "$n" = "$STUB_ERROR_ON" ]; then
+	printf '%s\n' '{"type":"result","subtype":"success","is_error":true,"result":"You have hit your session limit - resets 2:30am","num_turns":1,"total_cost_usd":0}'
+	exit 1
+fi
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"done","num_turns":2,"total_cost_usd":0.25}'
+bash "$CASE_DIR/solution.sh"
+STUB
+	chmod +x "$1/claude"
+}
+
+t_csc_live_errored_run_is_listed_and_not_averaged() {
+	_csc_no_yaml t_csc_live_errored_run_is_listed_and_not_averaged && return
+	local root log bin
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	bin=$(mktemp -d)
+	_csc_flaky_claude "$bin"
+	_csc_live_case "$root" xhard-er ''
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" STUB_LOG="$log" STUB_ERROR_ON=2 CASE_DIR="$root/xhard-er" \
+		"$CSC" --live --ledger --runs 3 --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" xhard-er
+	assert_contains "$OUT" "ERRORED xhard-er run-2: hit your session limit" "errored run printed"
+	assert_not_contains "$OUT" "LIVE xhard-er score=0.00" "the errored run is not graded as a zero"
+	assert_eq "$(wc -l <"$log/out/errors.jsonl" | tr -d ' ')" "1" "errors.jsonl has one row"
+	assert_eq "$(python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(d["meanScore"], d["total"], d["passed"])' "$log/out/results.json")" "1.0 3 2" "meanScore is the mean of the two measured runs"
+	assert_eq "$(python3 -c '
+import json, sys
+d = json.loads(open(sys.argv[1]).readline())
+print(d["partial"], d["errored"], d["tags"]["xhard"]["score"], d["tags"]["xhard"]["post"]["total"])' "$log/ledger.jsonl")" "True 1 1.0 2" "ledger: partial, errored count, score over measured runs"
+	rm -rf "$root" "$log" "$bin"
+}
+
+t_csc_live_no_result_event_is_errored_but_timeout_is_not() {
+	_csc_no_yaml t_csc_live_no_result_event_is_errored_but_timeout_is_not && return
+	local root log bin
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	bin=$(mktemp -d)
+	printf '#!/usr/bin/env bash\ncase " $* " in *" --output-format json "*) printf '"'"'{"result":"PASS: ok"}\\n'"'"'; exit 0;; esac\nexit 1\n' >"$bin/claude"
+	chmod +x "$bin/claude"
+	_csc_live_case "$root" xhard-nr ''
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" "$CSC" --live --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" xhard-nr
+	assert_contains "$OUT" "ERRORED xhard-nr run-1: no result event" "a crash with no result event is errored"
+	assert_contains "$OUT" "mean score n/a" "nothing measured, no mean"
+	rm -rf "$log/out"
+	_csc_live_case "$root" xhard-to '' 2
+	_csc_live "$root" "$log" xhard-to STUB_SLEEP=30
+	assert_not_contains "$OUT" "ERRORED" "a timed-out run is graded, not errored"
+	rm -rf "$root" "$log" "$bin"
+}
+
+t_csc_live_unmeasured_cost_is_n_a_not_zero() {
+	_csc_no_yaml t_csc_live_unmeasured_cost_is_n_a_not_zero && return
+	local root log bin
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	bin=$(mktemp -d)
+	printf '#!/usr/bin/env bash\ncase " $* " in *" --output-format json "*) printf '"'"'{"result":"PASS: ok"}\\n'"'"'; exit 0;; esac\nprintf '"'"'%%s\\n'"'"' '"'"'{"type":"result","is_error":false,"result":"done","num_turns":1}'"'"'\nbash "$CASE_DIR/solution.sh"\n' >"$bin/claude"
+	chmod +x "$bin/claude"
+	_csc_live_case "$root" xhard-nc ''
+	run_cmd env CASE_LIVE_CLAUDE="$bin/claude" CASE_DIR="$root/xhard-nc" "$CSC" --live --ledger --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" xhard-nc
+	assert_rc 0 "run passes"
+	assert_contains "$OUT" "cost=n/a" "per-run line says n/a"
+	assert_contains "$OUT" "cost: n/a" "summary says n/a"
+	assert_eq "$(python3 -c '
+import json, sys
+print(json.loads(open(sys.argv[1]).readline())["costUsd"], json.load(open(sys.argv[2]))["costUsd"])' "$log/ledger.jsonl" "$log/out/results.json")" "None None" "null in the ledger and results.json"
+	rm -rf "$root" "$log" "$bin"
+}
+
+# ---------- F39: grader hash in ledger lines ----------
+
+t_csc_live_ledger_carries_grader_hash() {
+	_csc_no_yaml t_csc_live_ledger_carries_grader_hash && return
+	local root log want
+	root=$(mktemp -d)
+	log=$(mktemp -d)
+	_csc_live_case "$root" xhard-gh ''
+	printf '#!/usr/bin/env bash\nexit 0\n' >"$root/xhard-gh/postcheck.sh"
+	chmod +x "$root/xhard-gh/postcheck.sh"
+	want=$(python3 -c '
+import hashlib, sys
+print(hashlib.sha256(b"".join(open(p, "rb").read() for p in sys.argv[1:])).hexdigest())' "$root/xhard-gh/case.yaml" "$root/xhard-gh/postcheck.sh")
+	run_cmd env CASE_LIVE_CLAUDE="$CSC_FIX/_live/claude" STUB_LOG="$log" STUB_TRACE="$CSC_FIX/_live/trace.jsonl" \
+		CASE_DIR="$root/xhard-gh" "$CSC" --live --ledger --root "$root" --out "$log/out" --ledger-path "$log/ledger.jsonl" xhard-gh
+	assert_eq "$(python3 -c '
+import json, sys
+print(json.loads(open(sys.argv[1]).readline())["graders"])' "$log/ledger.jsonl")" "{'xhard-gh': '$want'}" "sha256 of case.yaml + postcheck.sh per case"
+	rm -rf "$root" "$log"
+}
+
+# ---------- text pins ----------
+
+t_csc_docs_pin_the_new_rules() {
+	local readme lesson
+	readme=$(cat "$SCAN_DIR/../evals/README.md")
+	lesson=$(cat "$SCAN_DIR/../skills/lesson/SKILL.md")
+	assert_contains "$readme" "near miss that shares a keyword with one named skill" "README: negatives are near misses"
+	assert_contains "$readme" "near-miss of <plugin:skill>" "README: description tag"
+	assert_contains "$readme" "one-step ask" "README: one-step asks are not valid positives"
+	assert_contains "$readme" "most variance" "README: iterate on high-variance cases"
+	assert_contains "$readme" "spread \`GIT_AUTHOR_DATE\`" "README: fixture commit dates"
+	assert_contains "$readme" "ends with self-assertions" "README: scaffold self-assertions"
+	assert_contains "$readme" "decision only" "README: decision-only prompts"
+	assert_contains "$readme" "--probe-judges" "README: probe documented"
+	assert_contains "$readme" "negative_ok" "README: opt-out documented"
+	assert_contains "$readme" "errors.jsonl" "README: errored runs documented"
+	assert_contains "$readme" "graders changed" "README: grader hash documented"
+	assert_contains "$readme" "Credit: adapted from anthropics/skills claude-api/shared/evals/eval-audit.md @ " "README: probe credit line"
+	assert_contains "$lesson" "one-step ask" "lesson: one-step asks are not a description bug"
 }

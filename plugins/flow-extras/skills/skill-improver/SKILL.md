@@ -48,6 +48,7 @@ Read the full SKILL.md first. Then answer these three diagnostic questions befor
 - Read the description aloud. Ask: "If I were an agent seeing 40 descriptions, would this one stand out for the user's scenarios?" If no → activation failure. Fix the description first.
 - Identify 3 sentences in the body that would change model behavior. If you can't find them → content failure. (Tiebreaker for ambiguous sections: "If I replaced this with 'use your judgment', would the output change?" No → Activation. Yes → Expert.)
 - Both broken = mixed failure. Fix activation first; content work is wasted on invisible skills.
+- To measure activation instead of guessing, run `<this-skill-dir>/scripts/trigger-eval --plugin-dir <plugin> --skill <name> --queries <queries.json>` from the project root, so `.skill-forge/` lands in the project and not in the plugin. It loads the real plugin in a scratch directory outside any checkout, runs each query three times, and records `.skill-forge/<skill>/trigger.json`. A failing `claude` CLI is an error (exit 2, no file), never a 0% measurement. For a search over wordings, show the user the query set, then run `scripts/optimise-description` with `--approved`. It scores candidates on a held-out 40% of the queries, never edits a SKILL.md, and prints the winning description, recording the search in `.skill-forge/<skill>/optimise.json` (never trigger.json). A held-out win of fewer than 2 queries is noise: report it and leave the description alone. Apply a winner only after the user picks it. Both run only when this step or skill-forge Step 5 asks for them; each query costs a model call.
 
 **Q2: Does the skill use the right pattern?**
 Apply this diagnostic: "If I removed all step-by-step procedures, would anything valuable remain?" If yes → it's really a Mindset/Philosophy skill being run as Process. If no → Process may be correct.
@@ -91,6 +92,8 @@ Before editing, write down:
 
 Any change beyond this budget is scope creep. If you notice adjacent issues, FLAG them for the user as separate improvement opportunities. Don't silently "fix" them.
 
+If the diagnosis finds no dimension problem with concrete evidence, the budget is empty and the pass ends with `no change: <what was checked>`. The addition bias above pushes toward an edit every time; a clean surface is a valid result, and an edit without evidence only adds text.
+
 ### Step 2c: Push back when warranted
 
 Push back — don't comply — when:
@@ -125,7 +128,18 @@ Last step of every Directed pass, so a prose check is never the only evidence. I
 1. Select: `scripts/select-cases <skill> <repo-root>` (in this skill's directory) lists the eval cases whose prompt invokes `/<plugin>:<skill>` or whose grader expects only that skill, the `quality-*` cases when the skill is `no-slop` (they are graded on its rubric), and `.skill-forge/<skill>/behaviour/*.md` when present. A case's name is its directory name.
 2. If nothing is selected, print one line, `no eval cases for <skill>`, and stop. The with/without run from Minimum Viable Output still applies.
 3. Otherwise run `flow eval --case <name>... --runs 3` twice: once in a temporary worktree of the pre-edit commit (`git worktree add "$(mktemp -d)" <pre-edit-sha>`, removed with `git worktree remove` afterwards), once at the edit. Three runs, because one run cannot tell a drop from noise.
-4. Print `base=<score> edit=<score>` for each case. A drop larger than the run-to-run range means the edit is not done: revert or re-plan. Behaviour prompts have no scorer, so run them with and without the edit and report what changed.
+4. Print `base=<score> edit=<score>` for each case. A drop larger than the run-to-run range means the edit is not done: revert or re-plan.
+5. Behaviour prompts have no scorer, so compare them blind, because the agent that made the edit favours it. Write the rubric before seeing any output: 3-5 items taken from the behaviour prompt. Run the prompt at base and at the edit. Spawn a fresh judge subagent with the rubric and the two outputs labelled A and B (no base/edit labels), then a second fresh judge with the order swapped. The edit wins only if both judges prefer it. A split verdict is a tie and counts as no evidence. Unblind and explain the difference only after both verdicts.
+6. If the runs kept transcripts, check whether the same helper (same function or script body, whitespace normalized) was written in 2 or more runs. If so, propose bundling it under the skill's `scripts/` as a separate flagged opportunity, not an edit inside this pass's budget.
+
+Credit: adapted from anthropics/claude-plugins-official plugins/skill-creator/skills/skill-creator/agents/comparator.md @ a9fd216 (Apache-2.0).
+Credit: adapted from anthropics/skills skills/claude-api/shared/prompt-audit.md @ dbd4588 (Apache-2.0).
+
+### Step 2g: Human review page (only when the user asks for a human pass)
+
+For subjective output a model judge misses what the user sees, such as design variants. Run this only when the user asks for a human pass; otherwise skip it. Put each iteration's outputs in `iteration-N/<case>/output.*`, then run `scripts/review-page render --prev iteration-N-1 --curr iteration-N --out review.html` (template: `assets/review-page.html`). It is a static file with a comment box per case and no server. The user comments on the cases they want changed and sends back the exported `feedback.json`. `scripts/review-page comments feedback.json` lists the cases that have a comment. Edit only those. `scripts/review-page carry --from iteration-N --to iteration-N+1 --feedback feedback.json` copies the uncommented cases forward unchanged, so they stay byte-identical, and prints the ids to redo. Pass the next render `--feedback feedback.json` so earlier comments stay visible.
+
+Credit: adapted from anthropics/skills skills/skill-creator/eval-viewer/generate_review.py @ dbd4588 (Apache-2.0).
 
 ---
 

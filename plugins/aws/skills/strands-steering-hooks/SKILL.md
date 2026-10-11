@@ -1,19 +1,6 @@
 ---
 name: strands-steering-hooks
-description: >-
-  Strands Agents (`strands-agents` Python SDK): steer — not just observe — an agent run at
-  runtime. Block/redirect tool calls, rewrite tool args, override results, retry the model,
-  gate on human approval, inject per-turn context, or nudge the model back on track. Also
-  use to scaffold a hook/intervention/steering handler or to introspect which hook events
-  the installed SDK exposes. Use whenever working with Strands hooks, interventions,
-  steering, guardrails, human-in-the-loop, tool approval/blocking, PII redaction, retries,
-  or agent observability. Triggers on: HookProvider, @hook, register_hooks, BeforeToolCallEvent /
-  AfterToolCallEvent / Before-AfterModelCallEvent / BeforeInvocationEvent, cancel_tool,
-  selected_tool, InterventionHandler, Agent(interventions=...), LLMSteeringHandler /
-  SteeringHandler, strands.vended_plugins.steering, "steer don't block", event.interrupt();
-  multi-agent node hooks (Graph / Swarm, BeforeNodeCallEvent, cancel_node), BidiAgent
-  streaming hooks, StrandsTelemetry observability, "scaffold a Strands hook", or "how do I
-  intercept/control a Strands agent".
+description: 'Strands Agents (`strands-agents` Python SDK): steer, not just observe, an agent run at runtime. Block or redirect tool calls, rewrite tool args, override results, retry the model, gate on human approval, inject per-turn context, or nudge the model back on track. Also scaffolds a hook, intervention or steering handler and introspects which hook events the installed SDK exposes. Use for Strands hooks, interventions, steering, guardrails, human-in-the-loop, tool approval, PII redaction, retries or agent observability. Triggers on: HookProvider, @hook, register_hooks, BeforeToolCallEvent / AfterToolCallEvent / BeforeModelCallEvent / AfterModelCallEvent / BeforeInvocationEvent, cancel_tool, selected_tool, InterventionHandler, Agent(interventions=...), LLMSteeringHandler, SteeringHandler, strands.vended_plugins.steering, event.interrupt(), multi-agent node hooks (Graph / Swarm, BeforeNodeCallEvent, cancel_node), BidiAgent streaming hooks, StrandsTelemetry, "scaffold a Strands hook".'
 ---
 
 # Steering Hooks in Strands

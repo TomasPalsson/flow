@@ -1,4 +1,4 @@
-"""slop_prose: NP-04 to NP-09 and NP-12 prose-tell detectors for `slop-check --prose`.
+"""slop_prose: NP-04 to NP-09, NP-12 and NP-14 prose-tell detectors for `slop-check --prose`.
 
 Reads markdown, masks fenced and inline code, and returns
 (path, line, id, message, "prose") tuples in the shape slop-check emits.
@@ -40,6 +40,7 @@ JARGON = (
 )
 JARGON_RE = re.compile(r"\b(" + "|".join(w for w, _ in JARGON) + r")\b", re.I)
 JARGON_PLAIN = dict(JARGON)
+MINIMIZER_RE = re.compile(r"\b(easy|easily|simply)\b", re.I)
 QUOTED_RE = re.compile(r'"[^"\n]*"|“[^”\n]*”')
 MAX_WORDS = 30
 UNREADABLE = []
@@ -132,6 +133,16 @@ def _perf_and_jargon(path, line, sent):
     return out
 
 
+def _minimizers(path, line, sent):
+    """NP-14: minimizer words outside quotes; a capitalised mid-sentence match is a name."""
+    out = []
+    for m in MINIMIZER_RE.finditer(QUOTED_RE.sub(lambda q: "_" * len(q.group(0)), sent)):
+        if m.group(0)[0].isupper() and m.start() > 0:
+            continue
+        out.append((path, line, "NP-14", f"minimizer '{m.group(0).lower()}'; say what the step is or costs", "prose"))
+    return out
+
+
 def _sentence_findings(path, line, sent):
     out = []
     for m in AI_RE.finditer(sent):
@@ -144,6 +155,7 @@ def _sentence_findings(path, line, sent):
     if FILLER_RE.match(sent):
         out.append((path, line, "NP-07", "throat-clearing opener or summary closer; start with the point", "prose"))
     out.extend(_perf_and_jargon(path, line, sent))
+    out.extend(_minimizers(path, line, sent))
     words = len(sent.split())
     if words > MAX_WORDS:
         out.append((path, line, "NP-08", f"sentence has {words} words (limit {MAX_WORDS}); split it", "prose"))

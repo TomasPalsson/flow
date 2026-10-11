@@ -456,3 +456,166 @@ t_lint_plugin_root_help_documents_it() {
 	assert_contains "$OUT" "CLAUDE_PLUGIN_ROOT" "skills-lint --help documents \${CLAUDE_PLUGIN_ROOT} resolution"
 	assert_contains "$OUT" "plugin.json" "skills-lint --help names the .claude-plugin/plugin.json anchor"
 }
+
+# ---------------------------------------------------------------------------
+# F25: assistant chat residue at the tail of a shipped prompt
+# ---------------------------------------------------------------------------
+
+# _t_lint_residue_tree <dir> <relpath> <body> — a one-file tree to scan.
+_t_lint_residue_tree() {
+	mkdir -p "$1/skills/$(dirname "$2")"
+	printf '%s\n' "$3" >"$1/skills/$2"
+}
+
+t_lint_residue_plugin_validator_tail_fails() {
+	# The tail of anthropics/claude-plugins-official plugin-dev/agents/plugin-validator.md.
+	local d
+	d=$(tmp_dir)
+	_t_lint_residue_tree "$d" agents/validator.md '# Validator
+
+Check the plugin.
+
+Excellent work! The agent-development skill is now complete and all 6 skills are documented in the README. Would you like me to create more agents or work on something else?'
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "t_lint_residue_plugin_validator_tail_fails exits 1"
+	assert_contains "$OUT" "RESIDUE $d/skills/agents/validator.md:5" "t_lint_residue_plugin_validator_tail_fails names path:line"
+	rm -rf "$d"
+}
+
+t_lint_residue_checked_in_skill_and_reference_files() {
+	local d
+	d=$(tmp_dir)
+	_t_lint_residue_tree "$d" demo/SKILL.md '---
+name: demo
+---
+# Demo
+
+Do the thing.
+
+Let me know if you want changes.'
+	_t_lint_residue_tree "$d" demo/references/more.md '# More
+
+Facts.
+
+I hope this helps!'
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "t_lint_residue_checked_in_skill_and_reference_files exits 1"
+	assert_contains "$OUT" "demo/SKILL.md:8" "t_lint_residue_checked_in_skill_and_reference_files SKILL.md"
+	assert_contains "$OUT" "references/more.md:5" "t_lint_residue_checked_in_skill_and_reference_files references/*.md"
+	rm -rf "$d"
+}
+
+t_lint_residue_sign_off_before_the_tail_or_in_a_fence_passes() {
+	local d
+	d=$(tmp_dir)
+	# Scripted reply 5 non-blank lines from the end (the find-skills shape).
+	_t_lint_residue_tree "$d" demo/SKILL.md '# Demo
+
+Say: Would you like me to proceed?
+
+One.
+
+Two.
+
+Three.
+
+Four.'
+	# A sign-off inside a closing code fence is an example, not the file tail.
+	_t_lint_residue_tree "$d" demo/references/fenced.md '# Fenced
+
+```
+Excellent work! The task is now complete.
+```'
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 0 "t_lint_residue_sign_off_before_the_tail_or_in_a_fence_passes exits 0"
+	assert_not_contains "$OUT" "RESIDUE" "t_lint_residue_sign_off_before_the_tail_or_in_a_fence_passes nothing reported"
+	rm -rf "$d"
+}
+
+t_lint_residue_other_markdown_is_not_checked() {
+	local d
+	d=$(tmp_dir)
+	_t_lint_residue_tree "$d" notes/README.md 'Notes.
+
+Let me know if you want changes.'
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_not_contains "$OUT" "RESIDUE" "t_lint_residue_other_markdown_is_not_checked README.md is out of scope"
+	rm -rf "$d"
+}
+
+t_lint_residue_none_in_the_shipped_plugins() {
+	local p
+	for p in "$SCAN_DIR"/../../*/; do
+		run_cmd env HOME="$FIX" "$SKILLS_LINT" "${p%/}"
+		assert_not_contains "$OUT" "RESIDUE" "t_lint_residue_none_in_the_shipped_plugins ${p%/}"
+	done
+}
+
+t_lint_residue_help_documents_it() {
+	run_cmd "$SKILLS_LINT" --help
+	assert_contains "$OUT" "RESIDUE" "t_lint_residue_help_documents_it"
+}
+
+# ---------------------------------------------------------------------------
+# shared-paragraph parity (F26)
+# ---------------------------------------------------------------------------
+
+lint_parity_dir() { # <text-a> <text-b> -> dir with skills/x/SKILL.md and skills/y/SKILL.md
+	local d
+	d=$(tmp_dir)
+	mkdir -p "$d/skills/x" "$d/skills/y"
+	printf 'Intro. <!-- shared:slice -->%s<!-- /shared:slice --> tail.\n' "$1" >"$d/skills/x/SKILL.md"
+	printf 'Other. <!-- shared:slice -->%s<!-- /shared:slice --> end.\n' "$2" >"$d/skills/y/SKILL.md"
+	printf '%s' "$d"
+}
+
+t_lint_parity_identical_spans_pass() {
+	local d
+	d=$(lint_parity_dir "one two three" "one two three")
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 0 "t_lint_parity_identical_spans_pass rc"
+	assert_not_contains "$OUT" "PARITY" "t_lint_parity_identical_spans_pass"
+	rm -rf "$d"
+}
+
+t_lint_parity_one_changed_word_fails_and_names_both_files() {
+	local d
+	d=$(lint_parity_dir "one two three" "one TWO three")
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "t_lint_parity_one_changed_word rc"
+	assert_contains "$OUT" "PARITY" "reports PARITY"
+	assert_contains "$OUT" "x/SKILL.md" "names the first file"
+	assert_contains "$OUT" "y/SKILL.md" "names the second file"
+	assert_contains "$OUT" "slice" "names the shared block"
+	rm -rf "$d"
+}
+
+t_lint_parity_missing_closing_marker_fails() {
+	local d
+	d=$(lint_parity_dir "one two" "one two")
+	printf 'Other. <!-- shared:slice -->one two end.\n' >"$d/skills/y/SKILL.md"
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "t_lint_parity_missing_closing_marker rc"
+	assert_contains "$OUT" "PARITY" "reports PARITY for an unclosed block"
+	rm -rf "$d"
+}
+
+t_lint_parity_name_in_one_file_only_fails() {
+	local d
+	d=$(lint_parity_dir "one two" "one two")
+	printf 'No markers here.\n' >"$d/skills/y/SKILL.md"
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$d/skills"
+	assert_rc 1 "t_lint_parity_name_in_one_file_only rc"
+	assert_contains "$OUT" "PARITY" "reports PARITY for a lone block"
+	rm -rf "$d"
+}
+
+t_lint_parity_help_documents_it() {
+	run_cmd "$SKILLS_LINT" --help
+	assert_contains "$OUT" "PARITY" "t_lint_parity_help_documents_it"
+}
+
+t_lint_parity_repo_skills_pass() {
+	run_cmd env HOME="$FIX" "$SKILLS_LINT" "$SCAN_DIR/../skills"
+	assert_not_contains "$OUT" "PARITY" "flow's own skills keep their shared spans identical"
+}

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""check-orders SPEC.md PROMPTS_DIR
+
+Every numbered line under "## Standing orders" in SPEC.md must appear in every
+rendered prompt file in PROMPTS_DIR (whitespace-insensitive). Exit 0 when all
+prompts carry all orders, 1 naming each prompt file that misses an order,
+2 on a usage error. Run it on the prompts the trial actually rendered, not on
+the workflow script: builders interpolate the orders at runtime, so the text
+never appears literally in the script.
+"""
+import os
+import re
+import sys
+
+
+def squash(text):
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def read_orders(spec_text):
+    """Return [(number, text)] from the Standing orders section; (none) is skipped."""
+    in_section = False
+    orders = []
+    for line in spec_text.splitlines():
+        if line.startswith("## "):
+            in_section = line.strip().lower() == "## standing orders"
+            continue
+        if not in_section:
+            continue
+        m = re.match(r"^\s*(\d+)\.\s+(.*\S)\s*$", line)
+        if m:
+            orders.append([m.group(1), m.group(2)])
+        elif orders and line.startswith((" ", "\t")) and line.strip():
+            orders[-1][1] += " " + line.strip()  # wrapped continuation
+    return [(n, t) for n, t in orders if squash(t).lower() != "(none)"]
+
+
+def main(argv):
+    if len(argv) != 3:
+        sys.stderr.write("usage: check-orders SPEC.md PROMPTS_DIR\n")
+        return 2
+    spec_path, pdir = argv[1], argv[2]
+    try:
+        with open(spec_path, encoding="utf-8") as f:
+            spec_text = f.read()
+    except OSError as e:
+        sys.stderr.write("check-orders: cannot read %s (%s)\n" % (spec_path, e.strerror))
+        return 2
+    if not re.search(r"^## Standing orders\s*$", spec_text, re.M | re.I):
+        sys.stderr.write("check-orders: %s has no '## Standing orders' section\n" % spec_path)
+        return 2
+    if not os.path.isdir(pdir):
+        sys.stderr.write("check-orders: %s is not a directory\n" % pdir)
+        return 2
+    orders = read_orders(spec_text)
+    files = sorted(
+        n for n in os.listdir(pdir) if os.path.isfile(os.path.join(pdir, n))
+    )
+    if not files:
+        sys.stdout.write("check-orders: no prompt files in %s\n" % pdir)
+        return 1
+    bad = 0
+    for name in files:
+        with open(os.path.join(pdir, name), encoding="utf-8", errors="replace") as f:
+            body = squash(f.read())
+        for number, text in orders:
+            # Match on the order's words with or without its "N." prefix, so a
+            # prompt that renumbers the section still counts as carrying it.
+            if squash(text) not in body:
+                sys.stdout.write("%s: missing order %s: %s\n" % (name, number, squash(text)))
+                bad += 1
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

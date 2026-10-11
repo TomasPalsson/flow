@@ -59,8 +59,9 @@ Add these when they help: **Where the comparison breaks** (see below), and **Che
 2. Read `references/page.md` for the page parts, the step-through code and the picture rules.
 3. Let the picker assign the drawing style, so the look changes every run: `node <this skill's folder>/../graphics/scripts/pick-style.mjs --mood <2 words for the topic> --kinds diagram,icon-set`. Leave out `--project`: the global memory still stops repeats, and the repo stays clean. Commit to the pick. Re-roll with `--reroll 2` if it fights the topic or works in only one theme (light and dark are both required). Do not fall back to graph paper and hand lettering. A style the user asks for wins.
 4. For a mascot, an object drawing or an icon set, call `design:graphics`. Draw diagrams as inline SVG yourself.
-5. Run `node <this skill's folder>/scripts/check.mjs <page.html>` and fix every FAIL.
-6. Publish the page and give the link.
+5. When the page has 3 or more part cards, add the gap-marking snippet from `references/page.md`: a know, fuzzy or lost toggle on each card and an "Ask about the gaps" box that builds the follow-up request. It lets the reader point at what they lost, so the next pass targets real gaps.
+6. Run `node <this skill's folder>/scripts/check.mjs <page.html>` and fix every FAIL. When the page explains a path or repo, add `--repo <that dir>`: a function or file name that is not in the repo is a FAIL, so a name you invented cannot ship. Save the page outside that repo (for example in the system temp folder): the check skips the page it is checking, but not other pages saved in the repo. It also parses every inline script, so a code sample containing `</script>` shows up as a FAIL, not a blank page.
+7. Publish the page and give the link.
 
 The chat reply is three lines: the big-picture sentence, the link, and "Which part do you want deeper?"
 
@@ -74,3 +75,5 @@ The chat reply is three lines: the big-picture sentence, the link, and "Which pa
 - Used twice in a row, it goes one step simpler or one fold deeper, as asked. It does not get blunter.
 
 Credit: grounding rule adapted from mattpocock/skills skills/in-progress/writing-beats/SKILL.md @ 49dd158 (MIT).
+Credit: adapted from anthropics/claude-plugins-official plugins/project-artifact/SKILL.md @ a9fd216 (Apache-2.0).
+Credit: adapted from anthropics/claude-plugins-official plugins/playground/skills/playground/templates/concept-map.md @ a9fd216 (Apache-2.0).

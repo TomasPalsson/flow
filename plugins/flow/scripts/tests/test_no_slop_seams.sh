@@ -70,35 +70,83 @@ EOF
 
 # ---------------------------------------------------------------------------
 # B7 — build-slices.js runs a third adversary lens, 'slop', alongside
-# correctness/gaming in both the initial review and the fix-ladder relook,
-# and implementPrompt names the search receipt and slop-check.
+# correctness/gaming in the initial review. Since F51 the fix-ladder relook is
+# one scoped re-review (not a three-lens parallel array) whose prompt names all
+# three lenses, and implementPrompt names the search receipt and slop-check.
 # ---------------------------------------------------------------------------
 
-t_slopseam_build_slices_slop_lens_in_both_arrays() {
-	run_cmd grep -c "adversaryPrompt('slop'" "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: build-slices.js calls adversaryPrompt('slop', ...)"
-	assert_eq "$OUT" "2" "wf: adversaryPrompt('slop', ...) appears once per parallel array (initial + relook)"
+# Since the parent/child split, the per-task chain (lenses, relook, implement prompt) lives in
+# the child workflow build-slices-task.js, so the assertions below read that file.
+# Changed with F51 (the post-fix relook is one scoped re-review): the slop
+# lens now appears once, in the initial review array, not once per array.
+t_slopseam_build_slices_each_lens_once_in_initial_review() {
+	run_cmd grep -c "adversaryPrompt('slop'" "$WF_DIR/build-slices-task.js"
+	assert_rc 0 "wf: build-slices-task.js calls adversaryPrompt('slop', ...)"
+	assert_eq "$OUT" "1" "wf: adversaryPrompt('slop', ...) appears once, in the initial review array"
+	run_cmd grep -c "adversaryPrompt('correctness'" "$WF_DIR/build-slices-task.js"
+	assert_eq "$OUT" "1" "wf: adversaryPrompt('correctness', ...) appears once, in the initial review array"
+	run_cmd grep -c "adversaryPrompt('gaming'" "$WF_DIR/build-slices-task.js"
+	assert_eq "$OUT" "1" "wf: adversaryPrompt('gaming', ...) appears once, in the initial review array"
 }
 
+# Changed with F51: one label per lens in the initial review; the relook carries
+# its own 'relook:' label instead of a second adv:slop: entry.
 t_slopseam_build_slices_slop_label_format() {
-	run_cmd grep -c "'adv:slop:'" "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: build-slices.js labels the slop lens 'adv:slop:'"
-	assert_eq "$OUT" "2" "wf: 'adv:slop:' label appears once per parallel array (initial + relook)"
+	run_cmd grep -c "'adv:slop:'" "$WF_DIR/build-slices-task.js"
+	assert_rc 0 "wf: build-slices-task.js labels the slop lens 'adv:slop:'"
+	assert_eq "$OUT" "1" "wf: 'adv:slop:' label appears once, in the initial review array"
+	run_cmd grep -c "'adv:correctness:'" "$WF_DIR/build-slices-task.js"
+	assert_eq "$OUT" "1" "wf: 'adv:correctness:' label appears once, in the initial review array"
+	run_cmd grep -c "'adv:gaming:'" "$WF_DIR/build-slices-task.js"
+	assert_eq "$OUT" "1" "wf: 'adv:gaming:' label appears once, in the initial review array"
+	run_cmd grep -c "'relook:'" "$WF_DIR/build-slices-task.js"
+	assert_eq "$OUT" "1" "wf: the scoped relook has its own 'relook:' label"
 }
 
+# Added with F51: the scoped relook checks the fix diff through all three lenses.
+# The sentence lives in workflows/prompts/build-slices-relook.md.
+t_slopseam_build_slices_relook_names_all_three_lenses() {
+	local relook
+	relook=$(cat "$WF_DIR/prompts/build-slices-relook.md")
+	assert_contains "$(cat "$WF_DIR/build-slices-task.js")" "promptRef('relook')" "wf: the relook prompt points at its prompt file"
+	assert_contains "$relook" "all three lenses" "wf: the scoped relook is told to check through all three lenses"
+	assert_contains "$relook" "correctness" "wf: the scoped relook names the correctness lens"
+	assert_contains "$relook" "gaming" "wf: the scoped relook names the gaming lens"
+	assert_contains "$relook" "slop" "wf: the scoped relook names the slop lens"
+}
+
+# Changed with F51 (implementPrompt is now a let, so a gap block can be appended)
+# and with the prompt-file move: the prose sits in
+# workflows/prompts/build-slices-implement.md, so the receipt and slop-check
+# assertions read that file; the JS must still declare implementPrompt (let or
+# const) from promptRef('implement') and hand it to the developer agent.
 t_slopseam_build_slices_implement_prompt_names_receipt_and_slopcheck() {
-	run_cmd grep -c "const implementPrompt" "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: build-slices.js still declares implementPrompt"
-	local block
-	block=$(sed -n '/const implementPrompt/,/agent(implementPrompt/p' "$WF_DIR/build-slices.js")
-	assert_contains "$block" "receipt" "wf: implementPrompt names the search receipt"
-	assert_contains "$block" "slop-check" "wf: implementPrompt names slop-check"
+	run_cmd grep -cE "(let|const) implementPrompt" "$WF_DIR/build-slices-task.js"
+	assert_rc 0 "wf: build-slices-task.js still declares implementPrompt"
+	local block prose
+	block=$(sed -n '/implementPrompt = promptRef/,/agent(implementPrompt/p' "$WF_DIR/build-slices-task.js")
+	assert_contains "$block" "promptRef('implement')" "wf: implementPrompt points at the implement prompt file"
+	prose=$(cat "$WF_DIR/prompts/build-slices-implement.md")
+	assert_contains "$prose" "receipt" "wf: the implement prompt file names the search receipt"
+	assert_contains "$prose" "slop-check" "wf: the implement prompt file names slop-check"
 }
 
+# The slop lens runs in the child, so the parent and the child are both linted.
 t_slopseam_build_slices_still_lints_ok() {
-	run_cmd bash "$SCAN_DIR/workflow-lint" "$WF_DIR/build-slices.js"
-	assert_rc 0 "wf: build-slices.js with the slop lens still lints clean"
-	assert_contains "$OUT" "OK " "wf: build-slices.js with the slop lens prints OK"
+	run_cmd bash "$SCAN_DIR/workflow-lint" "$WF_DIR/build-slices.js" "$WF_DIR/build-slices-task.js"
+	assert_rc 0 "wf: build-slices.js and build-slices-task.js with the slop lens still lint clean"
+	assert_eq "$(printf '%s\n' "$OUT" | grep -c '^OK ')" "2" "wf: build-slices.js and build-slices-task.js with the slop lens print OK"
+}
+
+# The seams table describes the F51 structure: three lenses once, then a scoped re-look naming all three.
+t_slopseam_integration_seams_describe_f51_review() {
+	local row
+	row=$(grep '^| Per-slice review |' "$SCAN_DIR/../skills/no-slop/references/integration-seams.md")
+	assert_contains "$row" "build-slices-task.js" "seams: the per-task review row names the child workflow that holds it"
+	assert_contains "$row" "the initial review is one \`parallel([...])\` of three lenses, correctness, gaming and slop" "seams: the initial review runs the three lenses once"
+	assert_contains "$row" "after each fix round one scoped re-look" "seams: the fix ladder re-looks once per round, scoped to that round"
+	assert_contains "$row" "names all three lenses" "seams: the scoped re-look names all three lenses"
+	assert_not_contains "$row" "both \`parallel([...])\` review arrays" "seams: the pre-F51 two-array wording is gone"
 }
 
 # ---------------------------------------------------------------------------

@@ -763,3 +763,32 @@ t_statusline_stale_marker() {
 
 	rm -rf "$proj" "$tmp" "$home"
 }
+
+# ---------------------------------------------------------------------------
+# F118 — the line names the worktree and branch, from .git files alone
+# ---------------------------------------------------------------------------
+
+t_statusline_worktree_branch() {
+	local proj wt tmp home parent
+	proj=$(sl_repo_with_feature 0)
+	tmp=$(tmp_dir)
+	home=$(tmp_dir)
+	parent=$(tmp_dir)
+	parent=$(sl_realdir "$parent")
+	wt="$parent/wt-alpha"
+	(cd "$proj" && git worktree add -q -b flow/x "$wt") >/dev/null 2>&1
+	sl_write_cache "$wt" "$tmp" 0 '{"state":"idle","feature":{"slug":"001-x"}}'
+
+	sl_render "$wt" "$home" "$tmp" '{}' --no-color
+	assert_rc 0 "a render inside a linked worktree succeeds"
+	assert_contains "$OUT" "wt-alpha@flow/x" "the line names the worktree and its branch"
+
+	sl_write_cache "$proj" "$tmp" 0 '{"state":"idle","feature":{"slug":"001-x"}}'
+	sl_render "$proj" "$home" "$tmp" '{}' --no-color
+	assert_contains "$OUT" "@" "the main checkout shows repo@branch too"
+
+	sl_render "$proj" "$home" "$tmp" '{"workspace":{"current_dir":"'"$wt"'"}}' --no-color
+	assert_contains "$OUT" "wt-alpha@flow/x" "workspace.current_dir from the input decides the context"
+
+	rm -rf "$proj" "$tmp" "$home" "$parent"
+}

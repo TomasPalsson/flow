@@ -433,6 +433,8 @@ pip install bedrock-agentcore-starter-toolkit
 
 This handles ECR push, IAM role creation, and runtime provisioning automatically.
 
+**After `agentcore launch`, send one probe invoke before the real payload.** A prompt such as "confirm you can reach <service>, list 1-2 items, don't start the task" shows a missing tool, credential or network path while nothing irreversible can happen. Check the run log for the session id and `entry_point` fields as part of the probe (see `production.md`, Observability).
+
 ---
 
 ## Environment Variables

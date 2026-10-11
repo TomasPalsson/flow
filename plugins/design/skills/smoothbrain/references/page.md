@@ -96,6 +96,40 @@ show(0);
 
 When a value changes (a counter, a queue length, a state name), draw it in the stage as `<text id="v-state">` and set `data-v-state="…"` on each step. The script writes it. Put every `data-v-*` value on every step, not only the ones that change, so Back restores the stage. The reader must see the real numbers move.
 
+## Gap marking (optional, 3 or more part cards)
+
+Each part card gets a three-way toggle: know, fuzzy, lost. A box under the cards shows the request for the next pass, built from the cards marked fuzzy or lost. The box is a readonly `<textarea>` that is always visible, so the reader can select the text by hand when a sandboxed frame blocks the clipboard. The copy button tries the clipboard and falls back to selecting the textarea.
+
+```html
+<article class="part"><h3>queue</h3><p>Holds jobs.</p>
+  <p role="group" aria-label="How well do you know queue?">
+    <button data-mark="know" aria-pressed="false">know</button>
+    <button data-mark="fuzzy" aria-pressed="false">fuzzy</button>
+    <button data-mark="lost" aria-pressed="false">lost</button></p></article>
+<!-- after the cards, inside the parts section -->
+<p><label for="gap">Ask about the gaps</label></p>
+<textarea id="gap" readonly rows="3" data-gap-request>Mark the parts that are fuzzy or lost.</textarea>
+<button id="copy">Copy</button>
+<script>
+const gap=document.getElementById('gap'),state={};
+document.querySelectorAll('.part [data-mark]').forEach(b=>b.onclick=()=>{
+  const card=b.closest('.part'),name=card.querySelector('h3').textContent;
+  state[name]=b.dataset.mark;
+  card.querySelectorAll('[data-mark]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const open=Object.keys(state).filter(k=>state[k]!=='know');
+  gap.value=open.length?'Explain deeper: '+open.join(', '):'Mark the parts that are fuzzy or lost.';});
+document.getElementById('copy').onclick=()=>{
+  const sel=()=>{gap.focus();gap.select()};
+  (navigator.clipboard?navigator.clipboard.writeText(gap.value):Promise.reject()).catch(sel);};
+</script>
+```
+
+`scripts/check.mjs` warns when `[data-mark]` toggles exist without a `[data-gap-request]` textarea.
+
+## Inline scripts
+
+Every inline `<script>` must parse. The browser ends a script at the first `</script>`, even inside a string, so code or HTML you quote in the page can cut the script short; escape `<` as `\u003c` in data and code strings embedded in a script, or write `<\/script>`. `scripts/check.mjs` parses each inline script and each `type="application/json"` script and fails with the line number.
+
 ## Detail
 
 ```html

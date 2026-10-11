@@ -66,6 +66,9 @@ Load exactly what the contract names.
 - Radius and shadow are tiered or absent, never one value everywhere. Shadows, when the world allows them, are multi-layer, tinted toward the ground hue, from one light direction. Dark mode has no shadows.
 - Hierarchy through weight, size and position before colour. A label above a heading must carry information the heading cannot (a route, a category colour), or it goes.
 - Numbering exists only when something cross-references it.
+- One verb per action: the button that says Publish leads to a state that says Published, not Posted or Live.
+- Refine what is there before adding: when a section feels thin, sharpen its type, spacing and copy before adding a new element.
+- Watch selector specificity between section classes and element classes; a section rule such as `.hero a` can silently beat a component class, so check the computed style, not the stylesheet.
 
 ## 4. Motion
 
@@ -83,6 +86,7 @@ Load exactly what the contract names.
 - **Browser surfaces (web only)**: `::selection`, `caret-color`, scrollbar colours, underline offset/thickness, form control accent, the focus ring. These ship with browser defaults that belong to no design; theming them is the cheapest signal that the page was built rather than assembled.
 - Copy: buttons name their outcome ("Send invoice", not "Submit"); errors say what happened and what to do. Run the competitor-swap test on the headline: if it still reads true with a rival's name, it made no claim. No "seamless", "unlock", "revolutionise", "the future of", "trusted by 10,000+". Em dashes: fewer than 7 per 600 words.
 - Every `<img>` has `width` and `height` (or `aspect-ratio`); `loading="lazy"` below the fold; photos in a scene or pattern treatment transformed into the world's material (multiplied onto paper, greyscaled, edge-traced, one-ink halftone); under photography or product-ui, and for identity assets (headshots, partner logos, product screens), the image ships faithfully with art direction by crop, sequence, size and grade only (`../../graphics/references/graphics.md` §2o); drawings come from the graphics skill (`design:graphics`, Step 3a) where no photo exists; no emoji as icons; one icon system, one stroke weight.
+- In an inline script, escape `<` as `\u003c` in data and code strings embedded in it, so a quoted `</script>` cannot end the script early.
 
 ## 6. Craft floor — verify on the built result
 

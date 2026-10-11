@@ -21,7 +21,7 @@ If the brief carries a `## Contract` block, it is **binding for RED**, where stu
 
 - Follow CLAUDE.md. Use the `Test:` command from the brief header, never a hardcoded one.
 - **Touch only the paths in `files:`.** Anything else you find goes in your report, not in a commit.
-- Commit after each sub-phase with a conventional message. Commit ONLY your own `files:`, with a pathspec commit — `git commit -m "<msg>" -- <each path in files:>` — never `git add -A` or `git add .`, and check `git show --name-only --format= HEAD` lists only your files. Parallel tasks share one working tree; a sweeping add lands their work in your commit.
+- Commit after each sub-phase with a conventional message. Commit ONLY your own `files:`, with a pathspec commit — `git commit -F - -- <each path in files:> <<'EOF'` with the message as the heredoc body (the quoted delimiter keeps backticks and `$` in the message from running; never `-m "..."`) — never `git add -A` or `git add .`, and check `git show --name-only --format= HEAD` lists only your files. Parallel tasks share one working tree; a sweeping add lands their work in your commit.
 - **Never** tick your own box. `flow tick` is the only writer of `[x]`, and the orchestrator runs it.
 - **Never** edit a test to go green, skip it, xfail it, or lower a threshold to pass a gate. The Stop gate blocks the turn while gates are red and the tamper notice puts any weakening on the record — satisfy the check, do not suppress it. Formatting and file/function size are handled by hooks; do not spend a phase on them.
 - Browser or screenshot evidence goes into `<Feature>/verify/`. A verification claim with no file there does not count.
@@ -30,6 +30,8 @@ If the brief carries a `## Contract` block, it is **binding for RED**, where stu
 
 ### RED
 Write stubs with correct signatures that throw the language's not-implemented error. Before writing any test, list the spec's boundaries and negative cases for this task (empty, missing, exactly-at-limit, just-past-limit, sibling/prefix, error path) and write one assertion per item. A test that would still pass if the implementation were replaced by the obvious wrong version (name it: swallow the error, `startswith` with no separator, `>` for `>=`, running total from zero) is not a RED test. Write tests that import from those stubs or existing modules, carry meaningful assertions (never `toBeDefined()` / `toBeTruthy()` / `not.toThrow()`), name their behavior ID, and include at least one error/edge case. Run `${CLAUDE_PLUGIN_ROOT}/skills/shared/scripts/test-changed` (falls back to the brief's `Test:` command).
+A missing fixture, oracle or input file fails the test; a test never skips because its data is absent.
+When your test mocks an external seam (a model call, a cloud service, a database stand-in) and the task line carries `no_claim:`, copy that text into the report's Evidence section so a reader sees what green does not prove.
 **HARD GATE**: exit non-zero → proceed. Exit zero → **STOP**; the tests are green-bar, testing pre-existing behavior, or the implementation already exists. Rewrite them; do not proceed to GREEN.
 Commit `test(<scope>): add failing tests for <ID> [RED]` — tests and stubs only; verify with `git diff --name-only HEAD~1..HEAD`.
 
@@ -55,6 +57,7 @@ Run `flow check --fix --since <Base>` (typecheck → lint → format → test; m
 | GREEN still failing after 3 attempts | STOP. Report the failure details. |
 | GREEN modified a test file | TDD violation. Revert the test change, return to RED. |
 | The task needs a file not in `files:` | STOP and report it. Widening the task in flight is what the wave barrier exists to prevent. |
+| Task needs an Ask-first item (the brief's `## Ask first` list: a new runtime dependency, CI/workflow config, a schema migration) | STOP, report BLOCKED naming it. The list is the spec's, so a human decides; the orchestrator records a `Ruling:` or files the task for a person. |
 | Blocked by an unexpected dependency | STOP and report it; the orchestrator records it as a `Discovered:` line. |
 | Browser verification failed | Return to RED, fix, re-run the inline gates. |
 | Context near ~70% | Finish the current sub-phase (never mid-phase), commit, and report. |
@@ -64,3 +67,5 @@ For browser work: `${CLAUDE_PLUGIN_ROOT}/skills/shared/claude-in-chrome-referenc
 ## 5. Report
 
 Report the commits you made (sha + message), the exit codes you observed for RED, GREEN and the inline gates, and anything you found that is not in your brief. Before reporting, re-read every file you edited end to end and each function next to your change. The report ALWAYS ends with a `Seen:` section, separate from the `searched:` receipt (which is not a `Seen:`): one line per defect you noticed in any file you read, even in code outside your task and even if its tests pass, as `Seen: <file>:<line> — <what>`, or the literal `Seen: none`. Do not fix them. Do not claim `verify:` passed — the orchestrator re-runs it, and its exit code is the only ground truth.
+
+Credit: adapted from addyosmani/agent-skills skills/spec-driven-development/SKILL.md @ 1be8e34 (MIT), for the Ask-first row.

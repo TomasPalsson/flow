@@ -1,6 +1,6 @@
 ---
 name: graphics
-description: Draws custom graphics for websites and apps as code: icon sets, custom icons, spot illustrations, cartoons and mascots, hero or section art, drawings, SVG art, diagrams, maps, patterns, infographic art, empty-state illustrations, and brand objects (price tags, coupons, tickets, stamps, labels drawn as the trade's own artefacts). Picks a different illustration style every project, checks each asset at real size and delivers SVG files with alt text. Use when the user says "make me an icon set", "draw a cartoon of...", "illustrate this", "make it less generic with graphics". The design and vary skills call it when a page needs custom graphics. Not for photo editing or raster image generation.
+description: 'Draws custom graphics for websites and apps as code: icon sets, custom icons, spot illustrations, cartoons and mascots, hero or section art, drawings, SVG art, diagrams, maps, patterns, infographic art, empty-state illustrations, and brand objects (price tags, coupons, tickets, stamps, labels drawn as the trade''s own artefacts). Picks a different illustration style every project, checks each asset at real size and delivers SVG files with alt text. Use when the user says "make me an icon set", "draw a cartoon of...", "illustrate this", "make it less generic with graphics". The design and vary skills call it when a page needs custom graphics. Not for photo editing or raster image generation.'
 user-invocable: true
 argument-hint: "[brief file or what to draw]"
 ---
@@ -53,7 +53,7 @@ Write a one-page style sheet `.vary/graphics-style.md`: style id; palette swatch
 
 ## Step 3: Check
 
-1. Render every asset at its real sizes (desktop and phone; icons at 16, 24 and 32px, 1x and 2x) with Playwright, `rsvg-convert` or the browser MCP. **Read the PNGs.** Fix what is wrong: clipped text, collisions, boxes standing for objects, details lost at size.
+1. Render every asset at its real sizes (desktop and phone; icons at 16, 24 and 32px, 1x and 2x) with Playwright, `rsvg-convert` or the browser MCP. **Read the PNGs.** Fix what is wrong: clipped text, collisions, boxes standing for objects, details lost at size. When fixing, refine, don't add: sharpen the shape, spacing and labels already drawn before adding a new element.
 2. Run one critic subagent per `references/art-crew.md` section 5 on the renders. Apply its fixes. Stop at a mean of 7.5 or after 2 critic rounds. If no subagent tool exists, score yourself against the same rubric and say the independent critic did not run.
 
 ## Step 4: Deliver

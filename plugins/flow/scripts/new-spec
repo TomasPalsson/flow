@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # new-spec — allocate the next numbered spec dir, and optionally a branch
 # or worktree for it. Bash 3.2 compatible; see --help for the contract.
+# Credit: adapted from github/spec-kit scripts/bash/create-new-feature.sh @ 0443760 (MIT). Re-baselined 2026-10-10: the borrow-time sha is not recoverable.
 set -u
 
 usage() {
@@ -10,6 +11,9 @@ Usage: new-spec "<title>" [--dir .specs] [--current] [--prefix flow/] [--no-bran
 Computes the next 3-digit spec number from existing <dir>/NNN-* entries
 (001 when none exist), slugifies <title> to lowercase ASCII [a-z0-9-]
 (max 40 chars, computed under LC_ALL=C), and creates <dir>/NNN-slug/.
+Icelandic letters are transliterated first (a-acute -> a, o-umlaut -> o,
+ae-ligature -> ae, eth -> d, thorn -> th, and so on), other accented
+Latin letters through iconv when it can; anything left over becomes a dash.
 --current also writes <dir>/.current so `flow next` routes to this
 feature without a `flow use`.
 
@@ -36,8 +40,8 @@ and prints the same JSON to stdout.
 already JSON on every run.
 
 Does not check working-tree dirtiness. Exit 1 when: a branch is
-requested outside a git repository; <title> has no ASCII letter or
-digit to slugify; <dir> is not writable; or `git checkout -b`/`git
+requested outside a git repository; <title> has no letter or digit
+left to slugify after transliteration; <dir> is not writable; or `git checkout -b`/`git
 worktree add` fails (its error is printed and neither flow.json nor
 the spec dir is written).
 EOF
@@ -45,8 +49,24 @@ EOF
 
 slugify() {
   # $1 = title -> lowercase ASCII [a-z0-9-], collapsed/trimmed dashes,
-  # truncated to 40 chars. Computed under LC_ALL=C.
-  LC_ALL=C printf '%s' "$1" |
+  # truncated to 40 chars. The Icelandic map is explicit and byte-based
+  # (literal UTF-8 sequences under LC_ALL=C), because iconv //TRANSLIT
+  # differs between glibc and macOS libiconv. iconv only handles what the
+  # map does not know; the [^a-z0-9] filter always runs last.
+  local mapped
+  mapped=$(LC_ALL=C printf '%s' "$1" |
+    LC_ALL=C sed \
+      -e 's/á/a/g;s/Á/a/g;s/é/e/g;s/É/e/g;s/í/i/g;s/Í/i/g' \
+      -e 's/ó/o/g;s/Ó/o/g;s/ú/u/g;s/Ú/u/g;s/ý/y/g;s/Ý/y/g' \
+      -e 's/ö/o/g;s/Ö/o/g;s/æ/ae/g;s/Æ/ae/g;s/ð/d/g;s/Ð/d/g' \
+      -e 's/þ/th/g;s/Þ/th/g')
+  if command -v iconv >/dev/null 2>&1; then
+    local conv
+    if conv=$(printf '%s' "$mapped" | iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null); then
+      mapped=$conv
+    fi
+  fi
+  LC_ALL=C printf '%s' "$mapped" |
     LC_ALL=C tr '[:upper:]' '[:lower:]' |
     LC_ALL=C sed -e 's/[^a-z0-9]/-/g' -e 's/-\{2,\}/-/g' -e 's/^-*//' -e 's/-*$//' |
     LC_ALL=C cut -c1-40 |
