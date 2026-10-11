@@ -43,6 +43,7 @@ One card per idea, the same frame on every card, so the reader learns how to rea
 ```
 
 - `about` (optional) = one sentence: what the project is and who uses it. The page prints it right under the title, before the headline, so a cold reader knows what this is about.
+- `more_fixes` (optional) = array of `{title, where, what}` for small real bugs found and checked in the code but not worth a card: `title` in plain words, <= 12 words; `where` = `path:line`; `what` = one sentence. When non-empty the page prints a muted "More bugs worth fixing" section (closed list) after the cards and before "What we left out". Anything but an array of objects with those three non-empty strings fails assemble with exit 3.
 - `slot` words on the page: safe = "Safe bet", stretch = "Stretch", wild = "Wild card", remove = "Remove", fix = "Quick fix".
 - `title` <= 8 words, starts with a verb. `sentence` <= 20 words, active voice, says what changes for whom.
 - `size.blocks` 1 = hours, 2 = days, 3 = weeks, 0 = not sure. The page prints a fixed word per block count; `words` is kept for the record only.

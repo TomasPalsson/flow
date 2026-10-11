@@ -385,3 +385,31 @@ test('chip kind word never breaks inside a word', () => {
   const html = assembleOk(makeRun([idea('a', 'safe')]));
   assert.match(html, /\.chips \.k\{[^}]*white-space:nowrap/);
 });
+
+const FIXES = [
+  { title: 'Stop <b>crash</b> on empty input', where: 'src/a.rs:9', what: 'It panics when "x" is empty & unset.' },
+  { title: 'Fix off-by-one in paging', where: 'src/p.rs:40', what: 'The last page is skipped.' },
+];
+
+test('more_fixes renders after the cards and before left-out, escaped, in a closed details', () => {
+  const html = assembleOk(makeRun([idea('a', 'safe')], { more_fixes: FIXES }));
+  const start = html.indexOf('<section class="more-fixes"');
+  const sec = html.slice(start, html.indexOf('</section>', start));
+  assert.ok(start > html.indexOf('</article>'));
+  assert.ok(start < html.indexOf('<section class="left-out"'));
+  assert.ok(sec.includes('<h2 id="more-fixes-h">More bugs worth fixing</h2>'));
+  assert.ok(sec.includes('<p>Real bugs we found and checked in the code. Each is small.</p>'));
+  assert.ok(sec.includes('<details><summary>See 2 more bugs</summary><ul>'));
+  assert.ok(sec.includes('<li><b>Stop &lt;b&gt;crash&lt;/b&gt; on empty input</b> — It panics when &quot;x&quot; is empty &amp; unset. <code>src/a.rs:9</code></li>'));
+  assert.ok(!sec.includes('<b>crash'));
+});
+
+test('more_fixes absent or empty renders no section', () => {
+  assert.ok(!assembleOk(makeRun([idea('a', 'safe')])).includes('<section class="more-fixes"'));
+  assert.ok(!assembleOk(makeRun([idea('a', 'safe')], { more_fixes: [] })).includes('<section class="more-fixes"'));
+});
+
+test('more_fixes with bad shape exits 3', () => {
+  const bad = ['nope', [5], [{ title: 'a', where: 'b' }], [{ title: 'a', where: 'b', what: '' }], [{ title: 'a', where: 3, what: 'c' }]];
+  for (const mf of bad) assert.equal(run(['--run', makeRun([idea('a', 'safe')], { more_fixes: mf })]).status, 3, JSON.stringify(mf));
+});

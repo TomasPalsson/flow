@@ -156,6 +156,13 @@ function validate(data, path) {
     }
     if (idea.gives_up != null && typeof idea.gives_up !== 'string') bad(`${at}.gives_up must be a string`);
   });
+  if (data.more_fixes !== undefined) {
+    if (!Array.isArray(data.more_fixes)) bad('"more_fixes" must be an array when present');
+    data.more_fixes.forEach((f, i) => {
+      if (!isObj(f)) bad(`more_fixes[${i}] must be an object`);
+      for (const k of ['title', 'where', 'what']) if (!isStr(f[k])) bad(`more_fixes[${i}].${k} must be a non-empty string`);
+    });
+  }
   const d = data.dropped;
   if (!isObj(d)) bad('"dropped" must be an object');
   if (!Array.isArray(d.obvious) || d.obvious.some((s) => !isStr(s))) bad('dropped.obvious must be an array of strings');
@@ -266,7 +273,11 @@ summary{cursor:pointer;font-weight:700;min-height:2.25rem;display:flex;align-ite
 details ul{margin:6px 0 10px;padding-left:1.2rem}
 details p{margin:8px 0}
 code{font-family:var(--mono);font-size:.88em;background:var(--paper);border-radius:3px;padding:1px 5px;overflow-wrap:anywhere}
-.left-out{margin-top:40px;border-top:var(--stroke) solid var(--line);padding-top:24px}
+.more-fixes,.left-out{margin-top:40px;border-top:var(--stroke) solid var(--line);padding-top:24px}
+.more-fixes{color:var(--muted)}
+.more-fixes h2{font-size:1.5rem;margin-bottom:8px;color:var(--ink)}
+.more-fixes b{color:var(--ink)}
+.more-fixes ul{margin:0;padding-left:1.2rem}
 .left-out h2{font-size:1.5rem;margin-bottom:8px}
 .left-out h3{font-size:1.05rem;margin:18px 0 6px}
 .left-out ul{margin:0;padding-left:1.2rem}
@@ -381,6 +392,17 @@ function cardHtml(idea, num, numberOf, runDir) {
   return lines.join('\n');
 }
 
+function moreFixes(fixes) {
+  if (!fixes || fixes.length === 0) return '';
+  const items = fixes.map((f) => `<li><b>${esc(f.title)}</b> — ${esc(f.what)} <code>${esc(f.where)}</code></li>`).join('');
+  return `<section class="more-fixes" aria-labelledby="more-fixes-h">
+<h2 id="more-fixes-h">More bugs worth fixing</h2>
+<p>Real bugs we found and checked in the code. Each is small.</p>
+<details><summary>See ${fixes.length} more ${fixes.length === 1 ? 'bug' : 'bugs'}</summary><ul>${items}</ul></details>
+</section>
+`;
+}
+
 function leftOut(d) {
   const obvious = d.obvious.length ? `<ul>${d.obvious.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p>None this time.</p>';
   const dead = d.dead.length
@@ -418,7 +440,7 @@ ${chips}
 </ul></nav>
 </header>
 ${cards}
-${leftOut(data.dropped)}
+${moreFixes(data.more_fixes)}${leftOut(data.dropped)}
 <footer>Run key ${esc(data.key)} · ${esc(data.generated_at)}</footer>
 </main>`;
   if (artifact) {

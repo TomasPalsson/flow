@@ -44,7 +44,7 @@ const GEN = { type: 'object', required: ['ideas'], properties: {
       share: { type: 'integer', minimum: 0, maximum: 100, description: 'of 100 AI assistants shown this repo, how many would suggest this' },
       subtracts: { type: 'boolean', description: 'true if the idea mainly removes, merges or defaults something away' },
     } } } } }
-const GEN6 = { ...GEN, properties: { ...GEN.properties, ideas: { ...GEN.properties.ideas, maxItems: 6 } } }
+const GEN6 = { ...GEN, properties: { ...GEN.properties, ideas: { ...GEN.properties.ideas, maxItems: 8 } } }
 const ANCHOR = { type: 'object', required: ['ideas'], properties: { ideas: { type: 'array', minItems: 6, maxItems: 14, items: {
   type: 'object', required: ['title', 'mechanism', 'target'],
   properties: { title: str(90), mechanism: str(200), target: str(160) } } } } }
@@ -107,7 +107,7 @@ For each kept idea fill seen_through first (a sentence in ${c.persona.line}'s ow
 const auditPrompt = `Find the sharpest real defects in this project that a user or the maintainer would actually hit. ${DATA_RULE}
 Repo: ${A.repo}. Start with ${PROJECT} and ${A.run}/tree.txt, then read the biggest and most-changed source files in full.${FOCUS}
 Look for places where the code silently does something other than what it promises (its docs, names, messages, defaults), loses or corrupts data, crashes on an ordinary input, or breaks for users unlike the author (time zone, language, network, platform). Verify each by reading the exact lines; a defect you did not verify does not count.
-Return at most 6, sharpest first. For each: seen_through = one sentence from the person who hits it; move = the fix in one sentence; user_sees = what changes for them; first_test = how to reproduce it in under an hour; share = how many of 100 AI assistants would spot it; subtracts = true only if the fix removes something. Plain words.`
+Return at most 8, sharpest first. For each: seen_through = one sentence from the person who hits it; move = the fix in one sentence; user_sees = what changes for them; first_test = how to reproduce it in under an hour; share = how many of 100 AI assistants would spot it; subtracts = true only if the fix removes something. Plain words.`
 
 // One whole-repo reader: the old single-pass skill was strong on ideas tied tightly to the code; keep that voice in the pool.
 const deepPrompt = `Read this project the way its maintainer would after a long break: README, ${PROJECT}, ${A.run}/tree.txt, then the main source files in full. ${DATA_RULE}
@@ -358,6 +358,9 @@ return {
   headline: head?.headline || '',
   ...(head?.about ? { about: head.about } : {}),
   ideas: final,
+  // Verified defects that did not get a card still belong on the page, folded, so nothing real is lost.
+  more_fixes: alive.filter(j => isFix(j) && !picks.some(p => p.g.best === j.g.best)).slice(0, 8)
+    .map(j => ({ title: byId[j.g.best].title.slice(0, 90), where: byId[j.g.best].observed_in[0]?.where || '', what: byId[j.g.best].user_sees })),
   dropped: {
     obvious: [...new Set(anchors.map(a => a.title))].slice(0, 10),
     dead: dead.filter(d => d.r).map(d => ({ title: byId[d.g.best].title, why: d.r.note })).slice(0, 8),
