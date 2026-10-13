@@ -20,10 +20,10 @@ graders:
     pattern: "likely|probably|I'd guess|fairly confident|my guess"
     flags: "i"
     match: contains
-  - name: ends-asking-confirm-or-correct
+  - name: ends-asking-right-or-change
     type: regex
     target: trace
-    pattern: "confirm or correct\\?"
+    pattern: "right, or what should change\\?"
     flags: "i"
     match: contains
   - name: not-three-questions-in-a-row
@@ -33,4 +33,4 @@ graders:
     match: not_contains
   - name: one-question-engaging-the-existing-exporter
     type: llm
-    criteria: "PASS if the assistant's question message (a) asks exactly ONE question, (b) states its own hypothesis with a confidence word (likely, probably, I'd guess) and ends asking the user to confirm or correct, and (c) visibly engages what is already in the repo: the half-built CSV exporter in src/export/ and/or the xlsx stub that needs openpyxl versus the README's no-new-dependencies rule, so the hypothesis is grounded in the tree (for example 'likely CSV of the order list, since csv_export.py already exists and xlsx would break the no-new-dependencies rule'). FAIL if there are two or more questions, a menu of five or more options, a generic question that ignores the existing exporter (for example 'what format do you want?' with no reference to src/export), a question the README already answers (whether new dependencies are allowed), or any spec, task list or code written or proposed as done. Writing PREP.md (with A-NN findings and Status: interviewing) before asking is REQUIRED by this case and is never a failure; only spec.md, TASKS.md or source code counts as too much."
+    criteria: "PASS if the assistant's question message (a) asks exactly ONE question, (b) states its own hypothesis with a confidence word (likely, probably, I'd guess) and ends asking the user whether it is right or what should change, and (c) visibly engages what is already in the repo: the half-built CSV exporter in src/export/ and/or the xlsx stub that needs openpyxl versus the README's no-new-dependencies rule, so the hypothesis is grounded in the tree (for example 'likely CSV of the order list, since csv_export.py already exists and xlsx would break the no-new-dependencies rule'). FAIL if there are two or more questions, a menu of five or more options, a generic question that ignores the existing exporter (for example 'what format do you want?' with no reference to src/export), a question the README already answers (whether new dependencies are allowed), or any spec, task list or code written or proposed as done. Writing PREP.md (with A-NN findings and Status: interviewing) before asking is REQUIRED by this case and is never a failure; only spec.md, TASKS.md or source code counts as too much."

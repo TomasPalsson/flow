@@ -138,7 +138,7 @@ t_prep_contradiction_question_keeps_the_hypothesis_rule() {
 	local body
 	body=$(cat "$PREP_SKILL")
 	assert_contains "$body" "still follows rule 2" \
-		"rule 5's contradiction question keeps rule 2's hypothesis and '— confirm or correct?'"
+		"rule 5's contradiction question keeps rule 2's hypothesis and '— right, or what should change?'"
 	assert_not_contains "$body" "ask once which is right" \
 		"the bare 'ask once which is right' template is gone (it displaced rule 2 in a live eval)"
 }

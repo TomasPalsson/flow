@@ -83,10 +83,10 @@ once.
    exception: Q1 of a resumed seed (a PREP.md with a `Seed:` line) is the
    one-block read-back in Step 2, not a question about any single line.
 2. **Then one line of hypothesis with a confidence WORD (likely, probably,
-   fairly confident — never a bare percentage), ending "— confirm or
-   correct?"**, so a one-word reply locks it: *"Mr Claude's guess: likely 409
-   on a duplicate tag — confirm or correct?"* A stated hypothesis the user
-   can correct is not a leading question; a hidden one is. When the word is
+   fairly confident — never a bare percentage), ending "— right, or what should
+   change?"** (not "confirm or correct?": a reply of "correct" reads both ways),
+   so a one-word reply locks it: *"Mr Claude's guess: likely 409 on a duplicate
+   tag — right, or what should change?"* A stated hypothesis the user can correct is not a leading question; a hidden one is. When the word is
    the weakest tier (probably, unsure), add one clause naming what is missing
    ("probably, unsure who maintains it"), so the user knows what to correct.
 3. **Only ask what is answerable** in 2–5 options or ≤5 words. Interaction
@@ -112,7 +112,7 @@ once.
    When an answer states how existing code behaves, open the code first.
    On a contradiction, quote path:line in the question; a
    contradiction question still follows rule 2 (your hypothesis with a
-   confidence word, ending "— confirm or correct?"), and the `D-NN` is
+   confidence word, ending "— right, or what should change?"), and the `D-NN` is
    recorded only from that reply. No contradiction, no extra words.
    Credit: adapted from mattpocock/skills skills/engineering/domain-modeling/SKILL.md @ 49dd158 (MIT).
 6. **Checkpoint at 6**: print the Decisions / Open counts and ask "continue
