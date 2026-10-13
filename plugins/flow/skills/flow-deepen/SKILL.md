@@ -65,7 +65,7 @@ For every surviving candidate, fill the four-dimension frame (vague "this is mes
 3. **Proposed deepening** — the before→after at the call site (e.g. "caller goes from 3 constructor calls to 1 factory call").
 4. **Win** — the AC-3 call-site number from `references/detection-heuristics.md` (for example, "callers pass 1 param, not 4"), plus the property gained (locality, leverage or fewer seams) and a churn note (high-churn = high payoff). "Easier to maintain", "cleaner" and "more readable" are not wins.
 
-Then **rank them and recommend the top ones** — do not dump every candidate on the user. State a cutoff and the reasoning: *"Mr Claude recommends shipping the top 3 (highest churn × leverage) and parking the rest — confirm or correct?"* The always-recommend-an-answer rule holds for every choice surfaced here.
+Then **rank them and recommend the top ones** — do not dump every candidate on the user. State a cutoff and the reasoning: *"Mr Claude recommends shipping the top 3 (highest churn × leverage) and parking the rest — right, or what should change?"* The always-recommend-an-answer rule holds for every choice surfaced here.
 
 ## Phase 4 — Draft as behavior-preserving tasks (draft only)
 
@@ -117,6 +117,6 @@ Each slice runs in its OWN fresh session — eight refactors in one context and 
 - **NEVER add a single-implementation interface, plugin hook, or factory "for the future."** Consequence: interface complexity equals implementation complexity — a shallow module, the opposite of deepening, and YAGNI accidental complexity every future reader must navigate.
 - **NEVER write the tasks anywhere but the existing spec's `TASKS.md`.** Consequence: `flow next` reads `TASKS.md` and nothing else — a parallel file or dir is invisible to the router and the deepening never runs.
 - **NEVER write any file before the approval gate.** Consequence: filesystem state downstream agents act on, created without consent — the house-wide hard-gate rule.
-- **NEVER ask a bare question.** Lead every HITL choice with a concrete recommendation and its reasoning, then "confirm or correct?". Consequence: an open question stalls the flow and abdicates the judgment this skill exists to provide.
+- **NEVER ask a bare question.** Lead every HITL choice with a concrete recommendation and its reasoning, then "right, or what should change?". Consequence: an open question stalls the flow and abdicates the judgment this skill exists to provide.
 - **NEVER reimplement the refactor here.** flow-deepen plans and writes the task lines; `/flow:next` executes under the characterization-test guard. Consequence: a bloated context that rewrites instead of deepens.
 
