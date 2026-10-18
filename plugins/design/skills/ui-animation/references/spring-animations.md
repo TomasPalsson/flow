@@ -39,6 +39,19 @@ Springs feel more natural than duration-based animations because they simulate r
 
 Keep bounce subtle (0.1–0.3) when used. Avoid bounce in most UI contexts.
 
+**Bounce only when the gesture carried momentum.** Default to a critically damped spring (`bounce: 0`), which settles without overshoot. Add a little bounce (`bounce: 0.2`) only after a flick, throw or drag release: overshoot on a card the user flicked feels physical, while overshoot on a menu that simply opened feels wrong.
+
+```js
+// default: no overshoot
+{ type: "spring", bounce: 0, duration: 0.4 }
+// after a flick: a little overshoot, and hand over the release velocity
+{ type: "spring", bounce: 0.2, duration: 0.4, velocity: releaseVelocity }
+```
+
+Motion's `duration` + `bounce` map to Apple's response + damping ratio. Apple's shipped values for reference: reposition `damping 1.0, response 0.4`; drawer or sheet `damping 0.8, response 0.3`. A spring has no real duration; `duration` sets how long it feels, and the value keeps micro-settling underneath.
+
+For 2D motion (a dragged card), drive X and Y with separate springs. One spring on the 2D distance desyncs when the two axes carry different velocities.
+
 ## Interruptibility advantage
 
 Springs maintain velocity when interrupted — CSS keyframes restart from zero. This makes springs ideal for gestures users might change mid-motion.
@@ -84,3 +97,5 @@ If the interaction needs instant response or precise timing, skip the spring ent
   }
 />
 ```
+
+Credit: adapted from emilkowalski/skills skills/apple-design/SKILL.md @ 2d22863 (MIT).

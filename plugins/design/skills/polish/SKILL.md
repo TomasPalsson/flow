@@ -105,6 +105,8 @@ Every interactive element needs all states:
 - **Appropriate motion**: Motion serves purpose, not decoration
 - **Reduced motion**: Respects `prefers-reduced-motion`
 
+For the motion details themselves (easing per motion type, durations, origin-aware popovers, interruption, enter versus exit), call the Skill tool with "design:ui-animation" and use its review format.
+
 ### Content & Copy
 
 - **Consistent terminology**: Same things called same names throughout
@@ -141,6 +143,8 @@ Every interactive element needs all states:
 - **No content**: Handles missing data gracefully
 - **Offline**: Appropriate offline handling (if applicable)
 
+**Stress test with worst-case data.** For any component or page that renders data (names, emails, counts, lists, CMS content), load [references/worst-case-data.md](references/worst-case-data.md) and run its stress test: a realistic worst-case fixture behind a dev-only Demo / Worst case toggle, checked at the real container width, 320px and 200% zoom. Demo data hides most of these breaks, so "handles very long names" is not checked until the long name has been on screen.
+
 ### Responsiveness
 
 - **All breakpoints**: Test mobile, tablet, desktop
@@ -148,6 +152,7 @@ Every interactive element needs all states:
 - **Readable text**: No text smaller than 14px on mobile
 - **No horizontal scroll**: Content fits viewport
 - **Appropriate reflow**: Content adapts logically
+- **Feels native on a phone**: load [../design/references/mobile-web.md](../design/references/mobile-web.md) and check its symptom table (sticky hover, tap flash, `100vh`, input zoom, tap delay, notch)
 
 ### Performance
 

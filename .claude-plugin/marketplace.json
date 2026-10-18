@@ -19,7 +19,7 @@
       "name": "design",
       "source": "./plugins/design",
       "description": "Design and UI skills, usability first: design (UX-first design process), vary (roll-assigned, never-the-same UI design), graphics (custom icon sets, illustrations, diagrams and brand objects, called by the others when a page needs them), smoothbrain (big-picture-first picture explainers in plain words), UX critique, mobile design, polish passes, showcase pages, and UI animation.",
-      "version": "0.6.0"
+      "version": "0.7.0"
     },
     {
       "name": "finance",
