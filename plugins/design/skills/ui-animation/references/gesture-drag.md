@@ -9,6 +9,10 @@ Patterns for drag, swipe, and gesture interactions where the user directly manip
 - [Multi-touch protection](#multi-touch-protection)
 - [Friction vs hard stops](#friction-vs-hard-stops)
 - [Swipe-to-dismiss pattern](#swipe-to-dismiss-pattern)
+- [Grab from the current value](#grab-from-the-current-value)
+- [Direction lock](#direction-lock)
+- [Velocity handoff](#velocity-handoff)
+- [Momentum projection](#momentum-projection)
 
 ## Momentum-based dismissal
 
@@ -43,6 +47,15 @@ const dampedOffset = applyDamping(rawOffset, 200);
 ```
 
 Things in real life don't suddenly stop — they slow down first. Friction instead of hard stops always feels more natural.
+
+Apple's rubber-band curve, the iOS overscroll feel, scales the resistance to the element's size:
+
+```ts
+// constant 0.55 matches iOS; dimension is the element's size on that axis
+function rubberband(overshoot: number, dimension: number, constant = 0.55): number {
+  return (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
+}
+```
 
 ## Pointer capture
 
@@ -114,3 +127,49 @@ function handleSwipeEnd(direction: "left" | "right", distance: number, velocity:
 ```
 
 The exit animation should continue in the swipe direction with momentum — snapping to a different direction feels wrong.
+
+## Grab from the current value
+
+A user must be able to grab a moving element mid-flight and reverse it. Never lock input while a transition runs. On grab, read the element's live on-screen position and start the drag from there, keeping the offset from where the finger landed. Starting from the target value, or snapping the element's centre to the pointer, makes it jump.
+
+```ts
+function onPointerDown(e: PointerEvent) {
+  el.setPointerCapture(e.pointerId);
+  const live = new DOMMatrix(getComputedStyle(el).transform).m42; // current translateY, mid-animation
+  grabOffset = e.clientY - live;
+  animation?.stop();
+}
+```
+
+In Motion, a motion value already holds the live value; `y.get()` on grab is the same idea.
+
+## Direction lock
+
+Require about 10px of movement before committing to an axis, then track 1:1. Without that threshold a horizontal swipe inside a vertical scroller steals the scroll, and the bug looks like broken scrolling rather than a gesture problem. On touch surfaces also set `touch-action` to the axes the browser keeps (`pan-y` on a horizontal carousel, `none` only on an element that owns every axis).
+
+## Velocity handoff
+
+When the finger lifts, the settle animation continues at the finger's exact velocity, so there is no seam between dragging and animating. This one detail most separates fluid from fine. Track the last few `pointermove` positions with timestamps to get the release velocity, then pass it to the spring:
+
+```ts
+animate(el, { y: target }, { type: "spring", bounce: 0.2, duration: 0.4, velocity: releaseVelocityPxPerSec });
+```
+
+Some spring APIs want relative velocity instead: `releaseVelocity / (target - current)`.
+
+## Momentum projection
+
+Choose the snap target from where the gesture was going, not from where the finger let go. Project the resting point with Apple's deceleration formula, snap to the nearest point to that projection, then hand off velocity. A short fast flick then commits, and a long slow drag does not.
+
+```ts
+// decelerationRate 0.998 = normal scroll feel, 0.99 = snappier
+function project(velocityPxPerSec: number, decelerationRate = 0.998): number {
+  return ((velocityPxPerSec / 1000) * decelerationRate) / (1 - decelerationRate);
+}
+
+const target = nearestSnapPoint(current + project(releaseVelocity));
+```
+
+Use the sign of the velocity, not the position, to decide between reversing and committing. This is the exponential-decay form Apple ships, not the textbook `v²/2a`.
+
+Credit: adapted from emilkowalski/skills skills/apple-design/SKILL.md and skills/animate/RECIPES.md @ 2d22863 (MIT).

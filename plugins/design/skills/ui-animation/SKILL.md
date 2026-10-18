@@ -9,7 +9,8 @@ description: Creates, reviews, and debugs UI motion and animation implementation
 
 | File                                                                       | Read when                                                                    |
 | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [references/decision-framework.md](references/decision-framework.md)       | Default: animation decisions, easing, and duration                           |
+| [references/decision-framework.md](references/decision-framework.md)       | Default: animation decisions, easing, duration, and which tool               |
+| [references/opportunities.md](references/opportunities.md)                 | Asked to add motion with no named element ("make this feel alive", "what could animate here?") |
 | [references/spring-animations.md](references/spring-animations.md)         | Using spring physics, framer-motion useSpring, configuring spring params     |
 | [references/component-patterns.md](references/component-patterns.md)       | Building buttons, popovers, tooltips, drawers, modals, toasts with animation |
 | [references/clip-path-techniques.md](references/clip-path-techniques.md)   | Using clip-path for reveals, tabs, hold-to-delete, comparison sliders        |
@@ -26,7 +27,8 @@ description: Creates, reviews, and debugs UI motion and animation implementation
 - Prefer CSS transitions for interruptible UI; use keyframes only for predetermined sequences.
 - CSS transitions > WAAPI > CSS keyframes > JS (requestAnimationFrame).
 - Make animations interruptible and input-driven.
-- Asymmetric timing: enter can be slightly slower; exit should be fast.
+- Asymmetric timing: enter can be slightly slower; exit should be fast. Exit along the same path it entered.
+- Extend the project's existing easing and duration tokens; never add a parallel set.
 - Use `@starting-style` for DOM entry animations; fall back to `data-mounted`.
 - A small `filter: blur(2px)` can hide rough crossfades.
 
@@ -56,7 +58,8 @@ description: Creates, reviews, and debugs UI motion and animation implementation
 | Tooltips, small popovers      | 125–200ms    | `ease-out` or enter curve        |
 | Dropdowns, selects            | 150–250ms    | `cubic-bezier(0.22, 1, 0.36, 1)` |
 | Modals, drawers               | 200–350ms    | `cubic-bezier(0.22, 1, 0.36, 1)` |
-| Move/slide on screen          | 200–300ms    | `cubic-bezier(0.25, 1, 0.5, 1)`  |
+| Slide in from an edge         | 200–300ms    | `cubic-bezier(0.25, 1, 0.5, 1)`  |
+| Reposition/morph on screen    | 200–300ms    | `cubic-bezier(0.77, 0, 0.175, 1)` |
 | Simple hover (colour/opacity) | 200ms        | `ease`                           |
 | Illustrative/marketing        | Up to 1000ms | Spring or custom                 |
 
@@ -64,6 +67,7 @@ description: Creates, reviews, and debugs UI motion and animation implementation
 
 - **Enter:** `cubic-bezier(0.22, 1, 0.36, 1)` — entrances and transform-based hover
 - **Move:** `cubic-bezier(0.25, 1, 0.5, 1)` — slides, drawers, panels
+- **Reposition:** `cubic-bezier(0.77, 0, 0.175, 1)` — an element already on screen travelling A to B (tab indicator, reorder)
 - **Drawer (iOS-like):** `cubic-bezier(0.32, 0.72, 0, 1)`
 
 Avoid `ease-in` for UI. Prefer custom curves from [easing.dev](https://easing.dev/).
@@ -78,6 +82,8 @@ Avoid `ease-in` for UI. Prefer custom curves from [easing.dev](https://easing.de
 
 - Gate hover animations behind `@media (hover: hover) and (pointer: fine)` to avoid false positives on touch.
 - During direct manipulation, keep the element locked to the pointer. Add easing only after release.
+- `prefers-reduced-motion` ships with the animation, not as a follow-up. Reduced means fewer and gentler, not zero: keep opacity and color changes that explain a state, drop translation, scale, parallax and overshoot. In Motion, `useReducedMotion()` and branch the transform values (`const x = reduce ? 0 : "-100%"`). A global `0.01ms` kill also removes feedback the user needs, so prefer per-animation alternatives.
+- Avoid full-viewport moving backgrounds and slow looping oscillations; they are the usual vestibular triggers.
 
 ## Performance
 
@@ -116,13 +122,17 @@ Animation progress:
 - [ ] Step 3: Pick the implementation style
 - [ ] Step 4: Load the relevant component or technique reference
 - [ ] Step 5: Validate timing, interruption, and device behavior
+- [ ] Step 6: Name what still needs a feel check
 ```
 
-1. Answer the four questions from [references/decision-framework.md](references/decision-framework.md): should it animate? What purpose? What easing? What speed?
+1. Answer the five questions from [references/decision-framework.md](references/decision-framework.md): should it animate? What purpose? What easing? What speed? Which tool? When the request names no element ("make this feel alive"), first run the sweep in [references/opportunities.md](references/opportunities.md) and build only what survives its gate.
 2. Pick duration from the easing defaults table above.
-3. Choose implementation: CSS transition > WAAPI > spring > keyframe > JS.
+3. Choose implementation with the "Which tool?" table in the decision framework (CSS transition first, Motion only for springs, layout, exit and gestures).
 4. Load the relevant reference for your component type or technique.
-5. When reviewing, use the Before/After/Why table format from [references/review-format.md](references/review-format.md).
+5. When reviewing, use the Before/After/Why table format, fix order and verdict from [references/review-format.md](references/review-format.md).
+6. Say what still needs a feel check you cannot do from code (a crossfade, a spring's bounce, a gesture on a real phone) and how: play it at 2-5x duration or step it frame by frame in the DevTools Animations panel.
+
+Credit: adapted from emilkowalski/skills skills/animate/SKILL.md and skills/apple-design/SKILL.md @ 2d22863 (MIT).
 
 ## Validation
 

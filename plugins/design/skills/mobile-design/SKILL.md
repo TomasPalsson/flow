@@ -72,6 +72,8 @@ Plus the mobile craft musts: build a **theme token object** (colors light+dark v
 
 **Gate:** Can you articulate how every visual layer renders on Android specifically — the shadow, the blur, the font weight, the elevation under a rounded clip? If you cannot picture the Android rendering of each layer, you have not finished Phase 3; you have an iOS design that will surprise you on the other platform. (Concretely this means: a theme token object with light+dark colors, pre-computed `lineHeight`/`letterSpacing`, a `Platform.select` shadow scale, virtualized lists, UI-thread motion, and no native effect without a cross-platform fallback.)
 
+When the screen animates (press feedback, sheets, swipe rows, list entrances, screen transitions, haptics), **load [`references/motion.md`](references/motion.md)** before writing the motion: it decides whether to animate at all, the cheapest tool, spring or timing, and keeps the animation on the UI thread.
+
 For the complete RN/Expo craft translation (font loading, gesture-handler/Reanimated setup, version-gated `boxShadow`/`gap`, P3, DPR images, token architecture), **load [`references/platform-craft.md`](references/platform-craft.md) — read the "RN/Expo Craft" section** when you need a specific number or API. For the full failure catalog, **load [`references/anti-patterns.md`](references/anti-patterns.md) before shipping any cross-platform (iOS + Android) screen.** Don't load for early planning, a single-platform-only app where the cross-platform traps do not apply, or when the five rules above already cover your case.
 
 ---
