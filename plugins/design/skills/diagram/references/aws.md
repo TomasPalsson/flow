@@ -15,6 +15,7 @@ node <DIAGRAM>/scripts/aws-icon.mjs get <name> --x <x> --y <y> --size 48  # past
 - **Service icon vs resource icon.** The service icon (`architecture-service/`, coloured square) stands for the service. A resource icon (`resource/`, glyph only) stands for one specific thing: a DynamoDB *table*, an S3 *bucket*, an ALB, a NAT gateway. Pick one per node; never both for the same thing.
 - **Size.** Service icons 48px (40px in tight layouts, never under 32px). Resource icons 40px. Group icons 32px (24px minimum) at the group's top-left corner. The same role is the same size across the diagram.
 - **Label under the icon**, centred: the service name in the node-name font (12-13px, 600), at most two lines, then an optional mono sublabel for the specific thing (`orders-table`, `POST /orders`, `t4g.medium ×3`). Use the short service name consistently (`DynamoDB`, not `Amazon DynamoDB` in one place and `DDB` in another). The icon carries `aria-hidden`; the label is the accessible text.
+- **A feature with no icon of its own** (Bedrock Knowledge Base, an Aurora reader, a Step Functions state): use its service's resource icon if `find <service>` lists one, else the parent service icon at resource size (40px), labelled with the feature's name (`Knowledge Base`, sublabel `Bedrock`).
 - **No icon found** (offline, or a service newer than the set): say so in the summary and draw a plain node box with the name. Never invent an icon.
 
 ## 2. Groups: AWS's boxes, AWS's colours

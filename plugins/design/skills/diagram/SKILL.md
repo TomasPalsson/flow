@@ -18,8 +18,8 @@ Built on [diagram-design](https://github.com/cathrynlavery/diagram-design) by Ca
 
 ## Priority order
 
-1. **The reader's job first.** Name what the reader must understand after one look (the request path, where the data lives, which step fails). Every node and arrow serves that; the rest is cut.
-2. **The real system.** Draw the components, names and numbers the user gave or the code shows. Never invent a service, a number or a step to fill a layout; list implied pieces under assumptions.
+1. **The reader's job first.** Name what the reader must understand after one look (the request path, where the data lives, which step fails). Layout, emphasis and order serve that.
+2. **Everything the user asked for, nothing they didn't.** Before drawing, write the **request ledger**: every actor, component, step, decision, condition, number and named parameter in the request (or the code / source file), one line each. Each becomes its own element of the right kind: a decision is a diamond (or guard) with labelled branches, an end is a terminal, every branch ends somewhere, a named parameter (`code_challenge`, `3 retries`, `30 days`) appears on the element it belongs to. Never fold a decision into a note or merge two requested steps to save space. Never invent a service, number or step; list implied pieces under assumptions. Upstream's "deletion first" (§1) cuts **your** additions, never the ledger.
 3. **Then the look.** Fit the page or brand the diagram lives in (§0), then the editorial system below.
 
 ---
@@ -47,6 +47,8 @@ Map, don't invent: a role with no source keeps its default. After a custom skin,
 - The schematic isn't done when everything is added. It's done when nothing can be removed.
 
 **Target density: 4/10.** Enough to be technically complete. Not so dense it needs a guide. Above 9 nodes, it's probably two diagrams.
+
+Deletion applies to what you added (decoration, implied services, duplicate arrows, restated labels). Items in the request ledger (Priority 2) are never deleted or merged; when they exceed the budget, zone them (`faithful` detail) or split into overview + detail.
 
 ---
 
@@ -200,7 +202,7 @@ Exact markup (background, dotted paper, markers, node box, arrow label, legend) 
 ### Mandatory connector rules
 
 1. **Orthogonal only.** Connectors between off-axis nodes are rounded right-angle elbows at `r=8` (`r=6` minimum in tight layouts); a straight `<line>` only when both ends share x or y. Diagonals fail.
-2. **Label gap.** Every arrow label (14 characters max, all caps, centered on its segment) sits on an opaque mask with a visible 6 to 10px gap from its stroke, beside vertical segments, never on the line.
+2. **Label gap.** Every arrow label (architecture and data-flow connectors: 14 characters max, all caps; flowchart branches: `Yes` / `No` or the condition; sequence messages: the real message with the parameters the request names, sentence case, up to ~40 characters; centered on its segment) sits on an opaque mask with a visible 6 to 10px gap from its stroke, beside vertical segments, never on the line.
 3. **No overlaps.** No shared or stacked strokes: offset parallel routes by 12px or more, and use the bridge/hop at a single crossing.
 4. **Fan attach points.** Connectors on one box edge each get their own point at `L * k / (N + 1)`, 12px or more apart (8px on very small boxes).
 5. **No transit behind a non-endpoint box.** Reroute. Only when the box is geometrically unavoidable: dashed stroke (`4,3`), label at the visible end, no marker on the intervening box.
@@ -211,6 +213,10 @@ Exact markup (background, dotted paper, markers, node box, arrow label, legend) 
 ## 7. Layout & spacing
 
 Structural geometry sits on a 4px grid: node origins, widths, heights, gaps, and padding divide by 4. Type sizes follow the role ramp in [output-spec.md](references/output-spec.md). Allowed values and page layout: [`references/layout-budget.md`](references/layout-budget.md).
+
+**Readability floor (rendered, not authored).** On screen a font draws at `font-size × displayed width ÷ viewBox width`. At the desktop render, node names must draw at 13px or more and every other text (sublabels, arrow labels, legend) at 11px or more. If they don't, enlarge the type, narrow the viewBox, or let the figure take the full content width; never ship 8px labels because the ramp allowed them.
+
+**Short routes.** Place nodes so each connector is short and direct. A connector that loops around the outside of the figure or runs more than half its width means a node is in the wrong place: move the node, don't route around it. Return paths (an email back to the customer, a retry) sit next to the thing they return to.
 
 ### Complexity budget (per diagram)
 
@@ -248,7 +254,8 @@ Don't use 3 identical generic cards. Vary column widths (`1.1fr 1fr 0.9fr`), hai
 **Signal:**
 
 - [ ] Accent on ≤2 elements? Legend covers every type used — and nothing extra? Within budget (§7)?
-- [ ] Every component, name and number traceable to the request or the code; assumptions listed?
+- [ ] Request ledger ticked line by line: every requested actor, step, decision (as a decision), branch end, condition and named parameter is visible in the render? Nothing added beyond listed assumptions?
+- [ ] Rendered text meets the readability floor (§7); no connector loops around the figure?
 
 **Technical:**
 
@@ -310,6 +317,8 @@ The size preset sets the `viewBox` **and** the type ramp ([output-spec.md](refer
 ## 12. Output and checks
 
 Always produce a single self-contained `.html` file: embedded CSS (no external requests except Google Fonts), inline SVG (no external images: AWS icons are inlined by the script), static by default. Motion output renders its complete meaning without JavaScript and respects `prefers-reduced-motion`.
+
+**Text equivalent.** Under the figure, a closed `<details><summary>Read as a list</summary>` holding the diagram as an ordered list or table (the steps with their branches, the request path, the states with their transitions). It serves screen readers, phones and search, and it is a fidelity check: if the list is missing a ledger line, so is the diagram.
 
 **Accessible SVG contract** ([primitives-core.md § Accessible SVG contract](references/primitives-core.md#accessible-svg-contract)): `role="img"` + `aria-labelledby` naming `<slug>-title` and `<slug>-desc`; `<title>` first child, ≤60 characters; `<desc>` one sentence about the content, not the geometry; decorative SVG (icons) `aria-hidden="true"`.
 
