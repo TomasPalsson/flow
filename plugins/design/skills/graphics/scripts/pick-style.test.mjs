@@ -129,6 +129,28 @@ test('memory is written to project and global files, capped, and replays do not 
   assert.match(readFileSync(join(project, '.gitignore'), 'utf8'), /\.vary\//);
 });
 
+const SKINS = join(here, '..', '..', 'diagram', 'data', 'skins.json');
+
+test('--data deals from another catalog, prints its tokens, and keeps its own memory file', () => {
+  const state = sandbox(), project = sandbox();
+  const skinIds = JSON.parse(readFileSync(SKINS, 'utf8')).styles.map(s => s.id);
+  const r = run(['--data', SKINS, '--kinds', 'flow', '--project', project], state);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(skinIds.includes(r.out.match(/^STYLE: (\S+)/)[1]));
+  assert.match(r.out, /^TOKENS: \{/m);
+  assert.ok(existsSync(join(project, '.vary', 'recent-skins.json')));
+  assert.equal(existsSync(join(project, '.vary', 'recent-styles.json')), false);
+});
+
+test('--sticky reuses the project look, --reroll deals a different one, and --sticky needs --project', () => {
+  const state = sandbox(), project = sandbox();
+  const args = ['--data', SKINS, '--project', project, '--sticky'];
+  const first = pickJson(args, state).style.id;
+  for (let i = 0; i < 3; i++) assert.equal(pickJson(args, state).style.id, first);
+  assert.notEqual(pickJson([...args, '--reroll', '1'], state).style.id, first);
+  assert.equal(run(['--data', SKINS, '--sticky'], state).code, 2);
+});
+
 test('--no-memory writes nothing', () => {
   const state = sandbox(), project = sandbox();
   const r = run(['--from', 'nm', '--project', project, '--no-memory'], state);

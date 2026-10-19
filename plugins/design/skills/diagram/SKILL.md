@@ -24,16 +24,24 @@ Built on [diagram-design](https://github.com/cathrynlavery/diagram-design) by Ca
 
 ---
 
-## 0. Style: fit the page, then ask
+## 0. Style: a skin per project, never the house look
 
-Resolve the skin in this order and stop at the first hit:
+There is no default look. Upstream's shipped skin (grey dotted paper, Instrument Serif title, Geist, letter-spaced mono caps, burnt-tangerine accent) is what made every diagram recognisable; it is used only when the user asks for it by name.
 
-1. **A caller's brief or style sheet** (`.vary/graphics-brief.md`, `.vary/graphics-style.md`, or tokens passed by design / vary / explainer / smoothbrain): map its palette and fonts onto the semantic roles in [`references/style-guide.md`](references/style-guide.md) (`paper`, `ink`, `muted`, `accent`, `link`, ...). The page's tokens win over the defaults.
+**Always deal a skin first**, from this skill's catalog, sticky per project so every diagram in one repo matches and different repos differ:
+
+```
+node <DIAGRAM>/../graphics/scripts/pick-style.mjs --data <DIAGRAM>/data/skins.json --project <repo-root> --sticky --kinds <architecture|flow|sequence|state|data|chart> [--mood <words>]
+```
+
+It prints `STYLE`, `LOOK`, `TRAITS`, `BANNED` and a `TOKENS` line (colours, fonts and their Google Fonts link, sizes, stroke width, corner radius, arrowhead, zone treatment, focal treatment, background). `--mood dark` on a dark page; `--reroll 1` for another; `--lock style=<id>` when the user names one. Then resolve **colours and fonts** in this order and stop at the first hit; the dealt skin keeps the **drawing language** (stroke, radius, arrowhead, zones, focal, sizes) either way:
+
+1. **A caller's brief or style sheet** (`.vary/graphics-brief.md`, `.vary/graphics-style.md`, or tokens passed by design / vary / explainer / smoothbrain): its palette and fonts replace the skin's.
 2. **A project `.diagram-design` marker** naming a saved profile: follow [`references/profiles.md`](references/profiles.md).
-3. **A site in the repo** (CSS custom properties, a Tailwind config, a theme file): derive the roles from it per [`references/onboarding.md`](references/onboarding.md) § Folder, and say which file you read.
-4. **Nothing found.** If the user is reachable and this is a branded project, ask once: *"Customise the diagram style? (a) website URL, (b) installed skill, (c) local design-system folder, (d) paste tokens, (e) keep default, (f) load saved profile."* Otherwise use the shipped defaults and say so in the summary.
+3. **A site in the repo** (CSS custom properties, a Tailwind config, a theme file): derive the roles per [`references/onboarding.md`](references/onboarding.md) § Folder, and say which file you read.
+4. **Nothing found:** the dealt skin's own tokens. Say which skin in the summary.
 
-Map, don't invent: a role with no source keeps its default. After a custom skin, offer to save it as a profile.
+**Applying it.** The templates and examples carry the upstream skin: treat them as geometry, not style. Replace the template's font `<link>` with the skin's `fonts-href`, its `:root` variables with the skin's roles (`paper`, `paper-2`, `ink`, `muted`, `soft`, `rule`, `accent`, `accent-tint`, `accent-ink`, `link`), and every font role: title → `font-title` at `title-weight`, node names and all labels → `font-ui`, only code-like text (ports, paths, ids, field types) → `font-mono`. Sizes: node names `name-size`, arrow and zone labels `label-size`, sublabels `sub-size`. Draw arrowheads, zones and the focal element exactly as the skin's tokens say. Map, don't invent: a role a page source doesn't give keeps the skin's value.
 
 ---
 
@@ -171,7 +179,7 @@ Type-specific anti-patterns live in each type reference.
 
 ## 5. Design system
 
-**The design system is skinnable.** [`references/style-guide.md`](references/style-guide.md) is the single source of truth for colours, typography, tokens and the default palette; this file names semantic roles. When specs mention "ink", "accent", "muted", look up the current value there (or in the skin resolved in §0). Type-reference snippets write roles as placeholders: `{ink}`, `{ink @ 0.40}`, and `{node-name}`, `{sublabel}`, `{eyebrow}`, `{arrow-label}`, `{title}`, `{callout}` for fonts. Resolve every placeholder before emitting.
+**The design system is skinnable.** [`references/style-guide.md`](references/style-guide.md) defines the semantic roles and the contrast contract; the values come from the skin resolved in §0, not from its upstream defaults. Type-reference snippets write roles as placeholders: `{ink}`, `{ink @ 0.40}`, and `{node-name}`, `{sublabel}`, `{eyebrow}`, `{arrow-label}`, `{title}`, `{callout}` for fonts. Resolve every placeholder against the skin before emitting (`{eyebrow}` has no use: see House tells).
 
 | Role | Purpose |
 |---|---|
@@ -186,7 +194,14 @@ Type-specific anti-patterns live in each type reference.
 
 **Node treatments** (focal, backend/API/step, store/state, external/cloud, input/user, optional/async, security/boundary): [style-guide.md § Node type → treatment](references/style-guide.md#node-type--treatment).
 
-**Typography:** default skin is Instrument Serif for the H1 title and italic callouts, Geist sans 600 for node names, Geist Mono for sublabels, eyebrows and arrow labels; a page skin from §0 swaps in its own display / UI / mono families by role. Sizes and the font `<link>`: [style-guide.md § Typography](references/style-guide.md#typography); per-preset ramp: [output-spec.md](references/output-spec.md). Offline or no Google Fonts: [style-guide.md § Font source](references/style-guide.md#font-source). Non-Latin labels: [Korean](references/style-guide.md#korean-labels), [Chinese](references/style-guide.md#traditional-chinese-labels), [Cyrillic](references/style-guide.md#cyrillic-labels).
+**Typography:** from the skin (§0): `font-title` for the H1, `font-ui` for node names, arrow labels, zone labels, legend and callouts, `font-mono` only for code-like text.
+
+**House tells: never, in any skin.** These made the upstream look identifiable everywhere:
+- an eyebrow line above the title naming the diagram type or pattern (`STATE MACHINE · LIFECYCLE PHASE MAP`): the reader needs the subject, not the taxonomy; the title says what it shows
+- letter-spaced uppercase labels (zone names, legend heading, `READ AS A LIST`, type tags): use sentence case in `font-ui`
+- type tags on boxes (`GATEWAY`, `DB`, `CACHE`) unless the kind is not obvious from the name; when needed, a plain sentence-case sublabel
+- a dot-grid paper unless the skin's `background` says so; italic serif callouts in the accent colour
+- grey-on-grey: node fill must stand apart from the zone fill (the skin's `paper` vs `paper-2`), and connectors are drawn in `muted` or darker at the skin's `stroke-width`, never a pale hairline Sizes and the font `<link>`: [style-guide.md § Typography](references/style-guide.md#typography); per-preset ramp: [output-spec.md](references/output-spec.md). Offline or no Google Fonts: [style-guide.md § Font source](references/style-guide.md#font-source). Non-Latin labels: [Korean](references/style-guide.md#korean-labels), [Chinese](references/style-guide.md#traditional-chinese-labels), [Cyrillic](references/style-guide.md#cyrillic-labels).
 
 ---
 
@@ -197,7 +212,7 @@ Optional primitives: callouts → [primitive-annotation.md](references/primitive
 Exact markup (background, dotted paper, markers, node box, arrow label, legend) and the long form of each connector rule: [`references/primitives-core.md`](references/primitives-core.md). The static templates already define the background and the `arrow`, `arrow-accent`, `arrow-link` markers.
 
 - **Arrows:** `muted` by default, `accent` for the headline path, `link` for HTTP/API and external calls, dashed `5,4` for optional, passive, return, or async. Draw arrows before boxes so lines sit behind nodes.
-- **Node box:** an opaque paper mask rect, then the styled box at `rx=6`, a rectangular type tag at `rx=2` (not a pill), the name in the sans 600, and a mono sublabel.
+- **Node box:** an opaque paper mask rect, then the styled box at the skin's `radius` and `stroke-width`, the name in `font-ui` 600 at `name-size`, and an optional sublabel at `sub-size` (`font-mono` only if it is code-like).
 
 ### Mandatory connector rules
 
@@ -274,7 +289,7 @@ Don't use 3 identical generic cards. Vary column widths (`1.1fr 1fr 0.9fr`), hai
 
 **Typography:**
 
-- [ ] Names in the sans, technical sublabels in mono, title in the display face, callouts italic? Brand fonts exact, fallbacks disclosed?
+- [ ] Skin dealt (§0) and applied: its fonts link, roles, sizes, stroke, radius, arrowheads, zones and focal? None of the House tells (§5)? Brand fonts exact, fallbacks disclosed?
 
 ---
 
@@ -292,7 +307,7 @@ Sketchy (hand-drawn filter) applies to any variant: [primitive-sketchy.md](refer
 
 ### To create a new diagram
 
-1. Copy the closest template; replace `[diagram-slug]`, the eyebrow, h1 and SVG body; fill `<title>` / `<desc>`.
+1. Copy the closest template; replace `[diagram-slug]`, delete the eyebrow, replace the h1 and SVG body; fill `<title>` / `<desc>`.
 2. Apply the skin from §0 to the template's CSS variables.
 3. Draw from the type reference and its light example. For AWS, place icons with `aws-icon.mjs` and groups per `aws.md`.
 4. Run §9, then the checks in §12.
