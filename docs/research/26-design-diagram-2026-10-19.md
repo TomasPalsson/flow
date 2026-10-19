@@ -33,3 +33,11 @@
 
 - More cases outside the 8 (ER, Gantt, data charts) and `--runs 3` before trusting per-case differences.
 - `smoothbrain` still draws its own diagrams; it could call `design:diagram` for schematic ones.
+
+## Round 4: skins instead of one house look (2026-10-19, later)
+
+The user found every diagram recognisable as the same tool (grey dotted paper, Instrument Serif title, letter-spaced mono caps eyebrow naming the diagram type, burnt-tangerine accent, type tags, `LEGEND` / `READ AS A LIST` in spaced caps, pale grey-on-grey boxes). Change: `data/skins.json` holds 10 skins (8 light, 2 dark), each with fonts, roles, a larger type ramp (names ≥15px), stroke width, corner radius, arrowhead, zone and focal treatment. Graphics' `pick-style.mjs` deals them: new `--data` and `--sticky` flags, so a project keeps one look and other projects get others. `--mood light|dark` filters by theme. SKILL.md bans the house tells in every skin. `skins.test.mjs` checks contrast (all text roles ≥4.5:1), sizes, and that no skin reuses upstream fonts or accent.
+
+- Quality (blind, same rubric): new **8.42** (min 7.60, best 6/8), old 7.75, upstream 6.75. Unchanged from round 3 (8.42).
+- Same-template judge over the 8 new-arm renders, round 3 vs round 4 shown blind as X/Y: **9 → 3**, clarity **7 → 8**. What still repeats: the title + subtitle block, the legend strip, the "Read as a list" disclosure.
+- 7 different skins across 8 builds. 3 came out dark because no mood was passed, which is why `--mood light|dark` is now required (dark skins `avoid: light` and vice versa; tested).

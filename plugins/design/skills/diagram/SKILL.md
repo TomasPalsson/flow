@@ -34,7 +34,7 @@ There is no default look. Upstream's shipped skin (grey dotted paper, Instrument
 node <DIAGRAM>/../graphics/scripts/pick-style.mjs --data <DIAGRAM>/data/skins.json --project <repo-root> --sticky --kinds <architecture|flow|sequence|state|data|chart> [--mood <words>]
 ```
 
-It prints `STYLE`, `LOOK`, `TRAITS`, `BANNED` and a `TOKENS` line (colours, fonts and their Google Fonts link, sizes, stroke width, corner radius, arrowhead, zone treatment, focal treatment, background). `--mood dark` on a dark page; `--reroll 1` for another; `--lock style=<id>` when the user names one. Then resolve **colours and fonts** in this order and stop at the first hit; the dealt skin keeps the **drawing language** (stroke, radius, arrowhead, zones, focal, sizes) either way:
+It prints `STYLE`, `LOOK`, `TRAITS`, `BANNED` and a `TOKENS` line (colours, fonts and their Google Fonts link, sizes, stroke width, corner radius, arrowhead, zone treatment, focal treatment, background). Always pass `light` or `dark` in `--mood` (the page's or user's theme; `light` when unknown), plus any mood words for the project (`technical`, `calm`, `editorial`, `playful`, `accessible`, ...); `--reroll 1` for another; `--lock style=<id>` when the user names one. Then resolve **colours and fonts** in this order and stop at the first hit; the dealt skin keeps the **drawing language** (stroke, radius, arrowhead, zones, focal, sizes) either way:
 
 1. **A caller's brief or style sheet** (`.vary/graphics-brief.md`, `.vary/graphics-style.md`, or tokens passed by design / vary / explainer / smoothbrain): its palette and fonts replace the skin's.
 2. **A project `.diagram-design` marker** naming a saved profile: follow [`references/profiles.md`](references/profiles.md).

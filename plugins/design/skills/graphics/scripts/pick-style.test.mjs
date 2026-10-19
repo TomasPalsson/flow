@@ -151,6 +151,14 @@ test('--sticky reuses the project look, --reroll deals a different one, and --st
   assert.equal(run(['--data', SKINS, '--sticky'], state).code, 2);
 });
 
+test('diagram skins: --mood light never deals a dark skin and --mood dark never a light one', () => {
+  const mode = Object.fromEntries(JSON.parse(readFileSync(SKINS, 'utf8')).styles.map(s => [s.id, s.tokens.mode]));
+  for (let i = 0; i < 40; i++) {
+    assert.equal(mode[pickJson(['--data', SKINS, '--mood', 'light', '--from', `m${i}`, '--no-memory']).style.id], 'light');
+    assert.equal(mode[pickJson(['--data', SKINS, '--mood', 'dark,technical', '--from', `m${i}`, '--no-memory']).style.id], 'dark');
+  }
+});
+
 test('--no-memory writes nothing', () => {
   const state = sandbox(), project = sandbox();
   const r = run(['--from', 'nm', '--project', project, '--no-memory'], state);
