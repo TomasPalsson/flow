@@ -216,6 +216,10 @@ Structural geometry sits on a 4px grid: node origins, widths, heights, gaps, and
 
 **Readability floor (rendered, not authored).** On screen a font draws at `font-size × displayed width ÷ viewBox width`. At the desktop render, node names must draw at 13px or more and every other text (sublabels, arrow labels, legend) at 11px or more. If they don't, enlarge the type, narrow the viewBox, or let the figure take the full content width; never ship 8px labels because the ramp allowed them.
 
+**Phone.** Upstream's rule (`min-width` = viewBox width inside an `overflow-x: auto` wrapper) keeps text readable but hides most of a wide figure on a phone. So:
+- **Flows read in one column on a phone** (flowchart, state machine, process, swimlane with ≤3 lanes, sequence with ≤4 lifelines): either draw it portrait from the start (viewBox ≤ 640 wide), or ship a portrait twin, a second `<svg>` with the same ledger in one top-to-bottom column, swapped in with `@media (max-width: 640px)` (the twin gets its own slug-prefixed ids and the same `<title>`; hide the inactive one with `display:none`).
+- **Wide figures keep the scroll** (architecture, AWS, deployment, Gantt): the scroll starts at the entry point (users, the first step), and a small `Scroll →` hint sits above the figure on narrow screens.
+
 **Short routes.** Place nodes so each connector is short and direct. A connector that loops around the outside of the figure or runs more than half its width means a node is in the wrong place: move the node, don't route around it. Return paths (an email back to the customer, a retry) sit next to the thing they return to.
 
 ### Complexity budget (per diagram)
@@ -256,6 +260,7 @@ Don't use 3 identical generic cards. Vary column widths (`1.1fr 1fr 0.9fr`), hai
 - [ ] Accent on ≤2 elements? Legend covers every type used — and nothing extra? Within budget (§7)?
 - [ ] Request ledger ticked line by line: every requested actor, step, decision (as a decision), branch end, condition and named parameter is visible in the render? Nothing added beyond listed assumptions?
 - [ ] Rendered text meets the readability floor (§7); no connector loops around the figure?
+- [ ] Phone (§7): a flow reads in one column at 390px; a wide figure scrolls from its entry point with a hint?
 
 **Technical:**
 
