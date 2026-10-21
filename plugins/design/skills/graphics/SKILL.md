@@ -46,6 +46,7 @@ Write a one-page style sheet `.vary/graphics-style.md`: style id; palette swatch
 
 - **Small jobs** (an icon set, or 1-3 assets): the lead draws them itself.
 - **Bigger jobs**: dispatch illustrator subagents in parallel, one per asset or asset family, capped at 6, as described in `references/art-crew.md`.
+- **Schematic diagrams** (architecture, AWS, flowchart, sequence, state, ER, timeline, chart forms): draw them with the `design:diagram` skill's rules (`<GRAPHICS>/../diagram/SKILL.md`), skinned with this style sheet's palette and fonts. Drawn mechanisms (cutaways, exploded products), maps and infographic art stay here.
 - Engine, kit and technique catalog: `references/graphics.md`. Icon sets: `references/icons.md`. Read only the sections you need.
 - Draw from the facts in the brief (names, numbers, places) and name each object's parts so it has a real silhouette, not a box.
 - A brand object only shows information the brief gives. A field the facts cannot fill is left off the object, never drawn empty.

@@ -1,6 +1,7 @@
 # Progress
 
 ## Now
+- `/design:diagram` (2026-10-19, branch `worktree-design-diagram`, design 0.8.0): cathrynlavery/diagram-design (MIT) vendored + graphics fit + AWS mode (official icons via `aws-icon.mjs`). Blind Opus bench, 8 cases x {new, old graphics, upstream}: r1 7.96/7.79/7.07 -> r2 8.48/7.80/6.80 -> r3 8.42/7.66/6.67 (AWS ~8.5 vs <=7.2). r4 skins per project: same-template score 9 -> 3, clarity 7 -> 8, quality 8.42 held. Record `docs/research/26-design-diagram-2026-10-19.md`. Next: read the PR
 - DONE (2026-10-11) brainstorm v2 via skill-forge (PR #26, flow-extras 0.6.0): blind idea fleet, use check, picture cards. Pages v2 win every pair, no ELI5 needed; taste judge v2 on all 4 repos; per-idea keepers 5 vs 0; user approved the pages by eye. Record: `docs/research/25-brainstorm-forge-2026-10-11.md`
 - famous skill repos borrow (2026-10-11, branch `worktree-famous-borrows`): 8 repos (superpowers, spec-kit, gstack, addyosmani, claude-plugins-official, OpenSpec, vercel agent-skills, anthropics/skills) scored with B7 Fit; 190 of 192 good ideas built (F85, F86 skipped); build-slices split into parent + per-task child under the size guard. Scripts 6089/11 (same 11 as main), hooks 1641/0. Report docs/research/25-famous-skill-repos-2026-10-10.md. Next: read the PR, then a third eval arm after merge
 - mattpocock/skills borrow round 2 (2026-10-10, branch `worktree-mattpocock-borrows-2`): re-scored at 49dd158 with B7 Fit and merit-only rules (`docs/research/24-mattpocock-borrow-2026-10-10.md`); 36 ideas built: wizard upstream fixes, `version-drift` (git-guard denies `gh pr create/ready` on drift), whole-tree `git checkout` blocked, reviewers read REVIEW.md at gating, vertical slices in drafting, flow-deepen and prep upgrades, new flow-extras `handoff`. Scripts 4048 pass / 11 fail (same 11 as main), hooks 1367/0. Next: read the PR
@@ -35,9 +36,7 @@
 - 2026-09-12: no-slop slop-check run on this branch vs `origin/main` (`slop-check --base origin/main --no-tools`): the NS-03 in `slop_tools.py` and the duplicated `resolveOnPath` (driver.js vs loop/util.js) are fixed; the remaining hits are advisory NS-16 spelling matches in `bin/lib/eval.js` (`printHelp`, `parseArgs`, `gitToplevel`, `run`) — left to the eval slice that owns that file, not silenced here
 - 2026-09-07: loop engineering — research 12 (10-angle sweep + 2 source-level dives, 40 claims confirmed), spec 006, `flow loop` CLI (`bin/lib/loop/`, 7 subcommands, K-A..K-L), `loop-gate.sh` Stop hook, `/flow:loop` skill (judge 110/120 A), fix skill off ralph-loop, docs; two headless probes ($0.79 and $0.80, one iteration each) — 130b2f2 and earlier
 - 2026-09-05: `vary` design skill forged via skill-forge (3 research waves, 14 agents, judge 113/120 A on pass 1); plugins/design/skills/vary — 617990d
-- 2026-09-05: feat(tutorial) Slice 2 runner, lessons 1-3 — 7df4be7
-- 2026-09-05: `flow off` / `flow on` — fae30ab
-- Done before 2026-09-05: 6 items (rename harness→flow, /lesson, install merge, skills-lint perf, doctor hang fix)
+- Done by 2026-09-05: tutorial Slice 2 runner, lessons 1-3 (7df4be7); `flow off` / `flow on` (fae30ab); 6 earlier items (rename harness→flow, /lesson, install merge, skills-lint perf, doctor hang fix)
 
 ## Rulings
 - Ruling: an outside skill is borrowed only if B7 Fit >= 2 from the user's own repo profile (solo, self-merged PRs, no reviewers, bots or stacks) — babysit lost bot triage, threads and stacks for this — if wrong, a team-shaped feature is re-added later from the report

@@ -1,0 +1,278 @@
+[
+ {
+  "case": "aws-stream",
+  "map": {
+   "A": "new",
+   "B": "old",
+   "C": "upstream"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 9,
+    "clarity": 8.5,
+    "hygiene": 8.5,
+    "polish": 8.5,
+    "aws": 9,
+    "flaw": "Analysts never appear as actors. Athena and QuickSight are only grouped under 'Analyst access', so the request's 'analysts query\u2026 and build dashboards' is implied, not shown. At phone width the wide figure has to be scrolled sideways to read."
+   },
+   "B": {
+    "fidelity": 9,
+    "clarity": 8,
+    "hygiene": 8.5,
+    "polish": 8,
+    "aws": 1.5,
+    "flaw": "It uses no official AWS Architecture Icons and no AWS Cloud or Region group boxes. Every service is a hand-drawn illustration, such as a cylinder for Kinesis and a bucket for S3, so it doesn't read as an AWS architecture diagram."
+   },
+   "C": {
+    "fidelity": 8,
+    "clarity": 8,
+    "hygiene": 8.5,
+    "polish": 7,
+    "aws": 1,
+    "flaw": "Every service is a generic text box with a tag like 'FN' or 'S3'. It has no AWS icons and no AWS Cloud or Region grouping, and it never shows analysts. The Website box is presented as a peer of the AWS services rather than as an external source."
+   }
+  },
+  "best": "A",
+  "why_best": "A is the only entry that uses official AWS icons inside correct AWS Cloud and Region groups, and it shows every step of the request in a clean left-to-right flow."
+ },
+ {
+  "case": "aws-rag",
+  "map": {
+   "A": "upstream",
+   "B": "new",
+   "C": "old"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 7,
+    "clarity": 7.5,
+    "hygiene": 7.5,
+    "polish": 7,
+    "aws": 1.5,
+    "flaw": "There are no AWS architecture icons and no AWS Cloud or Region group boxes. Every service is a generic labelled rectangle, so this does not read as an AWS diagram."
+   },
+   "B": {
+    "fidelity": 8.5,
+    "clarity": 8,
+    "hygiene": 7.5,
+    "polish": 8,
+    "aws": 8,
+    "flaw": "The Knowledge Base, which sits at the centre of both paths, is a plain unlabelled-style box with no icon. The question and ingestion arrows also bunch together around it (QUERY and VECTORS run parallel into OpenSearch), so that hub is the hardest part to read."
+   },
+   "C": {
+    "fidelity": 8.5,
+    "clarity": 7.5,
+    "hygiene": 8,
+    "polish": 8,
+    "aws": 2,
+    "flaw": "It is drawn as a stylised metro map with custom line icons instead of the official AWS Architecture Icons. Its 'AWS account \u00b7 one region' box is not in AWS group-box styling."
+   }
+  },
+  "best": "B",
+  "why_best": "B is the only entry that uses official AWS icons and the AWS Cloud and Region group boxes. It still shows both paths clearly and separately, with numbered steps that cover every component in the request."
+ },
+ {
+  "case": "aws-serverless",
+  "map": {
+   "A": "upstream",
+   "B": "new",
+   "C": "old"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 7.5,
+    "clarity": 8,
+    "hygiene": 8.5,
+    "polish": 7.5,
+    "aws": 1.5,
+    "flaw": "Uses no AWS icons or AWS Cloud/Region groups, only plain labelled boxes, and it merges CloudFront and S3 into one node, so the origin fetch from S3 is not shown."
+   },
+   "B": {
+    "fidelity": 9,
+    "clarity": 8.5,
+    "hygiene": 8,
+    "polish": 8.5,
+    "aws": 9,
+    "flaw": "The labels under the icons and on the edges are very small, and the long dashed SES-to-customer loop around the outside of the AWS Cloud box adds visual noise."
+   },
+   "C": {
+    "fidelity": 9,
+    "clarity": 7.5,
+    "hygiene": 7.5,
+    "polish": 8,
+    "aws": 2.5,
+    "flaw": "Replaces the official AWS Architecture Icons with custom hand-drawn illustrations (globe, bucket, castle gate, chip), so it doesn't look like an AWS diagram despite the AWS Cloud box."
+   }
+  },
+  "best": "B",
+  "why_best": "B is the only entry that uses official AWS icons with AWS Cloud and Region groups, and it still shows every component and the numbered sync/async flow clearly."
+ },
+ {
+  "case": "aws-vpc-ha",
+  "map": {
+   "A": "new",
+   "B": "old",
+   "C": "upstream"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 8,
+    "clarity": 7,
+    "hygiene": 6,
+    "polish": 7.5,
+    "aws": 9,
+    "flaw": "The ALB is a single icon in a dashed box between the two AZs, so it doesn't read as sitting in both public subnets. The long SQL, outbound and S3 lines cut through subnet boxes, cross each other and land near the ALB label, which makes the middle hard to follow."
+   },
+   "B": {
+    "fidelity": 9,
+    "clarity": 8,
+    "hygiene": 7.5,
+    "polish": 7.5,
+    "aws": 5.5,
+    "flaw": "It uses generic line glyphs instead of the official AWS Architecture Icons. It also has no AWS Cloud group, and the services are plain white cards, so it reads as a generic network sketch rather than an AWS diagram. The dashed alias and cross-AZ write lines also cut across AZ borders."
+   },
+   "C": {
+    "fidelity": 6.5,
+    "clarity": 6.5,
+    "hygiene": 6,
+    "polish": 7,
+    "aws": 2,
+    "flaw": "It has no AWS icons or AWS-coloured groups, only grey text boxes. The S3 gateway endpoint is a tiny floating label that the upload lines merely pass by, Users and the internet gateway are missing, and nothing connects the tasks to the reader."
+   }
+  },
+  "best": "A",
+  "why_best": "A is the only entry that uses the official AWS icons and the AWS Cloud, Region, VPC, AZ and subnet groups in AWS colours, with every requested component in the right scope, though its connector routing is busier than B's."
+ },
+ {
+  "case": "seq-oauth",
+  "map": {
+   "A": "old",
+   "B": "new",
+   "C": "upstream"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 9.5,
+    "clarity": 8,
+    "hygiene": 8.5,
+    "polish": 8,
+    "flaw": "It is long and dense. Request details, the 19 steps and a duplicate numbered list below the diagram make it heavy, so the main point takes more than one look."
+   },
+   "B": {
+    "fidelity": 7,
+    "clarity": 7.5,
+    "hygiene": 8,
+    "polish": 8.5,
+    "flaw": "The labels are terse to the point of being cryptic ('VERIFIER+S256', 'CODE+VERIFIER', 'GET /AUTHORIZE' with no challenge). The PKCE detail sits mostly in side notes. 'VERIFY S256' is a loose label with no self-call. The user's sign-in tap is missing."
+   },
+   "C": {
+    "fidelity": 8,
+    "clarity": 8.5,
+    "hygiene": 8.5,
+    "polish": 8.5,
+    "flaw": "It leaves out the state check and the login-page exchange. It also labels the system browser as an 'in-app auth tab', which blurs the system-browser point that RFC 8252 makes."
+   }
+  },
+  "best": "A",
+  "why_best": "A is the only entry where every PKCE step is explicit and correct: verifier creation, the S256 challenge in the authorize request, the redirect with code and state check, verifier-based token exchange with server verification, and the bearer API call. Its layout is clean and it has a readable fallback on phone."
+ },
+ {
+  "case": "state-order",
+  "map": {
+   "A": "upstream",
+   "B": "new",
+   "C": "old"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 7.5,
+    "clarity": 7.5,
+    "hygiene": 7.5,
+    "polish": 8,
+    "flaw": "The 'retries used' edge from Payment failed to Cancelled has no explicit N=3 guard, so you have to work out the 3-retry limit from 'RETRY [N<3]' and a footnote. On a phone, the first screen shows an empty Terminal outcomes band."
+   },
+   "B": {
+    "fidelity": 7.5,
+    "clarity": 7,
+    "hygiene": 7,
+    "polish": 7.5,
+    "flaw": "The 'CANCEL OR N=3' edge runs in a long loop from Payment failed down the left side of the figure to Cancelled. That makes the retry-limit path hard to follow, and the Payment Recovery band is mostly empty space."
+   },
+   "C": {
+    "fidelity": 9,
+    "clarity": 8.5,
+    "hygiene": 8,
+    "polish": 7.5,
+    "flaw": "It adds a 'Closed' end state the request didn't ask for, though the assumptions explain it. The dark blueprint styling looks generic, and on a phone only a small part of the diagram is visible before you have to scroll sideways."
+   }
+  },
+  "best": "C",
+  "why_best": "C models every rule exactly: a self-loop with the retry guard and counter, cancellation from S1\u2013S3 grouped up to shipping, a refund guarded at 30 days or less, and final states. It also backs these up with a transition table and stated assumptions, so a reader could rebuild the request without guessing."
+ },
+ {
+  "case": "flow-incident",
+  "map": {
+   "A": "new",
+   "B": "old",
+   "C": "upstream"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 8,
+    "clarity": 8.5,
+    "hygiene": 7.5,
+    "polish": 8,
+    "flaw": "The SEV1/SEV2 choice is a note inside the 'Declare incident' box, not a real 'Payments down?' decision, and the flaky and no-impact branches stop with no end shape. On phone the figure scrolls sideways and the box edges and legend are cut off at the right."
+   },
+   "B": {
+    "fidelity": 8.5,
+    "clarity": 8.5,
+    "hygiene": 9,
+    "polish": 8.5,
+    "flaw": "It adds things the request did not ask for: fork/join bars, 'once the incident is resolved', 'Done' terminals and icons. This makes it heavier than a simple triage chart needs to be."
+   },
+   "C": {
+    "fidelity": 7.5,
+    "clarity": 7.5,
+    "hygiene": 7.5,
+    "polish": 8,
+    "flaw": "The severity decision comes before 'Declare incident', the SEV2 path loops back underneath, and 'on-call paged' is invented. The wide horizontal layout puts half the flow off-screen on phone, so you have to scroll sideways to follow it."
+   }
+  },
+  "best": "B",
+  "why_best": "B is the only one that draws every branch, including payments-down to SEV1/SEV2, as a proper decision with clean labelled arrows and clear grouping, and it reflows into a fully readable vertical chart on phone."
+ },
+ {
+  "case": "mermaid-import",
+  "map": {
+   "A": "upstream",
+   "B": "new",
+   "C": "old"
+  },
+  "scores": {
+   "A": {
+    "fidelity": 9.5,
+    "clarity": 8,
+    "hygiene": 7.5,
+    "polish": 7.5,
+    "flaw": "The API gateway box is oversized and the four arrows into Postgres bunch together as parallel elbow lines. The legend and group labels are so small that they are hard to read."
+   },
+   "B": {
+    "fidelity": 9,
+    "clarity": 8,
+    "hygiene": 7,
+    "polish": 7.5,
+    "flaw": "The dashed Kafka\u2192notify-svc line has to hop over the payments\u2192Stripe line. Stripe sits off to the far right, which leaves the layout unbalanced. The legend text is tiny."
+   },
+   "C": {
+    "fidelity": 9.5,
+    "clarity": 8.5,
+    "hygiene": 8,
+    "polish": 9,
+    "flaw": "The curved arrows from catalog-svc and users-svc to Postgres and Elasticsearch cross and converge into a small tangle on the way into the data column."
+   }
+  },
+  "best": "C",
+  "why_best": "C keeps every node and edge from the source, uses clear shape conventions (cylinders for stores, a distinct Kafka, a dashed box for the third party), and has readable labels and a legend that make it the most professional-looking figure."
+ }
+]

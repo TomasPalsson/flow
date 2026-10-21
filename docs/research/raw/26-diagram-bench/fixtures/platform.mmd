@@ -1,0 +1,40 @@
+flowchart LR
+  subgraph Clients
+    web[Web app]
+    ios[iOS app]
+    partner[Partner API clients]
+  end
+  subgraph Edge
+    cdn[CDN]
+    gw[API gateway<br/>rate limits, auth]
+  end
+  subgraph Services
+    users[users-svc]
+    catalog[catalog-svc]
+    orders[orders-svc]
+    payments[payments-svc]
+    notify[notify-svc]
+  end
+  subgraph Data
+    pg[(Postgres)]
+    redis[(Redis cache)]
+    kafka{{Kafka}}
+    search[(Elasticsearch)]
+  end
+  stripe[Stripe]
+  web --> cdn --> gw
+  ios --> gw
+  partner --> gw
+  gw --> users
+  gw --> catalog
+  gw --> orders
+  users --> pg
+  catalog --> pg
+  catalog --> redis
+  catalog --> search
+  orders --> pg
+  orders --> payments
+  payments --> stripe
+  orders -- order.placed --> kafka
+  kafka --> notify
+  kafka --> search

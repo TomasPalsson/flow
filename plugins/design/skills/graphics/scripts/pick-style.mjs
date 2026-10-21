@@ -18,18 +18,22 @@
  *   --lock     style=<id> wins over everything (exit 2 on an unknown id).
  *   --project  directory whose .vary/recent-styles.json remembers the last 3 picks (demoted);
  *              the last 6 picks across projects are demoted too.
+ *   --data     another catalog with the same shape (the diagram skill's data/skins.json); its
+ *              memory files are named after it (recent-skins.json).
+ *   --sticky   with --project: reuse that project's latest pick instead of dealing, so every
+ *              asset in one project shares a look (--reroll or --lock still deal fresh).
  *
  * Exit codes: 0 ok, 2 bad arguments, 3 data missing or corrupt.
  * No dependencies. Node >= 18.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const DATA = resolve(here, '..', 'data', 'styles.json');
+let DATA = resolve(here, '..', 'data', 'styles.json');
 
 const GLOBAL_WINDOW = 6;
 const PROJECT_WINDOW = 3;
@@ -52,6 +56,8 @@ function parseArgs(argv) {
       case '--from': a.key = take(); break;
       case '--reroll': a.reroll = Number(take()); if (!Number.isInteger(a.reroll) || a.reroll < 0) die(2, '--reroll needs a non-negative integer'); break;
       case '--project': a.project = take(); break;
+      case '--data': a.data = take(); break;
+      case '--sticky': a.sticky = true; break;
       case '--json': a.json = true; break;
       case '--no-memory': a.memory = false; break;
       case '-h': case '--help': a.help = true; break;
@@ -85,9 +91,10 @@ function weightedPick(items, weights, key, salt) {
 // ---- memory ----------------------------------------------------------------------------------
 function stateFiles(project) {
   const xdg = process.env.XDG_STATE_HOME || join(homedir(), '.local', 'state');
+  const name = `recent-${basename(DATA, '.json')}.json`;
   return {
-    global: join(xdg, 'vary', 'recent-styles.json'),
-    local: project ? join(resolve(project), '.vary', 'recent-styles.json') : null,
+    global: join(xdg, 'vary', name),
+    local: project ? join(resolve(project), '.vary', name) : null,
   };
 }
 function readPicks(p) { try { return JSON.parse(readFileSync(p, 'utf8')).picks || []; } catch { return []; } }
@@ -140,6 +147,7 @@ function render(r, json) {
     `LOOK: ${style.look}`,
     `TRAITS: stroke: ${t.stroke}; fill: ${t.fill}; shading: ${t.shading}; texture: ${t.texture}; people and objects: ${t.simplification}`,
     `BANNED: ${(style.banned || []).join('; ')}`,
+    ...(style.tokens ? [`TOKENS: ${JSON.stringify(style.tokens)}`] : []),
     ...notes.map(n => `NOTE: ${n}`),
     `SEED KEY: ${r.key}  (reroll ${r.reroll})`,
     `RE-ROLL: ${r.rerollCommand}`,
@@ -149,9 +157,11 @@ function render(r, json) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    process.stdout.write('usage: pick-style.mjs [--mood w,w] [--kinds k,k] [--project dir] [--lock style=id] [--from key] [--reroll n] [--json] [--no-memory]\n');
+    process.stdout.write('usage: pick-style.mjs [--mood w,w] [--kinds k,k] [--project dir] [--data file] [--sticky] [--lock style=id] [--from key] [--reroll n] [--json] [--no-memory]\n');
     return;
   }
+  if (args.data) DATA = resolve(args.data);
+  if (args.sticky && !args.project) die(2, '--sticky needs --project');
   const data = loadStyles();
   const styles = data.styles;
   if (data.kinds) for (const k of args.kinds) if (!data.kinds.includes(k)) die(2, `unknown kind ${k}; valid: ${data.kinds.join(', ')}`);
@@ -168,7 +178,12 @@ function main() {
 
   const notes = [];
   let style;
-  if (args.locks.style !== undefined) {
+  const kept = args.sticky && !args.reroll && args.locks.style === undefined && !args.key
+    ? styles.find(s => s.id === readPicks(files.local).at(-1)?.style) : null;
+  if (kept) {
+    style = kept;
+    notes.push('kept this project\'s look (--sticky); --reroll 1 deals a new one');
+  } else if (args.locks.style !== undefined) {
     style = styles.find(s => s.id === args.locks.style);
     if (!style) die(2, `--lock style=${args.locks.style} is not a style id; valid: ${styles.map(s => s.id).join(', ')}`);
     notes.push('style locked');
@@ -185,7 +200,8 @@ function main() {
   const reroll = `node pick-style.mjs --from ${key} --reroll ${args.reroll + 1}` +
     (args.mood.length ? ` --mood ${args.mood.join(',')}` : '') +
     (args.kinds.length ? ` --kinds ${args.kinds.join(',')}` : '') +
-    (args.project ? ` --project ${args.project}` : '');
+    (args.project ? ` --project ${args.project}` : '') +
+    (args.data ? ` --data ${args.data}` : '');
 
   process.stdout.write(render({ key, reroll: args.reroll, style, notes, rerollCommand: reroll }, args.json));
 
