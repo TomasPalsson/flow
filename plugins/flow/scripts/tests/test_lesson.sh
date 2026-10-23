@@ -351,6 +351,19 @@ t_lesson_skill_P30_noops_run_to_settle() {
 	assert_contains "$line" "model default" "P30: no-op is judged against the model default"
 }
 
+t_lesson_skill_retro_over_firing_guardrails() {
+	local s line
+	s=$(cat "$SCAN_DIR/../skills/lesson/SKILL.md")
+	line=$(grep -F '**Over-firing guardrails:**' "$SCAN_DIR/../skills/lesson/SKILL.md")
+	assert_contains "$line" "blocked good work" "retro looks for guardrails that blocked good work"
+	assert_contains "$line" "Only guardrails \`/lesson\` built count" "only lesson-built guardrails are candidates"
+	assert_contains "$line" "lesson(<date>):" "they are found by their lesson markers"
+	assert_contains "$line" "narrow it, or retire it" "the fix is narrowing or retiring"
+	assert_contains "$s" "Lucky paths, hand-fed context and over-firing guardrails follow the same two-sighting rule" "two sightings needed"
+	assert_contains "$s" "the original mistake's test must stay red" "narrowing keeps the original mistake caught"
+	assert_contains "$s" "{hook block, what came next, session id, line}" "subagents return pushed-back hook blocks"
+}
+
 t_lesson_skill_M09_retro_routing() {
 	local s
 	s=$(cat "$SCAN_DIR/../skills/lesson/SKILL.md")

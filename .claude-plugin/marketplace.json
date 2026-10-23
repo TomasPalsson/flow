@@ -7,7 +7,7 @@
       "name": "flow",
       "source": "./plugins/flow",
       "description": "Deterministic Claude Code flow: lifecycle hooks, scripts toolbox, saved workflows, the spec/next/fix/loop skill set, and /flow:loop (verifier-decided unattended loops).",
-      "version": "0.9.1"
+      "version": "0.9.2"
     },
     {
       "name": "flow-extras",
