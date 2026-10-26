@@ -73,7 +73,7 @@
 - clean-code
 - cocoindex
 - gh-cli
-- icelandic-professor
+- icelandic
 - new-project
 - node-cli-builder
 - pentest

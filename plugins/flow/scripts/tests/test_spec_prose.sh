@@ -339,8 +339,8 @@ t_spec_questionnaire_offer_needs_a_non_user_owner() {
 	assert_contains "$content" "owner:\` is not the user" "the questionnaire offer is conditioned on a non-user owner"
 	assert_contains "$content" 'references/questionnaire.md' "spec/SKILL.md loads the questionnaire reference"
 	assert_contains "$content" 'only on a yes' "the questionnaire is written only on a yes"
-	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/questionnaire.md")" 'icelandic-professor' \
-		"the questionnaire reference routes Icelandic through icelandic-professor"
+	assert_contains "$(cat "$SCAN_DIR/../skills/spec/references/questionnaire.md")" '`icelandic`' \
+		"the questionnaire reference routes Icelandic through the icelandic skill"
 }
 
 t_spec_design_it_twice_for_external_contracts() {

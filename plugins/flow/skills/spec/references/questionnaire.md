@@ -15,7 +15,7 @@ Do not quiz the user on the subject itself: if they could answer it, it would no
 
 Write `.specs/<NNN-slug>/questionnaire-<owner>.md` (owner lowercased, spaces to `-`) using the template below, then report the path. Done when every item named in step 2 has a question. Order questions most-important-first, because async means there may be only one pass. Group under `##` themes once there are more than a handful. Each question is one idea with an answer stub directly beneath; add a one-line "why this matters" only where the question could be misread.
 
-An Icelandic recipient: if `icelandic-professor` is installed, run it over the finished document before offering it. If it is not installed, skip this quietly and write in plain Icelandic.
+An Icelandic recipient: if `icelandic` is installed, run it over the finished document before offering it. If it is not installed, skip this quietly and write in plain Icelandic.
 
 Answers come back through `/flow:spec --amend`, which turns each answered question into a resolved position in the spec and clears its `[NEEDS CLARIFICATION]` marker.
 
