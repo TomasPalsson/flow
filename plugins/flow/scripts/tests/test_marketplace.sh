@@ -74,7 +74,7 @@ tooling cocoindex
 tooling pentest
 tooling prompt-injection-tester
 tooling slack
-tooling icelandic-professor'
+tooling icelandic'
 
 t_mkt_repo_present() {
 	assert_file_exists "$REPO" "t_mkt_repo_present marketplace repo checked out"

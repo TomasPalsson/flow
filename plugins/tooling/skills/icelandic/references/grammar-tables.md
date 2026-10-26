@@ -11,7 +11,7 @@
 | Dat | hesti | hestinum | hestum | hestunum |
 | Gen | hests | hestsins | hesta | hestanna |
 
-### Strong Masculine — I-class with umlaut: sonur (son)
+### Strong Masculine — u-stem with umlaut: sonur (son)
 
 | | Sg. | Pl. |
 |--|--|--|
@@ -28,12 +28,11 @@ Trap: dat.sg shows umlaut (syni) but dat.pl does NOT (sonum).
 |--|--|--|
 | Nom | maður | menn |
 | Acc | mann | menn |
-| Dat | manni | mönnun |
+| Dat | manni | mönnum |
 | Gen | manns | manna |
 
-Note: Dat.pl is mönnun (NOT *mönnum).
 
-### R-stem: fótur (foot)
+### Root noun: fótur (foot)
 
 | | Sg. | Pl. |
 |--|--|--|
@@ -53,9 +52,9 @@ Trap: Plural nom/acc uses æ but dat.pl returns to ó (fótum, NOT *fætum).
 | Dat | föður | feðrum |
 | Gen | föður | feðra |
 
-Same pattern: móðir, bróðir, systir (with systur in all oblique sg and pl).
+Same pattern: móðir, bróðir, systir (systur in oblique sg and nom/acc pl; dat.pl systrum, gen.pl systra).
 
-### Strong Feminine — bók (book, r-class with umlaut)
+### Strong Feminine — bók (book, root noun with umlaut)
 
 | | Sg. | Pl. |
 |--|--|--|
@@ -126,7 +125,7 @@ These nouns are commonly assigned the wrong gender:
 ## Preposition Case Government
 
 ### Accusative only
-um (about), við (by/against), kringum (around), gegnum (through)
+um (about), kringum (around), umhverfis (around), gegnum (through)
 
 ### Dative only
 frá (from), hjá (at/with), af (off), að (toward), móti (against), úr (out of)
@@ -143,7 +142,8 @@ til (to/of), milli (between), án (without), vegna (because of), meðal (among)
 ### Semantically variable
 - fyrir: acc = for (benefit); dat = in front of, ago (fyrir tveimur árum)
 - með: acc = bring along; dat = together with
-- eftir: acc = by (authorship); dat = after
+- eftir: acc = after in time, by (author): eftir stríðið, bók eftir hann; dat = along, following, waiting for: eftir veginum, bíða eftir honum
+- við: acc = by, against, toward: við gluggann; dat = receiving, in response to: taka við því, bregðast við því
 
 ## Strong Verb Ablaut Classes
 
@@ -152,27 +152,26 @@ bíta (beit, bitum, bitið), rísa (reis, risum, risið), skína (skein, skinum,
 
 ### Class 2: jó/jú/ú ~ au ~ u ~ o(ið)
 bjóða (bauð, buðum, boðið), ljúga (laug, lugum, logið), sjóða (sauð, suðum, soðið)
-Present 2sg/3sg: jó/jú/ú → ý (hann lýgur from ljúga)
+Present singular: jó/jú/ú → ý (ég býð, ég lýg, hann lýgur)
 
 ### Class 3: e/i+CC ~ a ~ u ~ u(ð)
 finna (fann, fundum, fundið), brenna (brann, brunnum, brunnið), vinna (vann, unnum, unnið)
-Present 2sg/3sg: e→i (hann finnur)
 
 ### Class 4: e/i+C ~ a ~ á ~ o(ið)
-bera (bar, bárum, borið), stela (stal, stálum, stolið), vera (var, vorum, verið)
+bera (bar, bárum, borið), stela (stal, stálum, stolið)
 koma (kom, komum, komið) — irregular, past pl. leveled
 
 ### Class 5: e/i+C ~ a ~ á ~ e(ið)
-gefa (gaf, gáfum, gefið), lesa (las, lásum, lesið), sjá (sá, sáum, séð)
+gefa (gaf, gáfum, gefið), lesa (las, lásum, lesið), sjá (sá, sáum, séð), vera (var, vorum, verið)
 
 ### Class 6: a ~ ó ~ ó ~ a(ið)
 fara (fór, fórum, farið), standa (stóð, stóðum, staðið), taka (tók, tókum, tekið)
-Present 2sg/3sg: a→e (hann fer, hann tekur, hann heldur) — fara 3sg = fer, NOT *far
+Present singular: a→e (ég fer, þú ferð, hann fer; ég tek, hann tekur) — fara 3sg = fer, NOT *far
 
 ### Class 7: mixed ablaut
 - 7a: heita (hét, hétum, heitið), leika (lék, lékum, leikið)
 - 7b: auka (jók, jókum, aukið), hlaupa (hljóp, hljópum, hlaupið)
-- 7c: falla (féll, féllu, fallið), halda (hélt, héldum, haldið), ganga (gekk, gengum, gengið)
+- 7c: falla (féll, féllum, fallið), halda (hélt, héldum, haldið), ganga (gekk, gengum, gengið)
 - 7d (ri-verbs): gróa (greri, grerum, gróið), snúa (sneri, snerum, snúið)
 
 halda is class 7 (hélt), NOT class 6.
@@ -183,9 +182,9 @@ halda is class 7 (hélt), NOT class 6.
 
 | | M | F | N |
 |--|--|--|--|
-| Nom.sg | stór-ur | stór | stór-t |
+| Nom.sg | stór | stór | stór-t |
 | Acc.sg | stór-an | stór-a | stór-t |
-| Dat.sg | stór-um | stór-ri | stór-um |
+| Dat.sg | stór-um | stór-ri | stór-u |
 | Gen.sg | stór-s | stór-rar | stór-s |
 | Nom.pl | stór-ir | stór-ar | stór |
 | Acc.pl | stór-a | stór-ar | stór |
@@ -200,7 +199,7 @@ halda is class 7 (hélt), NOT class 6.
 | All other | stór-a | stór-u | stór-a |
 | All pl | stór-u | stór-u | stór-u |
 
-Trigger rule: WEAK when noun phrase contains definite article, demonstrative, or possessive. STRONG otherwise. Predicative adjectives are always strong.
+Trigger rule: WEAK when noun phrase contains definite article, demonstrative, or possessive. STRONG otherwise. Predicative adjectives are strong, except comparatives, which are always weak (hún er stærri).
 
 ## Verb-Governed Object Cases (Non-Accusative Objects)
 

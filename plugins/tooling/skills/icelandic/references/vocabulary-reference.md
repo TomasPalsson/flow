@@ -27,7 +27,7 @@
 | helicopter | þyrla | þyrla (to whirl) |
 | jet aircraft | þota | from þjóta (to rush) |
 | satellite | gervihnöttur | gervi (artificial) + hnöttur (globe) |
-| AIDS | eyðni | native coinage |
+| AIDS | alnæmi | native coinage (older: eyðni) |
 
 ## Place Name Exonyms
 
@@ -69,7 +69,7 @@
 | When in Rome | Sinn er siður í landi hverju | |
 | Once bitten, twice shy | Brennt barn forðast eldinn | |
 | All's well that ends well | Allt er gott sem endar vel | |
-| It's raining cats and dogs | Það rignir í ám og lækjum | Not *rignir ketti og hunda |
+| It's raining cats and dogs | Það rignir eins og hellt sé úr fötu | Not *rignir köttum og hundum |
 
 ## Proverbs (Málshættir) from Educated Discourse
 
@@ -77,7 +77,7 @@
 |---------|---------|--------|
 | Maður er manns gaman | A person is another person's delight | Hávamál v. 47 |
 | Deyr fé, deyja frændr | Cattle die, kinsmen die (reputation endures) | Hávamál v. 77 |
-| Ber er hver að baki nema sér bróður eigi | Bare is the back of a brotherless man | Hávamál |
+| Ber er hver að baki nema sér bróður eigi | Bare is the back of a brotherless man | Njáls saga |
 | Margur verður af aurum api | Coin turns many into monkeys | Hávamál |
 
 ## Formal/Academic Register Markers
@@ -91,7 +91,6 @@
 | ef til vill | kannski | perhaps |
 | með hliðsjón af | vegna | in view of |
 | þegar til þess kemur | þegar | when it comes to it |
-| að svo mæltu | þannig | thus said, with that |
 | bifreið | bíll | automobile |
 
 ## Academic Hedging Vocabulary
@@ -145,7 +144,7 @@
 | for- | before, intensification | forrit (program), formaður (chairman) |
 | sam- | co-, together | samfélag (society), samtal (conversation) |
 | and- | anti-, against | andstæða (opposite), andheiti (antonym) |
-| auð- | easily | auðvitað (of course), auðsýnn (obvious) |
+| auð- | easily | auðvitað (of course), auðsær (obvious) |
 | aðal- | main, chief | aðalbygging (main building), aðalpersóna (protagonist) |
 
 ## Commonly Confused Words
@@ -165,7 +164,6 @@
 | Icelandic | Meaning | Danish/Swedish (WRONG in Icelandic) |
 |-----------|---------|-------------------------------------|
 | sími | telephone | telefon |
-| tölva | computer | computer |
 | sjónvarp | television | fjernsyn |
 | flugvöllur | airport | lufthavn |
 | líklega | probably | sandsynligvis |
