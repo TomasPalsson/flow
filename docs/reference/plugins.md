@@ -50,7 +50,7 @@
 - ultracode
 - verify-skill
 
-## flow (12 skills + shared)
+## flow (13 skills + shared)
 
 - develop-idea
 - fix
@@ -58,6 +58,7 @@
 - issue
 - lesson
 - loop
+- moonshot
 - next
 - no-slop
 - prep

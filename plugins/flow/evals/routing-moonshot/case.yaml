@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: routing-moonshot
+description: An ask for one ambitious, unlimited-resources rebuild of an accepted pain must route to moonshot, not to brainstorm, develop-idea or a spec
+tags: [routing]
+runs: 1
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "We've tweaked the invoice PDFs in this orders app for months and they're still slow and flaky; everyone just accepts it. What would be an absolute moonshot here? Assume unlimited dev resources and 12 months. Be ambitious, let it rip."
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: fires-moonshot
+    type: tool_used
+    tool: Skill
+    input_match: "flow:moonshot\\b"
+    min: 1
+    arm: with-only
+  - name: no-other-hub-skill
+    type: tool_used
+    tool: Skill
+    input_match: "flow:fix\\b|flow:next\\b|flow:spec\\b|flow:prep\\b|flow:develop-idea\\b|flow-extras:brainstorm\\b|flow-extras:audit\\b|flow-extras:scrutinize-idea\\b|flow:loop\\b"
+    min: 0
+    max: 0
+    arm: with-only
