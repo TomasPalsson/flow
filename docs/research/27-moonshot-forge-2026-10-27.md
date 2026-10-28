@@ -61,6 +61,26 @@ Leading words: accepted constraint, deletion list, 10x test, the monkey, oracle.
 - Round 2's comparator prompt added the owner's ask ("an ABSOLUTE moonshot, not a cleanup").
 - skill-judge: 107/120 both iterations (no critical issues).
 
+## Rounds 3-7 (2026-10-28): "go all out", anchored ambition scale
+
+The user wanted ambition 10 ("go nuts, all out"). Comparator scale: 10 = the project becomes a different, far
+bigger thing nothing does today; 8 = a huge change in a known direction; 6 = a big upgrade of one part.
+
+| Round | Change | Ambition with skill (6 comparisons) | Baseline | Wins |
+|---|---|---|---|---|
+| 3 | feasibility never shrinks a bet; only gate = cheap phase-1 kill test; north star 10x floor | 8 x6 | 7-8 | 6/6 |
+| 4 | audience cap lifted when reach is the bet; web prior art = known direction; push x3 | 9,8,8,8,8,8 | 7-8 | 6/6 |
+| 5 | Opus runner; category-level constraint in the brief | 8.5,8,9,9,8,8 | 7 | 6/6 |
+| 6 | make-it-a-10 pass (fresh rater names what holds it below 10) | 9 x6 | 7-8 | 6/6 |
+| 7 | owner scope rulings may be broken (safety/money/data stay hard); 10 pass up to 3 rounds | 9,8,9,9,9,9 | 6-7.5 | 6/6 |
+
+Round 7 bets: aws-exam "Architect Kernel" (a deterministic rule kernel generates, answers and grades items; the
+bank becomes a legacy oracle); news a primary-source wire (GH Archive, CT logs, BGP, HF Hub, EDGAR) that beats the
+press with re-runnable receipts; ads-seo "The Front Door" (Iceland's free first stop for legal problems, grading
+every enquiry and steering spend by it). The in-skill rater reached raw 10 on two of them; nested runs discount
+self-ratings by one because they have no subagent tool. Credibility 5-7 vs baseline 3-4. skill-judge 108 raw
+(capped 95 on a linter false MISSING for `${CLAUDE_PLUGIN_ROOT}`, fixed with a relative link).
+
 ## Open
 
 - No nested eval run had an Agent tool, so the cold generator and separate skeptic only ran as the documented
