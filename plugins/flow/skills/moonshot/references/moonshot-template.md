@@ -17,6 +17,7 @@ ignorance and get re-shaped at each gate).
 # Moonshot: <name>
 
 <The bet in one sentence: the constraint removed, then the means.>
+If it works, <project> becomes: <the new one-sentence description of what the product is>.
 
 | Phase | Status |
 |---|---|
@@ -42,8 +43,8 @@ cheap, with its source and maturity. What still is not cheap (see Re-priced).>
 security, environment), the accepted-divergence list (old bugs fixed on purpose).>
 
 ## Success metric
-<One number: today's baseline and the 10x target, measured the same way before and after, plus one sentence a user
-could check.>
+<The north star (the number the project exists to move): today's baseline and the 10x target, measured the same
+way before and after, plus one sentence a user could check.>
 
 ## Re-priced
 | Cheap now (agents) | Not cheaper (owner) |
