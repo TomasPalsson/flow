@@ -31,7 +31,8 @@ Work in this order, writing each step down:
 0. Say in one sentence what the project is for, and its north star (the number it exists to move) with today's
    value from the brief.
 1. List the accepted constraints in the brief, one line each, the category constraint (what every product of this
-   kind accepts) first. At least three cards must remove the category constraint, not only this project's.
+   kind accepts) first. The owner's scope rulings (who it is for, what it is for, "X first") count as constraints
+   you may remove; rulings that protect safety, money or data do not. At least three cards must remove the category constraint, not only this project's.
 2. For each, ask what would make it disappear entirely, not shrink.
 3. List what changed recently that might make that possible (a library or project reaching usability, a cost
    collapse, a capability), and say how sure you are it exists.
@@ -131,12 +132,14 @@ Rate this moonshot 1-10 on this fixed scale: 10 = if it works the project become
 that nothing does today; 8 = a huge change in a known direction; 6 = a big upgrade of one part; 4 = a solid feature.
 Then, if it is below 10, name exactly what holds it there (it stays the same product for the same people; a known
 product already does this; it moves a part, not what the project exists for; it stops short of the obvious next
-step), and write the version of this bet that would be a 10. Keep one bet and one monkey. Return: score, what holds
-it back, the 10 version in one sentence, and the cheapest first test that could kill the 10 version.
+step; it obeys an owner ruling about scope, such as who the project is for or "X first"), and write the version of
+this bet that would be a 10. Scope rulings may be broken; rulings that protect safety, money or data may not. Keep
+one bet and one monkey. Return: score, what holds it back, the 10 version in one sentence, and the cheapest first
+test that could kill the 10 version.
 ```
 
 If the 10 version has a cheap first kill test, it becomes the recommendation and the card it grew from becomes a
-runner-up. Re-rate it once with a fresh rater; stop after two rounds or at 10.
+runner-up. Re-rate it with a fresh rater each round; stop at 10 or after three rounds.
 
 ## Presenting survivors
 

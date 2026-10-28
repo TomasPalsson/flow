@@ -31,7 +31,10 @@ Five words carry the method; use them in everything you write:
   An idea already written in the owner's docs (IDEAS, PROGRESS Next, a proposal), or one some product already does,
   is a known direction: it can be a phase, never the bet. The target is the top of this scale: **10** = the project
   becomes a different, far bigger thing that nothing does today; 8 = a huge change in a known direction; 6 = a big
-  upgrade of one part. Ship only 9-10.
+  upgrade of one part. Ship only 9-10. The owner's **scope rulings** (who the project is for, what it is for, "X
+  first", "single user") are accepted constraints too, and the bet may remove them. Rulings that protect safety,
+  money or data (no paid API offline, never orphan user history, nothing touches production) stay hard: the bet
+  honours them and MOONSHOT.md says how.
 - **the monkey**: the one assumption that, if false, kills the bet. Phase 1 tests it. Everything easy is **the pedestal**.
 - **oracle**: the executable thing that proves the result (the old implementation in lockstep, a conformance
   suite, recorded inputs with golden outputs, or the success metric's baseline measured the same way). Code is
@@ -47,7 +50,8 @@ active. If one exists, go to Step 6. Done when you know the state and whether th
 
 **1. Find the accepted constraint.** Read [`references/recon.md`](references/recon.md) before this step; it holds
 the signal families, the load-bearing test and how to read the output. Read the owner's docs (README, PROGRESS,
-ADRs, rulings) and run `node ${CLAUDE_PLUGIN_ROOT}/skills/moonshot/scripts/recon.mjs --repo <root> [--focus <path>]`
+ADRs, rulings) and run [`scripts/recon.mjs`](scripts/recon.mjs) as
+`node ${CLAUDE_PLUGIN_ROOT}/skills/moonshot/scripts/recon.mjs --repo <root> [--focus <path>]`
 (`--help` for the flags; do not read its source). When the user named the part, recon still runs, focused on it.
 Write the **brief**: the project's reason to exist and its north star with today's number, the constraint at the
 level of what the product can or cannot do, its receipts from at least 3
@@ -75,7 +79,7 @@ biggest. The one gate is a cheap phase-1 test that could kill the bet; an unveri
 capability or a thing nobody has built yet becomes the monkey, never a reason to drop or shrink the card. Cards
 rated below 9 go to Alternatives, never to the list. Then run the **make-it-a-10 pass** on the recommendation
 (candidates.md): a fresh rater scores it cold on the scale and names what holds it below 10; rewrite the bet at
-that size while a cheap phase-1 test can still kill it; at most 2 rounds. Self-ratings run about a point high, so
+that size while a cheap phase-1 test can still kill it; at most 3 rounds, stopping at 10. Self-ratings run about a point high, so
 only the fresh rater's score counts. Show the survivors (at most
 3) in one block: the bet in one sentence, what the product becomes, the deletion list, the north-star number, the
 monkey, the strongest counterargument, and your recommendation.
