@@ -40,9 +40,15 @@ t_delegate_model_ladder() {
 	content=$(_delegate_content)
 	assert_contains "$content" 'a command or a quote can check' \
 		"delegate gives Haiku the checkable work"
-	assert_contains "$content" 'Haiku' "delegate names Haiku"
-	assert_contains "$content" 'Sonnet' "delegate names Sonnet"
-	assert_contains "$content" 'Opus' "delegate names Opus"
+	assert_contains "$content" '| Haiku |' "delegate has a Haiku row"
+	assert_contains "$content" 'short, single purpose' \
+		"delegate gives Haiku a short single-purpose brief"
+	assert_contains "$content" '| Sonnet | writing code, judging a diff' \
+		"delegate gives Sonnet code and diff judgement"
+	assert_contains "$content" '| Opus | a task Sonnet already failed with a good brief' \
+		"delegate reserves Opus for what Sonnet already failed"
+	assert_contains "$content" 'subtle concurrency or security review' \
+		"delegate allows Opus for subtle concurrency or security review"
 	assert_contains "$content" 're-run it on Sonnet' \
 		"delegate re-runs a failed Haiku check on Sonnet"
 }
@@ -78,12 +84,21 @@ t_delegate_wave_cap() {
 		"delegate caps a wave at two to four workers"
 	assert_contains "$content" 'same mental model' \
 		"delegate sends same-mental-model work to one worker"
+	assert_contains "$content" 'touches the same files' \
+		"delegate sends overlapping-file work to one worker"
 	assert_contains "$content" 'Do not poll' "delegate forbids polling workers"
+	assert_contains "$content" 'More than four independent pieces is a Workflow' \
+		"delegate hands more than four pieces to a Workflow"
+	assert_not_contains "$content" 'Four or more independent pieces' \
+		"delegate does not contradict its own four-worker cap"
 }
 
 # FR-07: short, valid frontmatter, and no trigger collision with another skill.
 t_delegate_short_and_lints() {
 	local lines out rc
+	assert_file_exists "$DELEGATE_SKILL" "delegate SKILL.md exists"
+	assert_contains "$(_delegate_content)" 'Do NOT use for fleet-scale orchestration' \
+		"delegate description excludes fleet-scale work"
 	lines=$(wc -l <"$DELEGATE_SKILL" 2>/dev/null | tr -d ' ')
 	if [ -n "$lines" ] && [ "$lines" -le 80 ]; then
 		_pass "delegate SKILL.md is 80 lines or fewer"
