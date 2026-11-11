@@ -28,8 +28,10 @@ t_delegate_pins_model() {
 	content=$(_delegate_content)
 	assert_contains "$content" 'Pin `model` on every spawn' \
 		"delegate pins model on every spawn"
-	assert_contains "$content" 'never Fable' \
+	assert_contains "$content" 'A worker is never Fable' \
 		"delegate forbids Fable as a worker"
+	assert_not_contains "$content" 'never Fable when' \
+		"delegate forbids Fable with no condition attached"
 	assert_contains "$content" 'never a fork' \
 		"delegate forbids forks"
 }
