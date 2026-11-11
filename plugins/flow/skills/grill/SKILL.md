@@ -11,28 +11,37 @@ Interview me relentlessly about every aspect of this plan until we reach a share
 
 Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask now without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question, explain it (see **Explain every question**), and give your recommended answer. Then wait for my answers before the next round.
 
-There is no cap on the number of questions or rounds. When a frontier holds more than five questions, ask the five that unblock the most, and say how many wait for the next round.
+There is no cap on the number of questions or rounds. When a frontier holds more than three questions, ask the three that unblock the most, and say how many wait for the next round.
 
 Format a round like so:
 
 ```
-❓ **Q1** - **<question title>**
+**Q1. <the question, in plain words>**
 
-**What this decides:** <one sentence, plain words>
+<One or two short sentences: what this decides, and what waits on it.>
 
-**Why now:** <what hangs off it: the later questions it unblocks, or what gets hard to change>
+**A. <name>** ⭐ recommended
+<What happens if you pick it: one real example with real values.>
+Cost: <one short line>
+Undo: <easy or hard, in a few words>
 
-**Options:**
-- **A - <name>**: <what happens in this project if you pick it, with a real example and real values>. Cost: <what you pay>. Undo: <easy or hard, and why>.
-- **B - <name>**: <same three parts>
+**B. <name>**
+<the same three lines>
 
-➡️ Recommended: <A or B>, because <one reason>.
+Why A: <one reason>
 
 ---
 
-❓ **Q2** - **<question title>**
+**Q2. <the question, in plain words>**
 ...
 ```
+
+Keep each question light, so a round does not overwhelm:
+
+- One blank line between blocks. No paragraphs: every line is one short sentence.
+- Three lines per option, no more. Keep the one number or name that matters, and leave the rest out.
+- No inline code formatting (backticks) in a question. Write names and paths as plain text.
+- The rest of the detail (paths, more numbers, edge cases) waits until I ask: I reply `more` with a question number.
 
 Word each question so "yes" accepts your recommended answer.
 
@@ -54,8 +63,7 @@ A decision I do not understand is your decision with my name on it. Before I ans
 
 ### What each question carries
 
-- **What this decides**, in one sentence.
-- **Why now**: what depends on it.
+- **What this decides**, and what waits on it, in one or two short sentences.
 - **Every real option**, not only the one you recommend. For each: what happens in this project if I pick it, what it costs, and how hard it is to undo.
 - **Your recommendation and one reason.** When you are not sure, say what fact is missing.
 
@@ -74,7 +82,7 @@ Simplified Technical English (ASD-STE100, the controlled English of aircraft mai
 - Show a thing before you give its name.
 - One comparison (an analogy) per idea at most. Say where it stops being true, and do not use it past that point.
 - Check ideas, not only words. An option can lean on an idea I do not have even when no hard word is in sight. Explain that idea in one or two sentences above the options, or ask about it in an earlier round.
-- Plain is not shallow. Keep the real paths, numbers and edge cases in the options. Simple words carry the same facts.
+- Plain is not shallow. Each option keeps the fact that decides it (a real number, a real name). When I reply `more`, give the real paths, numbers and edge cases in the same plain words.
 
 ### When I do not follow
 
