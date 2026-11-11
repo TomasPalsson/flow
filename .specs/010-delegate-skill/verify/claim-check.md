@@ -1,0 +1,14 @@
+| # | Claim | Command run | Exit / output | Verdict |
+|---|---|---|---|---|
+| 1 | FR-01 stay inline: "delegate keeps an edit shorter than its brief in the main session" is ok in acceptance-prose.log | `grep -q '^  ok   delegate keeps an edit shorter than its brief in the main session' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 2 | FR-02 pin model: "delegate forbids Fable with no condition attached" is ok | `grep -q '^  ok   delegate forbids Fable with no condition attached' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 3 | FR-03 model ladder: "delegate re-runs a failed Haiku check on Sonnet" is ok | `grep -q '^  ok   delegate re-runs a failed Haiku check on Sonnet' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 4 | FR-04 brief template: "delegate brief template has Tools allowed:" is ok | `grep -q '^  ok   delegate brief template has Tools allowed:' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 5 | FR-05 report format: "delegate verifies by re-running the acceptance command" is ok | `grep -q '^  ok   delegate verifies by re-running the acceptance command' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 6 | FR-06 wave cap: "delegate does not contradict its own four-worker cap" is ok | `grep -q '^  ok   delegate does not contradict its own four-worker cap' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 7 | FR-07 short and lints: "delegate collides with no other flow skill" is ok | `grep -q '^  ok   delegate collides with no other flow skill' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 8 | FR-08 listed in docs: "delegate docs: plugins.md lists delegate" is ok | `grep -q '^  ok   delegate docs: plugins.md lists delegate' acceptance-prose.log` | exit 0 | CONFIRMED |
+| 9 | FR-09 eval waiver: "every flow skill has a case or a NO-EVAL.txt waiver" is ok in full-suite-head.log | `grep -q '^  ok   every flow skill has a case or a NO-EVAL.txt waiver' full-suite-head.log` | exit 0 | CONFIRMED |
+| 10 | acceptance-prose.log has 41 `  ok   delegate` lines and 0 `  FAIL ` lines containing delegate | `grep -c '^  ok   delegate' acceptance-prose.log`; `grep '^  FAIL ' acceptance-prose.log \| grep -c delegate` | 41 ok lines; 0 FAIL lines with delegate | CONFIRMED |
+| 11 | full-suite-head.log contains `5886 passed, 182 failed`, and no FAIL line outside baseline-tests.txt | `grep -n '5886 passed, 182 failed' full-suite-head.log`; `grep '^  FAIL ' full-suite-head.log \| grep -vxFf baseline-tests.txt` | line 8722 matches; unlisted FAIL lines: 0 (grep printed nothing) | CONFIRMED |
+| - | Both logs newer than d17e12c; HEAD short SHA is d17e12c (supporting check for 10 and 11) | `git -C /Users/tomas/Desktop/Projects/flow log -1 --format=%ct d17e12c`; `stat -f '%N %m' acceptance-prose.log full-suite-head.log`; `git -C /Users/tomas/Desktop/Projects/flow rev-parse --short HEAD` | commit epoch 1794393540 (2026-11-11 10:39:00 +0000); acceptance-prose.log 1794394165; full-suite-head.log 1794394142; HEAD d17e12c | CONFIRMED |

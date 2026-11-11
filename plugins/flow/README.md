@@ -85,7 +85,7 @@ plugins/flow/
 │                                 bin/lib/loop/ (contract, tick, verify, tamper, CLI)
 └── skills/                      spec, next, prep, issue, spec-judge, qa,
                                   flow-deepen, fix, loop, no-slop, lesson,
-                                  develop-idea, shared
+                                  develop-idea, delegate, shared
 ```
 
 Moved to `flow-extras`: audit, ultracode, overkill, pr-reviewer, claude-md,

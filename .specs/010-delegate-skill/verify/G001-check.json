@@ -1,0 +1,6 @@
+{
+  "ecosystem": null,
+  "gates": [],
+  "error": "no_project_file",
+  "message": "no package.json, pyproject.toml, Cargo.toml or go.mod here — nothing to gate"
+}
