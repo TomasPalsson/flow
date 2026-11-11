@@ -205,11 +205,42 @@ EOF
 	run_hook "$SCAN_DIR/worklog-hook.sh" '{"hook_event_name":"Stop","session_id":"abc123"}' PATH="$fakebin:$PATH"
 	assert_rc 0 "t_extra_worklog_forwards_stdin_to_fake_worklog rc"
 	assert_eq "$OUT" "" "t_extra_worklog_forwards_stdin_to_fake_worklog no-stdout-propagated"
+	# worklog runs detached, so give it a moment to write.
+	for _ in $(seq 50); do grep -q abc123 "$record" 2>/dev/null && break; sleep 0.1; done
 	assert_file_exists "$record" "t_extra_worklog_forwards_stdin_to_fake_worklog fake-called"
 	content=$(cat "$record" 2>/dev/null)
 	assert_contains "$content" "args:hook-run" "t_extra_worklog_forwards_stdin_to_fake_worklog invoked-with-hook-run"
 	assert_contains "$content" "session_id" "t_extra_worklog_forwards_stdin_to_fake_worklog stdin-passthrough"
 	assert_contains "$content" "abc123" "t_extra_worklog_forwards_stdin_to_fake_worklog stdin-content"
+	rm -rf "$dir"
+}
+
+t_extra_worklog_never_waits_on_worklog() {
+	# The hook must return at once even when worklog is slow, and worklog
+	# must still run to completion afterwards (it is detached, not killed).
+	local dir fakebin done_marker start elapsed
+	dir=$(tmp_dir)
+	fakebin="$dir/bin"
+	mkdir -p "$fakebin"
+	done_marker="$dir/done"
+	cat >"$fakebin/worklog" <<EOF
+#!/usr/bin/env bash
+cat >/dev/null
+sleep 3
+touch "$done_marker"
+EOF
+	chmod +x "$fakebin/worklog"
+	start=$SECONDS
+	run_hook "$SCAN_DIR/worklog-hook.sh" '{"hook_event_name":"SessionStart","session_id":"slow"}' PATH="$fakebin:$PATH"
+	elapsed=$((SECONDS - start))
+	assert_rc 0 "t_extra_worklog_never_waits_on_worklog rc"
+	if [ "$elapsed" -lt 2 ]; then
+		_pass "t_extra_worklog_never_waits_on_worklog returns-fast"
+	else
+		_fail "t_extra_worklog_never_waits_on_worklog returns-fast (took ${elapsed}s)"
+	fi
+	for _ in $(seq 60); do [ -e "$done_marker" ] && break; sleep 0.1; done
+	assert_file_exists "$done_marker" "t_extra_worklog_never_waits_on_worklog still-completes"
 	rm -rf "$dir"
 }
 

@@ -11,6 +11,10 @@ fail() { printf 'FAIL %s\n' "$1"; FAILS=$((FAILS + 1)); }
 WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
 mkdir "$WORK/bin"
 printf '#!/bin/sh\nexit 1\n' > "$WORK/bin/gh"; chmod +x "$WORK/bin/gh"
+# Stub every opener open_url tries, so the example stage never opens a real browser tab.
+for opener in wslview explorer.exe xdg-open open; do
+  printf '#!/bin/sh\necho "$@" >> "%s/opened"\n' "$WORK" > "$WORK/bin/$opener"; chmod +x "$WORK/bin/$opener"
+done
 export PATH="$WORK/bin:$PATH"
 
 # 1. syntax
@@ -29,6 +33,7 @@ if grep -qx "STRIPE_PUBLISHABLE_KEY='pk_x'" "$WORK/.env"; then
 else
   fail "double-quoted value: $(cat "$WORK/.env")"
 fi
+if grep -q '^https://' "$WORK/opened" 2>/dev/null; then ok "open_url went to the stub, not a real browser"; else fail "open_url did not reach the stub"; fi
 
 # 4. a bogus TERM on a real pty does not stop the wizard at the banner's _clear
 if command -v script >/dev/null 2>&1; then

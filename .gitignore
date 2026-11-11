@@ -9,3 +9,21 @@ plugins/harness
 **/evals/results/
 .claude/loop/*
 !.claude/loop/LEARNINGS.md
+
+# ~/.claude/skills links to plugins/, so other tools install their skills here.
+# Only this repo's own bundles are tracked; a new bundle needs a line below.
+plugins/*
+!plugins/aws/
+!plugins/design/
+!plugins/finance/
+!plugins/flow/
+!plugins/flow-extras/
+!plugins/tooling/
+!plugins/web/
+
+# tool scratch and per-machine state
+.claude/review/
+.serena/
+plugins/**/MEMORY.md
+.specs/.current
+.claude/flow.json
