@@ -24,7 +24,9 @@ Two slash commands, and the CLI they lean on. There is no third door.
 Optional pre-step: `/flow:prep` interviews first and leaves a `PREP.md` that
 `/flow:spec` consolidates from. Only a sliver of an idea? `/flow:develop-idea`
 grows it first and, on your yes, leaves a seed `PREP.md` that `/flow:prep`
-resumes. Unattended runs are `/flow:loop`. A defect
+resumes. `/flow:grill` is the long form: no question limit, every question
+explained in plain words with its options, and `CONTEXT.md` and ADRs updated
+as decisions land. Unattended runs are `/flow:loop`. A defect
 spotted while building something else is parked with `/flow:issue` — a GitHub
 issue when `gh` is available, else an `.specs/ISSUES.md` entry carrying the
 five fields a spec needs — never fixed inline. An issue reference (`143`,
@@ -83,7 +85,7 @@ plugins/flow/
 │                                 CLAUDE.project.md · gates.yml.tmpl
 ├── bin/flow                     the CLI · bin/lib/ (router, lint, tick, use, publish) ·
 │                                 bin/lib/loop/ (contract, tick, verify, tamper, CLI)
-└── skills/                      spec, next, prep, issue, spec-judge, qa,
+└── skills/                      spec, next, prep, grill, issue, spec-judge, qa,
                                   flow-deepen, fix, loop, no-slop, lesson,
                                   develop-idea, shared
 ```

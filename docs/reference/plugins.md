@@ -50,11 +50,12 @@
 - ultracode
 - verify-skill
 
-## flow (13 skills + shared)
+## flow (14 skills + shared)
 
 - develop-idea
 - fix
 - flow-deepen
+- grill
 - issue
 - lesson
 - loop
