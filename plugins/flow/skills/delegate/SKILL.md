@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: "Decide whether one step should go to a worker at all, and if it does, which model to pin, what the brief says and what comes back. Use WHENEVER the main session is about to spawn a subagent with the Agent tool or add an agent() call to a Workflow script, when it is unsure whether to do a step itself or hand it off, when picking between Haiku, Sonnet and Opus for a worker, when writing a worker brief or spec, or when the user says 'delegate this', 'hand this to a subagent', 'which model should do this', 'use a cheaper model', 'this is burning tokens'. Do NOT use for fleet-scale orchestration of a whole task (/flow-extras:ultracode), for building an approved plan (/flow:next, whose brief comes from task-brief), or for designing an agent product (/tooling:agent-architecture)."
+description: "Decide whether one step should go to a worker at all, and if it does, which model to pin, what the brief says and what comes back. Use whenever the main session is about to spawn a subagent with the Agent tool or add an agent() call to a Workflow script, when it is unsure whether to do a step itself or hand it off, when choosing which model one worker runs on, when writing a worker brief, or when the user says 'delegate this', 'hand this to a subagent', 'should a subagent do this', 'which model should this worker use'. Do NOT use for fleet-scale orchestration of a whole task (/flow-extras:ultracode), for building an approved plan (/flow:next, whose brief comes from task-brief), or for agent architecture, token budgets and model routing of an agent product (/tooling:agent-architecture)."
 ---
 
 # delegate
@@ -32,7 +32,7 @@ Pick the cheapest model that fits, and say why when you go above Sonnet.
 | Sonnet | writing code, judging a diff | full template below |
 | Opus | a task Sonnet already failed with a good brief, or a subtle concurrency or security review | full template, plus the failed attempt |
 
-Pin `model` on every spawn, or name an agent type whose definition pins one. A spawn with neither inherits the session model: never Fable, never a fork, since a fork always runs on the session model.
+Pin `model` on every spawn, or name an agent type whose definition pins one. A spawn with neither inherits the session model, which is the one model a worker must not run on: never Fable when the session is on Fable, and never a fork, since a fork always runs on the session model.
 
 When a Haiku result fails its check, re-run it on Sonnet. Do not repair it on the session model. When a Sonnet result is weak, fix the brief and re-run before moving up.
 
@@ -60,8 +60,4 @@ Then verify by re-running the acceptance command yourself. Do not re-read the wo
 - Two to four workers per wave.
 - Work that needs the same mental model, or touches the same files, goes to one worker. Overlap is a reason to merge briefs, not to add workers.
 - Do not poll running workers. Wait for the report.
-- Four or more independent pieces is a Workflow, not hand-spawned agents.
-
-## Why these rules
-
-Each worker re-reads the project instructions and re-orients from zero, so three small workers cost more than one medium one. An unpinned spawn silently bills the most expensive model in the session. A long narrative report is paid for twice: once to write, once to read.
+- More than four independent pieces is a Workflow, not a larger wave.
