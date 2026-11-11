@@ -17,3 +17,6 @@
 - Assumption: [taste] delegate gets a NO-EVAL.txt waiver, not an eval case. A case that measures whether sessions delegate less was already out of scope (A3); the waiver says so in its reason line.
 - Minor: T002 follow-up review of f9db01d..9db80a3 by the same adversary agent: verdict PASS, five earlier findings fixed; one new finding (confidence 75) that the reworded line allowed Fable when the session is on another model — fixed in the two commits after 9db80a3 (skill line and a test assertion that no condition follows "never Fable")
 - Discovered: bash plugins/flow/scripts/tests/run.sh exits 1 at Base 2b9be80 with 182 failing assertions in files this branch did not touch (verify/baseline-tests.txt); the head run at d17e12c has the same 182 and no new one (verify/new-fails.txt is empty) — defer
+- Assumption: [taste] PR #32 was opened ready for review, not as a draft: the user global instructions say pull requests are never drafts and that this overrides skill defaults. It was not merged.
+- Assumption: [mechanical] the full-suite runs after f040ffc put no-op stubs for open, xdg-open, wslview and explorer.exe first on PATH, so the wizard self-test opened no browser tab; no repo file was changed for this.
+- Assumption: [mechanical] the end-of-run transcript audit agent was not spawned; the three lines above were written by the session from its own record.
