@@ -8,3 +8,4 @@ flow-deepen: runs after a spec's tasks are built and merged; a fixture needs a m
 issue: files a GitHub issue or appends to .specs/ISSUES.md; the format and wording rules are pinned by test_issue_prose.sh, and routing is not at risk (an explicit /flow:issue call)
 lesson: an interactive correction loop that edits hooks and rules; the mechanical parts (lesson-sites, lesson-record, lesson-mine) have shell tests in test_lesson.sh and test_lesson_mine.sh
 spec-judge: a scorer the spec skill dispatches (test_spec_prose.sh pins how spec calls it), not something a user request routes to; its own scoring is not yet measured by any case
+grill: an explicit /flow:grill call only (model invocation is disabled), so routing is not at risk; the interview is a long multi-round conversation a fixture cannot drive, and its explain format is pinned by test_grill_prose.sh

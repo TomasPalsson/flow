@@ -122,8 +122,8 @@ t_delegate_listed_in_docs() {
 	local plugins_md readme
 	plugins_md=$(cat "$DELEGATE_REPO/docs/reference/plugins.md" 2>/dev/null)
 	readme=$(cat "$SCAN_DIR/../README.md" 2>/dev/null)
-	assert_contains "$plugins_md" '## flow (14 skills + shared)' \
-		"delegate docs: plugins.md counts 14 flow skills"
+	assert_contains "$plugins_md" '## flow (15 skills + shared)' \
+		"delegate docs: plugins.md counts 15 flow skills"
 	assert_contains "$plugins_md" '- delegate' \
 		"delegate docs: plugins.md lists delegate"
 	assert_contains "$readme" 'delegate' \
