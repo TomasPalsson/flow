@@ -1,0 +1,370 @@
+# Baseline test run at Base 2b9be80 (2026-11-11)
+Command: bash plugins/flow/scripts/tests/run.sh
+Exit: 1
+Summary: 5844 passed, 182 failed
+
+## Failing assertions (FAIL lines, then the runner's failed-name list incl. static checks)
+  FAIL case-selfcheck passes every xhard case
+  FAIL aside.md body expands $ARGUMENTS
+  FAIL aside.md has argument-hint: [the note]
+  FAIL aside.md sets disable-model-invocation: true
+  FAIL wrap.md sets disable-model-invocation: true
+  FAIL ship.md sets disable-model-invocation: true
+  FAIL memory-audit.md sets disable-model-invocation: true
+  FAIL aside.md starts with ---
+  FAIL aside.md has a closing ---
+  FAIL wrap.md starts with ---
+  FAIL wrap.md has a closing ---
+  FAIL ship.md starts with ---
+  FAIL ship.md has a closing ---
+  FAIL memory-audit.md starts with ---
+  FAIL memory-audit.md has a closing ---
+  FAIL aside.md exists
+  FAIL wrap.md exists
+  FAIL ship.md exists
+  FAIL memory-audit.md exists
+  FAIL aside.md body is <= 25 lines (got )
+  FAIL wrap.md body is <= 30 lines (got )
+  FAIL ship.md body is <= 35 lines (got )
+  FAIL memory-audit.md body is <= 30 lines (got )
+  FAIL ship.md allowed-tools matches C14 exactly
+  FAIL wrap.md allowed-tools matches C14 exactly
+  FAIL nothing affected exits 0
+  FAIL says so
+  FAIL t_eval_cli_fail_exit_passthrough rc
+  FAIL t_eval_dry_run_grants_bash_for_case_selected_by_other_tag rc
+  FAIL t_eval_dry_run_grants_bash_for_case_selected_by_other_tag case-forwarded
+  FAIL t_eval_dry_run_grants_bash_for_case_selected_by_other_tag bash-granted
+  FAIL t_eval_dry_run_loads_sibling_flow_extras rc
+  FAIL t_eval_dry_run_loads_sibling_flow_extras plugin-dir-forwarded
+  FAIL t_eval_dry_run_no_bash_when_no_selected_case_needs_it rc
+  FAIL t_eval_dry_run_pipeline_case_dropped_without_socat rc
+  FAIL t_eval_dry_run_pipeline_case_dropped_without_socat notice
+  FAIL t_eval_dry_run_skips_plugin_dir_the_cli_lacks rc
+  FAIL t_eval_dry_run_skips_plugin_dir_the_cli_lacks notice
+  FAIL t_eval_empty_tag_selection_refuses_instead_of_running_everything rc
+  FAIL t_eval_empty_tag_selection_refuses_instead_of_running_everything message
+  FAIL t_eval_errored_runs_are_partial_not_fail rc
+  FAIL t_eval_errored_runs_are_partial_not_fail reason-counts-only-real-errors
+  FAIL t_eval_errored_runs_are_partial_not_fail ledger-partial-true
+  FAIL sha256 of case.yaml (no postcheck.sh here)
+  FAIL t_eval_mean_delta_excludes_errored_arm rc
+  FAIL the session-limit arm's 0.6 is left out; the max-turns case stays
+  FAIL tag delta leaves the unmeasured case out too
+  FAIL t_eval_needs_bash_skipped_without_socat rc
+  FAIL t_eval_needs_bash_skipped_without_socat notice-mentions-tag
+  FAIL t_eval_needs_bash_skipped_without_socat notice-mentions-socat
+  FAIL t_eval_no_claude_refuses_with_doctor_hint rc
+  FAIL t_eval_no_claude_refuses_with_doctor_hint doctor-hint
+  FAIL t_eval_ok_run_appends_ledger_and_summary rc
+  FAIL t_eval_ok_run_appends_ledger_and_summary quality-row
+  FAIL t_eval_ok_run_appends_ledger_and_summary routing-row
+  FAIL t_eval_ok_run_appends_ledger_and_summary ledger-file
+  FAIL t_eval_ok_run_appends_ledger_and_summary ledger-partial-false
+  FAIL t_eval_ok_run_appends_ledger_and_summary ledger-quality-tag
+  FAIL t_eval_ok_run_appends_ledger_and_summary ledger-routing-tag
+  FAIL t_eval_ok_run_appends_ledger_and_summary ledger-cost-summed-per-spawn
+  FAIL t_eval_partial_exit_when_child_exits_0_but_data_partial rc
+  FAIL t_eval_partial_exit_when_child_exits_0_but_data_partial reason
+  FAIL t_eval_partial_exit_when_child_exits_0_but_data_partial ledger-partial-true
+  FAIL t_eval_partial_run_marks_ledger_and_exits_2 rc
+  FAIL t_eval_partial_run_marks_ledger_and_exits_2 reason
+  FAIL t_eval_partial_run_marks_ledger_and_exits_2 ledger-partial-true
+  FAIL delta = mean(with, measured) - mean(without) = 1, not the CLI's 0.67
+  FAIL t_eval_postcheck_all_pass_keeps_ok_exit rc
+  FAIL t_eval_postcheck_all_pass_keeps_ok_exit quality-summary
+  FAIL t_eval_postcheck_all_pass_keeps_ok_exit routing-summary
+  FAIL t_eval_postcheck_all_pass_keeps_ok_exit quality-kept-removed
+  FAIL t_eval_postcheck_all_pass_keeps_ok_exit routing-kept-removed
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit rc
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-summary
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-summary
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit failure-tail
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-quality-post
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-routing-post
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-kept-removed
+  FAIL t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-kept-removed
+  FAIL t_eval_postcheck_reads_real_arms_with_shape rc
+  FAIL t_eval_postcheck_reads_real_arms_with_shape invariant-summary
+  FAIL t_eval_postcheck_reads_real_arms_with_shape pipeline-summary
+  FAIL t_eval_postcheck_reads_real_arms_with_shape ledger-post-count
+  FAIL t_eval_postcheck_reads_real_arms_with_shape invariant-kept-removed
+  FAIL t_eval_postcheck_reads_real_arms_with_shape pipeline-kept-removed
+  FAIL t_eval_single_tag_excludes_other_tag_from_rollup rc
+  FAIL t_eval_single_tag_excludes_other_tag_from_rollup quality-row-present
+  FAIL t_eval_single_tag_excludes_other_tag_from_rollup ledger-quality-tag
+  FAIL t_eval_summary_classifies_graders rc
+  FAIL mean delta carries its min..max
+  FAIL both-pass class
+  FAIL both-fail class
+  FAIL hurts class
+  FAIL flaky class (3 runs, varies within an arm)
+  FAIL t_eval_summary_without_grader_data_is_unchanged rc
+  FAIL old summary line
+  FAIL t_eval_unparsable_result_exits_1 rc
+  FAIL t_eval_unparsable_result_exits_1 message
+  FAIL fires-* graders carry arm: with-only: routing-audit/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-develop-idea/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-fix/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-loop/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-moonshot/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-next/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-none-explain/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-none-rename/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-prep/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-qa/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-scrutinize-idea/case.yaml
+  FAIL fires-* graders carry arm: with-only: routing-spec/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-audit/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-develop-idea/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-fix/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-loop/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-moonshot/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-next/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-prep/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-qa/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-scrutinize-idea/case.yaml
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-spec/case.yaml
+  FAIL flow: no stem match falls back to the newest test under the same top dir
+  FAIL flow: brief names the test whose stem matches the file
+  FAIL flow: prior art line says what to copy
+  FAIL flow: at most two prior art lines
+  FAIL flow: <stem>.spec.* matches
+  FAIL t_fm repo has no frontmatter errors (only KEY warnings allowed)
+  FAIL t_fm repo plugins exit 0
+  FAIL skills-lint reports the command -v better-plan mention
+  FAIL skills-lint names the tool in the TOOL line
+  FAIL skills-lint with no argument still scans HOME/.claude/skills
+  FAIL skills-lint still prints the TOOL line
+  FAIL skills-lint names rtk in the TOOL line
+  FAIL workflows-and-cli.md contains flow --help verbatim
+  FAIL a commit after the PASS drops back to the gates
+  FAIL row 10 names the stale PASS
+  FAIL a later commit outside the feature dir invalidates the pass, even though the pass itself was committed
+  FAIL row 10 still names the stale PASS
+  FAIL verified with no PR is shippable
+  FAIL shippable ends in work, so it asks for a /clear
+  FAIL no upstream configured: the old no-PR answer holds
+  FAIL a remote url with no parseable owner is not guessed at
+  FAIL a PR under the upstream branch name is found
+  FAIL and its number is reported
+  FAIL PASS covers HEAD but G001 is open: still gating
+  FAIL the why names the PASS and the open gate
+  FAIL flow tick G001 leaves the PASS valid; all gates ticked is unverified
+  FAIL with no Verified: yet the router asks a human instead of re-running the gates
+  FAIL a PASS for HEAD with no Verified: is unverified
+  FAIL row 9 is a human gate
+  FAIL row 9 points the human at the evidence dir
+  FAIL t_orph repo plugins have no orphan reference or script
+  FAIL no frontend-design reference remains outside skill-judge's example table and credit lines
+  FAIL every plugin:skill call resolves to a marketplace plugin's skills/<name>/SKILL.md
+  FAIL the brief names the follow: exemplar
+  FAIL t_tt_resume_relative_sandbox_survives_cwd_change progress stores the absolute path
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must rc
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must png
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must height-line
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must width
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must expect-height
+  FAIL t_uis_capture_from_image_scales_and_writes_empty_must must-empty
+  FAIL t_uis_score_broken_page_fails_pixel_gate rc
+  FAIL t_uis_score_broken_page_fails_pixel_gate names-pixel-gate
+  FAIL t_uis_score_broken_page_fails_pixel_gate summary
+  FAIL t_uis_score_cheat_page_fails_missing_h1 rc
+  FAIL t_uis_score_cheat_page_fails_missing_h1 names-missing-h1
+  FAIL t_uis_score_corrupt_baseline_png_is_harness_break message
+  FAIL t_uis_score_good_page_passes rc
+  FAIL t_uis_score_good_page_passes pass-line
+  FAIL t_uis_score_hidden_page_fails_not_visible rc
+  FAIL t_uis_score_hidden_page_fails_not_visible names-not-visible
+  FAIL t_uis_score_stale_cache_after_swap_fails rc
+  FAIL t_uis_score_stale_cache_after_swap_fails names-missing-a
+  FAIL t_uis_score_stale_cache_after_swap_fails summary
+  FAIL t_uis_score_stdout_never_leaks_session_name score-rc
+  FAIL from the repo root
+  FAIL shellcheck: flow-lint
+  FAIL shellcheck: tests/test_agents.sh
+  FAIL shellcheck: tests/test_evals.sh
+  FAIL shellcheck: tests/test_plugin_refs.sh
+  FAIL shellcheck: tests/test_finish.sh
+  - case-selfcheck passes every xhard case
+  - aside.md body expands $ARGUMENTS
+  - aside.md has argument-hint: [the note]
+  - aside.md sets disable-model-invocation: true
+  - wrap.md sets disable-model-invocation: true
+  - ship.md sets disable-model-invocation: true
+  - memory-audit.md sets disable-model-invocation: true
+  - aside.md starts with ---
+  - aside.md has a closing ---
+  - wrap.md starts with ---
+  - wrap.md has a closing ---
+  - ship.md starts with ---
+  - ship.md has a closing ---
+  - memory-audit.md starts with ---
+  - memory-audit.md has a closing ---
+  - aside.md exists
+  - wrap.md exists
+  - ship.md exists
+  - memory-audit.md exists
+  - aside.md body is <= 25 lines (got )
+  - wrap.md body is <= 30 lines (got )
+  - ship.md body is <= 35 lines (got )
+  - memory-audit.md body is <= 30 lines (got )
+  - ship.md allowed-tools matches C14 exactly
+  - wrap.md allowed-tools matches C14 exactly
+  - nothing affected exits 0
+  - says so
+  - t_eval_cli_fail_exit_passthrough rc
+  - t_eval_dry_run_grants_bash_for_case_selected_by_other_tag rc
+  - t_eval_dry_run_grants_bash_for_case_selected_by_other_tag case-forwarded
+  - t_eval_dry_run_grants_bash_for_case_selected_by_other_tag bash-granted
+  - t_eval_dry_run_loads_sibling_flow_extras rc
+  - t_eval_dry_run_loads_sibling_flow_extras plugin-dir-forwarded
+  - t_eval_dry_run_no_bash_when_no_selected_case_needs_it rc
+  - t_eval_dry_run_pipeline_case_dropped_without_socat rc
+  - t_eval_dry_run_pipeline_case_dropped_without_socat notice
+  - t_eval_dry_run_skips_plugin_dir_the_cli_lacks rc
+  - t_eval_dry_run_skips_plugin_dir_the_cli_lacks notice
+  - t_eval_empty_tag_selection_refuses_instead_of_running_everything rc
+  - t_eval_empty_tag_selection_refuses_instead_of_running_everything message
+  - t_eval_errored_runs_are_partial_not_fail rc
+  - t_eval_errored_runs_are_partial_not_fail reason-counts-only-real-errors
+  - t_eval_errored_runs_are_partial_not_fail ledger-partial-true
+  - sha256 of case.yaml (no postcheck.sh here)
+  - t_eval_mean_delta_excludes_errored_arm rc
+  - the session-limit arm's 0.6 is left out; the max-turns case stays
+  - tag delta leaves the unmeasured case out too
+  - t_eval_needs_bash_skipped_without_socat rc
+  - t_eval_needs_bash_skipped_without_socat notice-mentions-tag
+  - t_eval_needs_bash_skipped_without_socat notice-mentions-socat
+  - t_eval_no_claude_refuses_with_doctor_hint rc
+  - t_eval_no_claude_refuses_with_doctor_hint doctor-hint
+  - t_eval_ok_run_appends_ledger_and_summary rc
+  - t_eval_ok_run_appends_ledger_and_summary quality-row
+  - t_eval_ok_run_appends_ledger_and_summary routing-row
+  - t_eval_ok_run_appends_ledger_and_summary ledger-file
+  - t_eval_ok_run_appends_ledger_and_summary ledger-partial-false
+  - t_eval_ok_run_appends_ledger_and_summary ledger-quality-tag
+  - t_eval_ok_run_appends_ledger_and_summary ledger-routing-tag
+  - t_eval_ok_run_appends_ledger_and_summary ledger-cost-summed-per-spawn
+  - t_eval_partial_exit_when_child_exits_0_but_data_partial rc
+  - t_eval_partial_exit_when_child_exits_0_but_data_partial reason
+  - t_eval_partial_exit_when_child_exits_0_but_data_partial ledger-partial-true
+  - t_eval_partial_run_marks_ledger_and_exits_2 rc
+  - t_eval_partial_run_marks_ledger_and_exits_2 reason
+  - t_eval_partial_run_marks_ledger_and_exits_2 ledger-partial-true
+  - delta = mean(with, measured) - mean(without) = 1, not the CLI's 0.67
+  - t_eval_postcheck_all_pass_keeps_ok_exit rc
+  - t_eval_postcheck_all_pass_keeps_ok_exit quality-summary
+  - t_eval_postcheck_all_pass_keeps_ok_exit routing-summary
+  - t_eval_postcheck_all_pass_keeps_ok_exit quality-kept-removed
+  - t_eval_postcheck_all_pass_keeps_ok_exit routing-kept-removed
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit rc
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-summary
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-summary
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit failure-tail
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-quality-post
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit ledger-routing-post
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit quality-kept-removed
+  - t_eval_postcheck_pass_and_fail_fold_into_ledger_summary_and_exit routing-kept-removed
+  - t_eval_postcheck_reads_real_arms_with_shape rc
+  - t_eval_postcheck_reads_real_arms_with_shape invariant-summary
+  - t_eval_postcheck_reads_real_arms_with_shape pipeline-summary
+  - t_eval_postcheck_reads_real_arms_with_shape ledger-post-count
+  - t_eval_postcheck_reads_real_arms_with_shape invariant-kept-removed
+  - t_eval_postcheck_reads_real_arms_with_shape pipeline-kept-removed
+  - t_eval_single_tag_excludes_other_tag_from_rollup rc
+  - t_eval_single_tag_excludes_other_tag_from_rollup quality-row-present
+  - t_eval_single_tag_excludes_other_tag_from_rollup ledger-quality-tag
+  - t_eval_summary_classifies_graders rc
+  - mean delta carries its min..max
+  - both-pass class
+  - both-fail class
+  - hurts class
+  - flaky class (3 runs, varies within an arm)
+  - t_eval_summary_without_grader_data_is_unchanged rc
+  - old summary line
+  - t_eval_unparsable_result_exits_1 rc
+  - t_eval_unparsable_result_exits_1 message
+  - fires-* graders carry arm: with-only: routing-audit/case.yaml
+  - fires-* graders carry arm: with-only: routing-develop-idea/case.yaml
+  - fires-* graders carry arm: with-only: routing-fix/case.yaml
+  - fires-* graders carry arm: with-only: routing-loop/case.yaml
+  - fires-* graders carry arm: with-only: routing-moonshot/case.yaml
+  - fires-* graders carry arm: with-only: routing-next/case.yaml
+  - fires-* graders carry arm: with-only: routing-none-explain/case.yaml
+  - fires-* graders carry arm: with-only: routing-none-rename/case.yaml
+  - fires-* graders carry arm: with-only: routing-prep/case.yaml
+  - fires-* graders carry arm: with-only: routing-qa/case.yaml
+  - fires-* graders carry arm: with-only: routing-scrutinize-idea/case.yaml
+  - fires-* graders carry arm: with-only: routing-spec/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-audit/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-develop-idea/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-fix/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-loop/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-moonshot/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-next/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-prep/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-qa/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-scrutinize-idea/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-spec/case.yaml
+  - flow: no stem match falls back to the newest test under the same top dir
+  - flow: brief names the test whose stem matches the file
+  - flow: prior art line says what to copy
+  - flow: at most two prior art lines
+  - flow: <stem>.spec.* matches
+  - t_fm repo has no frontmatter errors (only KEY warnings allowed)
+  - t_fm repo plugins exit 0
+  - skills-lint reports the command -v better-plan mention
+  - skills-lint names the tool in the TOOL line
+  - skills-lint with no argument still scans HOME/.claude/skills
+  - skills-lint still prints the TOOL line
+  - skills-lint names rtk in the TOOL line
+  - workflows-and-cli.md contains flow --help verbatim
+  - a commit after the PASS drops back to the gates
+  - row 10 names the stale PASS
+  - a later commit outside the feature dir invalidates the pass, even though the pass itself was committed
+  - row 10 still names the stale PASS
+  - verified with no PR is shippable
+  - shippable ends in work, so it asks for a /clear
+  - no upstream configured: the old no-PR answer holds
+  - a remote url with no parseable owner is not guessed at
+  - a PR under the upstream branch name is found
+  - and its number is reported
+  - PASS covers HEAD but G001 is open: still gating
+  - the why names the PASS and the open gate
+  - flow tick G001 leaves the PASS valid; all gates ticked is unverified
+  - with no Verified: yet the router asks a human instead of re-running the gates
+  - a PASS for HEAD with no Verified: is unverified
+  - row 9 is a human gate
+  - row 9 points the human at the evidence dir
+  - t_orph repo plugins have no orphan reference or script
+  - no frontend-design reference remains outside skill-judge's example table and credit lines
+  - every plugin:skill call resolves to a marketplace plugin's skills/<name>/SKILL.md
+  - the brief names the follow: exemplar
+  - t_tt_resume_relative_sandbox_survives_cwd_change progress stores the absolute path
+  - t_uis_capture_from_image_scales_and_writes_empty_must rc
+  - t_uis_capture_from_image_scales_and_writes_empty_must png
+  - t_uis_capture_from_image_scales_and_writes_empty_must height-line
+  - t_uis_capture_from_image_scales_and_writes_empty_must width
+  - t_uis_capture_from_image_scales_and_writes_empty_must expect-height
+  - t_uis_capture_from_image_scales_and_writes_empty_must must-empty
+  - t_uis_score_broken_page_fails_pixel_gate rc
+  - t_uis_score_broken_page_fails_pixel_gate names-pixel-gate
+  - t_uis_score_broken_page_fails_pixel_gate summary
+  - t_uis_score_cheat_page_fails_missing_h1 rc
+  - t_uis_score_cheat_page_fails_missing_h1 names-missing-h1
+  - t_uis_score_corrupt_baseline_png_is_harness_break message
+  - t_uis_score_good_page_passes rc
+  - t_uis_score_good_page_passes pass-line
+  - t_uis_score_hidden_page_fails_not_visible rc
+  - t_uis_score_hidden_page_fails_not_visible names-not-visible
+  - t_uis_score_stale_cache_after_swap_fails rc
+  - t_uis_score_stale_cache_after_swap_fails names-missing-a
+  - t_uis_score_stale_cache_after_swap_fails summary
+  - t_uis_score_stdout_never_leaks_session_name score-rc
+  - from the repo root
+  - shellcheck: flow-lint
+  - shellcheck: tests/test_agents.sh
+  - shellcheck: tests/test_evals.sh
+  - shellcheck: tests/test_plugin_refs.sh
+  - shellcheck: tests/test_finish.sh
