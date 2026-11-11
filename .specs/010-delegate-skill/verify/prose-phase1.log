@@ -1,0 +1,139 @@
+t_delegate_brief_template
+  ok   delegate brief template has Objective:
+  ok   delegate brief template has Owned paths:
+  ok   delegate brief template has Signatures and edge cases:
+  ok   delegate brief template has Acceptance command:
+  ok   delegate brief template has Return format:
+  ok   delegate brief template has Tools allowed:
+t_delegate_listed_in_docs
+  ok   delegate docs: plugins.md counts 14 flow skills
+  ok   delegate docs: plugins.md lists delegate
+  ok   delegate docs: README skill list names delegate
+t_delegate_model_ladder
+  ok   delegate gives Haiku the checkable work
+  ok   delegate names Haiku
+  ok   delegate names Sonnet
+  ok   delegate names Opus
+  ok   delegate re-runs a failed Haiku check on Sonnet
+t_delegate_pins_model
+  ok   delegate pins model on every spawn
+  ok   delegate forbids Fable as a worker
+  ok   delegate forbids forks
+t_delegate_report_format
+  ok   delegate report carries a verdict
+  ok   delegate report lists files changed
+  ok   delegate report carries failing output only
+  ok   delegate report is capped near 15 lines
+  ok   delegate verifies by re-running the acceptance command
+t_delegate_short_and_lints
+  ok   delegate SKILL.md is 80 lines or fewer
+  ok   delegate frontmatter lint exits 0
+  ok   delegate frontmatter lint reports nothing for the skill
+  ok   delegate collides with no other flow skill
+t_delegate_stay_inline_cases
+  ok   delegate keeps an edit shorter than its brief in the main session
+  ok   delegate keeps iterative work in the main session
+  ok   delegate keeps context-sharing work in the main session
+  ok   delegate keeps work with no acceptance command in the main session
+t_delegate_wave_cap
+  ok   delegate caps a wave at two to four workers
+  ok   delegate sends same-mental-model work to one worker
+  ok   delegate forbids polling workers
+portability
+  ok   no non-portable constructs under scripts/
+shellcheck
+  ok   shellcheck: review-package
+  FAIL shellcheck: flow-lint
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/flow-lint line 647:   ^----------^ SC2034 (warning): T_FOLLOW appears unused. Verify use (or export if used externally).   https://www.shellcheck.net/wiki/SC2034 -- T_FOLLOW appears unused. Verify u... 
+  ok   shellcheck: lesson-record
+  ok   shellcheck: task-brief
+  ok   shellcheck: tests/test_method_rules.sh
+  ok   shellcheck: tests/test_version_ledger.sh
+  ok   shellcheck: tests/test_fix_prose.sh
+  ok   shellcheck: tests/test_no_slop.sh
+  ok   shellcheck: tests/test_wave5_prose.sh
+  ok   shellcheck: tests/test_loop.sh
+  ok   shellcheck: tests/test_digest.sh
+  ok   shellcheck: tests/test_doctor_progress.sh
+  ok   shellcheck: tests/test_lesson_mine.sh
+  ok   shellcheck: tests/test_stealth.sh
+  ok   shellcheck: tests/test_audit_web_guidelines.sh
+  ok   shellcheck: tests/test_spec_prose.sh
+  ok   shellcheck: tests/test_map_script.sh
+  ok   shellcheck: tests/test_flow_lint.sh
+  ok   shellcheck: tests/test_flow_v2_cli.sh
+  ok   shellcheck: tests/test_commands.sh
+  ok   shellcheck: tests/test_attribution.sh
+  ok   shellcheck: tests/test_loop_yolo.sh
+  ok   shellcheck: tests/test_loop_metric.sh
+  ok   shellcheck: tests/test_publish.sh
+  ok   shellcheck: tests/test_cli.sh
+  ok   shellcheck: tests/test_explorer.sh
+  ok   shellcheck: tests/test_review_lenses.sh
+  ok   shellcheck: tests/test_verify_template.sh
+  ok   shellcheck: tests/test_loop_core_ui.sh
+  ok   shellcheck: tests/test_next.sh
+  ok   shellcheck: tests/test_lint.sh
+  ok   shellcheck: tests/test_skill_forge.sh
+  ok   shellcheck: tests/test_prep_prose.sh
+  ok   shellcheck: tests/test_marketplace.sh
+  ok   shellcheck: tests/test_receipt_check.sh
+  ok   shellcheck: tests/test_loop_negcontrol.sh
+  FAIL shellcheck: tests/test_agents.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_agents.sh line 476:                      ^-- SC2010 (warning): Don't use ls | grep. Use a glob or a for loop with a condition to allow non-alphanumeric filenames.   https://www.shellcheck.net/wiki/SC2010 -- Don't use ls | grep. Use a glob o... 
+  ok   shellcheck: tests/test_statusline.sh
+  ok   shellcheck: tests/test_lesson.sh
+  ok   shellcheck: tests/test_install.sh
+  ok   shellcheck: tests/test_eval_cli.sh
+  FAIL shellcheck: tests/test_evals.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_evals.sh line 757:                               ^--------------------------^ SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_pentest_report.sh
+  ok   shellcheck: tests/test_wave5.sh
+  ok   shellcheck: tests/run.sh
+  ok   shellcheck: tests/test_loop_ui.sh
+  ok   shellcheck: tests/test_ultracode_gate.sh
+  ok   shellcheck: tests/test_workflows.sh
+  ok   shellcheck: tests/test_loop_docs.sh
+  FAIL shellcheck: tests/test_plugin_refs.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_plugin_refs.sh line 67:                           ^----------------^ SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_flow_deepen_prose.sh
+  ok   shellcheck: tests/test_evals_pipeline.sh
+  ok   shellcheck: tests/test_qa_prose.sh
+  ok   shellcheck: tests/test_no_slop_seams.sh
+  ok   shellcheck: tests/lib.sh
+  ok   shellcheck: tests/test_prep_lint.sh
+  ok   shellcheck: tests/test_spec_merge.sh
+  ok   shellcheck: tests/test_delegate_prose.sh
+  ok   shellcheck: tests/test_redact.sh
+  ok   shellcheck: tests/test_doctor_hygiene.sh
+  ok   shellcheck: tests/test_issue_prose.sh
+  ok   shellcheck: tests/test_shared_scripts.sh
+  ok   shellcheck: tests/test_z4_contract.sh
+  ok   shellcheck: tests/test_flow.sh
+  ok   shellcheck: tests/test_borrowed_scripts.sh
+  ok   shellcheck: tests/test_design_dr1.sh
+  ok   shellcheck: tests/test_claim_check.sh
+  ok   shellcheck: tests/test_ui_score.sh
+  FAIL shellcheck: tests/test_finish.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_finish.sh line 231:                                  ^-- SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_loop_failclosed.sh
+  ok   shellcheck: tests/test_case_selfcheck.sh
+  ok   shellcheck: tests/test_tutorial.sh
+  ok   shellcheck: tests/test_design_dc1.sh
+  ok   shellcheck: tests/test_cli_plugin.sh
+  ok   shellcheck: skills-lint
+  ok   shellcheck: redact
+  ok   shellcheck: claude-activity-hook.sh
+  ok   shellcheck: workflow-lint
+  ok   shellcheck: prep-lint
+  ok   shellcheck: codebase-map
+  ok   shellcheck: lesson-sites
+  ok   shellcheck: new-spec
+
+111 passed, 5 failed
+failed:
+  - shellcheck: flow-lint
+  - shellcheck: tests/test_agents.sh
+  - shellcheck: tests/test_evals.sh
+  - shellcheck: tests/test_plugin_refs.sh
+  - shellcheck: tests/test_finish.sh
