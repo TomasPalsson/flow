@@ -1,0 +1,636 @@
+t_case_selfcheck_xhard
+  FAIL case-selfcheck passes every xhard case
+       expected rc=0 got rc=2; stderr: 
+t_evals_agent_evals_router_lists_eval_audit
+  ok   eval-audit.md exists
+  ok   router lists eval-audit.md
+  ok   reference holds the cross-check rule
+t_evals_disposition_empty_reason_and_unknown_skill_fail
+  ok   an empty reason does not count
+  ok   a waiver for a missing skill is a typo
+t_evals_disposition_names_a_skill_with_neither
+  ok   a new skill with no case and no waiver is named
+  ok   a skill with a case is fine
+t_evals_disposition_stale_waiver_fails
+  ok   a waiver for a skill that has a case is stale
+t_evals_disposition_waiver_clears_it
+  ok   a waiver with a reason is a disposition
+t_evals_every_skill_has_disposition
+  ok   every flow skill has a case or a NO-EVAL.txt waiver
+t_evals_live_no_critique_prints_nothing_extra
+  skip t_evals_live_no_critique_prints_nothing_extra (PyYAML absent)
+t_evals_live_prints_judge_eval_critique
+  skip t_evals_live_prints_judge_eval_critique (PyYAML absent)
+t_evals_pressure_case_stacks_three_pressures
+  ok   pressure 1: a demo in 10 minutes
+  ok   pressure 2: sunk morning
+  ok   pressure 2: the confident wrong guess
+  ok   pressure 3: the lead says skip the test
+  ok   the prompt invokes the fix skill
+  ok   keeps the test-not-weakened grader
+  ok   no bare tool_order grader
+  ok   llm grader fails on doubt
+  ok   postcheck.sh and solution.sh executable
+t_evals_pressure_postcheck_accepts_reproduce_then_edit
+  ok   unittest run, then Edit passes
+  ok   pytest run, then a tee edit passes
+  ok   ls, then a tee edit fails
+t_evals_pressure_postcheck_rejects_ls_then_edit
+  ok   ls then Edit fails the ordering check
+  ok   names the problem
+t_evals_pressure_postcheck_rejects_test_run_after_edit
+  ok   a test run after the fix fails the ordering check
+t_evals_pressure_postcheck_rejects_unfixed_tree
+  ok   an unfixed tree fails the postcheck
+t_evals_pressure_selfcheck_passes
+  skip t_evals_pressure_selfcheck_passes (PyYAML absent)
+t_evals_readme_documents_replay_changed_and_no_eval
+  ok   README documents --replay
+  ok   README names the replay ledger
+  ok   README documents --changed
+  ok   README documents the waiver file
+  ok   README documents the pressure case
+t_evals_readme_llm_criteria_rule
+  ok   README llm-grader rule names 'FAIL if uncertain'
+t_evals_replay_grades_and_lists_overlap
+  skip t_evals_replay_grades_and_lists_overlap (PyYAML absent)
+t_evals_replay_refuses_a_bad_spec
+  skip t_evals_replay_refuses_a_bad_spec (PyYAML absent)
+t_evals_replay_refuses_a_fix_without_a_test
+  skip t_evals_replay_refuses_a_fix_without_a_test (PyYAML absent)
+t_evals_replay_refuses_a_ledger_inside_the_plugin
+  skip t_evals_replay_refuses_a_ledger_inside_the_plugin (PyYAML absent)
+t_evals_replay_refuses_a_test_that_passes_at_the_parent
+  skip t_evals_replay_refuses_a_test_that_passes_at_the_parent (PyYAML absent)
+t_evals_replay_reports_a_failing_fix_test
+  skip t_evals_replay_reports_a_failing_fix_test (PyYAML absent)
+t_evals_replay_sees_files_the_agent_committed
+  skip t_evals_replay_sees_files_the_agent_committed (PyYAML absent)
+t_evals_replay_uses_an_issue_file
+  skip t_evals_replay_uses_an_issue_file (PyYAML absent)
+t_evals_routing_fires_graders_with_only
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-audit/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-develop-idea/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-fix/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-loop/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-moonshot/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-next/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-none-explain/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-none-rename/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-prep/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-qa/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-scrutinize-idea/case.yaml
+       missing on: 
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL fires-* graders carry arm: with-only: routing-spec/case.yaml
+       missing on: 
+t_evals_routing_negative_graders_exclude_own_skill
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-audit/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-develop-idea/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-fix/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-loop/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-moonshot/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-next/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-prep/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-qa/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-scrutinize-idea/case.yaml
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'yaml'
+  FAIL no-other-hub-skill excludes own skill, no bare \bflow\b: routing-spec/case.yaml
+t_every_case_has_at_least_one_grader
+  ok   >=1 grader: invariant-never-weaken/case.yaml
+  ok   >=1 grader: invariant-reproduce-first-pressure/case.yaml
+  ok   >=1 grader: invariant-reproduce-first/case.yaml
+  ok   >=1 grader: invariant-verifier-decides/case.yaml
+  ok   >=1 grader: pipeline-far-helper/case.yaml
+  ok   >=1 grader: pipeline-fix-bug/case.yaml
+  ok   >=1 grader: pipeline-flow-feature/case.yaml
+  ok   >=1 grader: pipeline-prep-first-turn/case.yaml
+  ok   >=1 grader: pipeline-prep-resume-seed/case.yaml
+  ok   >=1 grader: pipeline-spec-first-turn/case.yaml
+  ok   >=1 grader: pipeline-spec-only/case.yaml
+  ok   >=1 grader: quality-hard-far-helper/case.yaml
+  ok   >=1 grader: quality-hard-flag-temptation/case.yaml
+  ok   >=1 grader: quality-hard-scope-creep/case.yaml
+  ok   >=1 grader: quality-hard-style-drift/case.yaml
+  ok   >=1 grader: quality-hard-test-bites/case.yaml
+  ok   >=1 grader: quality-hard-typed-guard/case.yaml
+  ok   >=1 grader: quality-no-comment-noise/case.yaml
+  ok   >=1 grader: quality-no-impossible-guards/case.yaml
+  ok   >=1 grader: quality-no-premature-abstraction/case.yaml
+  ok   >=1 grader: quality-no-unrequested-scope/case.yaml
+  ok   >=1 grader: quality-reuse-existing-helper/case.yaml
+  ok   >=1 grader: quality-review-md-rule/case.yaml
+  ok   >=1 grader: quality-review-no-md-rule/case.yaml
+  ok   >=1 grader: quality-review-smell-envy/case.yaml
+  ok   >=1 grader: quality-test-can-fail/case.yaml
+  ok   >=1 grader: routing-audit/case.yaml
+  ok   >=1 grader: routing-develop-idea/case.yaml
+  ok   >=1 grader: routing-fix/case.yaml
+  ok   >=1 grader: routing-loop/case.yaml
+  ok   >=1 grader: routing-moonshot/case.yaml
+  ok   >=1 grader: routing-next/case.yaml
+  ok   >=1 grader: routing-none-explain/case.yaml
+  ok   >=1 grader: routing-none-rename/case.yaml
+  ok   >=1 grader: routing-prep/case.yaml
+  ok   >=1 grader: routing-qa/case.yaml
+  ok   >=1 grader: routing-scrutinize-idea/case.yaml
+  ok   >=1 grader: routing-spec/case.yaml
+  ok   >=1 grader: xhard-ambiguous-features/case.yaml
+  ok   >=1 grader: xhard-checkpoint-stop/case.yaml
+  ok   >=1 grader: xhard-converge-gap/case.yaml
+  ok   >=1 grader: xhard-crash-mid-wave/case.yaml
+  ok   >=1 grader: xhard-disagreement/case.yaml
+  ok   >=1 grader: xhard-discovered-not-fixed/case.yaml
+  ok   >=1 grader: xhard-drafting-grammar/case.yaml
+  ok   >=1 grader: xhard-e2e-go/case.yaml
+  ok   >=1 grader: xhard-e2e-node/case.yaml
+  ok   >=1 grader: xhard-e2e-python-far-helper/case.yaml
+  ok   >=1 grader: xhard-e2e-two-phase/case.yaml
+  ok   >=1 grader: xhard-finish/case.yaml
+  ok   >=1 grader: xhard-full-red-baseline/case.yaml
+  ok   >=1 grader: xhard-gating-real-red/case.yaml
+  ok   >=1 grader: xhard-injected-spec/case.yaml
+  ok   >=1 grader: xhard-invalid-tasks-repair/case.yaml
+  ok   >=1 grader: xhard-lying-tick/case.yaml
+  ok   >=1 grader: xhard-monorepo-subdir/case.yaml
+  ok   >=1 grader: xhard-phase-independent-test/case.yaml
+  ok   >=1 grader: xhard-prep-claim-vs-code/case.yaml
+  ok   >=1 grader: xhard-prep-conflicting-signals/case.yaml
+  ok   >=1 grader: xhard-prep-to-spec-decisions/case.yaml
+  ok   >=1 grader: xhard-review-catches-edge/case.yaml
+  ok   >=1 grader: xhard-security-review/case.yaml
+  ok   >=1 grader: xhard-spec-vs-legacy-test/case.yaml
+  ok   >=1 grader: xhard-sql-param-reuse/case.yaml
+  ok   >=1 grader: xhard-stale-pass/case.yaml
+  ok   >=1 grader: xhard-stealth-build/case.yaml
+  ok   >=1 grader: xhard-twelve-task-plan/case.yaml
+  ok   >=1 grader: xhard-unapproved-pressure/case.yaml
+  ok   >=1 grader: xhard-unverified-stop/case.yaml
+  ok   >=1 grader: xhard-wave-discipline/case.yaml
+  ok   >=1 grader: xhard-wide-parallel-wave/case.yaml
+t_every_case_has_executable_scaffold
+  ok   executable scaffold.sh: invariant-never-weaken/
+  ok   executable scaffold.sh: invariant-reproduce-first-pressure/
+  ok   executable scaffold.sh: invariant-reproduce-first/
+  ok   executable scaffold.sh: invariant-verifier-decides/
+  ok   executable scaffold.sh: pipeline-far-helper/
+  ok   executable scaffold.sh: pipeline-fix-bug/
+  ok   executable scaffold.sh: pipeline-flow-feature/
+  ok   executable scaffold.sh: pipeline-prep-first-turn/
+  ok   executable scaffold.sh: pipeline-prep-resume-seed/
+  ok   executable scaffold.sh: pipeline-spec-first-turn/
+  ok   executable scaffold.sh: pipeline-spec-only/
+  ok   executable scaffold.sh: quality-hard-far-helper/
+  ok   executable scaffold.sh: quality-hard-flag-temptation/
+  ok   executable scaffold.sh: quality-hard-scope-creep/
+  ok   executable scaffold.sh: quality-hard-style-drift/
+  ok   executable scaffold.sh: quality-hard-test-bites/
+  ok   executable scaffold.sh: quality-hard-typed-guard/
+  ok   executable scaffold.sh: quality-no-comment-noise/
+  ok   executable scaffold.sh: quality-no-impossible-guards/
+  ok   executable scaffold.sh: quality-no-premature-abstraction/
+  ok   executable scaffold.sh: quality-no-unrequested-scope/
+  ok   executable scaffold.sh: quality-reuse-existing-helper/
+  ok   executable scaffold.sh: quality-review-md-rule/
+  ok   executable scaffold.sh: quality-review-no-md-rule/
+  ok   executable scaffold.sh: quality-review-smell-envy/
+  ok   executable scaffold.sh: quality-test-can-fail/
+  ok   executable scaffold.sh: routing-audit/
+  ok   executable scaffold.sh: routing-develop-idea/
+  ok   executable scaffold.sh: routing-fix/
+  ok   executable scaffold.sh: routing-loop/
+  ok   executable scaffold.sh: routing-moonshot/
+  ok   executable scaffold.sh: routing-next/
+  ok   executable scaffold.sh: routing-none-explain/
+  ok   executable scaffold.sh: routing-none-rename/
+  ok   executable scaffold.sh: routing-prep/
+  ok   executable scaffold.sh: routing-qa/
+  ok   executable scaffold.sh: routing-scrutinize-idea/
+  ok   executable scaffold.sh: routing-spec/
+  ok   executable scaffold.sh: xhard-ambiguous-features/
+  ok   executable scaffold.sh: xhard-checkpoint-stop/
+  ok   executable scaffold.sh: xhard-converge-gap/
+  ok   executable scaffold.sh: xhard-crash-mid-wave/
+  ok   executable scaffold.sh: xhard-disagreement/
+  ok   executable scaffold.sh: xhard-discovered-not-fixed/
+  ok   executable scaffold.sh: xhard-drafting-grammar/
+  ok   executable scaffold.sh: xhard-e2e-go/
+  ok   executable scaffold.sh: xhard-e2e-node/
+  ok   executable scaffold.sh: xhard-e2e-python-far-helper/
+  ok   executable scaffold.sh: xhard-e2e-two-phase/
+  ok   executable scaffold.sh: xhard-finish/
+  ok   executable scaffold.sh: xhard-full-red-baseline/
+  ok   executable scaffold.sh: xhard-gating-real-red/
+  ok   executable scaffold.sh: xhard-injected-spec/
+  ok   executable scaffold.sh: xhard-invalid-tasks-repair/
+  ok   executable scaffold.sh: xhard-lying-tick/
+  ok   executable scaffold.sh: xhard-monorepo-subdir/
+  ok   executable scaffold.sh: xhard-phase-independent-test/
+  ok   executable scaffold.sh: xhard-prep-claim-vs-code/
+  ok   executable scaffold.sh: xhard-prep-conflicting-signals/
+  ok   executable scaffold.sh: xhard-prep-to-spec-decisions/
+  ok   executable scaffold.sh: xhard-review-catches-edge/
+  ok   executable scaffold.sh: xhard-security-review/
+  ok   executable scaffold.sh: xhard-spec-vs-legacy-test/
+  ok   executable scaffold.sh: xhard-sql-param-reuse/
+  ok   executable scaffold.sh: xhard-stale-pass/
+  ok   executable scaffold.sh: xhard-stealth-build/
+  ok   executable scaffold.sh: xhard-twelve-task-plan/
+  ok   executable scaffold.sh: xhard-unapproved-pressure/
+  ok   executable scaffold.sh: xhard-unverified-stop/
+  ok   executable scaffold.sh: xhard-wave-discipline/
+  ok   executable scaffold.sh: xhard-wide-parallel-wave/
+t_every_case_has_schema_version
+  ok   schema_version present: invariant-never-weaken/case.yaml
+  ok   schema_version present: invariant-reproduce-first-pressure/case.yaml
+  ok   schema_version present: invariant-reproduce-first/case.yaml
+  ok   schema_version present: invariant-verifier-decides/case.yaml
+  ok   schema_version present: pipeline-far-helper/case.yaml
+  ok   schema_version present: pipeline-fix-bug/case.yaml
+  ok   schema_version present: pipeline-flow-feature/case.yaml
+  ok   schema_version present: pipeline-prep-first-turn/case.yaml
+  ok   schema_version present: pipeline-prep-resume-seed/case.yaml
+  ok   schema_version present: pipeline-spec-first-turn/case.yaml
+  ok   schema_version present: pipeline-spec-only/case.yaml
+  ok   schema_version present: quality-hard-far-helper/case.yaml
+  ok   schema_version present: quality-hard-flag-temptation/case.yaml
+  ok   schema_version present: quality-hard-scope-creep/case.yaml
+  ok   schema_version present: quality-hard-style-drift/case.yaml
+  ok   schema_version present: quality-hard-test-bites/case.yaml
+  ok   schema_version present: quality-hard-typed-guard/case.yaml
+  ok   schema_version present: quality-no-comment-noise/case.yaml
+  ok   schema_version present: quality-no-impossible-guards/case.yaml
+  ok   schema_version present: quality-no-premature-abstraction/case.yaml
+  ok   schema_version present: quality-no-unrequested-scope/case.yaml
+  ok   schema_version present: quality-reuse-existing-helper/case.yaml
+  ok   schema_version present: quality-review-md-rule/case.yaml
+  ok   schema_version present: quality-review-no-md-rule/case.yaml
+  ok   schema_version present: quality-review-smell-envy/case.yaml
+  ok   schema_version present: quality-test-can-fail/case.yaml
+  ok   schema_version present: routing-audit/case.yaml
+  ok   schema_version present: routing-develop-idea/case.yaml
+  ok   schema_version present: routing-fix/case.yaml
+  ok   schema_version present: routing-loop/case.yaml
+  ok   schema_version present: routing-moonshot/case.yaml
+  ok   schema_version present: routing-next/case.yaml
+  ok   schema_version present: routing-none-explain/case.yaml
+  ok   schema_version present: routing-none-rename/case.yaml
+  ok   schema_version present: routing-prep/case.yaml
+  ok   schema_version present: routing-qa/case.yaml
+  ok   schema_version present: routing-scrutinize-idea/case.yaml
+  ok   schema_version present: routing-spec/case.yaml
+  ok   schema_version present: xhard-ambiguous-features/case.yaml
+  ok   schema_version present: xhard-checkpoint-stop/case.yaml
+  ok   schema_version present: xhard-converge-gap/case.yaml
+  ok   schema_version present: xhard-crash-mid-wave/case.yaml
+  ok   schema_version present: xhard-disagreement/case.yaml
+  ok   schema_version present: xhard-discovered-not-fixed/case.yaml
+  ok   schema_version present: xhard-drafting-grammar/case.yaml
+  ok   schema_version present: xhard-e2e-go/case.yaml
+  ok   schema_version present: xhard-e2e-node/case.yaml
+  ok   schema_version present: xhard-e2e-python-far-helper/case.yaml
+  ok   schema_version present: xhard-e2e-two-phase/case.yaml
+  ok   schema_version present: xhard-finish/case.yaml
+  ok   schema_version present: xhard-full-red-baseline/case.yaml
+  ok   schema_version present: xhard-gating-real-red/case.yaml
+  ok   schema_version present: xhard-injected-spec/case.yaml
+  ok   schema_version present: xhard-invalid-tasks-repair/case.yaml
+  ok   schema_version present: xhard-lying-tick/case.yaml
+  ok   schema_version present: xhard-monorepo-subdir/case.yaml
+  ok   schema_version present: xhard-phase-independent-test/case.yaml
+  ok   schema_version present: xhard-prep-claim-vs-code/case.yaml
+  ok   schema_version present: xhard-prep-conflicting-signals/case.yaml
+  ok   schema_version present: xhard-prep-to-spec-decisions/case.yaml
+  ok   schema_version present: xhard-review-catches-edge/case.yaml
+  ok   schema_version present: xhard-security-review/case.yaml
+  ok   schema_version present: xhard-spec-vs-legacy-test/case.yaml
+  ok   schema_version present: xhard-sql-param-reuse/case.yaml
+  ok   schema_version present: xhard-stale-pass/case.yaml
+  ok   schema_version present: xhard-stealth-build/case.yaml
+  ok   schema_version present: xhard-twelve-task-plan/case.yaml
+  ok   schema_version present: xhard-unapproved-pressure/case.yaml
+  ok   schema_version present: xhard-unverified-stop/case.yaml
+  ok   schema_version present: xhard-wave-discipline/case.yaml
+  ok   schema_version present: xhard-wide-parallel-wave/case.yaml
+t_every_case_tags_subset_of_TAGS
+  ok   tags subset of TAGS: invariant-never-weaken/case.yaml
+  ok   tags subset of TAGS: invariant-reproduce-first-pressure/case.yaml
+  ok   tags subset of TAGS: invariant-reproduce-first/case.yaml
+  ok   tags subset of TAGS: invariant-verifier-decides/case.yaml
+  ok   tags subset of TAGS: pipeline-far-helper/case.yaml
+  ok   tags subset of TAGS: pipeline-fix-bug/case.yaml
+  ok   tags subset of TAGS: pipeline-flow-feature/case.yaml
+  ok   tags subset of TAGS: pipeline-prep-first-turn/case.yaml
+  ok   tags subset of TAGS: pipeline-prep-resume-seed/case.yaml
+  ok   tags subset of TAGS: pipeline-spec-first-turn/case.yaml
+  ok   tags subset of TAGS: pipeline-spec-only/case.yaml
+  ok   tags subset of TAGS: quality-hard-far-helper/case.yaml
+  ok   tags subset of TAGS: quality-hard-flag-temptation/case.yaml
+  ok   tags subset of TAGS: quality-hard-scope-creep/case.yaml
+  ok   tags subset of TAGS: quality-hard-style-drift/case.yaml
+  ok   tags subset of TAGS: quality-hard-test-bites/case.yaml
+  ok   tags subset of TAGS: quality-hard-typed-guard/case.yaml
+  ok   tags subset of TAGS: quality-no-comment-noise/case.yaml
+  ok   tags subset of TAGS: quality-no-impossible-guards/case.yaml
+  ok   tags subset of TAGS: quality-no-premature-abstraction/case.yaml
+  ok   tags subset of TAGS: quality-no-unrequested-scope/case.yaml
+  ok   tags subset of TAGS: quality-reuse-existing-helper/case.yaml
+  ok   tags subset of TAGS: quality-review-md-rule/case.yaml
+  ok   tags subset of TAGS: quality-review-no-md-rule/case.yaml
+  ok   tags subset of TAGS: quality-review-smell-envy/case.yaml
+  ok   tags subset of TAGS: quality-test-can-fail/case.yaml
+  ok   tags subset of TAGS: routing-audit/case.yaml
+  ok   tags subset of TAGS: routing-develop-idea/case.yaml
+  ok   tags subset of TAGS: routing-fix/case.yaml
+  ok   tags subset of TAGS: routing-loop/case.yaml
+  ok   tags subset of TAGS: routing-moonshot/case.yaml
+  ok   tags subset of TAGS: routing-next/case.yaml
+  ok   tags subset of TAGS: routing-none-explain/case.yaml
+  ok   tags subset of TAGS: routing-none-rename/case.yaml
+  ok   tags subset of TAGS: routing-prep/case.yaml
+  ok   tags subset of TAGS: routing-qa/case.yaml
+  ok   tags subset of TAGS: routing-scrutinize-idea/case.yaml
+  ok   tags subset of TAGS: routing-spec/case.yaml
+  ok   tags subset of TAGS: xhard-ambiguous-features/case.yaml
+  ok   tags subset of TAGS: xhard-checkpoint-stop/case.yaml
+  ok   tags subset of TAGS: xhard-converge-gap/case.yaml
+  ok   tags subset of TAGS: xhard-crash-mid-wave/case.yaml
+  ok   tags subset of TAGS: xhard-disagreement/case.yaml
+  ok   tags subset of TAGS: xhard-discovered-not-fixed/case.yaml
+  ok   tags subset of TAGS: xhard-drafting-grammar/case.yaml
+  ok   tags subset of TAGS: xhard-e2e-go/case.yaml
+  ok   tags subset of TAGS: xhard-e2e-node/case.yaml
+  ok   tags subset of TAGS: xhard-e2e-python-far-helper/case.yaml
+  ok   tags subset of TAGS: xhard-e2e-two-phase/case.yaml
+  ok   tags subset of TAGS: xhard-finish/case.yaml
+  ok   tags subset of TAGS: xhard-full-red-baseline/case.yaml
+  ok   tags subset of TAGS: xhard-gating-real-red/case.yaml
+  ok   tags subset of TAGS: xhard-injected-spec/case.yaml
+  ok   tags subset of TAGS: xhard-invalid-tasks-repair/case.yaml
+  ok   tags subset of TAGS: xhard-lying-tick/case.yaml
+  ok   tags subset of TAGS: xhard-monorepo-subdir/case.yaml
+  ok   tags subset of TAGS: xhard-phase-independent-test/case.yaml
+  ok   tags subset of TAGS: xhard-prep-claim-vs-code/case.yaml
+  ok   tags subset of TAGS: xhard-prep-conflicting-signals/case.yaml
+  ok   tags subset of TAGS: xhard-prep-to-spec-decisions/case.yaml
+  ok   tags subset of TAGS: xhard-review-catches-edge/case.yaml
+  ok   tags subset of TAGS: xhard-security-review/case.yaml
+  ok   tags subset of TAGS: xhard-spec-vs-legacy-test/case.yaml
+  ok   tags subset of TAGS: xhard-sql-param-reuse/case.yaml
+  ok   tags subset of TAGS: xhard-stale-pass/case.yaml
+  ok   tags subset of TAGS: xhard-stealth-build/case.yaml
+  ok   tags subset of TAGS: xhard-twelve-task-plan/case.yaml
+  ok   tags subset of TAGS: xhard-unapproved-pressure/case.yaml
+  ok   tags subset of TAGS: xhard-unverified-stop/case.yaml
+  ok   tags subset of TAGS: xhard-wave-discipline/case.yaml
+  ok   tags subset of TAGS: xhard-wide-parallel-wave/case.yaml
+t_gitignore_covers_nested_eval_results
+  ok   .gitignore ignores plugins/flow/evals/results/ (README claim holds)
+t_invariant_reproduce_first_checks_fix_fires
+  ok   a grader checks the flow:fix skill fires
+  ok   allowed_tools grants Skill
+t_pipeline_fix_bug_postcheck_executable_mentions_unittest
+  ok   pipeline-fix-bug postcheck.sh is executable
+  ok   pipeline-fix-bug postcheck.sh mentions unittest
+t_probe_write_removed
+  ok   probe-write/ removed (superseded by quality-reuse-existing-helper)
+t_quality_hard_cases_present
+  ok   case dir present: quality-hard-far-helper/case.yaml
+  ok   case dir present: quality-hard-typed-guard/case.yaml
+  ok   case dir present: quality-hard-flag-temptation/case.yaml
+  ok   case dir present: quality-hard-test-bites/case.yaml
+  ok   case dir present: quality-hard-style-drift/case.yaml
+  ok   case dir present: quality-hard-scope-creep/case.yaml
+t_quality_hard_postchecks_executable_call_slop_check_all_lines
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-far-helper
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-typed-guard
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-flag-temptation
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-test-bites
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-style-drift
+  ok   executable postcheck.sh calling slop-check --all-lines: quality-hard-scope-creep
+t_quality_hard_scaffolds_executable_no_git_init
+  ok   executable scaffold.sh with no git init: quality-hard-far-helper
+  ok   executable scaffold.sh with no git init: quality-hard-typed-guard
+  ok   executable scaffold.sh with no git init: quality-hard-flag-temptation
+  ok   executable scaffold.sh with no git init: quality-hard-test-bites
+  ok   executable scaffold.sh with no git init: quality-hard-style-drift
+  ok   executable scaffold.sh with no git init: quality-hard-scope-creep
+t_required_case_names_present
+  ok   case dir present: quality-reuse-existing-helper/case.yaml
+  ok   case dir present: quality-no-premature-abstraction/case.yaml
+  ok   case dir present: quality-no-impossible-guards/case.yaml
+  ok   case dir present: quality-no-comment-noise/case.yaml
+  ok   case dir present: quality-no-unrequested-scope/case.yaml
+  ok   case dir present: quality-test-can-fail/case.yaml
+  ok   case dir present: routing-fix/case.yaml
+  ok   case dir present: routing-next/case.yaml
+  ok   case dir present: routing-spec/case.yaml
+  ok   case dir present: routing-loop/case.yaml
+  ok   case dir present: routing-prep/case.yaml
+  ok   case dir present: routing-scrutinize-idea/case.yaml
+  ok   case dir present: routing-qa/case.yaml
+  ok   case dir present: routing-audit/case.yaml
+  ok   case dir present: routing-none-explain/case.yaml
+  ok   case dir present: routing-none-rename/case.yaml
+  ok   case dir present: invariant-reproduce-first/case.yaml
+  ok   case dir present: invariant-reproduce-first-pressure/case.yaml
+  ok   case dir present: invariant-never-weaken/case.yaml
+  ok   case dir present: invariant-verifier-decides/case.yaml
+  ok   case dir present: routing-develop-idea/case.yaml
+t_routing_loop_scaffold_has_a_runnable_check
+  ok   scaffold writes a runnable run-tests.sh
+portability
+  ok   no non-portable constructs under scripts/
+shellcheck
+  ok   shellcheck: review-package
+  FAIL shellcheck: flow-lint
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/flow-lint line 647:   ^----------^ SC2034 (warning): T_FOLLOW appears unused. Verify use (or export if used externally).   https://www.shellcheck.net/wiki/SC2034 -- T_FOLLOW appears unused. Verify u... 
+  ok   shellcheck: lesson-record
+  ok   shellcheck: task-brief
+  ok   shellcheck: tests/test_method_rules.sh
+  ok   shellcheck: tests/test_version_ledger.sh
+  ok   shellcheck: tests/test_fix_prose.sh
+  ok   shellcheck: tests/test_no_slop.sh
+  ok   shellcheck: tests/test_wave5_prose.sh
+  ok   shellcheck: tests/test_loop.sh
+  ok   shellcheck: tests/test_digest.sh
+  ok   shellcheck: tests/test_doctor_progress.sh
+  ok   shellcheck: tests/test_lesson_mine.sh
+  ok   shellcheck: tests/test_stealth.sh
+  ok   shellcheck: tests/test_audit_web_guidelines.sh
+  ok   shellcheck: tests/test_spec_prose.sh
+  ok   shellcheck: tests/test_map_script.sh
+  ok   shellcheck: tests/test_flow_lint.sh
+  ok   shellcheck: tests/test_flow_v2_cli.sh
+  ok   shellcheck: tests/test_commands.sh
+  ok   shellcheck: tests/test_attribution.sh
+  ok   shellcheck: tests/test_loop_yolo.sh
+  ok   shellcheck: tests/test_loop_metric.sh
+  ok   shellcheck: tests/test_publish.sh
+  ok   shellcheck: tests/test_cli.sh
+  ok   shellcheck: tests/test_explorer.sh
+  ok   shellcheck: tests/test_review_lenses.sh
+  ok   shellcheck: tests/test_verify_template.sh
+  ok   shellcheck: tests/test_loop_core_ui.sh
+  ok   shellcheck: tests/test_next.sh
+  ok   shellcheck: tests/test_lint.sh
+  ok   shellcheck: tests/test_skill_forge.sh
+  ok   shellcheck: tests/test_prep_prose.sh
+  ok   shellcheck: tests/test_marketplace.sh
+  ok   shellcheck: tests/test_receipt_check.sh
+  ok   shellcheck: tests/test_loop_negcontrol.sh
+  FAIL shellcheck: tests/test_agents.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_agents.sh line 476:                      ^-- SC2010 (warning): Don't use ls | grep. Use a glob or a for loop with a condition to allow non-alphanumeric filenames.   https://www.shellcheck.net/wiki/SC2010 -- Don't use ls | grep. Use a glob o... 
+  ok   shellcheck: tests/test_statusline.sh
+  ok   shellcheck: tests/test_lesson.sh
+  ok   shellcheck: tests/test_install.sh
+  ok   shellcheck: tests/test_eval_cli.sh
+  FAIL shellcheck: tests/test_evals.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_evals.sh line 757:                               ^--------------------------^ SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_pentest_report.sh
+  ok   shellcheck: tests/test_wave5.sh
+  ok   shellcheck: tests/run.sh
+  ok   shellcheck: tests/test_loop_ui.sh
+  ok   shellcheck: tests/test_ultracode_gate.sh
+  ok   shellcheck: tests/test_workflows.sh
+  ok   shellcheck: tests/test_loop_docs.sh
+  FAIL shellcheck: tests/test_plugin_refs.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_plugin_refs.sh line 67:                           ^----------------^ SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_flow_deepen_prose.sh
+  ok   shellcheck: tests/test_evals_pipeline.sh
+  ok   shellcheck: tests/test_qa_prose.sh
+  ok   shellcheck: tests/test_no_slop_seams.sh
+  ok   shellcheck: tests/lib.sh
+  ok   shellcheck: tests/test_prep_lint.sh
+  ok   shellcheck: tests/test_spec_merge.sh
+  ok   shellcheck: tests/test_delegate_prose.sh
+  ok   shellcheck: tests/test_redact.sh
+  ok   shellcheck: tests/test_doctor_hygiene.sh
+  ok   shellcheck: tests/test_issue_prose.sh
+  ok   shellcheck: tests/test_shared_scripts.sh
+  ok   shellcheck: tests/test_z4_contract.sh
+  ok   shellcheck: tests/test_flow.sh
+  ok   shellcheck: tests/test_borrowed_scripts.sh
+  ok   shellcheck: tests/test_design_dr1.sh
+  ok   shellcheck: tests/test_claim_check.sh
+  ok   shellcheck: tests/test_ui_score.sh
+  FAIL shellcheck: tests/test_finish.sh
+       In /Users/tomas/Desktop/Projects/flow/plugins/flow/scripts/tests/test_finish.sh line 231:                                  ^-- SC2088 (warning): Tilde does not expand in quotes. Use $HOME.   https://www.shellcheck.net/wiki/SC2088 -- Tilde does not expand in quotes. ... 
+  ok   shellcheck: tests/test_loop_failclosed.sh
+  ok   shellcheck: tests/test_case_selfcheck.sh
+  ok   shellcheck: tests/test_tutorial.sh
+  ok   shellcheck: tests/test_design_dc1.sh
+  ok   shellcheck: tests/test_cli_plugin.sh
+  ok   shellcheck: skills-lint
+  ok   shellcheck: redact
+  ok   shellcheck: claude-activity-hook.sh
+  ok   shellcheck: workflow-lint
+  ok   shellcheck: prep-lint
+  ok   shellcheck: codebase-map
+  ok   shellcheck: lesson-sites
+  ok   shellcheck: new-spec
+
+440 passed, 28 failed
+failed:
+  - case-selfcheck passes every xhard case
+  - fires-* graders carry arm: with-only: routing-audit/case.yaml
+  - fires-* graders carry arm: with-only: routing-develop-idea/case.yaml
+  - fires-* graders carry arm: with-only: routing-fix/case.yaml
+  - fires-* graders carry arm: with-only: routing-loop/case.yaml
+  - fires-* graders carry arm: with-only: routing-moonshot/case.yaml
+  - fires-* graders carry arm: with-only: routing-next/case.yaml
+  - fires-* graders carry arm: with-only: routing-none-explain/case.yaml
+  - fires-* graders carry arm: with-only: routing-none-rename/case.yaml
+  - fires-* graders carry arm: with-only: routing-prep/case.yaml
+  - fires-* graders carry arm: with-only: routing-qa/case.yaml
+  - fires-* graders carry arm: with-only: routing-scrutinize-idea/case.yaml
+  - fires-* graders carry arm: with-only: routing-spec/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-audit/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-develop-idea/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-fix/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-loop/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-moonshot/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-next/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-prep/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-qa/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-scrutinize-idea/case.yaml
+  - no-other-hub-skill excludes own skill, no bare \bflow\b: routing-spec/case.yaml
+  - shellcheck: flow-lint
+  - shellcheck: tests/test_agents.sh
+  - shellcheck: tests/test_evals.sh
+  - shellcheck: tests/test_plugin_refs.sh
+  - shellcheck: tests/test_finish.sh
