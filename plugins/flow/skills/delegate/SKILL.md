@@ -32,7 +32,7 @@ Pick the cheapest model that fits, and say why when you go above Sonnet.
 | Sonnet | writing code, judging a diff | full template below |
 | Opus | a task Sonnet already failed with a good brief, or a subtle concurrency or security review | full template, plus the failed attempt |
 
-Pin `model` on every spawn, or name an agent type whose definition pins one. A spawn with neither inherits the session model, which is the one model a worker must not run on: never Fable when the session is on Fable, and never a fork, since a fork always runs on the session model.
+Pin `model` on every spawn, or name an agent type whose definition pins one. A spawn with neither inherits the session model, the most expensive one in play. A worker is never Fable, never a fork, since a fork always runs on the session model.
 
 When a Haiku result fails its check, re-run it on Sonnet. Do not repair it on the session model. When a Sonnet result is weak, fix the brief and re-run before moving up.
 
