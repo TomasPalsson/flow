@@ -50,8 +50,9 @@
 - ultracode
 - verify-skill
 
-## flow (13 skills + shared)
+## flow (14 skills + shared)
 
+- delegate
 - develop-idea
 - fix
 - flow-deepen
