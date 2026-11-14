@@ -79,7 +79,7 @@ async function audit(page) {
         if (rb.left - X < W * 0.3) brandWords += words; else if (!n.parentElement.closest('a[href], button')) contentWords += words;
       }
       const rest = ctrls.filter((c) => c.getBoundingClientRect().left - X >= W * 0.3);
-      const rightCluster = rest.length >= 1 && rest.every((c) => c.getBoundingClientRect().left - X > W * 0.45);
+      const rightCluster = rest.length >= 1 && rest.every((c) => c.getBoundingClientRect().left - X > W * 0.38);
       o.templateTopBar = brandWords > 0 && rightCluster && contentWords <= 3 ? `${rest.length} controls clustered right of the brand, ${contentWords} words of content` : null;
     }
     // the same section-head arrangement on most sections
