@@ -15,20 +15,18 @@ Three rules sit under everything in this file:
 
 ## 1. Tokens
 
-Put these on `:root` (extend existing tokens in extend mode; never add a parallel set). Every transition on the page uses them; one duration and one curve for everything is itself a tell.
+Put these on `:root` (extend existing tokens in extend mode; never add a parallel set). Every transition on the page uses them; one duration and one curve for everything is itself a tell. The values are **ranges**: choose each one in the spec from the concept's character (a calm service sits low and slow in each range, a tool for specialists sits crisp), so two projects never share one set. Copying a single set of numbers onto every project makes every site move the same.
 
-```css
-:root {
-  --ease-out: cubic-bezier(.22, 1, .36, 1);      /* enters, hover, press release */
-  --ease-in-out: cubic-bezier(.65, 0, .35, 1);   /* something already on screen moving A to B */
-  --ease-drawer: cubic-bezier(.32, .72, 0, 1);   /* sheets, drawers, large panels */
-  --dur-press: 90ms;    /* :active */
-  --dur-hover: 150ms;   /* colour, underline, border */
-  --dur-small: 200ms;   /* popover, tooltip, toast, inline message */
-  --dur-medium: 280ms;  /* accordion, step change, modal */
-  --dur-large: 380ms;   /* drawer, full-screen menu, the one signature moment */
-}
-```
+| Token | Range | Job |
+|---|---|---|
+| `--ease-out` | a strong ease-out, e.g. `cubic-bezier(.2–.3, 1, .3–.5, 1)` | enters, hover, press release |
+| `--ease-in-out` | a symmetric ease-in-out | something already on screen moving A to B |
+| `--ease-drawer` | a fast-start, long-settle curve | sheets, drawers, large panels |
+| `--dur-press` | 70–120ms | `:active` |
+| `--dur-hover` | 110–180ms | colour, underline, border |
+| `--dur-small` | 160–240ms | popover, tooltip, toast, inline message |
+| `--dur-medium` | 220–320ms | accordion, step change, modal |
+| `--dur-large` | 320–450ms | drawer, full-screen menu, the one signature moment |
 
 Exit runs at about 70% of enter. `ease-in` never starts a UI motion. No bounce or elastic overshoot outside a physical drag release.
 

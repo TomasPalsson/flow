@@ -1,6 +1,6 @@
 ---
 name: design-spec
-description: Template and rules for the design spec written in Phase 3b, before any page code. Tokens, every piece of chrome (top bar, footer, actions, section heads, cards, fields, feedback) designed from the concept with its template default named and departed from, the section plan and the interaction inventory. The build follows the spec; changes go into the spec first.
+description: The decisions the design spec records in Phase 3b, before any page code. Tokens, every piece of chrome (top bar, footer, actions, section heads, cards, fields, feedback) designed from the concept with its template default named and departed from, the section plan and the interaction inventory. The build follows the spec; changes go into the spec first.
 ---
 
 # Design spec
@@ -8,6 +8,8 @@ description: Template and rules for the design spec written in Phase 3b, before 
 Generated pages differ in palette and font and then share everything else: the same top bar (wordmark left, links right, a bordered button at the far right, a hairline under it), the same section head (big tight h2 left, lede right), the same centred container, the same footer. The theme changes the skin and the chrome stays the template, because nothing ever decided the chrome. The spec decides it, in writing, before code.
 
 Write `.vary/design-spec.md` (in a repo that will keep it, `DESIGN.md` at the root; a repo that already has one is in extend mode and that file IS the spec). Keep it short: one line per decision, values not prose. Every later phase builds from it and checks against it.
+
+This file is a list of **questions**, not a form with sample answers. Nothing in it is a look, a shape or a value to copy: every answer comes from this client's dossier and concept. If an answer could be pasted into another client's spec unchanged, it is not an answer yet.
 
 ## 1. Concept
 
@@ -28,24 +30,24 @@ The `:root` block, written here first and copied into the build verbatim. The bu
 - **Type:** faces from `scripts/font-draw.mjs` with the reason for the pick; one row per role (display, h2, h3, body, small, label, numeric) with size, line-height, tracking and weight.
 - **Space:** the scale; **container widths by content type** (at least two: reading measure and wide), and which sections use which.
 - **Radius and elevation:** tiers, or "none" with the reason.
-- **Motion:** the `--ease-*`/`--dur-*` tokens from `references/microinteractions.md` §1, tuned to the concept within the ladder's ranges (a calm service sits at the slow end, a tool for specialists at the crisp end), and one line on its motion character ("paper: nothing lifts, things are stamped and slid").
+- **Motion:** the `--ease-*`/`--dur-*` tokens from `references/microinteractions.md` §1, tuned to the concept within the ladder's ranges (a calm service sits at the slow end, a tool for specialists at the crisp end),, and one line on how things move on this page and why, in this client's terms.
 
 ## 4. Chrome
 
-For each item, three lines: **Default** (what the template version would be, named concretely), **This build** (what it is instead, and the dossier fact or concept artefact it comes from), **States and motion** (its rows from the interaction inventory). Add **Phone** where it changes.
+For each item, three lines: **Default** (what the template version would be, named concretely), **This build** (what it is instead, and the dossier fact or concept it comes from), **States and motion** (its rows from the interaction inventory). Add **Phone** where it changes.
 
 Usability decides what must stay conventional; the concept decides everything else. Placement conventions (brand top-left linking home, nav findable at the top, menu button on phone, primary action reachable) are kept. What the chrome carries, its material, its geometry and its behaviour are this client's.
 
 | Item | What to decide |
 |---|---|
-| **Top bar** | Whether it carries anything besides brand, links and the primary action, and if so a fact the visitor genuinely needs at the top of every page, set in the page's own type, never as a status pill, a coloured dot or a ticking clock (those are a tell, T0a); its material (a ticket stub, a ledger rule, a recorder strip, a card header, a sign); its geometry (one row or two, a tab strip in the trade's form, docked to the hero, a left rail); its scroll state; its phone form. "Wordmark left, three links right, outlined button far right, hairline under" is the template: it is never the answer by default. New content in the template skeleton is not enough: the bar also differs in **geometry or material** (for example a two-tier bar whose tiers do different jobs, a brand set as the trade's sign or plate, links as tabs of the trade's artefact, a progress or summary line that is the nav on a task page, a bar that docks into the first screen, a phone bar at the bottom). Picture this bar on two other clients' sites in other trades: if it would fit there unchanged, redo it. |
-| **Footer** | What a visitor actually looks for at the bottom of this site (hours, address and map, the next date, how to get started, support) set in the page's material; not brand-left plus link columns. |
-| **Actions** | Primary, secondary and text link: shape, fill, label style, icon use, and press, loading and success states, drawn from the material (a stamp, a tab, a key, a tag), not the default solid rounded rectangle unless that is a deliberate choice with a reason. |
-| **Section heads** | At least two different head treatments, assigned to sections by job (a head that is a number, a head that is a date, a head inside the content, a running head). Never one layout repeated on every section; never the h2-left-lede-right pair by default. |
+| **Top bar** | What does this visitor need from the top of every page, and what can go? Does it carry anything besides brand, links and the primary action, and if so a fact needed on every page, set in the page's own type (never a status pill, coloured dot or ticking clock: T0a)? What is its geometry and material, decided from what the visitor does first on this page? How does it change on scroll and on a phone? "Wordmark left, links right, outlined button far right, hairline under" is the template and is never the answer by default; new content in that skeleton is not enough, the geometry or material must be this page's too. Picture the bar on two other clients' sites in other trades: if it would fit there unchanged, redo it. |
+| **Footer** | What does a visitor to this site look for at the bottom, and in what form does this page give it? Not brand-left plus link columns. |
+| **Actions** | Primary, secondary and text link: shape, fill, label style, icon use, and press, loading and success states, from this page's concept; the default solid rounded rectangle only as a deliberate choice with a reason. |
+| **Section heads** | At least two different head treatments, assigned to sections by what each section's content is. Never one layout repeated on every section; never the h2-left-lede-right pair by default. |
 | **Containers** | Which sections run at the reading measure, which run wide, which run full bleed, and where the grid breaks on purpose. Not one centred column for everything. |
-| **Cards, rows, list items** | The unit of content in the trade's own form (a ticket, a ledger line, a catalogue card), with its hover and selected states; whether it is clickable (only clickable units react to hover). |
+| **Cards, rows, list items** | The unit of content in this client's own terms, with its hover and selected states; whether it is clickable (only clickable units react to hover). |
 | **Fields and controls** | Inputs, selects, segmented controls, toggles: their material and states; conventional behaviour, skinned through tokens. |
-| **Feedback** | How the page says yes, no and wait: the confirmation, the cart or count, errors, empty states, loading. In the page's voice and material. |
+| **Feedback** | How the page says yes, no and wait: the confirmation, the cart or count, errors, empty states, loading. In the page's voice. |
 | **Signature interaction** | The one rare action and what happens (microinteractions.md §5). |
 
 ## 5. Layout and sections
