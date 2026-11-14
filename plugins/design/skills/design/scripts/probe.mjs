@@ -112,6 +112,7 @@ async function audit(page) {
     const anims = document.getAnimations();
     o.infiniteRunning = anims.filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations === Infinity).length;
     o.overflow = document.documentElement.scrollWidth > innerWidth + 1;
+    o.hiddenShown = [...document.querySelectorAll('[hidden]')].filter((el) => getComputedStyle(el).display !== 'none').map((el) => el.id || el.className || el.tagName).slice(0, 5);
     o.reducedMotionCSS = [...document.styleSheets].some((s) => { try { return [...s.cssRules].some((r) => (r.conditionText || r.media?.mediaText || '').includes('prefers-reduced-motion')); } catch { return false; } }) || /prefers-reduced-motion/.test(document.documentElement.innerHTML);
     // text that is still invisible after load anywhere on the page (candidates for scroll-reveal)
     const hidden = all.filter((el) => el.innerText && el.innerText.trim().length > 3 && el.childElementCount < 6 && parseFloat(getComputedStyle(el).opacity) < 0.05);
@@ -253,6 +254,7 @@ row(D.scrollRevealed < 3 && P.scrollRevealed < 3 ? 'PASS' : 'FAIL', 'no-scroll-r
 row(res.reduced.infinite === 0 ? 'PASS' : 'FAIL', 'reduced-motion', `${res.reduced.infinite} infinite animations still running under reduced motion; media query ${D.reducedMotionCSS ? 'present' : 'absent'}`);
 row(T.staticHover.length === 0 ? 'PASS' : 'FAIL', 'no-static-hover', `${T.staticHover.length} non-clickable blocks move or gain shadow on hover${list(T.staticHover, 4)}`);
 row(res.desktop.errors.length + res.phone.errors.length === 0 ? 'PASS' : 'FAIL', 'no-console-errors', list([...res.desktop.errors, ...res.phone.errors], 3) || 'none');
+row(D.hiddenShown.length === 0 ? 'PASS' : 'FAIL', 'hidden-respected', D.hiddenShown.length ? `elements with the hidden attribute still displayed: ${D.hiddenShown.join(', ')}` : 'none');
 row(!P.overflow ? 'PASS' : 'FAIL', 'phone-overflow', P.overflow ? 'page scrolls sideways at 390px' : 'none at 390px');
 row(D.hardBuzz.length === 0 ? 'PASS' : 'FAIL', 'slop-copy', D.hardBuzz.length ? D.hardBuzz.join(', ') : 'none');
 row(D.gradientText === 0 ? 'PASS' : 'FAIL', 'no-gradient-text', `${D.gradientText} elements`);
