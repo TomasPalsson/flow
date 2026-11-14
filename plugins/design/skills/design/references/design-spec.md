@@ -60,6 +60,8 @@ Every control type and every value that changes → its states (default, hover, 
 
 Name the five things a page you would build today for a different client in a different trade would share with this one (top bar geometry, section-head layout, container, button shape, footer, card, the type pairing, the accent's role). For each, say how this spec differs, or why sharing it serves this client's user. Then name the one thing a visitor will remember from this page; if it is not in §1, the spec has drifted.
 
+Last, the audience check: picture the densest view of the spec at 390px in the hands of the dossier's audience (an older patient in pain, a buyer in a hurry, an engineer scanning). If the concept makes the primary task slower, smaller or more taps than the plain version would, the concept bends, not the user: keep the idea at the scale where it does not cost the task (the summary, the header, the confirmation) and give the task its plain, large, fast form.
+
 ## Following the spec
 
 - Build from it: tokens first, then chrome, then sections in §5 order.

@@ -71,12 +71,22 @@ async function audit(page) {
     if (bar) {
       const ctrls = [...bar.querySelectorAll('a[href], button')].filter(vis);
       const W = bar.getBoundingClientRect().width, X = bar.getBoundingClientRect().left;
-      let brandWords = 0, contentWords = 0;
-      const walker = document.createTreeWalker(bar, NodeFilter.SHOW_TEXT);
+      // brand = the block holding the first left-hand text, inside the row it shares with the right-most control
+      const texts = []; const walker = document.createTreeWalker(bar, NodeFilter.SHOW_TEXT);
       for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-        const words = n.textContent.split(/\s+/).filter(Boolean).length; if (!words) continue;
-        const r = document.createRange(); r.selectNodeContents(n); const rb = r.getBoundingClientRect(); if (!rb.width) continue;
-        if (rb.left - X < W * 0.3) brandWords += words; else if (!n.parentElement.closest('a[href], button')) contentWords += words;
+        if (!n.textContent.trim()) continue; const r = document.createRange(); r.selectNodeContents(n); const rb = r.getBoundingClientRect();
+        if (rb.width) texts.push({ n, left: rb.left - X, words: n.textContent.split(/\s+/).filter(Boolean).length });
+      }
+      const first = texts.find((t) => t.left < W * 0.3);
+      const lastCtrl = ctrls.slice().sort((p, q) => q.getBoundingClientRect().right - p.getBoundingClientRect().right)[0];
+      let brandWords = 0, contentWords = 0;
+      if (first && lastCtrl) {
+        let row = first.n.parentElement; while (row && !row.contains(lastCtrl)) row = row.parentElement;
+        let brandBlock = first.n.parentElement; while (brandBlock && brandBlock.parentElement !== row) brandBlock = brandBlock.parentElement;
+        for (const t of texts) {
+          if (brandBlock && brandBlock.contains(t.n)) brandWords += t.words;
+          else if (!t.n.parentElement.closest('a[href], button')) contentWords += t.words;
+        }
       }
       const rest = ctrls.filter((c) => c.getBoundingClientRect().left - X >= W * 0.3);
       const rightCluster = rest.length >= 1 && rest.every((c) => c.getBoundingClientRect().left - X > W * 0.38);
