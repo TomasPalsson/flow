@@ -56,7 +56,7 @@ Every control type on the page gets every row that applies. Write it as an inven
 .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; transform: none; }
 /* loading: keep the width, swap the label for a spinner, announce it */
-.btn[aria-busy="true"] { color: transparent; pointer-events: none; position: relative; }
+.btn[aria-busy="true"] { color: transparent; cursor: progress; position: relative; }   /* clicks are ignored in JS while busy; pointer-events: none would let the second click of a double-click fall through and select the text underneath */
 .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: 1em; height: 1em;
   border: 2px solid var(--on-accent); border-right-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -117,6 +117,10 @@ A single indicator slides between options; it never teleports.
 .seg::before { content: ""; position: absolute; inset: 3px auto 3px 3px; width: calc((100% - 6px) / var(--n));
   border-radius: inherit; background: var(--surface-raised); transform: translateX(calc(100% * var(--i, 0)));
   transition: transform var(--dur-medium) var(--ease-in-out); }
+```
+
+```css
+.seg button { transition: color var(--dur-small) var(--ease-out) calc(var(--dur-medium) * .5); }  /* the label turns when the indicator is halfway there, never at t=0 */
 ```
 
 Set `--n` to the count and `--i` to the selected index from JS. Unequal widths: measure the active button and set `--x`/`--w`, animate `transform` and `scale` rather than `left`/`width`. The content behind the tabs crossfades (opacity 120ms out, 200ms in).
