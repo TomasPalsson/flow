@@ -1,11 +1,11 @@
 ---
 name: anti-patterns
-description: Complete catalog of AI-specific, classical UI, accessibility, and performance anti-patterns. Load before shipping high-stakes designs or during evaluator-driven fix loops when specific violation identification is needed.
+description: Complete catalog of AI-specific tells (first and second order, visual, copy and motion), classical UI, accessibility, and performance anti-patterns. Loaded in Phase 5 for the five-second tell sweep, and by the evaluator.
 ---
 
 # Anti-Patterns — The Complete Catalog
 
-Load this reference when (a) shipping a high-stakes design and needing a complete sweep, or (b) the evaluator subagent has flagged issues that need specific anti-pattern identification.
+Load this reference in Phase 5 for the tell sweep (every build), and when the evaluator has flagged issues that need specific anti-pattern identification.
 
 ---
 
@@ -72,6 +72,61 @@ Feature lists using 🚀 ⚡ 🔒 ✅.
 Perfectly uniform page width creates visual monotony — sections feel interchangeable.
 
 **Fix:** Vary container widths by content type. Prose at `max-w-2xl` (60-70 characters per line), feature grids at `max-w-5xl`, marketing heroes full-bleed. The variation creates rhythm.
+
+---
+
+## Second-order tells (2025-2026)
+
+Told to avoid indigo and Inter, generated pages converge on a second set of defaults. A design-literate visitor now spots these as fast as the first set. The test is the **five-second look**: what would someone who has seen a thousand generated pages call out before reading a word? Each item below is a tell when it is the template talking; it is fine when the content demands it (a pricing table with three tiers because there are three plans is content, not a tell). Sweep for them in Phase 5 and either remove each one or name the content that requires it.
+
+**Surface and colour**
+- T1. The "editorial" default: warm cream or beige ground, high-contrast serif display, terracotta or olive accent.
+- T2. The "dev tool" default: near-black ground with one neon accent (acid green, electric lime, cyan), mono labels.
+- T3. Gradient mesh, aurora or blurred colour blobs behind the hero; grain or noise overlay over everything; dotted or square grid pattern behind the hero.
+- T4. Glass navigation bar plus glass cards.
+- T5. One accent colour used for everything (links, icons, tags, borders, highlights) so nothing is more important than anything else.
+
+**Type and labels**
+- T6. An italic serif word dropped into a sans-serif headline for "personality".
+- T7. Mono, uppercase, letter-spaced micro-labels above every section, often with brackets, slashes or numbers (`[ 01 ]`, `// FEATURES`, `01 — Process`).
+- T8. A rounded pill "eyebrow" above the h1 ("New", "Now in beta", a sparkle).
+- T9. Giant faded section numbers, or numbered steps where nothing cross-references the numbers.
+- T9a. The two-tone headline: the first sentence in ink, the second in a muted grey or the accent ("Back up Postgres to any second. Test the restore every night.").
+- T9b. Display tracking pulled so tight that word spaces close up ("Back up" reads "Backup"); stop at about -0.03em and check the word gaps at the largest size.
+
+**Chrome**
+- T0. The template top bar: wordmark left, a cluster of text links right, a bordered or filled button at the far right, a hairline underneath, about 64px tall, carrying nothing of this client. And its partner, the template footer: brand and address left, link columns right. They read identical across any two themes.
+
+**Components and layout**
+- T10. Identical cards: icon in a tinted rounded square, bold title, two lines of grey text, 1px border, the same radius, three or six of them.
+- T11. Bento grid of mismatched tiles that holds no more information than a list would.
+- T12. The stat strip: three big numbers with tiny captions ("99.9% uptime", "10k+ users") — invented, or true but irrelevant.
+- T13. Logo wall ("Trusted by teams at") with greyed logos, and a testimonial carousel with avatars.
+- T13a. Generated flourishes: a rotated rubber stamp ("BOOKED", "APPROVED") on the confirmation, initials in tinted tiles standing in for real people, a lightning bolt for "fastest" or "first available", a sparkle for anything new.
+- T14. Left-border accent callouts and check-mark feature lists as the main content device.
+- T15. The default page sequence: hero, logos, three features, "How it works" 1-2-3, testimonials, three-tier pricing with a highlighted middle, FAQ accordion, "Ready to get started?" band, four-column footer.
+- T16. Every section the same width, centred, with the same vertical padding: no rhythm.
+- T16a. The same section-head layout on every section (h2 left, lede paragraph right, bottom-aligned; or eyebrow, h2, lede, centred): the template's rhythm showing through.
+- T16b. The dev-tool hero object: a dark rounded "terminal" card with traffic-light dots or brew/curl tabs and a Copy button, floating with a heavy shadow on a light page. When the install command matters, set it in the page's own material instead.
+
+**Copy**
+- T17. Em-dash rhythm: more than about seven per 600 words, or one in most headlines.
+- T18. "Not X. Just Y." / "No X. No Y. Just Z." and fragment triplets ("Fast. Private. Yours.").
+- T19. "Everything you need to…", "Built for teams who…", "Designed for…", "…in seconds", "…that just works".
+- T19a. Aphorism headlines: a quotable maxim where a claim should be ("A backup you have never restored is a guess", "Good coffee takes time"). One may be earned; a page of them is a model talking.
+- T19b. Copy that describes the interface instead of the subject ("Four short steps. Your choices fill in the card as you go.", "Scroll to explore", "Here's how it works").
+- T20. Section titles that are only labels in the default order ("Features", "How it works", "Pricing", "FAQ") and a "Get started" / "Learn more" button pair.
+- T21. Invented specifics: numbers, customers, quotes or logos that are not in the brief.
+
+**Motion** (detail and replacements in `references/microinteractions.md` §7)
+- T22. Fade-up on scroll for every section; staggered card reveals.
+- T23. Hover lift and shadow on cards that do nothing when clicked.
+- T24. Animated gradients, floating blobs, glow pulse on the CTA, shimmer sweep, spinning gradient borders.
+- T25. Typewriter or rotating-word headline; count-up numbers; marquee logo strip.
+- T26. Custom cursor, cursor spotlight, magnetic buttons, 3D tilt cards, parallax layers.
+- T27. One `transition: all .3s ease` on everything; controls that do not answer press at all.
+
+**The inverse failure.** Removing every tell can leave a page with nothing in it. The goal is not absence but replacement by something that belongs to this client: their real numbers, their trade's artefacts, their place, their product's own interface, their words.
 
 ---
 
@@ -247,6 +302,8 @@ Ranked by combination of user damage and signal clarity. If any appear, professi
 - [ ] No emoji as functional icons
 - [ ] Headlines contain ZERO AI vocabulary (revolutionary, seamless, unlock, game-changing, etc.)
 - [ ] Copy has specific numbers / concrete claims
+- [ ] Five-second look: every second-order tell (T0-T27) removed or justified by content in one line
+- [ ] `scripts/probe.mjs` has no FAIL row
 
 ### Accessibility Scan
 - [ ] Focus-visible states on all interactive elements (3:1+ contrast)

@@ -1,6 +1,6 @@
 ---
 name: evaluation-rubric
-description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions (usability first) with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
+description: The complete scoring rubric for the design evaluator subagent. 7 weighted dimensions (usability and feel first) with explicit scoring tables, Nielsen severity scale, bias mitigations, and required output format. Loaded by the evaluator subagent, NOT by the generating Claude.
 ---
 
 # Evaluation Rubric — For the Evaluator Subagent
@@ -110,7 +110,7 @@ Half-scores permitted (1.5, 2.5, 3.5, 4.5). Every score must be accompanied by a
 
 ---
 
-### Dimension 1: Usability — Weight 25%
+### Dimension 1: Usability — Weight 20%
 
 Grade via Nielsen's 10 heuristics with severity logging.
 
@@ -180,32 +180,32 @@ Average sub-scores, round to nearest 0.5.
 
 ---
 
-### Dimension 4: Interaction and Flow — Weight 15%
+### Dimension 4: Interaction, Flow and Feel — Weight 20%
 
-**States to check (9 possible):**
-1. Default
-2. Hover
-3. Focus-visible
-4. Active
-5. Disabled
-6. Loading
-7. Error
-8. Success
-9. Empty
+Judge this by **using the page**, not by reading it. Open it in Chromium with Playwright at 1440 and at 390, and read the `probe.mjs` output you were given (or run `node <design skill>/scripts/probe.mjs <page> <outdir>` yourself). Then, by hand: hover every kind of control, press and hold, release outside, tab through, run the primary task end to end, trigger each error and the success, toggle every switch and segmented control twice quickly, and watch at least two transitions slowed to 0.1x (`Animation.setPlaybackRate` over CDP). Every finding cites what you did and what you saw.
 
-**Additional checks:**
-- Affordance clarity — do interactive elements look interactive?
-- Task path — how many steps to complete primary task? Irreducible or gratuitous?
-- Micro-interactions — correct easing (ease-out-quart, 150-300ms, transform/opacity only)?
+**States to check (9 possible), per control type:** default, hover, focus-visible, active (press), disabled, loading, error, success, empty.
+
+**Feel checks:**
+- **Answers touch**: every control changes visibly on hover (pointer) and on press within ~100ms; the current selection may stay still.
+- **Explains change**: values that change (price, count, total, step) move or crossfade so the change is noticed; overlays grow from their trigger; steps enter from the direction of travel; the cart or confirmation acknowledges the action in place.
+- **Tiered timing**: hover ≈100-150ms, components ≈150-280ms, large ≈300-400ms; exits faster than enters; ease-out family, no `ease-in` starts, no bounce on UI.
+- **Interrupts cleanly**: fast hover in/out and double toggles retarget from where they are; a double click does not double-submit.
+- **Finishing details**: themed focus ring, `::selection`, caret and accent colours; tabular figures on changing numbers; sticky header state; no layout shift when content or validation messages appear.
+- **One authored moment**: a small signature interaction on a rare action, tied to the client (not to hover or scroll).
+
+**Motion tells (each one found caps this dimension at 3):** fade-up or staggered reveal of body content on scroll; `transition: all` or one duration for everything; hover lift or shadow on things that are not clickable; floating/pulsing blobs, animated gradients, glow pulse, shimmer sweep; typewriter or rotating headline words; count-up numbers; custom cursor, magnetic buttons, tilt or parallax; bouncy easing on UI; loops that never stop in view.
 
 **Scoring:**
 | Score | Condition |
 |-------|-----------|
-| 5 | 8-9 states covered, primary task direct, interactions self-evident |
-| 4 | 6-7 states covered, minor discoverability issue |
-| 3 | 4-5 states covered, or gratuitous task steps |
-| 2 | 2-3 states covered, patterns unclear/inconsistent |
-| 1 | ≤1 state covered, primary task not completable from design |
+| 5 | 8-9 states covered; every control answers hover and press; changes are explained by motion; timing tiered; interrupts cleanly; finishing details themed; one authored moment on a rare action; zero motion tells; reduced motion keeps every state change |
+| 4 | 7-9 states; the interaction floor is complete with at most two dead spots; zero motion tells; no authored moment, or one rough transition |
+| 3 | 5-6 states, or hover/focus present but press, value changes or action feedback missing; or one motion tell |
+| 2 | 3-4 states; most controls static or snap; or two or more motion tells |
+| 1 | Controls do not respond, the primary task cannot be completed, or motion blocks reading |
+
+**Probe gate:** any `FAIL` row from `probe.mjs` that you confirm by hand is at least a severity-2 finding here (severity 3 for focus-ring, reduced-motion and visible-after-load).
 
 ---
 
@@ -265,6 +265,7 @@ Judged on four things, never against a named example site: (a) built from this c
 - **Subject swap**: name a same-category business in another town. List every graphic, headline and control that would become false for it. Fewer than 3 items means the design is generic.
 - **Real content**: does at least one visual or section encode real dossier data (menu toppings, sizes, hours, address)? Cite element and fact. Also PASS when the main visual is the client's own dossier asset.
 - **Not the generic AI look**: name the typical AI version of this page (font, primary colour, layout, copy tone) and say how this build differs materially.
+- **Five-second tell count**: look at the first screen for five seconds, then scroll once. List every tell from `references/anti-patterns.md` ("Second-order tells") you see, each with its element. A tell the content genuinely requires (three pricing tiers because there are three plans) is listed and marked "content". Uncounted tells: 3-4 cap this dimension at 3; 5 or more cap it at 2.
 - **Controls in the design's material** (persuade/experience; operate surfaces keep platform conventions and are judged on tokens): nav, buttons, chips, cart, confirmation. A default underline nav or flat pill button reads as vibe-coded.
 - **Audience fit**: would the dossier's paying audience find this look credible and appropriate in mood for the trade, and do reading surfaces stay legible? A FAIL names the specific element, not "feels off".
 - **Graphics craft (when the page has custom graphics; screenshots only)**: each graphic has a UX or brand job; faces are not drawn on objects (food, products), no mascots or emoji-blobs; subjects distinguishable at thumbnail size; one consistent style; alt text or `aria-hidden` present (see `GRAPHICS.md` when supplied). Photography and product-ui add fidelity (no filter, blend or overlay on client images), natural resolution at least 1.5x rendered, and crop (focal subject not cut by the nav). No screenshots → "Cannot determine from source alone".
@@ -285,8 +286,8 @@ Score 2 or below is a critical issue and returns the work to Phase 3 (purpose, d
 ## Composite Score Calculation
 
 ```
-Composite = (Usability × 0.25)
-          + (Interaction × 0.15)
+Composite = (Usability × 0.20)
+          + (Interaction and feel × 0.20)
           + (Accessibility × 0.15)
           + (Microcopy × 0.10)
           + (Composition × 0.10)
