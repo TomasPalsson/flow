@@ -129,6 +129,7 @@ Told to avoid indigo and Inter, generated pages converge on a second set of defa
 - T25. Typewriter or rotating-word headline; count-up numbers; marquee logo strip.
 - T26. Custom cursor, cursor spotlight, magnetic buttons, 3D tilt cards, parallax layers.
 - T27. One `transition: all .3s ease` on everything; controls that do not answer press at all.
+- T27a. Fake latency: a spinner or "Holding…" delay staged before an action that completes locally.
 
 **The inverse failure.** Removing every tell can leave a page with nothing in it. The goal is not absence but replacement by something that belongs to this client: their real numbers, their trade's artefacts, their place, their product's own interface, their words.
 

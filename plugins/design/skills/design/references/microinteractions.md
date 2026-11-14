@@ -62,7 +62,7 @@ Every control type on the page gets every row that applies. Write it as an inven
 @keyframes spin { to { transform: rotate(360deg); } }
 ```
 
-Press scale is .96-.98: smaller is mushy, larger is cartoon. Declare `:active` after `:hover` (same specificity, later wins) or the hover transform silently cancels the press. An action button ignores further clicks while it is busy or showing its success state, and its confirmation is built from what actually happened (the quantity really added), not from what was requested. A success state replaces the label in place ("Added", "Copied", "Booked") for ~1.5s, then returns. Show the spinner only if the action takes over ~150ms, so fast actions do not flicker.
+Press scale is .96-.98: smaller is mushy, larger is cartoon. Declare `:active` after `:hover` (same specificity, later wins) or the hover transform silently cancels the press. An action button ignores further clicks while it is busy or showing its success state, and its confirmation is built from what actually happened (the quantity really added), not from what was requested. A success state replaces the label in place ("Added", "Copied", "Booked") for ~1.5s, then returns. Show the spinner only if the action takes over ~150ms, so fast actions do not flicker. Never invent latency: an action that completes locally (add to cart, toggle, filter) finishes at once; a fake delay or spinner before it is theatre the visitor pays for every time.
 
 ### Links
 
