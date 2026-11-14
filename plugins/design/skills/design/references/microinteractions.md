@@ -203,6 +203,7 @@ These ship with browser defaults that belong to no design. Theming them is the c
 - `scroll-margin-top` on anchor targets equal to the sticky header height; `scroll-behavior: smooth` only inside `@media (prefers-reduced-motion: no-preference)`.
 - `cursor: pointer` on every clickable element that is not a native link or button; `cursor: not-allowed` on disabled.
 - `-webkit-tap-highlight-color: transparent` only where an `:active` state replaces it; `touch-action: manipulation` on controls.
+- `[hidden] { display: none !important; }` in the base styles: any component rule that sets `display` (`.panel { display: grid }`) otherwise beats the `hidden` attribute, and a success state appears under a form that never went away.
 - Images and art reserve their box (`width`/`height` or `aspect-ratio`) and show a tinted placeholder surface, not white, until loaded.
 
 ## 5. The signature interaction
