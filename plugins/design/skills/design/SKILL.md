@@ -1,6 +1,6 @@
 ---
 name: design
-description: 'Design process that puts UX and usability first (task, findability, hierarchy, accessibility, phone), then fit to the client''s real content, then a creative, project-specific look that escapes AI-slop defaults (bg-indigo-500, Inter, centered hero + 3-column grid, uniform shadows, "Build the future of X" copy). Use whenever generating, building, mocking up, improving, polishing, critiquing, or evaluating any UI, frontend, or visual design. Phases: understand → UX architecture (Nielsen''s 10) → direction (dossier, concept, signature idea) → craft execution → graphics check → polish sweep → external evaluator subagent. Custom graphics come from `design:graphics` when the page needs them. Keywords: design, UI, UX, frontend, landing page, dashboard, make this look good, not generic, not AI slop, UX audit, design review, critique. For a brand-new site or page where looks should differ between runs, prefer `vary` (it assigns the direction); use `design` for critique, audits, polish, or when invoked by name.'
+description: 'Design process: UX and usability first, then fit to the client''s real content, then a project-specific look with none of the AI-made tells (indigo, Inter, centred hero + 3 cards, cream + serif, mono eyebrow labels, "Build the future of X"). Ships the feel layer: every control answers hover, press and focus, changes are explained by small tiered transitions, one authored interaction, no scroll fade-ups or idle loops; verified by driving the page in a browser (scripts/probe.mjs). Use when generating, building, improving, polishing, critiquing or evaluating any UI or frontend, or when asked for microinteractions, transitions or polish. Phases: understand → UX (Nielsen) → direction → execute with interaction layer → graphics → polish and tell sweep → feel pass → external evaluator. Keywords: UI, UX, landing page, dashboard, not AI slop, microinteractions, design review. For a brand-new page that should differ between runs, prefer `vary`; use `design` for critique, audits, polish, or by name.'
 user-invocable: true
 argument-hint: "[target description]"
 ---
@@ -9,7 +9,7 @@ argument-hint: "[target description]"
 
 Claude's default design output is not neutral. Without intervention, it collapses to the statistical center of its training distribution: `bg-indigo-500`, Inter font, centered hero + 3-column feature grid, `rounded-2xl`, `shadow-lg`, "Build the future of X" copy. Anthropic calls this "distributional convergence" in their own documentation. Users call it "AI slop." The Adam Wathan apology of August 2025 — "I'm sorry for making every button in Tailwind UI use bg-indigo-500... this caused every AI-generated interface on Earth to turn purple" — is the origin story.
 
-This skill is the counterforce. Priority order: first UX and usability (the user finishes their task, finds things, can read and operate it on a phone, with assistive tech), then fit to the client's real content, then creativity and variety. Each phase has a gate. The final phase hands the output to a SEPARATE skepticism-tuned evaluator subagent because Anthropic's own harness research documented that Claude "confidently praises the work — even when, to a human observer, the quality is obviously mediocre." Self-critique is broken for creative work. External calibrated evaluation is not.
+This skill is the counterforce. Priority order: first UX and usability (the user finishes their task, finds things, can read and operate it on a phone, with assistive tech), then fit to the client's real content, then creativity and variety. Running through all three is **feel**: a page that looks designed in a screenshot but sits dead under the pointer reads as a template the moment someone touches it. Every build ships the interaction layer and is judged by using it, not by looking at it. Each phase has a gate. The final phase hands the output to a SEPARATE skepticism-tuned evaluator subagent because Anthropic's own harness research documented that Claude "confidently praises the work — even when, to a human observer, the quality is obviously mediocre." Self-critique is broken for creative work. External calibrated evaluation is not.
 
 ## The Process
 
@@ -19,11 +19,33 @@ Each phase has a gate. Do not skip gates.
 Phase 1:  UNDERSTAND  → purpose, users, primary task, existing system, constraints
 Phase 2:  ARCHITECT   → apply UX principles with priority ordering
 Phase 3:  DIRECTION   → dossier, concept, the one signature idea
-Phase 4:  EXECUTE     → craft numbers, not defaults
+Phase 3b: SPEC        → design spec: tokens and every piece of chrome decided from the concept, before code
+Phase 4:  EXECUTE     → craft numbers, not defaults; the interaction layer (references/microinteractions.md)
 Phase 4b: GRAPHICS    → graphics check; design:graphics when the page needs custom art
-Phase 5:  POLISH      → details that separate ship from shipped
-Phase 6:  EVALUATE    → separate subagent grades the output
+Phase 5:  POLISH      → details that separate ship from shipped; the five-second tell sweep
+Phase 5b: FEEL        → drive the page in a browser; scripts/probe.mjs has no FAIL
+Phase 6:  EVALUATE    → separate subagent grades the output, by using it
 ```
+
+## Orchestration: who checks what, on which model
+
+Review is done by subagents, never by the builder grading itself, and each job runs on the cheapest model that does it well. Mechanical checks are scripts; checklist work goes to Haiku; rubric judgement to Sonnet; taste calls to Opus.
+
+| Job | Phase | Runs as | Gets (paths, not pasted content) | Returns |
+|---|---|---|---|---|
+| Probe, fold check, font draw | 3b, 5, 5b | script, no model | page path | PASS/FAIL rows |
+| Idea check (creative director) | 3 | subagent, `model: "opus"` | dossier, concepts | a score per concept, ≤150 words |
+| Spec sameness review | 3b gate | subagent, `model: "sonnet"` | design spec, dossier | chrome rows still at the template default, ≤200 words |
+| Feel driver | 5b | subagent, `model: "haiku"` | page path, `microinteractions.md` §9 checklist, probe command | dead spots, rough transitions, choreography failures, each with what it did and saw, ≤250 words, screenshot paths |
+| Tell sweep | 5 | subagent, `model: "haiku"` | screenshots, `anti-patterns.md` T0-T27 | each tell found with its element, ≤200 words |
+| Whole-page check | 4c | subagent, `model: "sonnet"` | full-page screenshots, spec section plan | per-section findings |
+| Evaluator | 6 | subagent, `model: "sonnet"` | `evaluator-prompt.md`, page, probe output, spec | the structured report |
+| Final harsh review | after SHIP, flagship work only | subagent, `model: "opus"` | page, brief | five fixes |
+
+- Spawn the feel driver, tell sweep and whole-page check **in parallel** once the build exists; fix from the merged list, then run the evaluator once.
+- Every subagent prompt ends with its return shape and word limit; screenshots at `deviceScaleFactor: 1`; pass file paths, never page source or images inline.
+- Re-run only the checks whose inputs changed. A second evaluator round happens only when the first misses the SHIP gate.
+- **Running as a subagent without the Agent tool:** do not stand in for these jobs by reviewing your own work. Run the scripts, finish the build, and end your report with a `REVIEW JOBS` block listing each job you could not spawn with its inputs (paths), so the caller runs them and sends the findings back.
 
 ---
 
@@ -99,9 +121,23 @@ Credit: adapted from anthropics/skills skills/frontend-design/SKILL.md @ dbd4588
 
 ---
 
+## Phase 3b — Design spec
+
+Before any page code, write the design spec: load [references/design-spec.md](references/design-spec.md) and fill it into `.vary/design-spec.md` (or `DESIGN.md` in a repo that keeps one). It holds the tokens, the voice, every piece of chrome (top bar, footer, actions, section heads, containers, cards, fields, feedback, the signature interaction), the section plan and the interaction inventory.
+
+The reason is sameness. Left undecided, the chrome comes out the same on every project whatever the theme: wordmark left and links right with a bordered button at the far edge, a big h2 left with its lede right, one centred column, brand-and-columns footer. For each chrome item the spec names that template default and says what this build does instead and which fact or artefact it comes from. Usability keeps the placement conventions (brand top-left, nav at the top, menu on phone); the concept decides what the chrome carries, its material, geometry and behaviour.
+
+In extend mode the existing system is the spec: read it, add only what the new surface needs, and never restyle shared chrome.
+
+Then a fresh Sonnet subagent reads the spec and the dossier and names any chrome row still at the template default (see Orchestration); revise those rows.
+
+**Gate:** every chrome row has its Default / This build / States lines, the `:root` token block is complete, the section plan and interaction inventory are filled, and the sameness check (§7) names five shared-by-default things and how each differs here or why it stays.
+
+---
+
 ## Phase 4 — Execute
 
-**Section plan (before any page code).** Write `.vary/section-plan.md`: one row per section, top to bottom, with (1) the section's job for the user, (2) whether the concept's idea helps that job and how (the care tag on each product, the theme in the speaker specimens, the data story in the main chart), or "not here" when it would only decorate, (3) which content lives here (each piece of content in exactly one section), and (4) its layout skeleton, different from its neighbours. A section that is only the category's default cards with nothing of this client in it gets one specific detail. Build from this plan.
+**Build from the spec.** Copy its token block into `:root` verbatim, build the chrome as specified, then the sections in its plan order. When the build needs a decision the spec lacks, write it into the spec first. (Inside an existing surface with no spec phase, write a short section plan instead: with (1) the section's job for the user, (2) whether the concept's idea helps that job and how (the care tag on each product, the theme in the speaker specimens, the data story in the main chart), or "not here" when it would only decorate, (3) which content lives here (each piece of content in exactly one section), and (4) its layout skeleton, different from its neighbours. A section that is only the category's default cards with nothing of this client in it gets one specific detail. Build from this plan.)
 
 This is where craft numbers matter more than principles. The difference between "engineer-built" and "designer-quality" UI lives in specific values experts apply automatically.
 
@@ -109,13 +145,13 @@ This is where craft numbers matter more than principles. The difference between 
 
 | Default | What Claude does | What you do instead |
 |---------|------------------|---------------------|
-| Font | Inter, Roboto, Arial, system-ui, Space Grotesk | A face chosen for the concept's trade, era or lettering heritage, with at least 5 weights, verified to render the content language's glyphs. Do not reuse the face from your last project. |
+| Font | Inter, Roboto, Arial, system-ui, Space Grotesk, or the next layer of favourites once those are banned | Unless the brand, a directive or the platform fixes the face, run `node <this skill's directory>/scripts/font-draw.mjs --scripts <content scripts, e.g. latin,latin-ext> [--source google]` and choose from its shortlist by fit to the concept's trade, era or lettering heritage; say why in one line. Never reach past the shortlist for a face from memory (memory is where the convergence lives). At least 5 weights unless it is a display-only face; verify the content language's glyphs render. Mono only for literal code, commands or tabular data, never for labels. |
 | Primary color | `bg-indigo-500`, purple, `from-indigo-500 to-purple-600` | Any hue EXCEPT indigo/purple, unless the brand legitimately requires it. Use OKLCH for definition. |
 | Background | Pure white / `bg-gray-50` | Tinted neutral at chroma 0.005-0.01 in the brand hue, OR a material texture that the concept's artefact actually has (paper fibre, wood grain, brushed metal, blueprint grid). |
 | Layout | Centered everything, 3-column feature grid, Hero→Features→CTA invariant | Asymmetric composition with intentional tension. Start from content, not template. |
 | Radius | `rounded-2xl` on everything uniformly | Tiered scale: inputs 4px, buttons 6-8px, cards 10-12px, `rounded-full` reserved for avatars/pills |
 | Shadow | `shadow-lg` on every card | Tiered elevation. Multi-layer shadows with doubling formula. Match shadow hue to background hue (never pure black). |
-| Motion | Nothing, or AOS fade-in-up on everything, bounce/elastic easing | `ease-out-quart cubic-bezier(0.25, 1, 0.5, 1)` for enters. 150-300ms for interactive, 250-350ms for modal. Animate only transform/opacity. |
+| Motion | Dead controls, or AOS fade-in-up on everything, `transition: all .3s`, hover lift on every card, bounce easing | Every control answers hover, press and focus; changes explained in place; tiered `--dur-*`/`--ease-*` tokens; one authored moment on a rare action; nothing moves on scroll or at rest. |
 | Copy | "Build the future of X," "Scale without limits," "Empower your team" | Concrete claims with specific verbs, numbers, outcomes. "Cut review time from 3 hours to 20 minutes." |
 
 **Typography execution rules:**
@@ -139,15 +175,14 @@ This is where craft numbers matter more than principles. The difference between 
 - Whitespace is information architecture, not wasted space.
 - Default generous, reduce only when content demands density.
 
-**Motion execution rules:**
+**The interaction layer (every build with a control on it).** Load [references/microinteractions.md](references/microinteractions.md) now; it is not optional. It holds the motion tokens, the frequency ladder, the interaction floor (a recipe and the required states for each control type), browser-surface finishing, the signature interaction, page-load and scroll rules, and the motion that reads as AI-made. Then:
 
-- **Ease-out-quart** `cubic-bezier(0.25, 1, 0.5, 1)` for entrances. **Never bounce or elastic** — they feel dated.
-- **Duration:** 100-150ms micro-interactions (hover, focus), 150-250ms component (tooltip, dropdown), 250-350ms modal, 300-500ms spatial/route changes. When in doubt, halve your current duration.
-- **Animate only `transform` and `opacity`.** Never `width`, `height`, `top`, `left`, `margin`, `padding` — they trigger layout recalculation on every frame and cause jank.
-- **Never animate keyboard-triggered actions.** A user who hits Cmd+K 100 times a day will experience the animation as an obstacle, not delight.
-- **Stagger ≤20ms per item, max 8 items.**
-- `@media (prefers-reduced-motion: reduce)` is mandatory, not optional.
-- When the page has more motion than hover and press states (popovers, drawers, toasts, gestures, page transitions), call the Skill tool with "design:ui-animation" for the per-component easing, origin, interruption and enter/exit rules.
+- **Inventory first.** The interaction inventory lives in the spec (§6; for a component, at the top of the file): every control type on the page → its states (default, hover, focus-visible, active, disabled, loading, error, success, empty, as they apply) → what moves or changes, with which token. Every value that changes (price, count, total, step, availability) gets a row too: how the user notices the change.
+- **Tokens, not literals.** Durations and curves come from the `--ease-*` and `--dur-*` tokens; exits faster than enters; one duration for everything is a tell.
+- **Answer every touch.** Hover (pointer only, inside `@media (hover: hover)`), press (`:active`, scale .96-.98 on buttons), a designed `:focus-visible` ring, and in-place acknowledgement of actions (Added, Copied, Booked; a count that bumps; a toast in an `aria-live` region). Values that change crossfade or slide, in tabular figures. Overlays grow from their trigger. Steps enter from the direction of travel and move focus.
+- **One authored moment.** One rare action gets a small signature interaction drawn from the client's trade (microinteractions.md §5). Never on hover, never on scroll.
+- **Quiet everywhere else.** At most one CSS-only load moment on the first screen; no scroll-reveal of body content; no idle loops; transform and opacity only (the `grid-template-rows` disclosure is the one sanctioned exception); never animate keyboard-triggered actions; reduced motion ships with the animation.
+- When the page needs gestures, drag, springs, shared-element or route transitions, call the Skill tool with "design:ui-animation" for those parts.
 
 **Depth execution rules:**
 
@@ -158,7 +193,7 @@ This is where craft numbers matter more than principles. The difference between 
 
 For the complete craft reference with additional rules and CSS patterns, **load [references/visual-craft.md](references/visual-craft.md) ONLY when you need a specific number not covered above** (e.g., modular scale ratios, specific easing curves beyond quart, shadow color formulas for dark-mode floating panels). **Do NOT load** if the above rules are sufficient.
 
-**Gate:** Your output has explicit typography choices (by name), an explicit color approach (OKLCH values or named palette), a spacing scale, an easing function, and at least three designed states (not just happy path).
+**Gate:** Your output has explicit typography choices (by name), an explicit color approach (OKLCH values or named palette), a spacing scale, the motion tokens, an interaction inventory with every control type and every changing value covered, the signature interaction named, and at least three designed states (not just happy path).
 
 ## Phase 4b — Graphics check
 
@@ -190,13 +225,17 @@ Then invoke `Skill(design:graphics, args: ".vary/graphics-brief.md")`. It return
 
 ## Phase 4c — Whole-page check
 
-**Whole-page check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: opus`) with the full-page screenshots at desktop and phone, `.vary/section-plan.md` and the one-sentence concept. It scrolls top to bottom and reports, per section: (1) **repetition**: the same content shown more than once (a lineup in the hero, the programme and the speaker list; a list of counters as map, legend and table) or the same motif stamped on elements that do not need it (download buttons, weekday bars, every card); (2) **dead sections**: a section where the page falls back to the category's default cards with nothing of this client in it; (3) a **stock metaphor** that has replaced the most subject-specific element. Fix in that order: cut repetition first (each piece of content appears once, in the section whose job it is; a motif stays where it does a job), then give the weakest dead section one specific detail, then restore the subject-specific element. Re-shoot once. Usability fixes win any conflict.
+**Whole-page check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: "sonnet"`) with the full-page screenshots at desktop and phone, `.vary/design-spec.md` (its section plan) and the one-sentence concept. It scrolls top to bottom and reports, per section: (1) **repetition**: the same content shown more than once (a lineup in the hero, the programme and the speaker list; a list of counters as map, legend and table) or the same motif stamped on elements that do not need it (download buttons, weekday bars, every card); (2) **dead sections**: a section where the page falls back to the category's default cards with nothing of this client in it; (3) a **stock metaphor** that has replaced the most subject-specific element. Fix in that order: cut repetition first (each piece of content appears once, in the section whose job it is; a motif stays where it does a job), then give the weakest dead section one specific detail, then restore the subject-specific element. Re-shoot once. Usability fixes win any conflict.
 
 ---
 
 ## Phase 5 — Polish
 
 Polish is the last step, not the first. Do not polish work that is not functionally complete. An expert polishing a design does not walk through a labeled checklist — they scan with a trained eye for specific failure modes that an untrained eye misses. Transfer that trained-eye by interrogating the design with these questions, not by marching through a sequence.
+
+**Ask yourself: what would someone who has seen a thousand generated pages clock in five seconds?**
+
+Because removing indigo and Inter only moves the page to the next default: cream and a serif with a terracotta accent, near-black with one neon, an italic serif word in a sans headline, mono uppercase labels over every section, a pill above the h1, identical icon-in-a-square cards, a stat strip, a logo wall, the hero → features → how it works → testimonials → pricing → FAQ → "Ready to get started?" sequence, em-dash rhythm, "Not X. Just Y." Hand the sweep to a fresh Haiku subagent (see Orchestration) with the screenshots and the "Second-order tells" list (T0-T27) in [references/anti-patterns.md](references/anti-patterns.md); it returns each tell with its element. Each tell found is either removed and replaced by something that belongs to this client (their numbers, artefacts, place, product UI, words), or kept with one line naming the content that requires it. Removing a tell without a replacement leaves a hole; fill it. Then the brand-swap test: hide the top bar and look at the first screen; if it could belong to another brand in the same category, it is not done.
 
 **Ask yourself: where does mathematical alignment lie to me?**
 
@@ -228,9 +267,24 @@ Because the mockup runs in perfect conditions; production does not. Turn on `pre
 
 Run the fold check as `node <VARY>/scripts/fold-check.mjs <page> --mode <m> --treatment <t>`, where `<t>` is the treatment the contract names. The rows collisions, clipped-text, hidden-content, stray-overlay, duplicate-content, page-overflow, meta-copy and headline-on-fold (operate/read: title-on-fold) must be PASS; the time budget never excuses them. Rows printed `[INFO]` are not gated. After fixes, re-run `check.mjs` and the fold check and refresh the evaluator JSON before Phase 6. User DIRECTIVES outrank every bar here: a directive such as "no illustrations" or "plain black and white" is never answered with added art.
 
-**Gate:** You cannot answer "I'm not sure" to any of the four questions above and consider the design polished. If you can't answer, you have not actually run the check.
+**Gate:** You cannot answer "I'm not sure" to any of the questions above and consider the design polished. If you can't answer, you have not actually run the check.
 
-For the complete anti-pattern catalog with additional classical/accessibility/performance failure modes, **load [references/anti-patterns.md](references/anti-patterns.md) before shipping a high-stakes design** (landing page, flagship feature, public marketing, customer-facing flow). **Do NOT load** for internal tools or prototypes where the four questions above are sufficient.
+The same file holds the classical, accessibility and performance anti-patterns; on a high-stakes design (landing page, flagship feature, public marketing, customer-facing flow) run its pre-ship checklists too.
+
+---
+
+## Phase 5b — Feel
+
+A screenshot cannot show whether a page feels built. Drive it.
+
+1. **Probe.** Run `node <this skill's directory>/scripts/probe.mjs <page> <outdir>` (Chromium and Playwright; set `NODE_PATH` to the folder holding `playwright` if it is not found). It hovers, presses and tabs every control, scrolls the page, reloads under reduced motion, and prints PASS/FAIL/WARN rows: hover, press and focus coverage, `transition: all`, layout-property transitions, content hidden after load, scroll-reveal, idle loops, hover on non-clickable blocks, console errors, phone overflow, slop copy, gradient text, emoji icons, single-duration timing, default fonts, indigo actions, eyebrow pill, em-dash density. Every FAIL is fixed; every WARN is fixed or gets one line of reason.
+2. **Drive the primary task** (the feel driver: a fresh Haiku subagent, see Orchestration, covering steps 2-5 and returning what it did and saw) with Playwright at 1440 and 390: hover each control, press and hold, release outside, tab through, run the task end to end, trigger each error and the success. Note any control or changing value with no feedback (a dead spot) and fix it.
+3. **Watch it slowed.** Set CDP `Animation.setPlaybackRate` to 0.1 and screenshot mid-transition for the signature interaction and one per-task interaction: no jump at start or end, no two things moving on different curves, nothing entering from the wrong origin.
+4. **Interrupt it.** Hover in and out fast, toggle twice fast, double-click the main action: transitions retarget, nothing double-submits.
+5. **Reduced motion.** Repeat step 2 with `reducedMotion: 'reduce'`: every state change still visible, nothing travelling.
+6. **Against the spec.** Hold the screenshots next to `.vary/design-spec.md`: each chrome item matches its "This build" line (a top bar that came out as the template is a FAIL whatever the probe says), every decision the spec states is visible in the CSS (a measured quarter of stated design rationales in generated UI never reach the build), each changing value has its inventory row, and `token-discipline` shows no literal values bypassing the tokens.
+
+**Gate:** `probe.mjs` exits 0, each WARN has a fix or a reason, and you can list each control type with what it does on hover, press, focus and success. Pass the probe output and your drive notes to Phase 6.
 
 ---
 
@@ -244,10 +298,10 @@ For the complete anti-pattern catalog with additional classical/accessibility/pe
 
 1. **Collect the design output.** If it is a file you created, note the absolute file path. If it is a rendered component in a conversation, save it to a temp file first so you can pass a path rather than a massive string.
 2. **Read [`evaluator-prompt.md`](evaluator-prompt.md)** — this is the complete prompt template for the subagent. Do not paraphrase it; you will copy it verbatim.
-3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. Also pass `.vary/dossier.json` when it exists, the page screenshots, `assets/art/GRAPHICS.md` when graphics were made, and the fold-check output produced with `--treatment <t>`. For short designs (<200 lines), you may inline the source instead of passing a path.
-4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Interaction, Accessibility, Microcopy, Composition, Color+Type, Project specificity and creativity), a weighted composite, specific violations with severity, and prioritized fixes.
+3. **Spawn a subagent** using the Agent tool with `subagent_type: "general-purpose"`, `model: "sonnet"`, and `mode: "bypassPermissions"` (so the subagent can read the rubric file without permission prompts). The task prompt is: the full content of `evaluator-prompt.md`, followed by a clear delimiter (`\n\n---\n\nDESIGN TO EVALUATE:\n\n`), followed by the absolute file path(s) of the design output with an explicit instruction that the subagent should Read each file in full. Also pass `.vary/dossier.json` when it exists, the page screenshots, `assets/art/GRAPHICS.md` when graphics were made, the fold-check output produced with `--treatment <t>`, and the `probe.mjs` output and drive notes from Phase 5b. The evaluator scores Interaction and feel by driving the page itself. For short designs (<200 lines), you may inline the source instead of passing a path.
+4. **The evaluator returns a structured report** with: per-dimension scores (Usability, Interaction and feel, Accessibility, Microcopy, Composition, Color+Type, Project specificity and creativity), a weighted composite, specific violations with severity, and prioritized fixes.
 5. **Iterate based on score:**
-   - Composite ≥ 4.0 AND Usability, Interaction and Accessibility each ≥ 3.5 AND no dimension ≤ 2 → SHIP. The report's "Lowest dimension" line is the floor check: a strong composite does not hide a weak accessibility score.
+   - Composite ≥ 4.0 AND Usability, Interaction and feel, and Accessibility each ≥ 3.5 AND no dimension ≤ 2 → SHIP. The report's "Lowest dimension" line is the floor check: a strong composite does not hide a weak accessibility score.
    - Composite ≥ 4.0 but a floor missed → apply the top fixes for the lowest dimension and re-spawn a NEW evaluator.
    - Composite 3.0-3.9 (C) → apply the top 3 fixes and re-spawn a NEW evaluator (fresh context, no memory of prior iteration).
    - Composite < 3.0 (D/F) → return to Phase 2 or Phase 4 depending on which dimensions scored lowest. Usability/Interaction/Accessibility failures point back to Phase 2. Composition/Color/Typography failures point back to Phase 4.
@@ -257,7 +311,7 @@ Credit: adapted from garrytan/gstack plan-design-review/sections/review-sections
 
 **Iterate until the score converges or clears the SHIP gate (composite and floors).** Anthropic's harness research shows creative leaps happen in iteration 7-9, not iteration 1. The evaluator loop is where quality compounds — single-pass design peaks at "competent," iterated design peaks at "memorable."
 
-**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 25%, Interaction 15%, Accessibility 15%, Microcopy 10%, Composition 10%, Color+Type 10%, Project specificity and creativity 15%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
+**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 20%, Interaction and feel 20%, Accessibility 15%, Microcopy 10%, Composition 10%, Color+Type 10%, Project specificity and creativity 15%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
 
 ---
 
@@ -276,7 +330,9 @@ Explicit, non-negotiable. These are not guidelines — these are the landmines t
 - **Never use color as the only signifier** for state (error, required, success, warning). Pair with icon, text, or position.
 - **Never ship icon-only buttons without `aria-label`.** Screen reader users get nothing.
 - **Never auto-play video with audio** or ignore `prefers-reduced-motion`. Auto-play violates WCAG 1.4.2 / 2.2.2. Users with vestibular disorders (affecting ~35% of adults over 40) can experience nausea and vertigo from motion they did not initiate.
-- **Never animate `width`, `height`, `top`, `left`, `margin`, `padding`, or `font-size`.** Use `transform` and `opacity` only.
+- **Never animate `width`, `height`, `top`, `left`, `margin`, `padding`, or `font-size`.** Use `transform` and `opacity` only (the `grid-template-rows` disclosure is the one exception).
+- **Never ship a control that does not answer touch.** Every button, link, card link, input, toggle and tab changes on hover (pointer devices), on press and on keyboard focus; every action is acknowledged in place.
+- **Never ship the motion tells:** fade-up on scroll for body content, staggered card reveals, hover lift on things that are not clickable, `transition: all`, one duration for everything, floating blobs, animated gradients, glow pulses, shimmer sweeps, typewriter or rotating headlines, count-up numbers, custom cursors, magnetic or tilting elements, parallax, bounce on UI, loops that never stop.
 - **Never use placeholder text as the only label.** It disappears on focus and fails WCAG.
 - **Never ship a form with submit-only validation.** Validate on blur, show success checkmarks on correct fields.
 - **Never present only the happy path.** Empty state, loading state, error state, disabled state, long-content state — all must exist.

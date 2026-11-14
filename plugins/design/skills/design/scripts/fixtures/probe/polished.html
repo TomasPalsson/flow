@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Polished</title>
+<style>
+:root{--ease-out:cubic-bezier(.22,1,.36,1);--ease-in-out:cubic-bezier(.65,0,.35,1);--dur-press:90ms;--dur-hover:150ms;--dur-small:200ms;--dur-medium:280ms;
+--ink:oklch(.24 .02 60);--paper:oklch(.97 .01 80);--accent:oklch(.52 .14 40);--accent-strong:oklch(.45 .14 40);--line:oklch(.85 .02 70);--focus:oklch(.45 .16 40);color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,serif;background:var(--paper);color:var(--ink);accent-color:var(--accent);caret-color:var(--accent)}
+::selection{background:oklch(.85 .08 40)}
+main{max-width:860px;margin:0 auto;padding:48px 24px}
+h1{font-size:44px;line-height:1.1;letter-spacing:-.02em;text-wrap:balance;margin:0 0 12px}
+p{line-height:1.55;text-wrap:pretty}
+a{color:var(--accent-strong);text-decoration-line:underline;text-decoration-thickness:1px;text-underline-offset:.22em;text-decoration-color:color-mix(in oklch,currentColor 35%,transparent);transition:text-decoration-color var(--dur-hover) var(--ease-out),text-underline-offset var(--dur-hover) var(--ease-out)}
+a:hover{text-decoration-color:currentColor;text-underline-offset:.3em}
+a:focus-visible,.btn:focus-visible,.seg button:focus-visible,.acc:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.btn{font:inherit;font-size:16px;padding:12px 20px;min-height:44px;border:0;border-radius:8px;background:var(--accent);color:oklch(.98 .01 80);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background-color var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out),outline-offset var(--dur-hover) var(--ease-out)}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--accent-strong)}}
+.btn:active{transform:scale(.97)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;position:relative;border:1px solid var(--line);border-radius:10px;padding:3px;max-width:320px;margin:24px 0}
+.seg::before{content:"";position:absolute;inset:3px auto 3px 3px;width:calc((100% - 6px) / 2);border-radius:7px;background:oklch(.99 .005 80);box-shadow:0 1px 2px oklch(.3 .03 60 / .15);transform:translateX(calc(100% * var(--i,0)));transition:transform var(--dur-medium) var(--ease-in-out)}
+.seg button{position:relative;font:inherit;background:none;border:0;padding:10px;min-height:44px;cursor:pointer;color:oklch(.45 .02 60);border-radius:7px;transition:color var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out)}
+.seg button:hover,.seg button[aria-pressed=true]{color:var(--ink)}
+.seg button:active{transform:scale(.97)}
+.price{font-size:32px;font-variant-numeric:tabular-nums;display:inline-block}
+.acc{font:inherit;display:flex;justify-content:space-between;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:16px 0;min-height:44px;cursor:pointer;color:var(--ink);transition:color var(--dur-hover) var(--ease-out),transform var(--dur-press) var(--ease-out)}
+.acc:hover{color:var(--accent-strong)}
+.acc:active{transform:scale(.99)}
+.acc svg{transition:transform var(--dur-medium) var(--ease-out)}
+.acc[aria-expanded=true] svg{transform:rotate(180deg)}
+.acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur-medium) var(--ease-out)}
+.acc[aria-expanded=true]+.acc-panel{grid-template-rows:1fr}
+.acc-panel>div{overflow:hidden}
+.rise{animation:rise .5s var(--ease-out) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.rise{animation-name:fade-only}}
+@keyframes fade-only{from{opacity:0}}
+</style></head><body><main>
+<h1 class="rise">Backups that are restored every night, so you know they work</h1>
+<p class="rise">Each night we restore your latest backup into a throwaway database and compare row counts on the ten biggest tables. Read <a href="#how">how the restore test works</a>.</p>
+<button class="btn" id="copy">Copy install command</button>
+<div class="seg" role="group" aria-label="Billing period" style="--i:0"><button aria-pressed="true" data-i="0">Monthly</button><button aria-pressed="false" data-i="1">Yearly</button></div>
+<p>Team plan: <span class="price" id="price">$29</span> per database</p>
+<h2 id="how">How it works</h2>
+<button class="acc" aria-expanded="false" aria-controls="p1">What does the restore test check? <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+<div class="acc-panel" id="p1"><div><p>Row counts on the ten biggest tables, compared with production.</p></div></div>
+</main>
+<script>
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function swapText(el,next){if(reduce||el.textContent===next){el.textContent=next;return}el.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-.35em)'}],{duration:110,easing:'ease-in'}).onfinish=()=>{el.textContent=next;el.animate([{opacity:0,transform:'translateY(.35em)'},{opacity:1,transform:'none'}],{duration:200,easing:'cubic-bezier(.22,1,.36,1)'})}}
+const seg=document.querySelector('.seg');seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{seg.style.setProperty('--i',b.dataset.i);seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));swapText(document.getElementById('price'),b.dataset.i==='1'?'$290':'$29')}));
+document.querySelectorAll('.acc').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-expanded',b.getAttribute('aria-expanded')!=='true')));
+document.getElementById('copy').addEventListener('click',e=>{e.target.textContent='Copied';setTimeout(()=>e.target.textContent='Copy install command',1600)});
+</script></body></html>

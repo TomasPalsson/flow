@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Slop</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#fff;color:#111}
+.hero{text-align:center;padding:80px 20px}
+.pill{display:inline-block;border-radius:999px;background:#eef;padding:4px 12px;font-size:12px}
+h1{font-size:56px;background:linear-gradient(90deg,#6366f1,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;margin:16px 0}
+.btn{background:#6366f1;color:#fff;border:0;padding:14px 24px;border-radius:16px;transition:all .3s ease;font:inherit}
+.btn:focus{outline:none}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto;padding:40px}
+.card{border-radius:16px;padding:32px;box-shadow:0 10px 30px rgba(0,0,0,.1);transition:all .3s ease}
+.card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.15)}
+.reveal{opacity:0;transform:translateY(30px);transition:all .6s ease}.reveal.in{opacity:1;transform:none}
+.blob{position:absolute;width:400px;height:400px;border-radius:50%;background:#a855f7;filter:blur(80px);opacity:.3;animation:float 6s ease-in-out infinite;top:0;left:0;z-index:-1}
+@keyframes float{50%{transform:translateY(40px)}}
+</style></head><body>
+<div class="blob"></div>
+<div class="status"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e"></span> Open now</div>
+<section class="hero"><span class="pill">✨ New: AI-powered backups</span><h1>Unlock the future of backups</h1>
+<p>Seamless, effortless, robust. Say goodbye to data loss — forever — with our cutting-edge platform.</p>
+<button class="btn">Get started</button> <a href="#f">Learn more</a></section>
+<section id="f" class="grid">
+<div class="card reveal"><p>🚀 Fast</p><p>Blazing speed — always.</p></div>
+<div class="card reveal"><p>🔒 Secure</p><p>Enterprise security — built in.</p></div>
+<div class="card reveal"><p>⚡ Simple</p><p>No config. Just backups.</p></div>
+</section>
+<div style="height:1200px"></div>
+<section class="grid"><div class="card reveal"><p>Trusted by 10,000+ teams worldwide</p></div></section>
+<script>new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in'))).observe?.call;document.querySelectorAll('.reveal').forEach(el=>new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in'))).observe(el));</script>
+</body></html>

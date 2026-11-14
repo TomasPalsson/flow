@@ -440,7 +440,7 @@
   ],
   "avoid_when": [],
   "decay": "slow",
-  "second_order_default": false,
+  "second_order_default": true,
   "confidence": "high",
   "source_url": "https://fonts.google.com/specimen/Archivo",
   "notes": "'Archivo Expanded' is not a separate family — expansion is the wdth axis of Archivo itself (verified: separate family name 400s on Google's API)."
@@ -4418,7 +4418,7 @@
   ],
   "avoid_when": [],
   "decay": "slow",
-  "second_order_default": false,
+  "second_order_default": true,
   "confidence": "high",
   "source_url": "https://fonts.google.com/specimen/Archivo+Narrow"
  },
