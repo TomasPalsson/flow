@@ -27,6 +27,26 @@ Phase 5b: FEEL        → drive the page in a browser; scripts/probe.mjs has no 
 Phase 6:  EVALUATE    → separate subagent grades the output, by using it
 ```
 
+## Orchestration: who checks what, on which model
+
+Review is done by subagents, never by the builder grading itself, and each job runs on the cheapest model that does it well. Mechanical checks are scripts; checklist work goes to Haiku; rubric judgement to Sonnet; taste calls to Opus.
+
+| Job | Phase | Runs as | Gets (paths, not pasted content) | Returns |
+|---|---|---|---|---|
+| Probe, fold check, font draw | 3b, 5, 5b | script, no model | page path | PASS/FAIL rows |
+| Idea check (creative director) | 3 | subagent, `model: "opus"` | dossier, concepts | a score per concept, ≤150 words |
+| Spec sameness review | 3b gate | subagent, `model: "sonnet"` | design spec, dossier | chrome rows still at the template default, ≤200 words |
+| Feel driver | 5b | subagent, `model: "haiku"` | page path, `microinteractions.md` §9 checklist, probe command | dead spots, rough transitions, choreography failures, each with what it did and saw, ≤250 words, screenshot paths |
+| Tell sweep | 5 | subagent, `model: "haiku"` | screenshots, `anti-patterns.md` T0-T27 | each tell found with its element, ≤200 words |
+| Whole-page check | 4c | subagent, `model: "sonnet"` | full-page screenshots, spec section plan | per-section findings |
+| Evaluator | 6 | subagent, `model: "sonnet"` | `evaluator-prompt.md`, page, probe output, spec | the structured report |
+| Final harsh review | after SHIP, flagship work only | subagent, `model: "opus"` | page, brief | five fixes |
+
+- Spawn the feel driver, tell sweep and whole-page check **in parallel** once the build exists; fix from the merged list, then run the evaluator once.
+- Every subagent prompt ends with its return shape and word limit; screenshots at `deviceScaleFactor: 1`; pass file paths, never page source or images inline.
+- Re-run only the checks whose inputs changed. A second evaluator round happens only when the first misses the SHIP gate.
+- **Running as a subagent without the Agent tool:** do not stand in for these jobs by reviewing your own work. Run the scripts, finish the build, and end your report with a `REVIEW JOBS` block listing each job you could not spawn with its inputs (paths), so the caller runs them and sends the findings back.
+
 ---
 
 ## Phase 1 — Understand
@@ -108,6 +128,8 @@ Before any page code, write the design spec: load [references/design-spec.md](re
 The reason is sameness. Left undecided, the chrome comes out the same on every project whatever the theme: wordmark left and links right with a bordered button at the far edge, a big h2 left with its lede right, one centred column, brand-and-columns footer. For each chrome item the spec names that template default and says what this build does instead and which fact or artefact it comes from. Usability keeps the placement conventions (brand top-left, nav at the top, menu on phone); the concept decides what the chrome carries, its material, geometry and behaviour.
 
 In extend mode the existing system is the spec: read it, add only what the new surface needs, and never restyle shared chrome.
+
+Then a fresh Sonnet subagent reads the spec and the dossier and names any chrome row still at the template default (see Orchestration); revise those rows.
 
 **Gate:** every chrome row has its Default / This build / States lines, the `:root` token block is complete, the section plan and interaction inventory are filled, and the sameness check (§7) names five shared-by-default things and how each differs here or why it stays.
 
@@ -203,7 +225,7 @@ Then invoke `Skill(design:graphics, args: ".vary/graphics-brief.md")`. It return
 
 ## Phase 4c — Whole-page check
 
-**Whole-page check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: opus`) with the full-page screenshots at desktop and phone, `.vary/design-spec.md` (its section plan) and the one-sentence concept. It scrolls top to bottom and reports, per section: (1) **repetition**: the same content shown more than once (a lineup in the hero, the programme and the speaker list; a list of counters as map, legend and table) or the same motif stamped on elements that do not need it (download buttons, weekday bars, every card); (2) **dead sections**: a section where the page falls back to the category's default cards with nothing of this client in it; (3) a **stock metaphor** that has replaced the most subject-specific element. Fix in that order: cut repetition first (each piece of content appears once, in the section whose job it is; a motif stays where it does a job), then give the weakest dead section one specific detail, then restore the subject-specific element. Re-shoot once. Usability fixes win any conflict.
+**Whole-page check (before the critic).** Spawn a FRESH subagent (Agent tool, `model: "sonnet"`) with the full-page screenshots at desktop and phone, `.vary/design-spec.md` (its section plan) and the one-sentence concept. It scrolls top to bottom and reports, per section: (1) **repetition**: the same content shown more than once (a lineup in the hero, the programme and the speaker list; a list of counters as map, legend and table) or the same motif stamped on elements that do not need it (download buttons, weekday bars, every card); (2) **dead sections**: a section where the page falls back to the category's default cards with nothing of this client in it; (3) a **stock metaphor** that has replaced the most subject-specific element. Fix in that order: cut repetition first (each piece of content appears once, in the section whose job it is; a motif stays where it does a job), then give the weakest dead section one specific detail, then restore the subject-specific element. Re-shoot once. Usability fixes win any conflict.
 
 ---
 
@@ -213,7 +235,7 @@ Polish is the last step, not the first. Do not polish work that is not functiona
 
 **Ask yourself: what would someone who has seen a thousand generated pages clock in five seconds?**
 
-Because removing indigo and Inter only moves the page to the next default: cream and a serif with a terracotta accent, near-black with one neon, an italic serif word in a sans headline, mono uppercase labels over every section, a pill above the h1, identical icon-in-a-square cards, a stat strip, a logo wall, the hero → features → how it works → testimonials → pricing → FAQ → "Ready to get started?" sequence, em-dash rhythm, "Not X. Just Y." Load [references/anti-patterns.md](references/anti-patterns.md) and sweep its "Second-order tells" list (T0-T27) against the screenshots. Each tell found is either removed and replaced by something that belongs to this client (their numbers, artefacts, place, product UI, words), or kept with one line naming the content that requires it. Removing a tell without a replacement leaves a hole; fill it.
+Because removing indigo and Inter only moves the page to the next default: cream and a serif with a terracotta accent, near-black with one neon, an italic serif word in a sans headline, mono uppercase labels over every section, a pill above the h1, identical icon-in-a-square cards, a stat strip, a logo wall, the hero → features → how it works → testimonials → pricing → FAQ → "Ready to get started?" sequence, em-dash rhythm, "Not X. Just Y." Hand the sweep to a fresh Haiku subagent (see Orchestration) with the screenshots and the "Second-order tells" list (T0-T27) in [references/anti-patterns.md](references/anti-patterns.md); it returns each tell with its element. Each tell found is either removed and replaced by something that belongs to this client (their numbers, artefacts, place, product UI, words), or kept with one line naming the content that requires it. Removing a tell without a replacement leaves a hole; fill it.
 
 **Ask yourself: where does mathematical alignment lie to me?**
 
@@ -256,7 +278,7 @@ The same file holds the classical, accessibility and performance anti-patterns; 
 A screenshot cannot show whether a page feels built. Drive it.
 
 1. **Probe.** Run `node <this skill's directory>/scripts/probe.mjs <page> <outdir>` (Chromium and Playwright; set `NODE_PATH` to the folder holding `playwright` if it is not found). It hovers, presses and tabs every control, scrolls the page, reloads under reduced motion, and prints PASS/FAIL/WARN rows: hover, press and focus coverage, `transition: all`, layout-property transitions, content hidden after load, scroll-reveal, idle loops, hover on non-clickable blocks, console errors, phone overflow, slop copy, gradient text, emoji icons, single-duration timing, default fonts, indigo actions, eyebrow pill, em-dash density. Every FAIL is fixed; every WARN is fixed or gets one line of reason.
-2. **Drive the primary task by hand** with Playwright at 1440 and 390: hover each control, press and hold, release outside, tab through, run the task end to end, trigger each error and the success. Note any control or changing value with no feedback (a dead spot) and fix it.
+2. **Drive the primary task** (the feel driver: a fresh Haiku subagent, see Orchestration, covering steps 2-5 and returning what it did and saw) with Playwright at 1440 and 390: hover each control, press and hold, release outside, tab through, run the task end to end, trigger each error and the success. Note any control or changing value with no feedback (a dead spot) and fix it.
 3. **Watch it slowed.** Set CDP `Animation.setPlaybackRate` to 0.1 and screenshot mid-transition for the signature interaction and one per-task interaction: no jump at start or end, no two things moving on different curves, nothing entering from the wrong origin.
 4. **Interrupt it.** Hover in and out fast, toggle twice fast, double-click the main action: transitions retarget, nothing double-submits.
 5. **Reduced motion.** Repeat step 2 with `reducedMotion: 'reduce'`: every state change still visible, nothing travelling.
