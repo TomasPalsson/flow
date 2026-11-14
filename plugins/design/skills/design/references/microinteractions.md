@@ -129,7 +129,7 @@ function place(seg) {
 new ResizeObserver(() => seg.querySelectorAll('.ind').length && place(seg)).observe(seg);   // re-measure on every width change
 ```
 
-A `scaleX` indicator distorts its border radius during the move; for a pill, put the radius on two end caps or keep the radius small. The content behind the tabs crossfades (opacity 110ms out, 200ms in), and anything tied to the change swaps in the same beat (§3 Choreography).
+When the indicator is dark and the labels light (or the reverse), a label the indicator passes over is briefly unreadable whatever the timing; the clean fix is a second copy of the labels in the selected colour, clipped to the indicator with a moving `clip-path: inset()` (`../ui-animation/references/clip-path-techniques.md`, tabs). A `scaleX` indicator distorts its border radius during the move; for a pill, put the radius on two end caps or keep the radius small. The content behind the tabs crossfades (opacity 110ms out, 200ms in), and anything tied to the change swaps in the same beat (§3 Choreography).
 
 ### Disclosure and accordion
 
