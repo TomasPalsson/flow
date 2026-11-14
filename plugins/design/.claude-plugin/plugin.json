@@ -1,7 +1,7 @@
 {
   "name": "design",
-  "version": "0.8.0",
-  "description": "Design and UI skills, usability first: design (UX-first design process), vary (roll-assigned, never-the-same UI design), graphics (custom icon sets, illustrations and brand objects, called by the others when a page needs them), diagram (architecture, AWS with official icons, flowcharts, sequence and 40 more diagram types), smoothbrain (big-picture-first picture explainers in plain words), UX critique, mobile design, polish passes, showcase pages, and UI animation.",
+  "version": "0.9.0",
+  "description": "Design and UI skills, usability first: design (UX-first design process with an interaction layer, a design spec and a browser probe), vary (roll-assigned, never-the-same UI design), graphics (custom icon sets, illustrations and brand objects, called by the others when a page needs them), diagram (architecture, AWS with official icons, flowcharts, sequence and 40 more diagram types), smoothbrain (big-picture-first picture explainers in plain words), UX critique, mobile design, polish passes, showcase pages, and UI animation.",
   "author": {
     "name": "TomasPalsson"
   },
