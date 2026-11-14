@@ -64,7 +64,7 @@ Every control type on the page gets every row that applies. Write it as an inven
 @keyframes spin { to { transform: rotate(360deg); } }
 ```
 
-Press scale is .96-.98: smaller is mushy, larger is cartoon. A success state replaces the label in place ("Added", "Copied", "Booked") for ~1.5s, then returns. Show the spinner only if the action takes over ~150ms, so fast actions do not flicker.
+Press scale is .96-.98: smaller is mushy, larger is cartoon. Declare `:active` after `:hover` (same specificity, later wins) or the hover transform silently cancels the press. An action button ignores further clicks while it is busy or showing its success state, and its confirmation is built from what actually happened (the quantity really added), not from what was requested. A success state replaces the label in place ("Added", "Copied", "Booked") for ~1.5s, then returns. Show the spinner only if the action takes over ~150ms, so fast actions do not flicker.
 
 ### Links
 
@@ -179,6 +179,8 @@ The rough edges that survive a first pass are almost always coordination failure
 - **Content follows its control.** When tabs change, the panel content crossfades (out ~110ms, in ~200ms); the code, command or note under a tab never snaps while the indicator is still travelling.
 - **Out is as designed as in.** Anything that animates open animates closed (faster). Setting `hidden` or `display: none` on close kills the exit; use the `grid-template-rows` pattern, `transition-behavior: allow-discrete`, or set `hidden` on `transitionend`.
 - **State is clean on return.** A dialog, drawer or form reopened after success starts fresh (fields cleared, errors gone, focus on the first field); a toggled-back control restores exactly its earlier look.
+- **Reveals move, they do not pop.** Options that appear because of a choice (subscription frequency, a referral note, an extra field) open with the `grid-template-rows` pattern, not by flipping `hidden`, so nothing below jumps.
+- **Feedback never covers its control.** A toast or note sits where it hides nothing the user is about to touch, stays one line on a phone, and is never wider than its content needs.
 - **Acknowledge, then advance.** When choosing an option moves the flow on (pick a treatment → next step), show the selection land first (the radio fills, the row takes its selected state, ~150-250ms), then advance. Ignore pointer input on the incoming panel for ~300ms so the second click of a double-click cannot choose something on the next step.
 - **Notices do not shove.** An inline error or notice that appears right after a click must not push the thing the user is aiming at: reserve its space, overlay it, or place it where nothing moves under the pointer.
 - **The object travels.** When the concept says one thing becomes another (the summary card becomes the confirmation, the bag goes into the cart), move that element with View Transitions (`view-transition-name` on it, `document.startViewTransition`) or FLIP (measure first and last box, animate the `transform` between them), with a plain swap as fallback. A hard layout cut followed by a delayed flourish is the opposite of the idea.

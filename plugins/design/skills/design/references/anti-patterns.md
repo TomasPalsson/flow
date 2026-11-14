@@ -90,7 +90,8 @@ Told to avoid indigo and Inter, generated pages converge on a second set of defa
 - T6. An italic serif word dropped into a sans-serif headline for "personality".
 - T7. Mono, uppercase, letter-spaced micro-labels above every section, often with brackets, slashes or numbers (`[ 01 ]`, `// FEATURES`, `01 — Process`).
 - T8. A rounded pill "eyebrow" above the h1 ("New", "Now in beta", a sparkle).
-- T9. Giant faded section numbers, or numbered steps where nothing cross-references the numbers.
+- T9. Giant faded section numbers or a giant decorative year, or numbered steps where nothing cross-references the numbers.
+- T9c. Costume data: texture or marks that imitate the trade's instruments (graph paper, sprocket holes, a staircase of markers, a seismograph line) without encoding any real value. Decoration dressed as data; if it looks like a chart, it must be one.
 - T9a. The two-tone headline: the first sentence in ink, the second in a muted grey or the accent ("Back up Postgres to any second. Test the restore every night.").
 - T9b. Display tracking pulled so tight that word spaces close up ("Back up" reads "Backup"); stop at about -0.03em and check the word gaps at the largest size.
 
