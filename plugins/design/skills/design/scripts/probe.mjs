@@ -27,7 +27,7 @@ const HARD_BUZZ = ['seamless', 'unlock', 'revolutioni', 'elevate your', 'empower
   'best-in-class', 'like never before', 'reimagin', 'delve'];
 const SOFT_BUZZ = ['robust', 'streamline', 'curated', 'crafted', 'journey', 'built for', 'designed for', 'peace of mind', 'all-in-one',
   'at your fingertips', 'in seconds', 'no fluff', 'nothing more', 'whether you'];
-const DEFAULT_FONTS = ['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', '-apple-system', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato'];
+const DEFAULT_FONTS = ['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', '-apple-system', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato', 'archivo', 'archivo narrow'];
 const INTERACTIVE = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=switch], [role=radio], label:has(> input[type=radio]), label:has(> input[type=checkbox]), label[for]';
 
 // Serialised state of an element, its pseudo-elements and small descendants: any visible change on hover/press shows up here.

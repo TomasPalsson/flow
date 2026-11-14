@@ -28,7 +28,7 @@ const rand = () => { h |= 0; h = (h + 0x6d2b79f5) | 0; let t = Math.imul(h ^ (h 
 const shuffle = (xs) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // the faces probe.mjs warns on as default fonts are never dealt either, so the two scripts agree
-const PROBE_DEFAULTS = new Set(['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato']);
+const PROBE_DEFAULTS = new Set(['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato', 'archivo', 'archivo narrow']);
 const pool = catalogue.filter((f) => !f.second_order_default && !PROBE_DEFAULTS.has(f.name.toLowerCase()) && !exclude.has(f.id) && f.class !== 'system-stack'
   && scripts.every((s) => (f.scripts || []).includes(s))
   && (source === 'any' || (source === 'google' ? f.source.startsWith('google-fonts') : f.source === source))
