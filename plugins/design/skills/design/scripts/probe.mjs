@@ -27,7 +27,7 @@ const HARD_BUZZ = ['seamless', 'unlock', 'revolutioni', 'elevate your', 'empower
   'best-in-class', 'like never before', 'reimagin', 'delve'];
 const SOFT_BUZZ = ['robust', 'streamline', 'curated', 'crafted', 'journey', 'built for', 'designed for', 'peace of mind', 'all-in-one',
   'at your fingertips', 'in seconds', 'no fluff', 'nothing more', 'whether you'];
-const DEFAULT_FONTS = ['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', '-apple-system', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato', 'archivo', 'archivo narrow'];
+const DEFAULT_FONTS = ['inter', 'roboto', 'arial', 'helvetica', 'helvetica neue', 'system-ui', '-apple-system', 'space grotesk', 'poppins', 'montserrat', 'open sans', 'lato', 'archivo', 'archivo narrow', 'geist', 'instrument serif', 'instrument sans', 'dm sans', 'plus jakarta sans'];
 const INTERACTIVE = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=switch], [role=radio], label:has(> input[type=radio]), label:has(> input[type=checkbox]), label[for]';
 
 // Serialised state of an element, its pseudo-elements and small descendants: any visible change on hover/press shows up here.
@@ -112,6 +112,13 @@ async function audit(page) {
     const anims = document.getAnimations();
     o.infiniteRunning = anims.filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations === Infinity).length;
     o.overflow = document.documentElement.scrollWidth > innerWidth + 1;
+    // coloured glows: a blurred, saturated box-shadow standing in for elevation
+    const sat = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 0; const [r, g, b, a = 1] = m[1].split(',').map(Number); return (Math.max(r, g, b) - Math.min(r, g, b)) / 255 * (a > 0.08 ? 1 : 0); };
+    o.glows = all.filter((el) => { const bs = getComputedStyle(el).boxShadow; if (!bs || bs === 'none') return false; return bs.split(/,(?![^(]*\))/).some((part) => { const blur = (part.match(/(-?[\d.]+)px/g) || []).map(parseFloat)[2] || 0; return blur >= 16 && sat(part) > 0.35; }); }).length;
+    // cards nested in cards: three boxed levels (fill or border, plus radius) inside each other
+    const boxed = (el) => { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return r.width > 140 && r.height > 60 && parseFloat(cs.borderTopLeftRadius) >= 6 && (cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0 || cs.boxShadow !== 'none'); };
+    o.nestedCards = all.filter((el) => { if (!boxed(el)) return false; let n = 0; for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (boxed(p)) n++; return n >= 2; }).length;
+    o.families = [...new Set(all.filter((el) => el.childElementCount === 0 && (el.innerText || '').trim()).map((el) => getComputedStyle(el).fontFamily.split(',')[0].replace(/["']/g, '').trim().toLowerCase()))];
     // live-status pill: a small round coloured dot next to "open now / live / online / closed now", or a ticking clock
     const statusRe = /\b(open now|closed now|live now|online now|we're open|we are open|now open|all systems operational|● ?live)\b/i;
     const dots = all.filter((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width >= 5 && r.width <= 16 && Math.abs(r.width - r.height) < 2 && parseFloat(cs.borderTopLeftRadius) >= r.width / 2 - 1 && cs.backgroundColor !== 'rgba(0, 0, 0, 0)'; });
@@ -286,6 +293,9 @@ row(D.liveStatus.length === 0 && !D.tickingBar ? 'PASS' : 'FAIL', 'no-live-statu
 row(!D.templateTopBar ? 'PASS' : 'WARN', 'template-top-bar', D.templateTopBar ? `wordmark left, links and a button right, nothing of the client in it (${D.templateTopBar}); see the spec's top-bar row` : 'none');
 row(!D.sameHeads ? 'PASS' : 'WARN', 'repeated-section-head', D.sameHeads || 'none');
 row(D.literalColours <= 8 ? 'PASS' : 'WARN', 'token-discipline', `${D.literalColours} literal colour values outside custom-property definitions`);
+row(D.glows === 0 ? 'PASS' : 'WARN', 'coloured-glow', `${D.glows} elements with a blurred, saturated box-shadow (T3b)`);
+row(D.nestedCards === 0 ? 'PASS' : 'WARN', 'nested-cards', `${D.nestedCards} boxed elements inside two boxed ancestors (T10b)`);
+row(D.families.length <= 3 ? 'PASS' : 'WARN', 'typeface-count', `${D.families.length} font families in use: ${D.families.join(', ')}`);
 row(T.smallTargets.length === 0 ? 'PASS' : 'WARN', 'target-size', `${T.smallTargets.length} controls under 24px${list(T.smallTargets, 4)}`);
 row('INFO', 'filmstrip', res.desktop.film ? `"${res.desktop.film.label}": ${res.desktop.film.files.map((f) => path.basename(f)).join(', ')}` : 'no filled primary action in the first screen');
 
