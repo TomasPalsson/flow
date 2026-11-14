@@ -199,7 +199,7 @@ These ship with browser defaults that belong to no design. Theming them is the c
 
 - `::selection { background: …; color: … }` in the palette; `caret-color: var(--accent)`; `accent-color: var(--accent)`; `scrollbar-color` on the root and any scroll container; `color-scheme` set.
 - `:focus-visible` ring designed for the palette (≥3:1, offset 2-3px, distinct from hover), never the default blue, never removed.
-- `text-wrap: balance` on headings, `text-wrap: pretty` on paragraphs; `hanging-punctuation: first` where supported; `font-variant-numeric: tabular-nums` on prices, times, tables and counters.
+- `text-wrap: balance` on headings, `text-wrap: pretty` on paragraphs; `hanging-punctuation: first` where supported; `font-variant-numeric: tabular-nums` on prices, times, tables and counters (then look at a time: some faces set a wide tabular colon, "06 : 00"; drop tabular figures on times in those faces or pick another).
 - `scroll-margin-top` on anchor targets equal to the sticky header height; `scroll-behavior: smooth` only inside `@media (prefers-reduced-motion: no-preference)`.
 - `cursor: pointer` on every clickable element that is not a native link or button; `cursor: not-allowed` on disabled.
 - `-webkit-tap-highlight-color: transparent` only where an `:active` state replaces it; `touch-action: manipulation` on controls.
