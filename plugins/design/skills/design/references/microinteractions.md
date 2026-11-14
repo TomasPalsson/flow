@@ -110,20 +110,26 @@ Use real inputs, visually restyled; `accent-color: var(--accent)` is the minimum
 
 ### Segmented controls and tabs
 
-A single indicator slides between options; it never teleports.
+A single indicator slides between options; it never teleports, and it always sits exactly under the selected option, whatever the labels' widths at any viewport. Measure the selected button and move the indicator with transforms only:
 
 ```css
-.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: relative; }
-.seg::before { content: ""; position: absolute; inset: 3px auto 3px 3px; width: calc((100% - 6px) / var(--n));
-  border-radius: inherit; background: var(--surface-raised); transform: translateX(calc(100% * var(--i, 0)));
+.seg { position: relative; display: flex; }
+.seg .ind { position: absolute; left: 0; top: 3px; bottom: 3px; width: 100px; border-radius: inherit; background: var(--surface-raised);
+  transform-origin: 0 50%; transform: translateX(var(--x, 0)) scaleX(var(--sx, 1));
   transition: transform var(--dur-medium) var(--ease-in-out); }
+.seg button { position: relative; transition: color var(--dur-small) var(--ease-out) calc(var(--dur-medium) * .5); }  /* the label turns once the indicator is halfway there, never at t=0 */
 ```
 
-```css
-.seg button { transition: color var(--dur-small) var(--ease-out) calc(var(--dur-medium) * .5); }  /* the label turns when the indicator is halfway there, never at t=0 */
+```js
+function place(seg) {
+  const on = seg.querySelector('[aria-pressed="true"], [aria-selected="true"]');
+  seg.style.setProperty('--x', `${on.offsetLeft}px`);
+  seg.style.setProperty('--sx', on.offsetWidth / 100);   // 100 = the indicator's base width in CSS
+}
+new ResizeObserver(() => seg.querySelectorAll('.ind').length && place(seg)).observe(seg);   // re-measure on every width change
 ```
 
-Set `--n` to the count and `--i` to the selected index from JS. Unequal widths: measure the active button and set `--x`/`--w`, animate `transform` and `scale` rather than `left`/`width`. The content behind the tabs crossfades (opacity 120ms out, 200ms in).
+A `scaleX` indicator distorts its border radius during the move; for a pill, put the radius on two end caps or keep the radius small. The content behind the tabs crossfades (opacity 110ms out, 200ms in), and anything tied to the change swaps in the same beat (§3 Choreography).
 
 ### Disclosure and accordion
 
