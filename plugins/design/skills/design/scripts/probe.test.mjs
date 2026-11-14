@@ -22,6 +22,6 @@ test('polished fixture passes every gated row', () => {
 test('slop fixture fails the planted tells', () => {
   const { code, rows } = run('slop.html');
   assert.equal(code, 1);
-  for (const id of ['hover-feedback', 'press-feedback', 'focus-ring', 'no-transition-all', 'reduced-motion', 'no-static-hover', 'slop-copy', 'no-gradient-text', 'no-emoji-icons']) assert.equal(rows[id], 'FAIL', id);
+  for (const id of ['hover-feedback', 'press-feedback', 'focus-ring', 'no-transition-all', 'reduced-motion', 'no-static-hover', 'slop-copy', 'no-gradient-text', 'no-emoji-icons', 'no-live-status-pill']) assert.equal(rows[id], 'FAIL', id);
   for (const id of ['eyebrow-pill', 'default-fonts', 'indigo-actions', 'em-dash-density']) assert.equal(rows[id], 'WARN', id);
 });

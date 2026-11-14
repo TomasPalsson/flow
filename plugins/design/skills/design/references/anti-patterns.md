@@ -98,6 +98,8 @@ Told to avoid indigo and Inter, generated pages converge on a second set of defa
 **Chrome**
 - T0. The template top bar: wordmark left, a cluster of text links right, a bordered or filled button at the far right, a hairline underneath, about 64px tall, carrying nothing of this client. And its partner, the template footer: brand and address left, link columns right. They read identical across any two themes.
 
+- T0a. The live-status pill: a green or red dot beside "Open now", "Live", "Online", "Closed now · Opens …", "All systems operational", or a ticking clock in the header. Generated pages add it to make chrome look specific; it reads as a dashboard widget pasted on. Opening hours belong where people look for them (the hours, the contact block), as plain text.
+
 **Components and layout**
 - T10. Identical cards: icon in a tinted rounded square, bold title, two lines of grey text, 1px border, the same radius, three or six of them.
 - T11. Bento grid of mismatched tiles that holds no more information than a list would.
@@ -303,7 +305,7 @@ Ranked by combination of user damage and signal clarity. If any appear, professi
 - [ ] No emoji as functional icons
 - [ ] Headlines contain ZERO AI vocabulary (revolutionary, seamless, unlock, game-changing, etc.)
 - [ ] Copy has specific numbers / concrete claims
-- [ ] Five-second look: every second-order tell (T0-T27) removed or justified by content in one line
+- [ ] Five-second look: every second-order tell (T0-T27, including T0a) removed or justified by content in one line
 - [ ] `scripts/probe.mjs` has no FAIL row
 
 ### Accessibility Scan

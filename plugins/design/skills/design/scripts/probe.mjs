@@ -112,6 +112,13 @@ async function audit(page) {
     const anims = document.getAnimations();
     o.infiniteRunning = anims.filter((a) => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations === Infinity).length;
     o.overflow = document.documentElement.scrollWidth > innerWidth + 1;
+    // live-status pill: a small round coloured dot next to "open now / live / online / closed now", or a ticking clock
+    const statusRe = /\b(open now|closed now|live now|online now|we're open|we are open|now open|all systems operational|● ?live)\b/i;
+    const dots = all.filter((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width >= 5 && r.width <= 16 && Math.abs(r.width - r.height) < 2 && parseFloat(cs.borderTopLeftRadius) >= r.width / 2 - 1 && cs.backgroundColor !== 'rgba(0, 0, 0, 0)'; });
+    o.liveStatus = [...new Set([
+      ...dots.filter((d) => statusRe.test((d.parentElement?.innerText || '') + ' ' + (d.nextElementSibling?.innerText || ''))).map((d) => (d.parentElement.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40)),
+      ...all.filter((el) => el.childElementCount === 0 && statusRe.test(el.innerText || '')).map((el) => el.innerText.trim().replace(/\s+/g, ' ').slice(0, 40)),
+    ])].slice(0, 4);
     o.hiddenShown = [...document.querySelectorAll('[hidden]')].filter((el) => getComputedStyle(el).display !== 'none').map((el) => el.id || el.className || el.tagName).slice(0, 5);
     o.reducedMotionCSS = [...document.styleSheets].some((s) => { try { return [...s.cssRules].some((r) => (r.conditionText || r.media?.mediaText || '').includes('prefers-reduced-motion')); } catch { return false; } }) || /prefers-reduced-motion/.test(document.documentElement.innerHTML);
     // text that is still invisible after load anywhere on the page (candidates for scroll-reveal)
@@ -226,6 +233,10 @@ for (const [name, viewport] of [['desktop', { width: 1440, height: 900 }], ['pho
   await page.screenshot({ path: path.join(outDir, `${name}-fold.png`) });
   const a = await audit(page);
   a.scrollRevealed = await scrollReveal(page);
+  // a ticking clock in the chrome: the top bar's text changes while nobody touches anything
+  const barText = () => page.evaluate(() => { const b = [...document.querySelectorAll('header, nav, body > *')].find((el) => { const r = el.getBoundingClientRect(); return r.top <= 4 && r.width > innerWidth * 0.8 && r.height >= 30 && r.height <= 200; }); return b ? b.innerText : ''; });
+  const t1 = await barText(); await page.waitForTimeout(1300); const t2 = await barText();
+  a.tickingBar = t1 !== t2;
   await page.screenshot({ path: path.join(outDir, `${name}-full.png`), fullPage: true });
   const film = name === 'desktop' ? await filmstrip(page) : null;
   const t = name === 'desktop' ? await touchAudit(page) : null;
@@ -271,6 +282,7 @@ row(!D.eyebrowPill ? 'PASS' : 'WARN', 'eyebrow-pill', D.eyebrowPill ? `pill abov
 row(D.defaultFonts.length === 0 ? 'PASS' : 'WARN', 'default-fonts', `heading ${D.fonts.heading}, body ${D.fonts.body}, controls ${D.fonts.control}`);
 row(D.purpleActions === 0 ? 'PASS' : 'WARN', 'indigo-actions', `${D.purpleActions} buttons/links filled indigo-violet`);
 row(D.backdrop <= 2 && D.blobs === 0 ? 'PASS' : 'WARN', 'glass-and-blobs', `${D.backdrop} backdrop-filter, ${D.blobs} heavily blurred blobs`);
+row(D.liveStatus.length === 0 && !D.tickingBar ? 'PASS' : 'FAIL', 'no-live-status-pill', D.liveStatus.length || D.tickingBar ? `${D.liveStatus.length ? 'status pill or dot: ' + D.liveStatus.join('; ') : ''}${D.tickingBar ? ' top-bar text changes at rest (a ticking clock)' : ''} (T0a)` : 'none');
 row(!D.templateTopBar ? 'PASS' : 'WARN', 'template-top-bar', D.templateTopBar ? `wordmark left, links and a button right, nothing of the client in it (${D.templateTopBar}); see the spec's top-bar row` : 'none');
 row(!D.sameHeads ? 'PASS' : 'WARN', 'repeated-section-head', D.sameHeads || 'none');
 row(D.literalColours <= 8 ? 'PASS' : 'WARN', 'token-discipline', `${D.literalColours} literal colour values outside custom-property definitions`);
