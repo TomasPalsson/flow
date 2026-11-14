@@ -258,7 +258,8 @@ Code review cannot tell whether an interaction feels right. Phase 5b of SKILL.md
 2. Drive the primary task by hand with Playwright at desktop and at 390px: hover each control, press and hold, release outside, tab through the page, run the task end to end, trigger each error and the success.
 3. Watch the motion slowed: `const cdp = await page.context().newCDPSession(page); await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.1 });` then screenshot mid-transition. Look for a jump at the start or end, two things moving on different curves, and an element moving from the wrong origin.
 4. Interrupt: hover in and out quickly, toggle twice fast, double-click the main action. Transitions must retarget from where they are, not restart; double actions must not double-submit.
-6. Choreography (§3): at 0.1x, every segmented control, toggle and tab moves as one object, everything tied to a change swaps in the same beat, and every opened thing closes with motion.
 5. Emulate `reducedMotion: 'reduce'` and repeat step 2: every state change still visible, nothing moving.
+6. Transient states: screenshot every state that only exists after an action (toast, stub, opened menu, dialog success, error summary, empty cart, checkout notice) and read each one. These never appear in a load-time screenshot, and they inherit colour from wherever they are mounted: a slip printed out of a dark bar inherits the bar's light text.
+7. Choreography (§3): at 0.1x, every segmented control, toggle and tab moves as one object, everything tied to a change swaps in the same beat, and every opened thing closes with motion.
 
 Credit: recipes adapted from this plugin's `ui-animation` skill (itself from emilkowalski/skills @ 2d22863, MIT) and the platform docs for `@starting-style`, `popover`, `interpolate-size` and the View Transitions API.
