@@ -28,7 +28,7 @@ The `:root` block, written here first and copied into the build verbatim. The bu
 - **Type:** faces from `scripts/font-draw.mjs` with the reason for the pick; one row per role (display, h2, h3, body, small, label, numeric) with size, line-height, tracking and weight.
 - **Space:** the scale; **container widths by content type** (at least two: reading measure and wide), and which sections use which.
 - **Radius and elevation:** tiers, or "none" with the reason.
-- **Motion:** the `--ease-*`/`--dur-*` tokens from `references/microinteractions.md` §1, tuned to the concept within the ladder's ranges (a calm clinic sits at the slow end, a dev tool at the crisp end), and one line on its motion character ("paper: nothing lifts, things are stamped and slid").
+- **Motion:** the `--ease-*`/`--dur-*` tokens from `references/microinteractions.md` §1, tuned to the concept within the ladder's ranges (a calm service sits at the slow end, a tool for specialists at the crisp end), and one line on its motion character ("paper: nothing lifts, things are stamped and slid").
 
 ## 4. Chrome
 
@@ -39,11 +39,11 @@ Usability decides what must stay conventional; the concept decides everything el
 | Item | What to decide |
 |---|---|
 | **Top bar** | Whether it carries anything besides brand, links and the primary action, and if so a fact the visitor genuinely needs at the top of every page, set in the page's own type, never as a status pill, a coloured dot or a ticking clock (those are a tell, T0a); its material (a ticket stub, a ledger rule, a recorder strip, a card header, a sign); its geometry (one row or two, a tab strip in the trade's form, docked to the hero, a left rail); its scroll state; its phone form. "Wordmark left, three links right, outlined button far right, hairline under" is the template: it is never the answer by default. New content in the template skeleton is not enough: the bar also differs in **geometry or material** (for example a two-tier bar whose tiers do different jobs, a brand set as the trade's sign or plate, links as tabs of the trade's artefact, a progress or summary line that is the nav on a task page, a bar that docks into the first screen, a phone bar at the bottom). Picture this bar on two other clients' sites in other trades: if it would fit there unchanged, redo it. |
-| **Footer** | What a visitor actually looks for at the bottom of this site (hours, address and map, the next date, the install command, support) set in the page's material; not brand-left plus link columns. |
+| **Footer** | What a visitor actually looks for at the bottom of this site (hours, address and map, the next date, how to get started, support) set in the page's material; not brand-left plus link columns. |
 | **Actions** | Primary, secondary and text link: shape, fill, label style, icon use, and press, loading and success states, drawn from the material (a stamp, a tab, a key, a tag), not the default solid rounded rectangle unless that is a deliberate choice with a reason. |
 | **Section heads** | At least two different head treatments, assigned to sections by job (a head that is a number, a head that is a date, a head inside the content, a running head). Never one layout repeated on every section; never the h2-left-lede-right pair by default. |
 | **Containers** | Which sections run at the reading measure, which run wide, which run full bleed, and where the grid breaks on purpose. Not one centred column for everything. |
-| **Cards, rows, list items** | The unit of content in the trade's own form (a bag label, a log line, an appointment slot), with its hover and selected states; whether it is clickable (only clickable units react to hover). |
+| **Cards, rows, list items** | The unit of content in the trade's own form (a ticket, a ledger line, a catalogue card), with its hover and selected states; whether it is clickable (only clickable units react to hover). |
 | **Fields and controls** | Inputs, selects, segmented controls, toggles: their material and states; conventional behaviour, skinned through tokens. |
 | **Feedback** | How the page says yes, no and wait: the confirmation, the cart or count, errors, empty states, loading. In the page's voice and material. |
 | **Signature interaction** | The one rare action and what happens (microinteractions.md §5). |
@@ -60,7 +60,7 @@ Every control type and every value that changes → its states (default, hover, 
 
 Name the five things a page you would build today for a different client in a different trade would share with this one (top bar geometry, section-head layout, container, button shape, footer, card, the type pairing, the accent's role). For each, say how this spec differs, or why sharing it serves this client's user. Then name the one thing a visitor will remember from this page; if it is not in §1, the spec has drifted.
 
-Last, the audience check: picture the densest view of the spec at 390px in the hands of the dossier's audience (an older patient in pain, a buyer in a hurry, an engineer scanning). If the concept makes the primary task slower, smaller or more taps than the plain version would, the concept bends, not the user: keep the idea at the scale where it does not cost the task (the summary, the header, the confirmation) and give the task its plain, large, fast form.
+Last, the audience check: picture the densest view of the spec at 390px in the hands of the dossier's audience (an older person in a hurry, a buyer on a phone, a specialist scanning). If the concept makes the primary task slower, smaller or more taps than the plain version would, the concept bends, not the user: keep the idea at the scale where it does not cost the task (the summary, the header, the confirmation) and give the task its plain, large, fast form.
 
 ## Following the spec
 

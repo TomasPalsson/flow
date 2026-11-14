@@ -208,7 +208,7 @@ These ship with browser defaults that belong to no design. Theming them is the c
 
 ## 5. The signature interaction
 
-One rare action gets a small, authored moment tied to the concept, inside the once-per-visit budget. It belongs to this client: the shape of their trade's own artefact or gesture. Examples of the shape (do not reuse them): adding a coffee to the cart prints the roast date onto a small bag label; copying an install command echoes a line of terminal output beneath it; confirming a booking settles the appointment card into place with the time set large. It runs once per action, under 600ms, never on hover or scroll, and has a reduced-motion version that keeps the state change without the movement.
+One rare action gets a small, authored moment tied to the concept, inside the once-per-visit budget. Find the point in the client's trade where something changes hands or state (a thing is set aside, issued, signed, sealed, scheduled, sent) and show that change happening to the page's own object, in the page's material. Do not borrow an example from anywhere, this file included: the moment comes from the dossier. It runs once per action, under 600ms, never on hover or scroll, and has a reduced-motion version that keeps the state change without the movement.
 
 ## 6. Page load and scroll
 

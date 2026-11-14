@@ -92,8 +92,8 @@ Told to avoid indigo and Inter, generated pages converge on a second set of defa
 - T8. A rounded pill "eyebrow" above the h1 ("New", "Now in beta", a sparkle).
 - T9. Giant faded section numbers or a giant decorative year, or numbered steps where nothing cross-references the numbers.
 - T9c. Costume data: texture or marks that imitate the trade's instruments (graph paper, sprocket holes, a staircase of markers, a seismograph line) without encoding any real value. Decoration dressed as data; if it looks like a chart, it must be one.
-- T9a. The two-tone headline: the first sentence in ink, the second in a muted grey or the accent ("Back up Postgres to any second. Test the restore every night.").
-- T9b. Display tracking pulled so tight that word spaces close up ("Back up" reads "Backup"); stop at about -0.03em and check the word gaps at the largest size.
+- T9a. The two-tone headline: the first sentence in ink, the second in a muted grey or the accent ("Fresh bread at seven. Delivered by nine.").
+- T9b. Display tracking pulled so tight that word spaces close up ("Set up" reads "Setup"); stop at about -0.03em and check the word gaps at the largest size.
 
 **Chrome**
 - T0. The template top bar: wordmark left, a cluster of text links right, a bordered or filled button at the far right, a hairline underneath, about 64px tall, carrying nothing of this client. And its partner, the template footer: brand and address left, link columns right. They read identical across any two themes.
@@ -110,13 +110,13 @@ Told to avoid indigo and Inter, generated pages converge on a second set of defa
 - T15. The default page sequence: hero, logos, three features, "How it works" 1-2-3, testimonials, three-tier pricing with a highlighted middle, FAQ accordion, "Ready to get started?" band, four-column footer.
 - T16. Every section the same width, centred, with the same vertical padding: no rhythm.
 - T16a. The same section-head layout on every section (h2 left, lede paragraph right, bottom-aligned; or eyebrow, h2, lede, centred): the template's rhythm showing through.
-- T16b. The dev-tool hero object: a dark rounded "terminal" card with traffic-light dots or brew/curl tabs and a Copy button, floating with a heavy shadow on a light page. When the install command matters, set it in the page's own material instead.
+- T16b. The dev-tool hero object: a dark rounded "terminal" card with traffic-light dots or package-manager tabs and a Copy button, floating with a heavy shadow on a light page. When the install command matters, set it in the page's own material instead.
 
 **Copy**
 - T17. Em-dash rhythm: more than about seven per 600 words, or one in most headlines.
 - T18. "Not X. Just Y." / "No X. No Y. Just Z." and fragment triplets ("Fast. Private. Yours.").
 - T19. "Everything you need to…", "Built for teams who…", "Designed for…", "…in seconds", "…that just works".
-- T19a. Aphorism headlines: a quotable maxim where a claim should be ("A backup you have never restored is a guess", "Good coffee takes time"). One may be earned; a page of them is a model talking.
+- T19a. Aphorism headlines: a quotable maxim where a claim should be ("Data you cannot trust is only noise", "Great things take time"). One may be earned; a page of them is a model talking.
 - T19b. Copy that describes the interface instead of the subject ("Four short steps. Your choices fill in the card as you go.", "Scroll to explore", "Here's how it works").
 - T20. Section titles that are only labels in the default order ("Features", "How it works", "Pricing", "FAQ") and a "Get started" / "Learn more" button pair.
 - T21. Invented specifics: numbers, customers, quotes or logos that are not in the brief.
