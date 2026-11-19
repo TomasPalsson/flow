@@ -16,7 +16,7 @@ DC1_SMOOTH="$DC1_DESIGN/smoothbrain/SKILL.md"
 t_dc1_ship_gate_has_dimension_floor() {
 	local t
 	t=$(cat "$DC1_SKILL")
-	assert_contains "$t" "Composite ≥ 4.0 AND Usability, Interaction and Accessibility each ≥ 3.5 AND no dimension ≤ 2" "SHIP names the composite and the per-dimension floor"
+	assert_contains "$t" "Composite ≥ 4.0 AND Usability, Interaction and feel, and Accessibility each ≥ 3.5 AND no dimension ≤ 2" "SHIP names the composite and the per-dimension floor"
 	assert_contains "$t" "apply the top fixes for the lowest dimension" "below the floor the lowest dimension gets the fixes"
 	assert_contains "$t" "adapted from garrytan/gstack plan-design-review/sections/review-sections.md.tmpl @ 5b9b837 (MIT)" "SHIP floor credit line"
 	assert_contains "$(cat "$DC1_EVAL")" "**Lowest dimension:** <name> X.X" "evaluator report prints the lowest dimension"

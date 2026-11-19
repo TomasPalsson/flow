@@ -7,9 +7,7 @@ argument-hint: "[target description]"
 
 # Design Excellence
 
-Claude's default design output is not neutral. Without intervention, it collapses to the statistical center of its training distribution: `bg-indigo-500`, Inter font, centered hero + 3-column feature grid, `rounded-2xl`, `shadow-lg`, "Build the future of X" copy. Anthropic calls this "distributional convergence" in their own documentation. Users call it "AI slop." The Adam Wathan apology of August 2025 — "I'm sorry for making every button in Tailwind UI use bg-indigo-500... this caused every AI-generated interface on Earth to turn purple" — is the origin story.
-
-This skill is the counterforce. Priority order: first UX and usability (the user finishes their task, finds things, can read and operate it on a phone, with assistive tech), then fit to the client's real content, then creativity and variety. Running through all three is **feel**: a page that looks designed in a screenshot but sits dead under the pointer reads as a template the moment someone touches it. Every build ships the interaction layer and is judged by using it, not by looking at it. Each phase has a gate. The final phase hands the output to a SEPARATE skepticism-tuned evaluator subagent because Anthropic's own harness research documented that Claude "confidently praises the work — even when, to a human observer, the quality is obviously mediocre." Self-critique is broken for creative work. External calibrated evaluation is not.
+Left alone, Claude's design output collapses to the centre of its training data: indigo, Inter, a centred hero over three cards, `rounded-2xl`, "Build the future of X". This skill is the counterforce. Priority order: UX and usability first (the user finishes their task, on a phone, with assistive tech), then fit to the client's real content, then a look of its own. Running through all three is **feel**: every build ships the interaction layer and is judged by using it, not by looking at it. Each phase has a gate, and the output is graded by a separate skeptical evaluator, never by the builder.
 
 ## The Process
 
@@ -117,7 +115,7 @@ Before visual decisions, make UX decisions. Visual polish on a broken flow is li
 - **Fitts's Law.** Touch targets 44-48px (WCAG 2.2 minimum is 24×24 — that's a floor, not a target). Primary CTAs at the natural end of attention flow. Related actions grouped spatially.
 - **Proximity is information architecture.** Whitespace creates grouping without color or shape. "Make it more compact" usually means "make it harder to understand."
 - **Jakob's Law.** Users spend most of their time on other sites. Default to platform conventions; justify every deviation with a proportionally larger benefit. Creativity goes into content, brand, and copy — NOT into reinventing navigation, forms, or error handling.
-- **H8 Minimalism via progressive disclosure.** Not sparse — purposeful. Every element earns its place. Hide advanced options behind "Advanced" toggles.
+- **H8 Minimalism via progressive disclosure.** Not sparse — purposeful. Every element earns its place; advanced options sit behind a disclosure (on an operate surface, O2 sets the rules).
 - **H4 Consistency.** Same action = same label, same color, same position across the product. Internal consistency beats external when they conflict.
 
 On operate surfaces Jakob's law governs controls: nav, forms and errors keep platform conventions and are skinned through tokens, not re-invented in the world's material.
@@ -191,26 +189,7 @@ This is where craft numbers matter more than principles. The difference between 
 | Motion | Dead controls, or AOS fade-in-up on everything, `transition: all .3s`, hover lift on every card, bounce easing | Every control answers hover, press and focus; changes explained in place; tiered `--dur-*`/`--ease-*` tokens; one authored moment on a rare action; nothing moves on scroll or at rest. |
 | Copy | "Build the future of X," "Scale without limits," "Empower your team" | Concrete claims with specific verbs, numbers, outcomes. "Cut review time from 3 hours to 20 minutes." |
 
-**Typography execution rules:**
-
-- Line-height: **1.4-1.6 for body**, **1.0-1.2 for headings**, 1.0-1.25 for UI labels. Engineers default to 1.5 everywhere — that makes headings look like paragraphs.
-- Letter-spacing: **-0.02em to -0.04em for display type above 40px** (default tracking at large sizes looks amateur). **+0.05em to +0.12em for ALL CAPS** (uppercase was designed for mixed case and needs tracking to breathe).
-- Choose typefaces with **≥5 weights** — fewer weights signals low foundry investment.
-- `font-display: swap` + preload 1-2 critical weights + WOFF2 only + variable fonts when available.
-
-**Color execution rules:**
-
-- **OKLCH, not HSL.** HSL lightness is not perceptually uniform — a blue-500 and yellow-500 look dramatically different at the same HSL values. OKLCH fixes this.
-- **Tinted neutrals at chroma 0.005-0.01** toward the brand hue. The tint is invisible per-pixel but creates subconscious cohesion.
-- **NEVER gray text on colored backgrounds.** Use a hue-matched desaturated shade of the background. Example: on a dark blue hero, muted text is `hsl(220, 40%, 65%)`, not gray.
-- **Dark mode via lightness elevation, not shadows.** Four-tier lightness system: `oklch(0.12/0.16/0.20/0.24 0.01 H)`. Desaturate accents 10-15% (simultaneous contrast causes vibration otherwise). Never pure black.
-
-**Spacing execution rules:**
-
-- **8pt grid** for all layout spacing. 4pt half-steps only for internal component spacing (padding within buttons, icon-to-label gaps).
-- **Internal ≤ external** — component padding should be ≤ the space between components. When internal > external, grouping breaks.
-- Whitespace is information architecture, not wasted space.
-- Default generous, reduce only when content demands density.
+**Craft numbers.** Load [references/build-rules.md](references/build-rules.md) §1 now: the typography, colour, spacing and depth numbers (line-height and tracking per size, OKLCH and tinted neutrals, the 8pt grid and internal ≤ external, layered shadows). They are what separates designer-quality from engineer-built.
 
 **The interaction layer (every build with a control on it).** Load [references/microinteractions.md](references/microinteractions.md) now; it is not optional. It holds the motion tokens, the frequency ladder, the interaction floor (a recipe and the required states for each control type), browser-surface finishing, the signature interaction, page-load and scroll rules, and the motion that reads as AI-made. Then:
 
@@ -220,15 +199,6 @@ This is where craft numbers matter more than principles. The difference between 
 - **One authored moment.** One rare action gets a small signature interaction drawn from the client's trade (microinteractions.md §5). Never on hover, never on scroll.
 - **Quiet everywhere else.** At most one CSS-only load moment on the first screen; no scroll-reveal of body content; no idle loops; transform and opacity only (the `grid-template-rows` disclosure is the one sanctioned exception); never animate keyboard-triggered actions; reduced motion ships with the animation.
 - When the page needs gestures, drag, springs, shared-element or route transitions, call the Skill tool with "design:ui-animation" for those parts.
-
-**Depth execution rules:**
-
-- **Multi-layer shadows** with Tobias Ahlin's doubling formula: 5 layers, Y and blur double each step, 12% opacity per layer. Never single `box-shadow` except for subtle focus rings.
-- **Match shadow hue to background hue** at low saturation/lightness. Pure black shadows (`rgba(0,0,0,n)`) produce a washed-out grey that disconnects from the surface.
-- **Single light source direction** across the entire page (slightly down-right by convention). Mixed directions destroy physical coherence.
-- **Dark mode has no shadows** — use the lightness elevation system instead.
-
-For the complete craft reference with additional rules and CSS patterns, **load [references/visual-craft.md](references/visual-craft.md) ONLY when you need a specific number not covered above** (e.g., modular scale ratios, specific easing curves beyond quart, shadow color formulas for dark-mode floating panels). **Do NOT load** if the above rules are sufficient.
 
 **Gate:** Your output has explicit typography choices (by name), an explicit color approach (OKLCH values or named palette), a spacing scale, the motion tokens, an interaction inventory with every control type and every changing value covered, the signature interaction named, and at least three designed states (not just happy path).
 
@@ -268,29 +238,19 @@ Then invoke `Skill(design:graphics, args: ".vary/graphics-brief.md")`. It return
 
 ## Phase 5 — Polish
 
-Polish is the last step, not the first. Do not polish work that is not functionally complete. An expert polishing a design does not walk through a labeled checklist — they scan with a trained eye for specific failure modes that an untrained eye misses. Transfer that trained-eye by interrogating the design with these questions, not by marching through a sequence.
+Polish is the last step, not the first. Do not polish work that is not functionally complete. An expert polishing a design does not walk through a labeled checklist — they scan with a trained eye for specific failure modes that an untrained eye misses. Transfer that trained eye by interrogating the design with these questions, not by marching through a sequence; [references/build-rules.md](references/build-rules.md) §2 holds what each question catches. Read it on the first polish pass.
 
 **Ask yourself: what would someone who has seen a thousand generated pages clock in five seconds?**
 
-Because removing indigo and Inter only moves the page to the next default: cream and a serif with a terracotta accent, near-black with one neon, an italic serif word in a sans headline, mono uppercase labels over every section, a pill above the h1, identical icon-in-a-square cards, a stat strip, a logo wall, the hero → features → how it works → testimonials → pricing → FAQ → "Ready to get started?" sequence, em-dash rhythm, "Not X. Just Y." Hand the sweep to a fresh Haiku subagent (see Orchestration) with the screenshots and the "Second-order tells" list (T0-T27) in [references/anti-patterns.md](references/anti-patterns.md); it returns each tell with its element. Each tell found is either removed and replaced by something that belongs to this client (their numbers, artefacts, place, product UI, words), or kept with one line naming the content that requires it. Removing a tell without a replacement leaves a hole; fill it. Then the brand-swap test: hide the top bar and look at the first screen; if it could belong to another brand in the same category, it is not done.
-
 **Ask yourself: where does mathematical alignment lie to me?**
-
-Because mathematical alignment produces visually misaligned results when elements have uneven visual weight. A play icon (triangle) in a circular button reads as left-shifted when mathematically centered — its visual mass anchors left, so shift 1-2px right. A glyph in a circular container reads as sitting too low — the eye anchors to cap height, not descender, so shift up 2-3% of container height. Text with descenders (g, p, y) in vertically centered containers reads low for the same reason — add 2-3% extra top padding. A circle at 40×40 carries ~20% less visual weight than a square at 40×40, so at equal math size the circle needs ~5-10% scale-up to read equal. Display headings above ~40px at default letter-spacing look loose and amateur — pull to -0.02em to -0.04em. If you did not ask this question, you shipped with silent visual noise.
 
 **Ask yourself: can a user glancing at every button label for 0.5 seconds tell what will happen?**
 
-Because users do not read buttons — they scan for outcome words. `OK` / `Cancel` is a scanning failure: both labels are generic and users pick one arbitrarily. Every button that contains `OK`, `Submit`, `Yes`, `No`, `Continue`, or `Click here` is a scanning failure that must be rewritten with the specific outcome: `Delete Account` / `Keep Account`, `Send invoice` / `Save draft`, `Create account` / `Sign in instead`. Extend the same test to copy: does every headline and CTA communicate a concrete outcome, or does it trade in the AI vocabulary that signals low effort on first read (*revolutionize, unlock, seamless, game-changing, cutting-edge, next-level, the future of, empower your, scale without limits, build the future, transform your workflow, say goodbye to*)? Every such phrase must be rewritten as a concrete claim with specific numbers or verbs: "cut review time from 3 hours to 20 minutes," "connects to Slack in under 2 minutes."
-
 **Ask yourself: what happens when a user never touches a mouse?**
-
-Because keyboard-only navigation is invisible until it's catastrophic. Walk through the design mentally using only Tab. Where does focus land first? Is the order the reading order? Is every focus target visibly ringed with ≥3:1 contrast via `:focus-visible`? Does focus get trapped in modals? Does it return to the trigger element when the modal closes?
 
 **Ask yourself: for every interactive element, which of the nine states can I actually describe right now?** Default, hover, focus-visible, active, disabled, loading, error, success, empty — can you picture each one concretely for every button, input, and link on the screen? Any state you cannot immediately describe does not exist. Missing states are not edge cases; they are core flows the first-pass generation skipped because the happy path was sufficient. This is the #1 source of "it looked good in the mockup but broke in production."
 
 **Ask yourself: what does this look like in the hostile conditions users actually experience?**
-
-Because the mockup runs in perfect conditions; production does not. Turn on `prefers-reduced-motion: reduce` — nothing decorative should animate, but functional state transitions (focus rings, disclosure toggles) still need to work. Zoom to 200% — text must remain readable and no horizontal scrolling. Check that every `<img>` has explicit `width` and `height` attributes (not CSS — HTML attributes) so CLS stays under 0.1 (62% of mobile pages fail this per the 2025 Web Almanac). Check that every color comes from a token (not a hard-coded hex), every spacing value from the 8pt scale (not an ad hoc number), every shadow from the elevation system (not a one-off `box-shadow`) — drift here is invisible in a single screen but compounds into design system decay. Check that `font-display: swap` + `size-adjust` are on every `@font-face` so font loading does not cause layout shift. If any of these reveal issues, they are not cosmetic — they are bugs that will ship. For any page people will open on a phone, load [references/mobile-web.md](references/mobile-web.md) and apply its baseline: sticky hover, the tap flash, `100vh`, input zoom and the notch are invisible in desktop emulation and obvious on a real phone.
 
 **Craft-bug rules (Polish checklist).** Content is visible with no JS-triggered reveal (an element may animate in only from a visible state); no full-viewport overlay or backdrop left on the page; nothing in the hero is cropped by the nav or the viewport edge; every dial, axis or scale is monotonic and labelled with real values; every callout leader ends on its object.
 
@@ -327,7 +287,7 @@ A screenshot cannot show whether a page feels built. Drive it.
 
 ## Phase 6 — Evaluate
 
-**Do NOT load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself.** That file belongs to the evaluator subagent. If you load it, you contaminate the generator/evaluator separation that makes Phase 6 effective — the criteria that grade the design would also shape your generation, and Anthropic's own harness research documents that this collapses the quality signal. The evaluator subagent reads the rubric; you read only `evaluator-prompt.md` to understand what the subagent will do.
+**Do NOT load [`references/evaluation-rubric.md`](references/evaluation-rubric.md) yourself.** It belongs to the evaluator: if its criteria shape the build, the grade stops measuring anything. Read only `evaluator-prompt.md`.
 
 **This phase is mandatory for any design the user will actually ship.** It is skippable only for throwaway prototypes or sketches where the user explicitly said "just something quick."
 
@@ -346,9 +306,9 @@ A screenshot cannot show whether a page feels built. Drive it.
 
 Credit: adapted from garrytan/gstack plan-design-review/sections/review-sections.md.tmpl @ 5b9b837 (MIT).
 
-**Iterate until the score converges or clears the SHIP gate (composite and floors).** Anthropic's harness research shows creative leaps happen in iteration 7-9, not iteration 1. The evaluator loop is where quality compounds — single-pass design peaks at "competent," iterated design peaks at "memorable."
+**Iterate until the work clears the SHIP gate (composite and floors) or the score stops moving.** Quality compounds in the evaluator loop, not in the first pass.
 
-**If the evaluator subagent fails** — the Agent tool is unavailable, the subagent cannot read the rubric file, it returns no structured report, or it returns a malformed/truncated response — do NOT proceed silently. Fall back to a degraded self-evaluation against the seven dimensions in `evaluator-prompt.md` (Usability 20%, Interaction and feel 20%, Accessibility 15%, Microcopy 10%, Composition 10%, Color+Type 10%, Project specificity and creativity 15%), applying the bias mitigations from that file explicitly (evidence-first, sequential dimensions, negative-first framing, "cannot determine" for items not assessable). Report the result to the user AS a self-evaluation — not as a subagent evaluation — and note that the quality signal is lower fidelity because the generator/evaluator separation is broken. Ask the user whether to ship the self-evaluated result or retry the subagent.
+**If the evaluator subagent fails** (no Agent tool, it cannot read the rubric, or the report is missing or malformed), retry once with a fresh subagent. If it fails again, say "evaluator not run" and why; never claim SHIP. A self-evaluation against `evaluator-prompt.md`'s seven dimensions may be offered only when the user asks for one, labelled as a self-evaluation.
 
 ---
 
@@ -380,19 +340,4 @@ Explicit, non-negotiable. These are not guidelines — these are the landmines t
 
 ## Closing Directive — Against Pattern Collapse
 
-**READ THIS LAST, RIGHT BEFORE YOU GENERATE.**
-
-You tend to converge on the same "creative" choices across generations, even when you have been told to vary. This produces a recognizable second-order AI fingerprint: Space Grotesk for "modern," dark blue or indigo for "tech," warm beige with a serif for "editorial," Söhne for "premium." These have become the new defaults replacing the old ones, and trained eyes now recognize them too.
-
-There is no fixed "non-default" list that fixes this — any fixed list creates its own convergence as you converge on IT. The actual defense is a different decision procedure:
-
-**Before picking a font, color, or layout direction, ask yourself:**
-1. **What would the typical AI-generated version of this look like?** Name it specifically — the font, the primary color, the layout structure, the easing curve, the copy tone. Write it down in your head.
-2. **What is materially different from that version that would still serve the brief?** Not "slightly modified" — materially different. Different typographic classification (serif when sans is expected), different compositional logic (asymmetric when centered is expected), different density (dense when airy is expected), different aesthetic lineage drawn from the subject's own artefacts (its documents, hardware, signage, printed matter, place), whichever is farthest from the default AND true to this project.
-3. **Commit to that choice and execute it with precision.** Half-committing to a distinctive direction produces worse results than fully committing to a generic one. A perfectly executed Inter landing page beats a half-executed Fraunces one. If you are going to pick a distinctive font, use all its weights and optical sizes. If you are going to pick a distinctive color, let it dominate.
-
-**Vary the AXIS of distinctiveness, not just the values on one axis.** If the last design you produced was distinctive through typography, make this one distinctive through composition or color instead. If the last was distinctive through motion, make this one distinctive through density or atmosphere. The goal is not a rotation through a fixed "distinctive" list — it is picking a different dimension to express character each time. Also vary the graphic technique when graphics are used. roll.mjs `--concept-only` tracks this for you.
-
-**Never repeat the same signature idea or graphic style across projects.** A drawn scene is not a default; photography, type, layout, colour, data, the product UI and motion are equal candidates. Simple and clean is a legitimate creative choice when it serves the user: many real clients choose the plain option, and a well-executed restrained page beats an over-decorated one.
-
-**One more calibration.** When the Phase 3 direction genuinely requires breaking a Phase 4 rule — a terminal/monospace aesthetic requires a mono font even though the Phase 4 font list is mostly sans-serif; a zine/brutalist aesthetic wants jagged asymmetric shadows even though Phase 4 prescribes tiered multi-layer depth — break the rule deliberately and execute the break with craft. Phase 4 rules are defaults to escape, not laws to worship. The worst outcome is a half-committed distinctive direction constrained by Phase 4 rules that were meant for a different aesthetic. Commit fully.
+Right before you generate: name what the typical AI-made version of this would look like (font, colour, layout, easing, copy tone), choose something materially different that still serves the brief, and commit to it fully. Vary the axis of distinctiveness between projects, never repeat a signature idea, and break a Phase 4 rule only when the direction needs it, saying why. The full procedure is [references/build-rules.md](references/build-rules.md) §3.
