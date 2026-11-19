@@ -17,6 +17,7 @@ Each phase has a gate. Do not skip gates.
 
 ```
 Phase 1:  UNDERSTAND  → purpose, users, primary task, existing system, constraints
+           operate surface (app screen, admin, settings, dashboard, tool)? → the Operate surfaces checklist is mandatory
 Phase 2:  ARCHITECT   → apply UX principles with priority ordering
 Phase 3:  DIRECTION   → dossier, concept, the one signature idea
 Phase 3b: SPEC        → design spec: tokens and every piece of chrome decided from the concept, before code
@@ -26,6 +27,20 @@ Phase 5:  POLISH      → details that separate ship from shipped; the five-seco
 Phase 5b: FEEL        → drive the page in a browser; scripts/probe.mjs has no FAIL
 Phase 6:  EVALUATE    → separate subagent grades the output, by using it
 ```
+
+## Operate surfaces — the mandatory checklist
+
+An operate surface is a screen someone works in rather than one that persuades them: an app screen, admin, settings, dashboard, table, editor, extension popup or internal tool. It is usually in extend mode (Phase 3 skipped), and that is exactly where builds come out flat: few icons, every option shown at once, menus that are tiny text lists. On an operate surface this checklist is the Phase 4 brief, and the evaluator scores it as O1-O5.
+
+- **O1 Icons.** Find the project's icon set first (an icons module, or lucide, heroicons, phosphor, tabler or material-symbols in the manifest); with none, add one standard library (Lucide). Every nav item, primary and row action, status and empty state gets an icon beside its label: one set, one stroke, one size per context (16px in rows and menus, 20px in nav). Icon-only only for close, more, search and in-table edit, each with `aria-label` and a tooltip. Never emoji.
+- **O2 Progressive disclosure.** The first view shows the primary task and whatever needs action now; nothing else competes. Per region: one primary button and at most two secondary; the rest goes into a `⋯` overflow menu (per row on tables). Advanced or rarely changed settings collapse under a labelled disclosure; details open in a drawer, side panel or expandable row, not a page of fields; long forms group into titled sections. Destructive actions sit last in their menu and confirm.
+- **O3 Menus and popovers.** Never a tiny text list. Items are 32-36px tall on desktop and 44px on touch, the menu at least 180px wide and wide enough that no label wraps, 4-6px container padding and 8-12px item padding. Each item gets an icon and a label, with a shortcut or hint right-aligned when there is one. Groups are separated by a divider or a small group label; the selected item carries a check; the destructive item is last, separated, in the danger colour. The menu is anchored to its trigger, flips at viewport edges, closes on Esc and outside click, moves with the arrow keys and returns focus to the trigger. On a phone, a menu of more than 5 items or anything holding a form becomes a bottom sheet.
+- **O4 States.** Loading uses a skeleton shaped like the content (a spinner only inside a button); empty has an icon, one line and the action that fills it; an error says what happened and offers a retry; a disabled control says why (tooltip or helper text); a save confirms where the eye already is.
+- **O5 Structure and density.** The page header is title, one line of context and the primary action at the right. Tables have a sticky header, right-aligned numbers, row hover and a visible selected state; related controls are grouped on the 8pt grid; the existing components are reused, and a menu, drawer or disclosure the repo lacks is built once as a shared component.
+
+**Gate:** for each region, write which actions are visible and which sit behind disclosure, and name the icon set and the sizes used.
+
+---
 
 ## Orchestration: who checks what, on which model
 
@@ -45,7 +60,29 @@ Review is done by subagents, never by the builder grading itself, and each job r
 - Spawn the feel driver, tell sweep and whole-page check **in parallel** once the build exists; fix from the merged list, then run the evaluator once.
 - Every subagent prompt ends with its return shape and word limit; screenshots at `deviceScaleFactor: 1`; pass file paths, never page source or images inline.
 - Re-run only the checks whose inputs changed. A second evaluator round happens only when the first misses the SHIP gate.
-- **Running as a subagent without the Agent tool:** do not stand in for these jobs by reviewing your own work. Run the scripts, finish the build, and end your report with a `REVIEW JOBS` block listing each job you could not spawn with its inputs (paths), so the caller runs them and sends the findings back.
+- **Running as a worker** (a subagent building one task for `/flow:next` or another orchestrator): build, run the scripts (probe, fold check) and fix their FAIL rows, then stop. Spawn no evaluator or other review job and never review your own work, not even "code-only": your caller runs [Review mode](#review-mode) on the served page. End the report with how to serve the page (command and URL, or the file path) and the probe outdir.
+
+---
+
+## Review mode
+
+`design:design review <url|path> [--record <path>]` reviews a page someone else built (an orchestrator after a worker's task, or a user asking for a design review). It never edits the page and never reviews from code alone.
+
+1. **Serve it.** The target must open in a browser: a URL that answers, or a static file opened as `file://`. If nothing is serving, start the project's dev server (the `run` skill finds it) and wait for it to answer. No page, no review: say so and stop.
+2. **Probe.** `node <this skill's directory>/scripts/probe.mjs <url> <outdir>`; with `--record`, the outdir is `<record dir>/<ID>-probe` beside the record.
+3. **Drive and sweep, in parallel:** the feel driver, the tell sweep and, for a whole page, the whole-page check (see Orchestration), each handed the URL and the probe screenshots.
+4. **Evaluate.** Run Phase 6 exactly: `evaluator-prompt.md` verbatim, `model: "sonnet"`, given the URL, the probe output, the drive notes and the brief or task description; on an operate surface say so, so it scores O1-O5.
+5. **Record.** Write the record file (or print it without `--record`):
+
+```
+Verdict: SHIP | REVISE
+Probe: <outdir>
+Evaluator: composite X.XX, lowest <dimension> X.X
+Fixes:
+- <fix, element, why> (top fixes first, from the probe FAIL/WARN rows, the drive and the evaluator)
+```
+
+SHIP is the Phase 6 gate (composite and floors) with no probe FAIL row; anything else is REVISE. The caller sends the fixes back to the builder and runs review mode again on the fixed page.
 
 ---
 
@@ -54,7 +91,7 @@ Review is done by subagents, never by the builder grading itself, and each job r
 Before writing any code, answer these in your head (or out loud if the scope is large):
 
 1. **Purpose and users.** What problem does this interface solve? Who uses it, on what device, in what mood? What is the single thing they need to do most (the primary task)?
-2. **Existing system (extend mode).** If the repo already has a visual system (DESIGN.md, a token or theme file, styled shared components, or existing pages that share one palette and type), read `../vary/references/extend-mode.md` and follow it for everything below: it decides what still rolls, and shared files stay append-only. This holds for a whole new page in an existing site too, not only for a section. A component, section, critique, polish or audit inside an existing surface: read the surface, write no dossier and run no roll; skip Phase 3 and carry on at Phase 4.
+2. **Existing system (extend mode).** If the repo already has a visual system (DESIGN.md, a token or theme file, styled shared components, or existing pages that share one palette and type), read `../vary/references/extend-mode.md` and follow it for everything below: it decides what still rolls, and shared files stay append-only. This holds for a whole new page in an existing site too, not only for a section. A component, section, critique, polish or audit inside an existing surface: read the surface, write no dossier and run no roll; skip Phase 3 and carry on at Phase 4. On an operate surface the [Operate surfaces checklist](#operate-surfaces--the-mandatory-checklist) is the Phase 4 brief.
 3. **Constraints.** Framework, performance budget, accessibility targets, device context, brand system if one exists, and any user directives in their own words.
 
 **Gate:** You can state the primary task and the user in one sentence. For a component, critique, polish or audit: you can name the surface's existing system and the one thing you will change.
