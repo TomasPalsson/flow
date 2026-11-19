@@ -67,7 +67,7 @@ Review is done by subagents, never by the builder grading itself, and each job r
 `design:design review <url|path> [--record <path>]` reviews a page someone else built (an orchestrator after a worker's task, or a user asking for a design review). It never edits the page and never reviews from code alone.
 
 1. **Serve it.** The target must open in a browser: a URL that answers, or a static file opened as `file://`. If nothing is serving, start the project's dev server (the `run` skill finds it) and wait for it to answer. No page, no review: say so and stop.
-2. **Probe.** `node <this skill's directory>/scripts/probe.mjs <url> <outdir>`; with `--record`, the outdir is `<record dir>/<ID>-probe` beside the record.
+2. **Probe.** `node <this skill's directory>/scripts/probe.mjs <url> <outdir>` (set `NODE_PATH` to a `node_modules` holding `playwright` if it is not found); with `--record`, the outdir is `<record dir>/<ID>-probe` beside the record.
 3. **Drive and sweep, in parallel:** the feel driver, the tell sweep and, for a whole page, the whole-page check (see Orchestration), each handed the URL and the probe screenshots.
 4. **Evaluate.** Run Phase 6 exactly: `evaluator-prompt.md` verbatim, `model: "sonnet"`, given the URL, the probe output, the drive notes and the brief or task description; on an operate surface say so, so it scores O1-O5.
 5. **Record.** Write the record file (or print it without `--record`):
