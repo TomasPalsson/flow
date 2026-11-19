@@ -67,6 +67,13 @@ Literal checks — go through these:
 - H9: Do error messages tell what went wrong, why, and what to do? Are errors near the cause?
 - H10: Are empty states instructional? Is contextual help available?
 
+Operate-surface checks: on an app screen, admin, settings page, dashboard, table, editor or tool, also check O1-O5 (on a marketing or persuade page write N/A). Log each failure as a usability violation at the severity given:
+- O1 icons: nav items, primary and row actions, statuses and empty states carry an icon beside the label from one consistent set; icon-only controls have an `aria-label` and tooltip. Few or no icons on these: severity 2.
+- O2 progressive disclosure: the first view shows the primary task and what needs action; per region one primary and at most two secondary actions, the rest in an overflow menu; advanced settings collapsed; details in a drawer, panel or expandable row. Every option shown flat at once: severity 3.
+- O3 menus and popovers: items about 32-36px tall (44px touch), menu at least ~180px wide with no wrapped labels, icon and label per item, groups separated, destructive item last and separated, keyboard and Esc work. Cramped text-only lists: severity 2.
+- O4 states: skeleton loading, empty state with an icon and the action that fills it, error with retry, disabled controls say why. A missing state the user will hit: severity 3.
+- O5 structure: header with title, context and primary action; tables with a sticky header, right-aligned numbers and row hover. Missing: severity 2.
+
 **Dimension score from violations:**
 - No violations → 5
 - Only severity 0-1 violations → 4
@@ -220,6 +227,7 @@ Grade:
 Violations found:
 - H[N] at [location]: [description] — severity [0-4]
 - ...
+Operate surface: O1 PASS/FAIL · O2 PASS/FAIL · O3 PASS/FAIL · O4 PASS/FAIL · O5 PASS/FAIL (or N/A), each FAIL with its element
 Rationale: [one sentence]
 
 ### Composition and Visual Hierarchy — X/5 (10% weight)

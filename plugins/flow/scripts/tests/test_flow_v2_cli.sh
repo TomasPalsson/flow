@@ -666,6 +666,130 @@ t_v2_tick_failure_prints_only_the_last_twenty_log_lines() {
 }
 
 # ---------------------------------------------------------------------------
+# UI review gate — a T### whose files: include a UI file (html, css, tsx, jsx,
+# vue, svelte, astro …) ticks only with verify/<ID>-ui.md: a SHIP verdict whose
+# Probe: dir holds a probe.json with no FAIL row, or a "UI review: n/a — <reason>".
+# ---------------------------------------------------------------------------
+
+# v2_ui_repo — a v2_wave_repo whose T002 also owns src/Panel.tsx, committed.
+# Echoes "<repo>".
+v2_ui_repo() {
+	local set d
+	set=$(v2_wave_repo)
+	d=${set%% *}
+	(
+		cd "$d" || exit 1
+		mkdir -p src && printf 'x\n' >src/Panel.tsx && git add -A && git commit -qm "T002: panel"
+	) >/dev/null 2>&1
+	awk '{ if (index($0, "T002 still open")) print "- [ ] T002 still open — files: b.py, src/Panel.tsx — verify: `true`"; else print }' \
+		"$d/.specs/001-x/TASKS.md" >"$d/t.tmp" && mv "$d/t.tmp" "$d/.specs/001-x/TASKS.md"
+	printf '%s' "$d"
+}
+
+t_v2_tick_ui_task_without_review_record_is_refused() {
+	local home proj before
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	before=$(cksum <"$proj/.specs/001-x/TASKS.md")
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a UI task with no review record is not ticked"
+	assert_contains "$ERR" "src/Panel.tsx" "the message names the UI file"
+	assert_contains "$ERR" "verify/T002-ui.md" "the message names the record it needs"
+	assert_contains "$ERR" "design:design review" "the fix names the review to run"
+	assert_eq "$(cksum <"$proj/.specs/001-x/TASKS.md")" "$before" "TASKS.md is unchanged"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_ships_with_a_clean_probe() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify/T002-probe"
+	printf '{"rows":[{"id":"hover","status":"PASS"},{"id":"motion","status":"WARN"}]}' >"$proj/.specs/001-x/verify/T002-probe/probe.json"
+	printf 'Verdict: SHIP\nProbe: .specs/001-x/verify/T002-probe\nEvaluator: composite 4.2\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "a SHIP record with a clean probe ticks"
+	assert_contains "$(grep '^- \[x\] T002' "$proj/.specs/001-x/TASKS.md")" "— done:" "T002 is ticked"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_with_probe_fail_row_is_refused() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify/T002-probe"
+	printf '{"rows":[{"id":"press-feedback","status":"FAIL"}]}' >"$proj/.specs/001-x/verify/T002-probe/probe.json"
+	printf 'Verdict: SHIP\nProbe: .specs/001-x/verify/T002-probe\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a probe FAIL row blocks the tick even with a SHIP line"
+	assert_contains "$ERR" "press-feedback" "the message names the failing probe row"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_ship_without_probe_is_refused() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify"
+	printf 'Verdict: SHIP\nEvaluator: looked at the code, fine\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "a SHIP verdict with no probe output is a code-only review, not a pass"
+	assert_contains "$ERR" "probe.json" "the message asks for the probe output"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_with_revise_verdict_is_refused() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify/T002-probe"
+	printf '{"rows":[]}' >"$proj/.specs/001-x/verify/T002-probe/probe.json"
+	printf 'Verdict: REVISE\nProbe: .specs/001-x/verify/T002-probe\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "only a SHIP verdict ticks"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_na_with_reason_ticks_and_says_so() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify"
+	printf 'UI review: n/a — only a className rename, nothing renders differently\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "an n/a record with a reason ticks"
+	assert_contains "$OUT" "UI review skipped: only a className rename" "the skip and its reason are printed"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_task_na_without_reason_is_refused() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(v2_ui_repo)
+	mkdir -p "$proj/.specs/001-x/verify"
+	printf 'UI review: n/a —\n' >"$proj/.specs/001-x/verify/T002-ui.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 1 "an n/a with no reason is not a record"
+	rm -rf "$home" "$proj"
+}
+
+t_v2_tick_ui_gate_ignores_test_and_non_ui_files() {
+	local home set proj
+	home=$(tmp_dir)
+	set=$(v2_wave_repo)
+	proj=${set%% *}
+	(
+		cd "$proj" || exit 1
+		mkdir -p src && printf 'x\n' >src/Panel.test.tsx && printf 'y\n' >src/api.ts && git add -A && git commit -qm "T002: tests"
+	) >/dev/null 2>&1
+	awk '{ if (index($0, "T002 still open")) print "- [ ] T002 still open — files: b.py, src/Panel.test.tsx, src/api.ts — verify: `true`"; else print }' \
+		"$proj/.specs/001-x/TASKS.md" >"$proj/t.tmp" && mv "$proj/t.tmp" "$proj/.specs/001-x/TASKS.md"
+	v2_cli_in "$proj" "$home" tick T002
+	assert_rc 0 "a test file and a .ts module are not UI files"
+	rm -rf "$home" "$proj"
+}
+
+# ---------------------------------------------------------------------------
 # famous-borrows F02 — a PASS file dated on/after PASS_EXECUTED_FROM carries the
 # Executed column and a "Not checked:" line, and no test row at 0.
 # ---------------------------------------------------------------------------
