@@ -142,6 +142,43 @@ function humanCheck(id, by, tasksPath) {
   return null;
 }
 
+// uiFilesOf(files) -> the files: entries that render (markup, styles, components).
+// Tests, stories and fixtures are not UI even with a UI extension; a .ts/.js
+// module never is.
+const UI_EXT = /\.(html?|css|scss|sass|less|tsx|jsx|vue|svelte|astro)$/i;
+const NOT_UI = /(^|\/)(tests?|__tests__|e2e|fixtures|stories)\/|\.(test|spec|stories)\.[a-z]+$/i;
+function uiFilesOf(files) {
+  return files.filter((f) => UI_EXT.test(f) && !NOT_UI.test(f));
+}
+
+// uiReview(root, featureDir, id, uiFiles) -> {skip} | {error, fix} | {}.
+// A task that touches UI ticks only with verify/<ID>-ui.md, written by the
+// orchestrator after `design:design review`: "Verdict: SHIP" plus a "Probe:"
+// dir whose probe.json has no FAIL row (a review that never drove the page
+// is a code read, not a pass), or "UI review: n/a — <reason>".
+function uiReview(root, featureDir, id, uiFiles) {
+  const rec = path.join(featureDir, 'verify', `${id}-ui.md`);
+  const relRec = path.relative(root, rec);
+  const fix = `run design:design review on the built page, then write ${relRec} ("Verdict: SHIP" + "Probe: <probe outdir>"), or "UI review: n/a — <reason>" when nothing renders differently`;
+  let text;
+  try { text = fs.readFileSync(rec, 'utf8'); } catch {
+    return { error: `${id} touches UI (${uiFiles.join(', ')}) and has no ${relRec}`, fix };
+  }
+  const na = text.match(/^UI review: n\/a[ \t]*[—-]+[ \t]*(\S.*)$/m);
+  if (na) return { skip: na[1].trim() };
+  if (!/^Verdict:\s*SHIP\b/m.test(text)) return { error: `${relRec} has no "Verdict: SHIP" line`, fix };
+  const probe = (text.match(/^Probe:\s*(\S+)/m) || [])[1];
+  const pj = probe ? path.resolve(root, probe, 'probe.json') : null;
+  let rows;
+  try { rows = JSON.parse(fs.readFileSync(pj, 'utf8')).rows; } catch { rows = null; }
+  if (!Array.isArray(rows)) {
+    return { error: `${relRec} names no readable probe.json (Probe: ${probe || 'missing'})`, fix: 'run design:design/scripts/probe.mjs <page> <outdir> on the served page and put the outdir on a "Probe:" line' };
+  }
+  const failed = rows.filter((r) => r && r.status === 'FAIL').map((r) => r.id);
+  if (failed.length) return { error: `probe FAIL rows: ${failed.join(', ')}`, fix: 'fix the page, re-run the probe and the review, then flow tick again' };
+  return {};
+}
+
 // verifyOf(line) -> the task's verify: command with its surrounding backticks
 // removed, or '' when it is missing or is a `human:` observation.
 function verifyOf(line) {
@@ -244,6 +281,12 @@ function run(argv, root, io, env) {
   if (/^T/.test(id) && !r.byUser) {
     const cmd = verifyOf(lines[hit]);
     if (!cmd) return fail(stderr, `${id} has no runnable verify:`, 'give the line a verify: `<command>` (human: is for a CHK), then flow tick again');
+    const uiFiles = uiFilesOf(filesOf(lines[hit]));
+    if (uiFiles.length) {
+      const ui = uiReview(root, featureDir, id, uiFiles);
+      if (ui.error) return fail(stderr, ui.error, ui.fix);
+      if (ui.skip) stdout.write(`flow: ${id} UI review skipped: ${ui.skip}\n`);
+    }
     const v = runVerify(root, featureDir, id, cmd);
     if (v.rc !== 0) {
       const shown = path.relative(root, v.log);
