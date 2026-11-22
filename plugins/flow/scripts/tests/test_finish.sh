@@ -14,8 +14,8 @@ fin_cli_in() {
 	dir=$1
 	home=$2
 	shift 2
-	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; shift 2; exec "$@"' \
-		_ "$dir" "$home" node "$FIN_CLI_PATH" "$@"
+	run_cmd bash -c 'cd "$1" || exit 1; export HOME="$2"; export CLAUDE_CODE_SESSION_ID="$3"; shift 3; exec "$@"' \
+		_ "$dir" "$home" "${FIN_SID:-}" node "$FIN_CLI_PATH" "$@"
 }
 
 # fin_building <repo> — an approved feature with one unchecked task: `building`.
@@ -120,6 +120,22 @@ t_finish_check_blocks_in_building() {
 	assert_contains "$OUT" "001-x is at building" "reason names the feature and state"
 	assert_contains "$OUT" "SKILL.md §Finish" "reason points at the skill section"
 	assert_file_exists "$proj/.specs/001-x/.finish-blocks" "the block counter is written"
+	rm -rf "$home" "$proj"
+}
+
+t_finish_check_ignores_other_sessions() {
+	local home proj
+	home=$(tmp_dir)
+	proj=$(tmp_repo)
+	fin_building "$proj"
+	FIN_SID=sA fin_cli_in "$proj" "$home" finish on
+	assert_contains "$(cat "$proj/.specs/001-x/FINISH.md")" "Session: sA" "on records the arming session"
+	fin_cli_in "$proj" "$home" finish check --hook --session sB
+	assert_rc 0 "another session's check exits 0"
+	assert_eq "$OUT" "" "another session is never blocked"
+	assert_file_missing "$proj/.specs/001-x/.finish-blocks" "another session leaves the counter alone"
+	fin_cli_in "$proj" "$home" finish check --hook --session sA
+	assert_contains "$OUT" '"decision":"block"' "the arming session is still blocked"
 	rm -rf "$home" "$proj"
 }
 
