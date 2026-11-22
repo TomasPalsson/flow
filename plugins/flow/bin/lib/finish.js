@@ -122,12 +122,15 @@ function cmdOn(root, o, io, env) {
     return 1;
   }
   const note = o.note && o.note.trim() ? o.note.trim().replace(/\s*\n\s*/g, ' ') : 'none';
+  // The arming session: other sessions in the same repo (a parallel worktree, a second
+  // terminal) are never blocked by this spec's marker. Absent when unknown.
+  const sid = ((env || process.env).CLAUDE_CODE_SESSION_ID || '').trim();
   const body = `# Finish mode — ${f.slug}
 Armed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')} by user
 Pre-approved: plan approval (Approved:), every CHK checkpoint (flow tick --by user), verification (Verified:), a draft PR
 Never pre-approved: evidence — exit codes, verify: re-runs, PASS files, phase Independent tests
 Note: ${note}
-`;
+${sid ? `Session: ${sid}\n` : ''}`;
   try {
     fs.mkdirSync(f.dir, { recursive: true });
     fs.writeFileSync(file, body);
@@ -167,9 +170,17 @@ function cmdStatus(root, o, io, env) {
   return 0;
 }
 
+// owner(file) -> the `Session:` id FINISH.md was armed by, or '' (older markers, unknown session).
+function owner(file) {
+  try { return (/^Session: (\S+)$/m.exec(fs.readFileSync(file, 'utf8')) || [])[1] || ''; } catch { return ''; }
+}
+
 function cmdCheck(root, o, io, env) {
   const f = feature(root, o, env);
-  if (!f.dir || !fs.existsSync(path.join(f.dir, 'FINISH.md'))) return 0;
+  const marker = f.dir && path.join(f.dir, 'FINISH.md');
+  if (!marker || !fs.existsSync(marker)) return 0;
+  const own = owner(marker);
+  if (own && o.session && own !== o.session) return 0;
   const r = peek(root, env);
   const counter = path.join(f.dir, '.finish-blocks');
   if (DONE.has(r.state)) { disarm(f.dir); return 0; }
