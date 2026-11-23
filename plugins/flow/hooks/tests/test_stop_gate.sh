@@ -594,8 +594,10 @@ t_stop_r9_red_this_turn_caused_is_never_called_a_baseline() {
 }
 
 # --- R11: the sweep cadence is commits, not the clock ---------------------
-t_stop_r11_sweep_runs_after_a_commit_and_records_the_sha() {
-	local repo sid stamp
+t_stop_r11_no_sweep_after_a_commit_unless_stopgate_true() {
+	# The full sweep cost minutes per commit in big repos, so turn end runs
+	# only the scoped tests; the sweep runs at ship time. stopGate:true opts in.
+	local repo sid stamp n=t_stop_r11_no_sweep_after_a_commit_unless_stopgate_true
 	repo=$(tmp_repo)
 	sid="stop-r11-$$"
 	printf '{"name":"x","scripts":{"test":"exit 0","lint":"exit 1"}}\n' >"$repo/package.json"
@@ -607,11 +609,39 @@ t_stop_r11_sweep_runs_after_a_commit_and_records_the_sha() {
 	_stop_stamp "$sid" "$repo"
 	printf 'test("x", () => {});\n// touched\n' >"$repo/app.test.js"
 	_stop_run "$sid" "$repo"
-	assert_rc 0 "t_stop_r11_sweep_runs_after_a_commit_and_records_the_sha rc"
-	assert_contains "$OUT" "Gate(s) failed: lint" "t_stop_r11_sweep_runs_after_a_commit_and_records_the_sha swept"
-	assert_eq "$(cat "$stamp")" "$(git -C "$repo" rev-parse HEAD)" "t_stop_r11_sweep_runs_after_a_commit_and_records_the_sha stamp-holds-head"
+	assert_rc 0 "$n rc"
+	assert_not_contains "$OUT" "Gate(s) failed: lint" "$n default-does-not-sweep"
+	mkdir -p "$repo/.claude"
+	printf '{"stopGate": true}\n' >"$repo/.claude/flow.config.json"
+	_stop_forget "$sid"
+	_stop_stamp "$sid" "$repo"
+	printf 'test("x", () => {});\n// touched again\n' >"$repo/app.test.js"
+	_stop_run "$sid" "$repo"
+	assert_contains "$OUT" "Gate(s) failed: lint" "$n stopgate-true-sweeps"
+	assert_eq "$(cat "$stamp")" "$(git -C "$repo" rev-parse HEAD)" "$n stamp-holds-head"
 	_stop_forget "$sid"
 	rm -f "$stamp" "$(_stop_state_path "$repo" baseline)"
+	rm -rf "$repo"
+}
+
+t_stop_no_mapped_tests_notes_instead_of_sweeping() {
+	local repo sid n=t_stop_no_mapped_tests_notes_instead_of_sweeping
+	repo=$(tmp_repo)
+	sid="stop-nomap-$$"
+	# A runner but no test file at all: the stamp predates every fixture file,
+	# so a committed app.test.js would map and run.
+	printf '{"name":"x","scripts":{"test":"exit 0","lint":"exit 1"}}\n' >"$repo/package.json"
+	git -C "$repo" add package.json >/dev/null 2>&1
+	git -C "$repo" -c user.email=t@t -c user.name=t commit -qm node >/dev/null 2>&1
+	mkdir -p "$repo/src"
+	_stop_stamp "$sid" "$repo"
+	printf 'export const a = 1;\n' >"$repo/src/a.js"
+	_stop_run "$sid" "$repo"
+	assert_rc 0 "$n rc"
+	assert_contains "$OUT" "no test maps to the files changed" "$n notes"
+	assert_not_contains "$OUT" "Gate(s) failed" "$n does-not-sweep"
+	_stop_forget "$sid"
+	rm -f "$(_stop_state_path "$repo" baseline)" "$(_stop_state_path "$repo" gates)"
 	rm -rf "$repo"
 }
 

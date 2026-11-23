@@ -1637,11 +1637,11 @@ t_quality_stop_gate_manifest_renamed_to_plain_name_blocks() {
 	rm -rf "$repo"
 }
 
-t_quality_stop_gate_scoped_fallthrough_no_test_command_runs_full_sweep() {
+t_quality_stop_gate_scoped_fallthrough_no_mapped_test_notes_not_sweeps() {
 	# No flow.config.json => default "scoped" mode. The turn's only changed
 	# file is package.json itself, which maps to no test file, so the scoped
-	# run verifies nothing — and silence is reserved for checked-and-green, so
-	# the full sweep runs and blocks on the real `npm run test`.
+	# run verifies nothing. The full sweep is not run at turn end (it cost
+	# minutes per turn in big repos); the hook says nothing was verified.
 	local repo shared sid
 	repo=$(tmp_repo)
 	shared="$(cd "$SCAN_DIR/../skills/shared/scripts" && pwd -P)"
@@ -1649,9 +1649,9 @@ t_quality_stop_gate_scoped_fallthrough_no_test_command_runs_full_sweep() {
 	_qstop_stamp "$sid" "$repo"
 	printf '{"name":"x","scripts":{"test":"exit 1"}}\n' >"$repo/package.json"
 	run_hook "$SCAN_DIR/stop-gate.sh" "{\"session_id\":\"$sid\"}" CLAUDE_PROJECT_DIR="$repo" CC_SHARED_SCRIPTS="$shared"
-	assert_rc 0 "t_quality_stop_gate_scoped_fallthrough_no_test_command_runs_full_sweep rc"
-	assert_contains "$OUT" '"decision":"block"' "t_quality_stop_gate_scoped_fallthrough_no_test_command_runs_full_sweep blocked-by-full-sweep"
-	assert_contains "$OUT" "Gate(s) failed:" "t_quality_stop_gate_scoped_fallthrough_no_test_command_runs_full_sweep full-sweep-reason"
+	assert_rc 0 "t_quality_stop_gate_scoped_fallthrough_no_mapped_test_notes_not_sweeps rc"
+	assert_not_contains "$OUT" '"decision":"block"' "t_quality_stop_gate_scoped_fallthrough_no_mapped_test_notes_not_sweeps no-block"
+	assert_contains "$OUT" "nothing verified them" "t_quality_stop_gate_scoped_fallthrough_no_mapped_test_notes_not_sweeps says-unverified"
 	_qstop_forget "$sid"
 	rm -f "$(_quality_gates_stamp_path "$repo")" "$(_quality_baseline_path "$repo")"
 	rm -rf "$repo"
@@ -1686,14 +1686,15 @@ t_quality_stop_gate_scoped_test_changed_direct_block_no_full_sweep() {
 }
 
 t_quality_stop_gate_scoped_periodic_full_sweep_promotes_and_blocks() {
-	# R11: the sweep cadence is commits since the last sweep, not the clock.
-	# The scoped run verifies nothing here (a source file with no test file),
-	# so the sweep runs and blocks on its own failure — and the stamp records
-	# the sha it ran at even though it found red (FU-24).
+	# stopGate:true opts back into the full sweep at turn end (the default
+	# "scoped" mode no longer sweeps). The sweep blocks on its own failure, and
+	# the stamp records the sha it ran at even though it found red (FU-24).
 	local repo shared stamp sid
 	repo=$(tmp_repo)
 	shared="$(cd "$SCAN_DIR/../skills/shared/scripts" && pwd -P)"
 	sid="quality-periodic-block-$$"
+	mkdir -p "$repo/.claude"
+	printf '{"stopGate": true}\n' >"$repo/.claude/flow.config.json"
 	printf 'module.exports = 1;\n' >"$repo/util.js"
 	printf '{"name":"x","scripts":{"test":"exit 1"}}\n' >"$repo/package.json"
 	(cd "$repo" && git add util.js package.json && git commit -q -m src) >/dev/null 2>&1
@@ -1721,6 +1722,8 @@ t_quality_stop_gate_scoped_periodic_full_sweep_rewrites_stamp_on_pass() {
 	repo=$(tmp_repo)
 	shared="$(cd "$SCAN_DIR/../skills/shared/scripts" && pwd -P)"
 	sid="quality-periodic-pass-$$"
+	mkdir -p "$repo/.claude"
+	printf '{"stopGate": true}\n' >"$repo/.claude/flow.config.json"
 	printf 'module.exports = 1;\n' >"$repo/util.js"
 	printf '{"name":"x","scripts":{"test":"exit 0"}}\n' >"$repo/package.json"
 	(cd "$repo" && git add util.js package.json && git commit -q -m src) >/dev/null 2>&1

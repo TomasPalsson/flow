@@ -13,7 +13,7 @@
 #   R6 the root manifest is gone and the root was written this turn → block
 #   R7 a gate could not run (missing tool, crash) → note, names the fix
 #   R8-R10  scoped run over this turn's files: green → silent, red → block
-#   R11-R13 a sweep is due (commits since the last one) → check-all --json
+#   R11-R13 full sweep (check-all --json) only with stopGate:true or no runner
 #   R9/R12 a red proven older than this turn → note, no block
 #   R14 third identical block → soft · R15 fourth → release · R16 over budget
 #
@@ -501,18 +501,6 @@ $_HATCH"
 	hook_ok
 }
 
-# _sg_sweep_due — rc 0 when a full sweep is owed: never swept this repo, or
-# HEAD moved since the last sweep (R11: commits, not the clock — a clock stamp
-# is absent on the first Stop of every session, so it swept far too often).
-_sg_sweep_due() {
-	[ -f "$_sweep_stamp" ] || return 0
-	_sd_sha=$(sed -n '1p' "$_sweep_stamp" 2>/dev/null)
-	case "$_sd_sha" in '' | *[!0-9a-f]*) return 0 ;; esac
-	_sd_n=$(git -C "$dir" rev-list --count "$_sd_sha..HEAD" 2>/dev/null)
-	case "$_sd_n" in '' | *[!0-9]*) return 0 ;; esac
-	[ "$_sd_n" -ge 1 ]
-}
-
 [ "$_mode" = "true" ] && _sg_run_sweep
 
 # --- R8-R10: the scoped run over exactly this turn's files ---------------
@@ -547,15 +535,14 @@ $_NOWEAKEN
 To reproduce: cd $_dirq && $_tc_cmd
 $_HATCH"
 	fi
-	# R8/R11: the scoped run verified something and it was green. A sweep is
-	# owed only once per commit, so a clean turn stays silent and fast.
-	_sg_sweep_due && _sg_run_sweep
+	# R8: the scoped run verified something and it was green. The full sweep
+	# is not run at turn end (it cost minutes per commit in big repos); it runs
+	# at ship time (`flow check`, /flow:next gates, CI). stopGate:true opts back in.
 	;;
 *)
-	# no-tests: the runner resolved nothing for these files, so nothing was
-	# verified. Silence is reserved for checked-and-green, so sweep — this is
-	# also where a repo with no ecosystem at all lands (R5).
-	_sg_run_sweep
+	# no-tests: a runner exists but no test maps to these files, so nothing was
+	# verified. Said once a session rather than paying for a full sweep.
+	_sg_note_once "stop-gate-no-mapped-tests" "no test maps to the files changed this turn, so nothing verified them at turn end. The full suite runs at ship time. Run: cd $_dirq && flow check"
 	;;
 esac
 
