@@ -69,6 +69,12 @@ const PRUNE_DIRS = [
 const FULL_SUITE_RATIO = 0.4;
 const RUN_TIMEOUT_MS = 300000;
 
+/** <limit> cut to the caller's deadline (CC_GATE_DEADLINE_MS, epoch ms); never below 1s. */
+function capMs(limit) {
+  const deadline = Number(process.env.CC_GATE_DEADLINE_MS);
+  return deadline > 0 ? Math.max(1000, Math.min(limit, deadline - Date.now())) : limit;
+}
+
 /** Change-set entries dropped for pointing outside ROOT; named in `message`. */
 const outsideRoot = [];
 
@@ -93,7 +99,7 @@ function shellJoin(argv) {
  */
 function noVerdictReason(result, duration) {
   const err = result.error;
-  if (err && err.code === 'ETIMEDOUT') return `timed out after ${duration}ms (limit ${RUN_TIMEOUT_MS}ms)`;
+  if (err && err.code === 'ETIMEDOUT') return `timed out after ${duration}ms (limit ${RUN_TIMEOUT_MS}ms, or the caller's deadline)`;
   // ENOBUFS means a pipe capture hit its maxBuffer and THIS process killed the
   // child; Node also reports SIGTERM for it, so naming it after the signal
   // branch would blame a killer that never existed.
@@ -495,7 +501,7 @@ function runOne(plan) {
     // maxBuffer, which would turn a red suite into "no verdict".
     stdio: jsonOnly ? ['ignore', 'ignore', 'ignore'] : ['ignore', 'inherit', 'inherit'],
     cwd: plan.dir,
-    timeout: RUN_TIMEOUT_MS,
+    timeout: capMs(RUN_TIMEOUT_MS),
   });
   const duration_ms = Date.now() - start;
 

@@ -13,7 +13,7 @@
 #   R6 the root manifest is gone and the root was written this turn → block
 #   R7 a gate could not run (missing tool, crash) → note, names the fix
 #   R8-R10  scoped run over this turn's files: green → silent, red → block
-#   R11-R13 a sweep is due (commits since the last one) → check-all --json
+#   R11-R13 full sweep (check-all --json) only with stopGate:true or no runner
 #   R9/R12 a red proven older than this turn → note, no block
 #   R14 third identical block → soft · R15 fourth → release · R16 over budget
 #
@@ -82,6 +82,10 @@ _sg_clip() {
 
 _budget=$(hook_config stopGateBudgetSec)
 case "$_budget" in '' | *[!0-9]*) _budget=150 ;; esac
+# check-all and test-changed kill their runs at this deadline: the budget is
+# checked between phases below, and without it one slow suite held the turn
+# open for the full hook timeout.
+export CC_GATE_DEADLINE_MS=$(((_started + _budget) * 1000))
 
 # _sg_over_budget — rc 0 once this hook has spent its wall-clock budget (R16).
 _sg_over_budget() {
@@ -481,6 +485,7 @@ _sg_run_sweep() {
 		_sg_note_once "stop-gate-no-gates" "no gate ran here — this is a $SW_OUTPUT project, but check-all skipped every gate ($SW_NAMES): there is no test or lint script to run. Source changed this turn and nothing verified it. Fix: add a test script to the manifest, or run 'flow init'."
 		;;
 	crashed)
+		_sg_over_budget && _sg_release_over_budget "the full sweep overran it and was cut off, so gates were NOT verified this turn."
 		hook_note "gate could not run — check-all in $dir: $SW_OUTPUT. Gates were NOT checked this turn. Fix: $SW_CMD"
 		;;
 	fail)
@@ -494,18 +499,6 @@ $_HATCH"
 		;;
 	esac
 	hook_ok
-}
-
-# _sg_sweep_due — rc 0 when a full sweep is owed: never swept this repo, or
-# HEAD moved since the last sweep (R11: commits, not the clock — a clock stamp
-# is absent on the first Stop of every session, so it swept far too often).
-_sg_sweep_due() {
-	[ -f "$_sweep_stamp" ] || return 0
-	_sd_sha=$(sed -n '1p' "$_sweep_stamp" 2>/dev/null)
-	case "$_sd_sha" in '' | *[!0-9a-f]*) return 0 ;; esac
-	_sd_n=$(git -C "$dir" rev-list --count "$_sd_sha..HEAD" 2>/dev/null)
-	case "$_sd_n" in '' | *[!0-9]*) return 0 ;; esac
-	[ "$_sd_n" -ge 1 ]
 }
 
 [ "$_mode" = "true" ] && _sg_run_sweep
@@ -526,6 +519,7 @@ unavailable)
 	# A resolved command that could not be executed is R7; no command at all
 	# means "no test runner configured here", which is the sweep's call (R5's).
 	[ -n "$_tc_cmd" ] || _sg_run_sweep
+	_sg_over_budget && _sg_release_over_budget "the scoped test run overran it and was cut off, so gates were NOT verified this turn."
 	hook_note "gate could not run — $(printf '%s' "$_tc_out" | jq -r '.message // "test-changed could not execute the runner"' 2>/dev/null). Gates were NOT checked this turn. Fix: cd $_dirq && $_tc_cmd"
 	;;
 ran)
@@ -541,15 +535,14 @@ $_NOWEAKEN
 To reproduce: cd $_dirq && $_tc_cmd
 $_HATCH"
 	fi
-	# R8/R11: the scoped run verified something and it was green. A sweep is
-	# owed only once per commit, so a clean turn stays silent and fast.
-	_sg_sweep_due && _sg_run_sweep
+	# R8: the scoped run verified something and it was green. The full sweep
+	# is not run at turn end (it cost minutes per commit in big repos); it runs
+	# at ship time (`flow check`, /flow:next gates, CI). stopGate:true opts back in.
 	;;
 *)
-	# no-tests: the runner resolved nothing for these files, so nothing was
-	# verified. Silence is reserved for checked-and-green, so sweep — this is
-	# also where a repo with no ecosystem at all lands (R5).
-	_sg_run_sweep
+	# no-tests: a runner exists but no test maps to these files, so nothing was
+	# verified. Said once a session rather than paying for a full sweep.
+	_sg_note_once "stop-gate-no-mapped-tests" "no test maps to the files changed this turn, so nothing verified them at turn end. The full suite runs at ship time. Run: cd $_dirq && flow check"
 	;;
 esac
 

@@ -45,7 +45,7 @@ Live loading on a machine with this checkout: `~/.claude/skills` is a symlink to
 | Every prompt | `turn-stamp.sh` | stamps the turn so the Stop gate scopes itself to what changed |
 | Before a shell command | `git-guard.sh` | denies force-push, hard reset, `clean -f`, `branch -D`, `commit --no-verify`, `rm -rf` of roots; quote-aware; `--force-with-lease` allowed |
 | After every edit | `format-lint.sh` · `size-guard.sh` · `tamper-notice.sh` | formats; flags files > 400 lines / functions > 60 with a teaching message; puts newly added `.skip`/`xfail` or loosened thresholds on the record |
-| Turn end | `stop-gate.sh` | runs tests related to the change (full sweep every 15 min); refuses to end the turn while red; wedge valve after three identical failures; honours `stop_hook_active` |
+| Turn end | `stop-gate.sh` | runs tests related to the change, cut at the 150 s budget (full sweep only with `stopGate: true`; otherwise at ship time); refuses to end the turn while red; wedge valve after three identical failures; honours `stop_hook_active` |
 | Turn end, loop armed | `loop-gate.sh` | when `.claude/loop/loop.md` is active for this session, passes `flow loop tick --hook` through: the verifier decides whether the turn may end; caps, stall and wedge detectors bound it |
 | Compaction | `pre-compact-backup.sh`, `postcompact-context.sh` | transcript backup; "treat the summary as untrusted" reminder |
 | Subagent end | `subagent-log.sh` | logs the final message so a lost report is recoverable |
