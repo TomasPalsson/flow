@@ -905,6 +905,32 @@ t_stop_r16_budget_passed_during_the_run_releases_the_red() {
 	rm -rf "$repo"
 }
 
+# --- R16: a slow suite is cut at the budget, not waited out ---------------
+t_stop_r16_slow_suite_is_killed_at_the_budget() {
+	# The budget used to be checked only BETWEEN phases, so one slow suite held
+	# the turn open for its full run (up to the 600s hook timeout). The gate
+	# children now get the budget as a deadline and are killed at it.
+	local repo sid t0 took took_ok
+	repo=$(tmp_repo)
+	sid="stop-r16c-$$"
+	mkdir -p "$repo/.claude"
+	printf '{"stopGateBudgetSec": 2}\n' >"$repo/.claude/flow.config.json"
+	_stop_node_repo "$repo" "sleep 30; exit 1"
+	_stop_stamp "$sid" "$repo"
+	printf 'test("x", () => {});\n// touched\n' >"$repo/app.test.js"
+	t0=$(date +%s)
+	_stop_run "$sid" "$repo"
+	took=$(($(date +%s) - t0))
+	assert_rc 0 "t_stop_r16_slow_suite_is_killed_at_the_budget rc"
+	[ "$took" -lt 15 ] && took_ok=yes || took_ok="no (${took}s)"
+	assert_eq "$took_ok" "yes" "t_stop_r16_slow_suite_is_killed_at_the_budget ends-near-the-budget"
+	assert_contains "$OUT" "NOT verified" "t_stop_r16_slow_suite_is_killed_at_the_budget says-nothing-verified"
+	assert_not_contains "$OUT" '"decision"' "t_stop_r16_slow_suite_is_killed_at_the_budget does-not-block"
+	_stop_forget "$sid"
+	rm -f "$(_stop_state_path "$repo" baseline)" "$(_stop_state_path "$repo" gates)"
+	rm -rf "$repo"
+}
+
 # --- R6: the index is not the working tree --------------------------------
 # `git status` reporting a deleted manifest is not proof the manifest is gone,
 # and R6's whole claim is that it IS gone. Both rows below leave package.json

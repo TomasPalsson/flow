@@ -82,6 +82,10 @@ _sg_clip() {
 
 _budget=$(hook_config stopGateBudgetSec)
 case "$_budget" in '' | *[!0-9]*) _budget=150 ;; esac
+# check-all and test-changed kill their runs at this deadline: the budget is
+# checked between phases below, and without it one slow suite held the turn
+# open for the full hook timeout.
+export CC_GATE_DEADLINE_MS=$(((_started + _budget) * 1000))
 
 # _sg_over_budget — rc 0 once this hook has spent its wall-clock budget (R16).
 _sg_over_budget() {
@@ -481,6 +485,7 @@ _sg_run_sweep() {
 		_sg_note_once "stop-gate-no-gates" "no gate ran here — this is a $SW_OUTPUT project, but check-all skipped every gate ($SW_NAMES): there is no test or lint script to run. Source changed this turn and nothing verified it. Fix: add a test script to the manifest, or run 'flow init'."
 		;;
 	crashed)
+		_sg_over_budget && _sg_release_over_budget "the full sweep overran it and was cut off, so gates were NOT verified this turn."
 		hook_note "gate could not run — check-all in $dir: $SW_OUTPUT. Gates were NOT checked this turn. Fix: $SW_CMD"
 		;;
 	fail)
@@ -526,6 +531,7 @@ unavailable)
 	# A resolved command that could not be executed is R7; no command at all
 	# means "no test runner configured here", which is the sweep's call (R5's).
 	[ -n "$_tc_cmd" ] || _sg_run_sweep
+	_sg_over_budget && _sg_release_over_budget "the scoped test run overran it and was cut off, so gates were NOT verified this turn."
 	hook_note "gate could not run — $(printf '%s' "$_tc_out" | jq -r '.message // "test-changed could not execute the runner"' 2>/dev/null). Gates were NOT checked this turn. Fix: cd $_dirq && $_tc_cmd"
 	;;
 ran)
