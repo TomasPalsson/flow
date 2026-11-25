@@ -5,7 +5,7 @@ description: How a moonshot phase becomes a flow seed PREP.md - what differs fro
 
 # Handoff: one phase at a time into flow
 
-Read at Step 6 (before any seed) and Step 7 (Re-entry); skip while still choosing the bet.
+Read at Step 5 (before any seed) and Step 6 (Re-entry); skip while still choosing the bet.
 
 Read [`../../develop-idea/references/flow-seed.md`](../../develop-idea/references/flow-seed.md) in full first. Its
 yes gate, allocation, A-NN grammar, header, lint check and close line apply unchanged. This file lists only what a
@@ -40,7 +40,7 @@ end with flow-seed.md's `Next:` line.
 
 ## Re-entry
 
-Triggered when MOONSHOT.md exists (Step 7). Position comes from disk, never from a remembered transcript.
+Triggered when MOONSHOT.md exists (Step 6). Position comes from disk, never from a remembered transcript.
 1. `flow next --json`. Only `idle` or `no-project` means the last phase is merged and archived; anything else, report
    the state and the router's command, and stop.
 2. Find the phase marked `seeded` or `in progress`. Look for its evidence: the archived feature's PR, its check's
