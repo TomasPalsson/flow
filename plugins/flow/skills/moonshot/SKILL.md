@@ -103,7 +103,10 @@ it, and it becomes the monkey. Then:
   machine will do (picked the puzzle's groups, wrote the schedule), say so on the teaser: that part is the monkey.
   No teaser possible: say why and describe the scene instead.
 Show at most 3 survivors, each as the lines in candidates.md (Presenting survivors), teaser path first. Recommend
-the one that won the comparison (no comparison ran: recommend from the teasers and say that is the basis); if the
+the one that won the comparison (no comparison ran: recommend from the teasers and say that is the basis). In a
+repeat round, a direction the owner already said they liked is the recommendation unless its teaser flopped; a new
+card that came out better is shown as the challenger, with why. A survivor whose teaser played flat stays in the
+three only if nothing better exists, and the block says it flopped. If the
 teaser of another turned out better than its pitch, say so. A card killed only for being small but that made you
 laugh is shown under the three as "build this anyway": a quick win the owner would want, not a moonshot.
 End with "Which one should Mr Claude write to MOONSHOT.md?" and stop. Done when the user's reply names one. If the
