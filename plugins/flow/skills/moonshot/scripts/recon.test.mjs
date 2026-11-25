@@ -158,6 +158,18 @@ describe('recon', () => {
     assert.equal(rows[0].name, 'heavy-lib');
   });
 
+  it('finds manifests below the root and lists what the owner priced out', () => {
+    write('apps/web/package.json', JSON.stringify({ name: 'web', dependencies: { 'sub-lib': '^1.0.0' } }));
+    write('PLAN.md', '# Plan\n\nSearch stays exact match for now; a real index would take too long.\nNothing here.\n');
+    write('data/rows/a.json', '{}\n');
+    commit('add web app and plan', 1);
+    const out = runJson();
+    assert.ok(out.dependencies.manifests.includes('apps/web/package.json'));
+    assert.ok(out.dependencies.rows.some((r) => r.name === 'sub-lib'));
+    assert.equal(out['priced-out'].total, 1);
+    assert.deepEqual(out['priced-out'].lines.map((l) => `${l.path}:${l.line}`), ['PLAN.md:3']);
+  });
+
   it('warns about thin history in preflight', () => {
     const p = runJson().preflight;
     assert.equal(p.shallow, false);

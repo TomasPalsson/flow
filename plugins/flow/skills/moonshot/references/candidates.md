@@ -1,151 +1,174 @@
 ---
 name: candidates
-description: The generator and skeptic prompts for moonshot Steps 2-3, the candidate card fields, the attractor motifs that need an override, and how to present survivors for the user's pick.
+description: The generator, skeptic and paired-comparison prompts for moonshot Steps 3-4, the candidate card fields, the probe rules, the attractor motifs that need an override, and how to present survivors for the user's pick.
 ---
 
-# Candidates: generate cold, ground, attack
+# Candidates: generate cold, ground, probe, attack
 
-Read at Steps 2-3; skip on re-entry (Step 6).
+Read at Steps 3-4; skip on re-entry (Step 7).
 
 Why this shape: one model asked for "the" moonshot returns its modal answer, bundled. Several candidates from a brief
-give it room to reach a tail idea; a separate pass that can only kill or amend stops it blessing its own text (the
-best LLM judge ranked research ideas at 53.3% against 56.1% agreement between human reviewers;
-https://arxiv.org/abs/2409.04109). The user picks, because the pick is a judgment about their product.
+give it room to reach a tail idea. Nothing is ranked by a score out of 10: the best LLM judge ranked research ideas
+at 53.3% against 56.1% agreement between human reviewers (https://arxiv.org/abs/2409.04109), and when 43 experts
+went on to build ideas, the LLM-written ones lost more on every measure than the human ones and the ranking
+flipped (https://arxiv.org/abs/2506.20803). An earlier version of this skill tuned itself on a judged ambition
+score and ended up proposing other products (docs/research/29-moonshot-usefulness-2026-11-25.md in the flow repo).
+So: a measured probe where one is possible, a pass that can only kill or amend, a paired comparison on what this
+owner would build, and the owner picks.
 
-## Generator prompt (Step 2)
+## Generator prompt (Step 3)
 
-Spawn with `model: opus` (or the strongest available), no repo path, no tools needed. Paste the brief where marked.
+Spawn with `model: opus` (or the strongest available), no repo path, no tools needed. Paste the brief and the
+owner's chosen constraint and appetite where marked.
 
 ```
-You are proposing moonshots for a software project you cannot see. Below is a brief about one part of it that
-everyone has accepted as "just how it is". Go all out: the owner wants the idea they would never have dared to
-write down. Labour is unlimited: a fleet of AI agents writes the code for twelve months, so building your own engine,
-runtime, renderer, compiler, model or protocol is on the table, and so is anything nobody has built yet. Feasibility
-is not your job: each card gets a cheap first test that can kill it, and that test decides. Outside cooperation and
-the owner's own review time are the only things that are not unlimited.
+You are proposing moonshots for a software project you cannot see. Below is a brief: what the project is for and
+who uses it, the owner's rulings, and constraints everyone there has accepted as "just how it is". The owner chose
+one constraint to remove. A moonshot here is the thing the owner wanted and never asked for because in human time
+it looked too expensive. Labour is unlimited: a fleet of AI agents writes the code, so building your own engine,
+runtime, renderer, index, compiler, model or protocol is on the table. Outside cooperation, money, and the owner's
+own review time are not unlimited.
 
 BRIEF:
 <brief>
 
+CHOSEN CONSTRAINT AND APPETITE:
+<constraint, and what the owner said it is worth>
+
+Rules:
+- Same product, same people, same purpose. Every ruling in the brief holds. The bet removes a limit the owner
+  suffers; it does not change who the project is for or give the owner a new job.
+- Each card removes the chosen constraint entirely, not shrinks it, and not by adding a layer beside it.
+- One bet per card: one assumption that could kill it.
+
 Work in this order, writing each step down:
-0. Say in one sentence what the project is for, and its north star (the number it exists to move) with today's
-   value from the brief.
-1. List the accepted constraints in the brief, one line each, the category constraint (what every product of this
-   kind accepts) first. The owner's scope rulings (who it is for, what it is for, "X first") count as constraints
-   you may remove; rulings that protect safety, money or data do not. At least three cards must remove the category constraint, not only this project's.
-2. For each, ask what would make it disappear entirely, not shrink.
-3. List what changed recently that might make that possible (a library or project reaching usability, a cost
+1. Say in one sentence what the project is for and who uses it, quoting the brief.
+2. Say what holds the constraint in place: the structural cause that small fixes cannot reach.
+3. List what a team would have said this costs in human time, and why that price no longer applies.
+4. List what changed recently that might make removal possible (a library or project reaching usability, a cost
    collapse, a capability), and say how sure you are it exists.
-4. Write 5 candidate cards. A tuned or 10% better version of the current design is out of scope, and so is a
-   cleanup: each card must move the NORTH STAR (not a subsystem number) by 10x or more, or make something the
-   product cannot do routine, and must need at least four buildable steps. Each card must also remove the
-   constraint; a layer added on top that leaves the constraint in place is not a moonshot.
-5. Push every card further, three times: "what if this went all the way?"; "and if that worked, what would be
-   absurd not to do next?"; "who else does something like this today, and what would make this unlike anything
-   that exists?" The product may outgrow its current audience or scope if that is the bet. Rewrite the card at the
-   biggest size a cheap first test can still kill. Aim for 100x on the north star or a new category of product.
-   Then rate each card on this scale and replace any below 9: 10 = the project becomes a different, far bigger thing
-   that nothing does today; 8 = a huge change in a known direction; 6 = a big upgrade of one part.
-6. For each card, estimate the probability that a typical coding agent would propose it unprompted. Prefer cards
-   under 0.1 and drop any above 0.3, replacing them.
+5. Write 5 cards that remove the constraint by different means, not five sizes of one idea. First write down the
+   most likely answer and set it aside as card 1; the other four must each differ from it in the means. One of the
+   five is the smallest version that still removes the constraint. A tuned or 10% better version of the current
+   design is out of scope.
+6. For each card write the ordinary day, today and after. If the two read the same, replace the card. If the
+   person in "after" is not the person in the brief, or the owner now runs something for strangers, replace it.
+7. If you believe the best bet needs one ruling changed, you may write it as a sixth card marked NEEDS RULING,
+   naming the ruling. At most one.
 
 Card fields:
 - bet: one sentence, the constraint it removes first, then the means
-- the product becomes: the new one-sentence description of the project if the bet works (it must differ from
-  today's sentence in what the product is, not only in how fast or cheap)
-- deletion list: what stops being true: the constraint, and the workarounds, rulings, manual steps, waits or
-  dependencies it forced (names, not categories)
-- 10x: the north star, today's number, and the number this bet reaches
+- ordinary day, today / after: two or three sentences each, the person from the brief on a normal day
+- deletion list: what stops being true: the constraint, and the workarounds, manual steps, waits, caps or
+  dependencies it forced (names from the brief, not categories)
+- measure: the measure the brief says the owner tracks, today's value and the value this bet reaches; or, when the
+  brief says none is tracked, the one sentence the owner could check
 - build vs reuse: what gets built from scratch (fine: agents are cheap) and what existing parts it reuses
 - why now: what changed that makes it newly feasible; mark "unverified" if you are not sure it exists
-- what stays: the parts left untouched
+- what stays: the parts left untouched, and each ruling the card leans on
 - the monkey: the single assumption that kills it if false
 - first kill test: the cheapest experiment that could kill it, and its pass/fail number
-- oracle: what would prove the new thing behaves like the old one
+- probe: the slice of that test that could run in 20 minutes on the repo's own data, reading only
+- oracle: what proves the new thing behaves like the old one, and whether the brief says it already exists
 - strongest counterargument
-- typicality: your probability from step 6
-- prior art: who does anything like this today, and what this does that they do not
-- ambition: your 1-10 rating from step 5
+- prior art: who does anything like this today, and what can be reused from them
 ```
 
 ## Attractor motifs (check every card)
 
 Current models' default moonshot for a codebase comes from one kit: a knowledge/claim **graph**, a **digital
 twin** or simulator, a **calibrated / hierarchical Bayesian / causal** model, a **self-improving agent loop**, and a
-**platform turn** (public API or MCP, cohorts, multi-client, open-sourcing). In nine cold runs on six repos all nine
-built from this kit and bundled about three bets each (docs/research/27-moonshot-forge-2026-10-27.md in the flow
-repo). A motif is fine when it is the means of removing the named constraint ("give the blind loop a sensor" removes
-NO_DATA); it fails when it sits beside the constraint and leaves it in place. A motif in new words is still that
+**platform turn** (public API or MCP, cohorts, multi-client, open-sourcing, "for anyone"). In nine cold runs on six
+repos all nine built from this kit and bundled about three bets each (docs/research/27-moonshot-forge-2026-10-27.md
+in the flow repo). A motif is fine when it is the means of removing the named constraint ("give the blind loop a
+sensor" removes NO_DATA); it fails when it sits beside the constraint and leaves it in place. The platform turn is
+the one that also breaks the owner's ordinary day, so it needs both tests. A motif in new words is still that
 motif: the test is the deletion list, not the vocabulary.
 
-## Grounding (Step 3, you)
+## Grounding (Step 4, you)
 
-Per card, before the skeptic sees it:
+Per card, before the probe and the skeptic:
 - Open every path or component in the card's deletion list; strike items that do not exist or that other code still
   needs.
 - Fetch the primary source (repo README, docs, release notes) for every outside part in "build vs reuse" and "why
   now": does it exist, what maturity does it claim, does it do the specific thing the card needs. Quote the line.
   A part that is missing or immature is not a reason to drop the card: the card builds it, and the monkey names it.
   The failure to catch is a card that assumes a fact about the repo or the world that is false.
-- Oracle: does a runnable old implementation, a test suite or recorded input exist? If none, the card's phase 1 is
-  building one; say so on the card.
-- Already thought of: grep the owner's docs (IDEAS, PROGRESS Next, proposals, open specs) for the card's core move,
-  and search the web for products or projects already doing it. A hit is a known direction (an 8 at best); note it,
-  and the skeptic must push the card past it.
+- Oracle: does a runnable old implementation, a test suite, a labelled set or recorded input exist? If none, the
+  card's phase 1 is building one; say so on the card. A card whose oracle already exists says where.
+- Owner's docs: grep them (IDEAS, PROGRESS Next, plans, specs, notes) for the card's core move. Written down and
+  deferred for cost: the strongest sign the owner wants it; cite the line. Already scheduled or in progress (an
+  open spec, a branch): it is the plan, not a moonshot; drop the card or move past what is planned.
+- Rulings: check the card against every ruling in the brief. A conflict the generator missed makes it a NEEDS
+  RULING card (at most one may be shown) or kills it.
 
-## Skeptic prompt (Step 3)
+## Probe (Step 4, you)
 
-Spawn with `model: sonnet`, with the cards and your grounding notes.
+The probe turns the monkey from an argument into a number before the owner is asked to choose.
+- Limits: about 20 minutes, read-only on the repo and its data, no money spent, nothing sent outward (no posts,
+  mail, deploys, paid APIs), nothing written outside a scratch directory.
+- Good probes: replay a day or a week of recorded input through a rough version of the new part; time the slow
+  path with the old part stubbed out; count in the repo's own data how often the case the bet depends on occurs;
+  run the candidate library on ten real inputs and diff against the current output.
+- Record on the card: the command, the number, and the pass/fail line it was measured against (written before
+  running). A failed probe kills the card. An inconclusive one says so; do not round it up.
+- No probe possible (the test needs weeks, a human's marks, hardware that is not here): write "untested" and why.
+  Such a card can still be shown; it ranks below any card whose probe passed.
+
+## Skeptic prompt (Step 4)
+
+Spawn with `model: sonnet`, with the cards, your grounding and probe notes, and the brief. No subagent tool: run
+it yourself as a separate pass, cards and notes only, and say on the output that the skeptic was not independent.
 
 ```
-Each card below proposes replacing part of a codebase. You may only KILL a card or AMEND it; you may not add new
-cards or merge cards. For each card answer:
+Each card below proposes removing one accepted constraint from a codebase, for the owner described in the brief.
+You may only KILL a card or AMEND it; you may not add new cards or merge cards. For each card answer:
 1. Is the deletion list real after grounding? (If it is empty or struck, kill.)
 2. Does the constraint survive it, with a new layer sitting beside it? (kill, or amend to the version that removes it)
 3. Does it rest on a false fact about the repo or the world, per the grounding notes? (kill, or amend the fact) A part
    that does not exist yet is not false: the card builds it; amend the monkey to name it.
-4. Is there a cheap first test that could kill it, and an oracle or a phase 1 that builds one? (no -> amend until
-   there is; kill only if none can exist)
+4. Did its probe fail? (kill) Is there a cheap first test that could kill it, and an oracle or a phase 1 that builds
+   one? (no -> amend until there is; kill only if none can exist)
 5. Is it really two or more bets? (amend to the one whose deletion list matters most)
-6. Does it bolt on users, tenants or a public product beside the bet? (amend it out; when reaching them IS the bet, keep it)
-7. Is it still a moonshot? If it fits in one or two specs, or its north star moves less than about 3x, KILL it
-   as "a task, not a moonshot" and name it as a quick win. An amendment may narrow a card to one bet; it may not
-   shrink its 10x target.
-8. Is it already in the owner's docs, or does some product already do it (see the grounding notes)? Then AMEND it
-   up past the known direction, or KILL it as "already planned".
-9. Is there a bigger version that a cheap first test could still kill? AMEND up to it.
-10. Rate it 1-10 (10 = the project becomes a different, far bigger thing nothing does today; 8 = a huge change in a
-   known direction; 6 = a big upgrade of one part). Below 9: AMEND up or KILL.
-Never kill or shrink a card for being too ambitious, unproven or unprecedented; kill only on false facts, no
-possible kill test, bundling or task size.
-Return per card: KILL with one-line reason, or KEEP/AMEND with the amended bet, "the product becomes" sentence,
-north-star number, monkey, counterargument and ambition rating.
+6. Read the two ordinary-day paragraphs. Is the person in "after" still the person in the brief, doing what the
+   project is for? If it adds an audience, goes public, or gives the owner a service to run that the brief does not
+   ask for, AMEND it down to the version for the brief's owner. If it breaks a ruling and is not the one NEEDS
+   RULING card, amend it to honour the ruling or kill it.
+7. Do the two paragraphs read the same? Does it fit in one or two specs? Then KILL it as "a task, not a moonshot"
+   and name it as a quick win.
+8. Does it stop short: part of the constraint, or one of its workarounds, would still be there? AMEND up to the
+   version that removes it.
+9. Is it already scheduled in the owner's docs (see the grounding notes)? KILL it as "already planned".
+Never kill a card for being unproven, unprecedented, or expensive in human time. Never amend a card upward for
+ambition alone: up only to finish removing the constraint, down only to stay inside the owner's ordinary day.
+Return per card: KILL with one-line reason, or KEEP/AMEND with the amended bet, both ordinary-day paragraphs,
+deletion list, monkey and counterargument.
 ```
 
-## Make-it-a-10 pass (Step 3, after the skeptic)
+## Paired comparison (Step 4, after the skeptic)
 
-Spawn a fresh subagent (`model: opus`) with only the recommended card, the brief and this prompt; it has not seen
-the other cards or any self-rating. No subagent tool: run it as a separate pass and discount your own score by one.
+Two or more survivors: spawn a fresh subagent (`model: opus`) with the brief and the surviving cards, labelled A,
+B, C with probe results attached and no recommendation. No subagent tool: skip this pass and say so; do not
+replace it with your own scores.
 
 ```
-Rate this moonshot 1-10 on this fixed scale: 10 = if it works the project becomes a different, far bigger thing
-that nothing does today; 8 = a huge change in a known direction; 6 = a big upgrade of one part; 4 = a solid feature.
-Then, if it is below 10, name exactly what holds it there (it stays the same product for the same people; a known
-product already does this; it moves a part, not what the project exists for; it stops short of the obvious next
-step; it obeys an owner ruling about scope, such as who the project is for or "X first"), and write the version of
-this bet that would be a 10. Scope rulings may be broken; rulings that protect safety, money or data may not. Keep
-one bet and one monkey. Return: score, what holds it back, the 10 version in one sentence, and the cheapest first
-test that could kill the 10 version.
+You are choosing for the owner described in the brief. For every pair of cards, answer twice, once in each order:
+which of these two would this owner start on Monday and still be glad of in six months? Decide from the brief: what
+the project is for, what the constraint costs them, their rulings, what they said it is worth. A measured probe
+result outweighs any argument. Do not score cards; give the winner of each pair and one sentence of why. Then list
+the cards in order of pairs won, and say where the two orders disagreed.
 ```
 
-If the 10 version has a cheap first kill test, it becomes the recommendation and the card it grew from becomes a
-runner-up. Re-rate it with a fresh rater each round; stop at 10 or after three rounds.
+A pair that flips with the order is a tie; say so when presenting.
 
 ## Presenting survivors
 
-At most 3, ranked by ambition, each as eight lines: bet, the product becomes, deletion list, north-star number,
-the monkey with its first kill test, prior art and what is new, strongest counterargument, ambition rating. Recommend the biggest. Every survivor a
-task: do not present tasks as moonshots; go back to Step 1 one level
-up (what the product cannot do), and list the tasks as quick wins. Put the recommendation first with one sentence of why. Ask the user which to write and
-stop. If they want several: one MOONSHOT.md per bet, and the order matters (the one whose phase 1 is cheapest to
-kill goes first). All killed: say so, show the best near-miss and its fatal flaw, stop.
+At most 3, each as these lines: bet; the ordinary day today and after (one or two sentences each); deletion
+list; the measure or check; the monkey with its first kill test; the probe (command, number, pass or fail, or
+"untested" and why); what is reused and from whom; strongest counterargument; rulings (all honoured, or NEEDS
+RULING and which). One of the three is the smallest version that still removes the constraint, labelled so. Put
+the recommendation first with one sentence of why: a passed probe first, then the longer deletion list, then the
+paired comparison. A NEEDS RULING card goes last and is never the recommendation. Every survivor a task: do not
+present tasks as moonshots; go back to Step 1 for the next constraint, and list the tasks as quick wins. Ask the
+user which to write and stop. If they want several: one MOONSHOT.md per bet, and the order matters (the one whose
+phase 1 is cheapest to kill goes first). All killed: say so, show the best near-miss and its fatal flaw, stop.

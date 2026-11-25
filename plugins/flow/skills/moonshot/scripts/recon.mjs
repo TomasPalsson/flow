@@ -148,17 +148,20 @@ function loadStore(ctx) {
 const byFix = (a, b) => b.fix_commits - a.fix_commits || b.commits - a.commits;
 
 function directories(agg, store) {
-  const loc = new Map();
-  for (const [p, r] of store) if (r.lines) loc.set(rollup(p), (loc.get(rollup(p)) ?? 0) + r.lines);
+  const loc = new Map(), code = new Set();
+  for (const [p, r] of store) {
+    if (r.lines) loc.set(rollup(p), (loc.get(rollup(p)) ?? 0) + r.lines);
+    if (CODE_EXT.has(ext(p))) code.add(rollup(p));
+  }
   const rows = [...agg.dirs].map(([dir, e]) => {
     const net = e.added - e.deleted;
     return {
       dir, commits: e.commits, commits_3m: e.commits_3m, fix_commits: e.fix_commits, test_commits: e.test_commits,
       fix_share: e.commits ? round(e.fix_commits / e.commits, 2) : 0, fix_months: e.months.size,
       added: e.added, deleted: e.deleted, net, loc: loc.get(dir) ?? 0,
-      stall: e.months.size >= 4 && e.added > 0 && Math.abs(net) / e.added < 0.2,
+      stall: e.months.size >= 4 && e.added > 0 && Math.abs(net) / e.added < 0.2, data_only: !code.has(dir),
     };
-  }).sort(byFix);
+  }).sort((a, b) => (a.data_only ? 1 : 0) - (b.data_only ? 1 : 0) || byFix(a, b));
   return { skipped: { total: agg.skipped.bots + agg.skipped.mechanical, ...agg.skipped }, total_directories: rows.length, rows: rows.slice(0, 15) };
 }
 
@@ -213,9 +216,18 @@ const PARSERS = {
     .filter((m) => m[1] !== 'retract' && !m[2].includes('indirect')).map((m) => m[1])),
 };
 
-function readManifests(ctx) {
+function manifestDirs(ctx, store) {
+  const dirs = new Set(ctx.focus ? ['', ctx.focus] : ['']);
+  for (const p of store.keys()) {
+    const dir = path.posix.dirname(p) === '.' ? '' : path.posix.dirname(p);
+    if (PARSERS[path.posix.basename(p)] && dir.split('/').length <= 3 && !/(^|\/)(node_modules|vendor|third_party|fixtures)(\/|$)/.test(dir)) dirs.add(dir);
+  }
+  return [...dirs].sort();
+}
+
+function readManifests(ctx, store) {
   const deps = new Map(), manifests = [];
-  for (const dir of ctx.focus ? ['', ctx.focus] : ['']) {
+  for (const dir of manifestDirs(ctx, store)) {
     for (const [file, parse] of Object.entries(PARSERS)) {
       const rel = path.posix.join(dir, file);
       let text;
@@ -255,8 +267,8 @@ function measureNpm(ctx, dep) {
 }
 
 function dependencies(ctx, store) {
-  const { deps, manifests } = readManifests(ctx);
-  if (!manifests.length) throw new Error('no supported manifest (package.json, pyproject.toml, requirements.txt, Cargo.toml, go.mod) at the repo root or focus dir');
+  const { deps, manifests } = readManifests(ctx, store);
+  if (!manifests.length) throw new Error('no supported manifest (package.json, pyproject.toml, requirements.txt, Cargo.toml, go.mod) at the repo root, the focus dir or up to three levels down');
   const goMods = deps.filter((d) => d.eco === 'go').map((d) => d.name), sites = new Map();
   for (const [p, r] of store) {
     if (!r.text || !ECO[ext(p)]) continue;
@@ -269,6 +281,24 @@ function dependencies(ctx, store) {
     return { name: d.name, ecosystem: d.eco, dev: d.dev, import_sites, ...m, flag: m.size_mb >= 10 && import_sites <= 3 ? 'HEAVY-NARROW' : null };
   }).sort((a, b) => (b.flag ? 1 : 0) - (a.flag ? 1 : 0) || (b.size_mb ?? -1) - (a.size_mb ?? -1) || a.import_sites - b.import_sites);
   return { manifests, total: rows.length, rows: rows.slice(0, 20), unused: rows.filter((r) => r.import_sites === 0).map((r) => r.name).slice(0, 20) };
+}
+
+const PRICED_OUT = /\btoo (slow|expensive|big|heavy|costly|much work|long)\b|\b(for now|not yet|not worth|would (need|take|require)|out of scope|deferred|someday|backlog|by hand|manually|blocked by|cannot|can't|waits? (on|for)|no more than|at most \d|limit(ed)? (to|of)|only \d)\b/i;
+
+function pricedOut(ctx, store) {
+  const hits = [], byFile = new Map();
+  for (const [p, r] of store) {
+    if (!/\.(md|mdx)$/i.test(p) || r.size > MB || /(^|\/)(node_modules|vendor|third_party|fixtures|content)\//.test(p) || /changelog/i.test(p)) continue;
+    let text;
+    try { text = fs.readFileSync(path.join(ctx.top, p), 'utf8'); } catch { continue; }
+    text.split('\n').forEach((line, i) => {
+      if (!PRICED_OUT.test(line)) return;
+      byFile.set(p, (byFile.get(p) ?? 0) + 1);
+      if (byFile.get(p) <= 6) hits.push({ path: p, line: i + 1, text: line.trim().slice(0, 160) });
+    });
+  }
+  const by_file = [...byFile].map(([file, n]) => ({ file, hits: n })).sort((a, b) => b.hits - a.hits);
+  return { total: by_file.reduce((s, f) => s + f.hits, 0), by_file: by_file.slice(0, 15), lines: hits.slice(0, 60) };
 }
 
 function largeFiles(store) {
@@ -288,7 +318,7 @@ const RENDER = {
   preflight: (d) => [`shallow: ${d.shallow ? 'yes' : 'no'}`, `commits: ${d.commits}`, `first_commit: ${d.first_commit}`, `history_months: ${d.history_months}`,
     ...(d.warning ? [d.warning] : [])],
   directories: (d) => [`skipped: ${d.skipped.total} commits (bots ${d.skipped.bots}, mechanical ${d.skipped.mechanical})`,
-    ...fmt(d.rows.map((r) => ({ ...r, flag: r.stall ? 'STALL' : '' })),
+    ...fmt(d.rows.map((r) => ({ ...r, flag: r.stall ? 'STALL' : r.data_only ? 'data-only' : '' })),
       'dir commits commits_3m fix_commits fix_share fix_months added deleted net loc test_commits flag'.split(' '))],
   files: (d) => fmt(d.rows, ['path', 'commits', 'fix_commits', 'loc']),
   workarounds: (d) => [`total hits: ${d.total}${d.capped ? ` (capped at ${d.cap}; more exist)` : ''}`, `distinct directories: ${d.distinct_directories}`,
@@ -298,6 +328,8 @@ const RENDER = {
     ...fmt(d.rows.map((r) => ({ ...r, size: r.size_mb === null ? 'not measured' : `${r.size_capped ? '>=' : ''}${r.size_mb}MB`, dev: r.dev ? 'dev' : '', flag: r.flag ?? '' })),
       ['name', 'ecosystem', 'dev', 'import_sites', 'size', 'flag']),
     `unused: ${d.unused.join(', ') || '(none)'}`],
+  'priced-out': (d) => [`total hits: ${d.total} (the owner's docs deferring, capping or doing by hand; at most 6 lines shown per file)`,
+    ...fmt(d.by_file, ['file', 'hits']).map((l) => `  ${l}`), ...d.lines.map((h) => `${h.path}:${h.line}  ${h.text}`)],
   'large-files': (d) => [`vendor/third_party files: ${d.vendor_files}`, `*.patch files: ${d.patch_files}`,
     ...(d.large.length ? d.large.map((f) => `${f.mb} MB  ${f.path}`) : ['no tracked file over 5 MB'])],
 };
@@ -314,6 +346,7 @@ function collect(ctx) {
     workarounds: () => workarounds(ctx, need(store), agg.v?.last ?? new Map()),
     dependencies: () => dependencies(ctx, need(store)),
     'large-files': () => largeFiles(need(store)),
+    'priced-out': () => pricedOut(ctx, need(store)),
   };
   const out = {};
   for (const [name, fn] of Object.entries(sections)) {

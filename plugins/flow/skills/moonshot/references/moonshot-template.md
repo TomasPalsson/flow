@@ -5,7 +5,7 @@ description: The MOONSHOT.md template, the phase rules (monkey first, seam, orac
 
 # MOONSHOT.md
 
-Read at Step 4, and at Step 6 only when writing an Amendment.
+Read at Step 5, and at Step 7 only when writing an Amendment.
 
 ## Template
 
@@ -17,7 +17,10 @@ ignorance and get re-shaped at each gate).
 # Moonshot: <name>
 
 <The bet in one sentence: the constraint removed, then the means.>
-If it works, <project> becomes: <the new one-sentence description of what the product is>.
+
+Today: <the owner, or their user, on an ordinary day with the constraint. Two or three sentences.>
+
+After: <the same person on the same kind of day once the bet has landed.>
 
 | Phase | Status |
 |---|---|
@@ -36,15 +39,21 @@ cheap, with its source and maturity. What still is not cheap (see Re-priced).>
 <What disappears when this lands. Names, not categories.>
 
 ## What stays
-<Untouched parts, and the interface the new part must honour.>
+<Untouched parts, and the interface the new part must honour. Every ruling from the brief, one line each, marked
+honoured; a ruling the owner agreed to change is quoted with their words and the date.>
 
 ## Oracle
 <What proves new == old: kind, input corpus, where it lives, what it does NOT pin (concurrency, performance,
 security, environment), the accepted-divergence list (old bugs fixed on purpose).>
 
-## Success metric
-<The north star (the number the project exists to move): today's baseline and the 10x target, measured the same
-way before and after, plus one sentence a user could check.>
+## Success measure
+<A measure the owner already tracks: today's value and the value the bet reaches, measured the same way before and
+after. None tracked: the one sentence from "After" that the owner could check, and how. Never a new metric whose
+baseline is 0.>
+
+## Probe
+<What was run before the pitch: the command, the number, the pass/fail line it was measured against. Or
+"untested: <why no 20-minute probe exists>", in which case phase 1 is that test and nothing else.>
 
 ## Re-priced
 | Cheap now (agents) | Not cheaper (owner) |
@@ -61,10 +70,12 @@ way before and after, plus one sentence a user could check.>
 ### Phase 2 ...
 
 ## Not this
-<Plausible goals declined, including anything that came up about other users or a platform.>
+<Plausible goals declined, including any bigger version for other users, a public edition or a platform, with one
+line on why it is not this bet.>
 
 ## Alternatives
-<The boring incremental option and why it loses; the other surviving candidates and why they lost.>
+<The boring incremental option and why it loses; the smallest version that still removes the constraint and what
+the extra size buys; the other surviving candidates and why they lost; quick wins found on the way.>
 
 ## Status log
 <Append-only: date, phase, what shipped, the check result, continue / amend / kill. Never edit old entries.>
@@ -76,8 +87,11 @@ way before and after, plus one sentence a user could check.>
   workload, or, when there is no oracle, building the oracle. State which, and whether its code is kept
   (prototypes are thrown away). Schema design, scaffolding, "set up the project" are the pedestal: they fold into a
   later phase.
-- **One phase = one flow feature**: one spec, one branch, one PR, a human `Verified:`. A phase that would need two
-  specs is two phases; more than 6 phases means the bet is two bets.
+- **One phase = one flow feature**: one spec, one branch, one PR, a human `Verified:`. This binds phases 1-2, which
+  are written near spec-ready. A later phase is an outcome; if at its gate it turns out to need several specs, the
+  re-entry step splits it by Amendment. More than 6 phases at writing time means the bet is two bets.
+- **Phase 1 starts from the probe.** A probe that passed is a hint, not the test: phase 1 runs the full kill test
+  on a real workload, with the pass/fail number fixed before it runs.
 - **Seam before swap.** If the old part is not behind an interface, an early phase puts it behind one and ships with
   zero behaviour change; later phases build the new part behind the same seam, behind a flag, old path still the
   default.
