@@ -1,44 +1,70 @@
 ---
 name: moonshot
-description: "Proposes ONE moonshot for an existing repo: finds the constraint everyone accepts as just how it is (a heavy dependency, a layer months of tweaks never fixed, a ruling that made a limit policy), pitches a 12-month bet that removes it, priced for agent labour, writes MOONSHOT.md as 4-6 phases each with an oracle and a kill check, and seeds phase 1 into /flow:prep. Use when the user asks for a moonshot, 'what would you rebuild with unlimited resources', 'the 10x version', 'the ugliest part of this stack', 'we have tweaked X for months', or 'let it rip'; also when a MOONSHOT.md exists and its current phase shipped. Not for a list of ideas (flow-extras:brainstorm), growing the user's own idea (flow:develop-idea), judging an idea (flow-extras:scrutinize-idea), or a cleanup of one shipped spec (flow:flow-deepen)."
+description: "Proposes ONE moonshot for an existing repo: the billion-dollars-and-infinite-time version of the project, cool and fun, that the owner would love to show someone and never asked for because in human time it looked too expensive (our own engine, a game, an instrument, something alive or wired to the hardware in the room). Reads the project for what the owner enjoys and the raw material only it has, pitches demo-first, makes rough teasers from real data so the owner picks from things they can look at, writes MOONSHOT.md as 4-6 phases each with a kill check, and seeds phase 1 into /flow:prep. Use when the user asks for a moonshot, 'what would you rebuild with unlimited resources', 'the 10x version', 'the ugliest part of this stack', 'we have tweaked X for months', or 'let it rip'; also when a MOONSHOT.md exists and its current phase shipped. Not for a list of ideas (flow-extras:brainstorm), growing the user's own idea (flow:develop-idea), judging an idea (flow-extras:scrutinize-idea), or a cleanup of one shipped spec (flow:flow-deepen)."
 argument-hint: "[the part of the stack to rebuild, or a path]"
 user-invocable: true
 ---
 
 # Moonshot
 
-**Go all out.** The size of the bet is the point of this skill; the user asked for the thing they would never have
-dared to write down. Labour is free: agents can build the dependency yourself, a new engine, a new runtime, a
-model trained on the project's own data, whatever the bet needs. The origin case: an app embedding CEF (all of
-Chromium) spent months on small tweaks; the move was writing its own renderer. "The agent could always build
-something like this. It just never suggested it, because in human time it looked too expensive."
+A moonshot is **the version of this project the owner would be dying to show someone, and never asked for because
+in human time it looked too expensive.** The origin case: an app embedding CEF (all of Chromium) spent months on
+small tweaks; the move was writing its own renderer. "We wrote our own renderer" is a thing you tell people. "The
+agent could always build something like this. It just never suggested it, because in human time it looked too
+expensive." Labour is free now: agents can build the engine, the runtime, the game, the instrument, the model
+trained on the project's own data, the thing wired to the hardware in the room.
 
-Two failures to steer between. Left alone, a model bundles three or four projects (a knowledge graph, a digital
-twin, a Bayesian engine, an agent loop, a platform for other users), prices them in squads and quarters, and opens
-with plumbing. Told to be careful, it shrinks the bet into a cleanup it can prove. This skill wants **one bet, as big
-as it goes**: one vision, one monkey, no cap on size. Feasibility is never a reason to shrink the bet; it is phase 1's
-job. The only gate is that phase 1 has a cheap test that could kill the bet.
+**A billion dollars and infinite time.** That is the premise: pitch what a studio with that budget and no
+deadline would build on top of this project, not what fits in a sprint. The billion is the price in people that
+kept it unwritten; agents pay it in labour, so no real money is spent and the owner's money rulings still hold.
+A pitch a keen person could finish in a month is **timid**: it becomes phase 1 of something bigger. Every card
+carries two scenes: **tonight's version** (small, already fun, what the teaser shows) and **the full version**
+(the scene a year in, the one that makes a professional in that field jealous). The bet is the full version.
 
-Five words carry the method; use them in everything you write:
-- **accepted constraint**: the limit the repo treats as fixed. A heavy dependency, a layer every fix circles, or a
-  ruling that turned a limitation into policy ("NO_DATA is a first-class outcome", "100 voice clips a day").
-- **deletion list**: what stops being true when the bet lands: the constraint itself, and the workarounds, rulings,
-  manual steps, waits and dependencies it forced. Empty = not a moonshot.
-- **10x test**: if the bet works, the one-sentence description of the product changes, and the **north star** (the
-  number the project exists to move: exams passed, leads won, readers who trust it) moves by 10x or more, or
-  something the product cannot do becomes routine. 10x is the floor; aim for 100x or a new category. A subsystem metric (latency, image size, quota) does not count
-  unless it is the north star's bottleneck. A bet that fits in one or two flow features is a task, not a moonshot.
-  An idea already written in the owner's docs (IDEAS, PROGRESS Next, a proposal), or one some product already does,
-  is a known direction: it can be a phase, never the bet. The target is the top of this scale: **10** = the project
-  becomes a different, far bigger thing that nothing does today; 8 = a huge change in a known direction; 6 = a big
-  upgrade of one part. Ship only 9-10. The owner's **scope rulings** (who the project is for, what it is for, "X
-  first", "single user") are accepted constraints too, and the bet may remove them. Rulings that protect safety,
-  money or data (no paid API offline, never orphan user history, nothing touches production) stay hard: the bet
-  honours them and MOONSHOT.md says how.
-- **the monkey**: the one assumption that, if false, kills the bet. Phase 1 tests it. Everything easy is **the pedestal**.
-- **oracle**: the executable thing that proves the result (the old implementation in lockstep, a conformance
-  suite, recorded inputs with golden outputs, or the success metric's baseline measured the same way). Code is
-  cheap with agents; the oracle is where the cost and the safety live.
+**Cool and fun is the bar, and size serves it.** Scale the spectacle, never the worthiness or the audience: a
+bigger show for this owner, not coverage, compliance or strangers. A moonshot the owner reads and thinks "sure, worthy" has failed, however sound. Five
+ways it goes lame, all of them a model's default:
+- **The worthy one.** Complete coverage of something, verification, auditing, trust, a pipeline that is more
+  correct. Sound, earnest, nobody opens it twice.
+- **The cleanup.** A slimmer image, a deduplicated helper, a faster build. A chore with a big name.
+- **The timid one.** A fun page, a nice feature, a weekend toy. Good, and far too small: it is tonight's version
+  of something, so say what.
+- **The bundle.** A graph, a twin, an agent loop and a platform stacked together, opening with plumbing.
+- **The other product.** Something bigger for strangers (a private reader becomes a public newsroom). It wins with
+  a judge and the owner never builds it, because it is homework for people they never mentioned.
+
+So: **one bet, for this owner, whose demo makes them grin.** No scores out of 10 anywhere: ideas rated at the idea
+stage lose their lead once built (https://arxiv.org/abs/2506.20803), so the skill shows a teaser and the owner picks.
+
+Six words carry the method; use them in everything you write:
+- **the demo**: what the owner sees, hears or touches in the first 30 seconds, written as a scene, not a feature
+  list. It is the first line of every card. If the demo is a dashboard, a report, a number going up, or "it is now
+  more accurate/complete/reliable", the card is lame: replace it.
+- **the grin test**: would the owner show this to a friend tonight, unprompted? Would the friend ask how it works?
+  This is the one question every pass asks. Useful is welcome; useful and dull does not pass.
+- **raw material**: what this project has that nobody else has: its archive, the owner's own marks and history,
+  the machine and hardware it runs on, its local models, its voice, its odd side features. Cool comes from using
+  these in a way only this project could, not from a generic idea with the project's name on it.
+- **the price that hid it**: why nobody wrote it down ("that is a whole team", "that is a year"). Every card says
+  what the full version would have cost in people and years ("a broadcaster's engineering floor", "a games
+  studio for three years"). An afternoon is a task; a month is timid; the answer should make you wince.
+- **the monkey**: the one assumption that, if false, kills the bet (usually: is it actually fun, or does the hard
+  part work at all). Phase 1 tests it. Everything easy is **the pedestal**.
+- **the teaser**: a rough slice of the demo, made now, in this session, from the project's real data: a page to
+  open, a clip to play, a picture. Showing beats describing; the owner picks from things they can look at.
+
+**Where cool comes from.** The generator works through these lenses; each is a way agent labour turns a project
+into a showpiece:
+make it **alive** (it moves, updates, reacts while you watch) · make it **physical** (a screen on the wall, a
+printer, a speaker, a light, the home server's own hardware) · make it a **toy or a game** (something to play, a
+streak, a duel, a puzzle made from the project's own content) · give it a **voice or a character** · **absurd
+scale** (all of it at once, every one ever, a wall of them) · a **time machine** (replay any day, run it forward) ·
+make the **invisible visible** (what the models are doing, what the data looks like as a place) · the **flex**
+(our own engine, model, renderer, format, built from scratch because we can) · **only here** (trained on the
+owner's own taste, voice, history).
+
+**The owner's rulings still hold.** Privacy, money, safety, who it is for: honour them. Fun for this owner, not a
+launch. If the coolest idea needs a ruling changed, say so on that one card, show it last, do not recommend it.
 
 `${CLAUDE_PLUGIN_ROOT}` is the flow plugin root. Run scripts with `node`, all paths absolute.
 
@@ -48,45 +74,61 @@ Five words carry the method; use them in everything you write:
 still write MOONSHOT.md; skip Step 5). MOONSHOT.md sits at the repo root, or at `.specs/MOONSHOT.md` when stealth is
 active. If one exists, go to Step 6. Done when you know the state and whether this is a first run or a re-entry.
 
-**1. Find the accepted constraint.** Read [`references/recon.md`](references/recon.md) before this step; it holds
-the signal families, the load-bearing test and how to read the output. Read the owner's docs (README, PROGRESS,
-ADRs, rulings) and run [`scripts/recon.mjs`](scripts/recon.mjs) as
+**1. Read the project for what is fun in it.** Read [`references/recon.md`](references/recon.md) before this
+step. Read the owner's docs (README, PROGRESS, plans, rulings, specs, IDEAS) and run
+[`scripts/recon.mjs`](scripts/recon.mjs) as
 `node ${CLAUDE_PLUGIN_ROOT}/skills/moonshot/scripts/recon.mjs --repo <root> [--focus <path>]`
 (`--help` for the flags; do not read its source). When the user named the part, recon still runs, focused on it.
-Write the **brief**: the project's reason to exist and its north star with today's number, the constraint at the
-level of what the product can or cannot do, its receipts from at least 3
-signal families (`path:line` or numbers), the stated reason it was accepted, what was tried, and today's baseline
-numbers. Then zoom out once: what does the **whole category** accept as just how it is (every exam-prep app
-assumes you study a fixed bank, every newsroom reports after the fact, every ads tool needs conversion volume)?
-Add that category constraint to the brief; the 10 removes it, not only this repo's. Half a page, no solution in it.
-Done when the brief names one repo constraint with 3+ families and the category constraint above it. Say "no
-moonshot found" (the nearest candidate and the missing evidence, then stop) only when nothing clears the bar at any
-level; a young repo is not a reason, because rulings, stated limits and dependency weight fire without history.
+Write the **brief**, half a page, no ideas in it:
+- **what is current**: the surface the owner is working on now, what it replaced, and its look (stylesheet path,
+  fonts, colour tokens) read from the code, not from design notes;
+- what the project is and who uses it, in the owner's words, with the quote;
+- **delight signals**: what the owner built that nobody needed (side features, easter eggs, a lab, a custom look,
+  anything named "fun"), and what they said they like or hate. This is the taste the cards must hit;
+- **raw material**: the archive and its size, the owner's own data (marks, votes, history), the hardware and
+  models on hand, existing voices, renderers, feeds, with paths and numbers;
+- the rulings, as a list (all honoured);
+- 2 to 4 **accepted constraints and priced-out wishes** with receipts (`path:line`), each named as what the
+  product cannot do. They are material for the generator, not the required starting point.
+Done when the brief has at least 3 delight signals and 5 pieces of raw material with numbers. "No moonshot found"
+is not an outcome of this step; every project has raw material.
 
-**2. Generate candidates cold.** Read [`references/candidates.md`](references/candidates.md); it holds the
-generator and skeptic prompts, the card fields and the attractor list. Spawn one fresh subagent on the strongest
-model with the brief only, no repo access, so it does not anchor on the current code. It returns 5 cards. No
-subagent tool in this session: generate in a separate pass that works from the brief text alone, and say on the
-cards that they are not cold. Done when 5 cards came back, each rated 9-10 on the ambition scale, passing the 10x
-test, with a non-empty deletion list.
+**2. Generate pitches cold.** Read [`references/candidates.md`](references/candidates.md); it holds the
+generator, skeptic and comparison prompts, the card fields and the lame list. Spawn one fresh subagent on the
+strongest model with the brief only, no repo access. It writes 12 one-line demos across the lenses, keeps the
+5 it would most want to see built, blows each one up to its billion-dollar full version, and writes their cards. No subagent tool in this session: generate in a separate
+pass from the brief text alone, and say on the cards that they are not cold. Done when 5 cards came back, each
+with both scenes (tonight's version and the full version), a price that makes you wince, and at least two pieces
+of raw material by name.
 
-**3. Ground, attack, let the user pick one.** For each card: open the code it names, check the deletion list, and
-fetch the primary source of every outside component it leans on (does it exist, how mature, does it do the thing
-the card needs) and whether the owner's docs already hold the idea. Mark anything unchecked UNVERIFIED. Then spawn
-one skeptic subagent (`sonnet`) with the cards and your notes; it may only kill or amend, never add, and it amends
-up whenever a bigger version can still be killed by a cheap phase 1. Rank survivors by ambition and recommend the
-biggest. The one gate is a cheap phase-1 test that could kill the bet; an unverified component, an unproven
-capability or a thing nobody has built yet becomes the monkey, never a reason to drop or shrink the card. Cards
-rated below 9 go to Alternatives, never to the list. Then run the **make-it-a-10 pass** on the recommendation
-(candidates.md): a fresh rater scores it cold on the scale and names what holds it below 10; rewrite the bet at
-that size while a cheap phase-1 test can still kill it; at most 3 rounds, stopping at 10. Self-ratings run about a point high, so
-only the fresh rater's score counts. Show the survivors (at most
-3) in one block: the bet in one sentence, what the product becomes, the deletion list, the north-star number, the
-monkey, the strongest counterargument, and your recommendation.
-End with "Which one should Mr Claude write to MOONSHOT.md?" and stop. Done when the user's reply names one.
+**3. Ground, attack, make teasers, let the user pick.** For each card: open the code and data it names, check the
+raw material is really there in the amount claimed, and fetch the primary source of every outside part it leans on.
+Mark anything unchecked UNVERIFIED. A thing that does not exist yet is not a reason to drop a card: agents build
+it, and it becomes the monkey. Then:
+- **Skeptic.** One subagent (`sonnet`) with the cards, your notes and the brief. It may only kill or amend. It
+  kills the lame (see the lame list), the false, the bundles and the other products; it amends a card toward the
+  bigger and more fun version of itself, never toward the safer one, and sends every timid card back up. No subagent tool: run it as a separate pass and say so.
+- **Compare.** A fresh subagent compares the survivors in pairs, both orders, on the grin test. No scores.
+- **Teasers.** For the top 2 or 3, make the teaser of tonight's version, and under it on the same page a
+  **storyboard** of the full version: three or four still frames in the project's current look, each one scene
+  from a year in, captioned with what is happening. About 20 minutes each, from real repo data, written to a
+  scratch directory, spending no money and sending nothing outward. A static page, an audio file, an image, a
+  terminal recording. Rough is fine; invented content is not. Where you did by hand the part the bet says a
+  machine will do (picked the puzzle's groups, wrote the schedule), say so on the teaser: that part is the monkey.
+  No teaser possible: say why and describe the scene instead.
+Show at most 3 survivors, each as the lines in candidates.md (Presenting survivors), teaser path first. Recommend
+the one that won the comparison (no comparison ran: recommend from the teasers and say that is the basis). In a
+repeat round, a direction the owner already said they liked is the recommendation unless its teaser flopped; a new
+card that came out better is shown as the challenger, with why. A survivor whose teaser played flat stays in the
+three only if nothing better exists, and the block says it flopped. If the
+teaser of another turned out better than its pitch, say so. A card killed only for being small but that made you
+laugh is shown under the three as "build this anyway": a quick win the owner would want, not a moonshot.
+End with "Which one should Mr Claude write to MOONSHOT.md?" and stop. Done when the user's reply names one. If the
+reply is that all of them are lame, ask which was closest and what was missing, add that sentence to the brief's
+delight signals, and run Steps 2-3 once more.
 
 **4. Write MOONSHOT.md.** Read [`references/moonshot-template.md`](references/moonshot-template.md); it holds the
-template, the phase rules and the oracle-by-component table. Fill it for the one chosen bet. The other survivors go
+template, the phase rules and, for a bet that replaces a part, the oracle-by-component table. Fill it for the one chosen bet. The other survivors go
 under Alternatives, never into the phases. Check it against "Done when" below, then offer, in one line,
 `/flow-extras:scrutinize-idea` on MOONSHOT.md as the attack pass (the proposer does not grade itself).
 
@@ -107,44 +149,51 @@ Amendment, never rewrite the body), or stop (append the kill with its evidence; 
 
   | The excuse | Why it fails |
   |---|---|
-  | "They reinforce each other" | Then one is the means of the other: keep the one whose deletion list matters, and the rest become its phases or go to Alternatives |
-  | "The user said unlimited resources" | Labour is unlimited; review attention, the oracle and the user's own time are not |
+  | "They reinforce each other" | Then one is the means of the other: keep the one whose demo is best, and the rest become its phases or go to Alternatives |
+  | "The user said unlimited resources" | Labour is unlimited; review attention and the user's own time are not |
   | "Leaving it out wastes the idea" | Alternatives keeps it, with the reason it lost |
 
-- **Never shrink the bet, for evidence or for feasibility.** Evidence picks where; the 10x test sets the floor on
-  how big; phase 1 settles whether it can be done. A fix recon can prove (a duplicate file, a slimmer image, a lazy
-  import) goes under Alternatives as a quick win, never as the moonshot. If the only survivors are tasks, go back to
-  Step 1 one level up: what the product cannot do, not what the code repeats.
+- **Never pitch the worthy one.** If the honest reaction to the demo is "that is sensible", it is not a moonshot.
+
+  | The excuse | Why it fails |
+  |---|---|
+  | "It is what the project needs" | Needs go through /flow:prep; the owner asked for the thing they would never have dared to write down |
+  | "It is more rigorous / complete / trustworthy" | Nobody shows a friend a completeness guarantee |
+  | "The fun version is frivolous" | Frivolous and built beats worthy and shelved; the owner's side features show what they enjoy |
+
+- **Never shrink the bet into a cleanup.** A fix recon can prove today goes under Alternatives as a quick win.
 
   | The excuse | Why it fails |
   |---|---|
   | "That component does not exist yet" | Agents build it; it becomes the monkey and phase 1 tests it |
-  | "Nobody has done this" | That is why the owner never wrote it down; phase 1 is the cheap test |
-  | "A smaller version is more realistic" | Realism is phase 1's verdict, not the proposer's; the smaller version goes under Alternatives |
+  | "A smaller version is more realistic" | The smallest fun version is phase 1, not the bet |
+  | "The big version is not credible" | Credibility is phase 1's job; the pitch's job is to say out loud the thing worth a billion |
+  | "The owner is one person" | One person with a fleet of agents; pitch what the fleet can build |
+  | "It would take a team a year" | That price is the reason nobody wrote it down; that is the point |
 
-- **Never recommend the safest survivor.** Every survivor already passed the one gate; picking the most
-  credible again trades away the reason the user asked. Recommend the one whose "the product becomes" sentence is
-  furthest from today's, and name the phase-1 test that would kill it.
-- **Never pitch a layer that removes no constraint.** A graph, twin, calibrated model, agent loop or platform turn
-  is the attractor kit; it earns its place only as the means of deleting a named constraint, and the deletion list
-  says what stops being true.
+- **Never grow the bet into another product.** No new audience, no going public, no service to run for strangers,
+  unless the owner's docs already ask for it. Bigger for other people is not cooler for this one.
+- **Never rank by a score out of 10, yours or a judge's.** The paired grin test and the teasers rank the cards; the
+  owner picks.
+- **Never describe when you can show.** A teaser made from real data outranks any paragraph about it.
+- **Never pitch from the attractor kit.** A graph, twin, calibrated model, agent loop, dashboard or platform turn
+  is what every model proposes for every repo; it earns a place only when its demo passes the grin test on its own.
 - **Never cost in people or calendar per task.** No squads, headcount, hires or "3 weeks for X". Size phases as flow
-  features and oracle work; keep 12 months as the scope ceiling only. Human-time pricing is the bias that hid the
-  moonshot in the first place.
-- **Never start with the pedestal.** Phase 1 tests the monkey or builds the missing oracle; scaffolding, schema
-  design and plumbing with no kill check prove nothing and make quitting expensive.
-- **Never bolt on users as a side project.** Cohorts, public APIs, multi-tenant or open-sourcing added beside the bet
-  are bundling. When reaching far more people IS the bet (the product becomes a different, far bigger thing), it is
-  allowed and its phase 1 tests that those people want it.
+  features. Human-time pricing is the bias that hid the moonshot in the first place.
+- **Never start with the pedestal.** Phase 1 is the smallest version that is already fun to use, on real data; its
+  kill check is the owner's own reaction. Scaffolding, schema design and plumbing prove nothing.
 - **Never seed more than the next phase, write a `D-NN`, or invoke `/flow:prep` yourself.** The router surfaces
   the newest unprepped seed, a decision needs the user's receipt, and prep is user-invoked; handoff.md has the detail.
 
 ## Done when
 
-- MOONSHOT.md's first line after the title is the bet in one sentence, the next says what the product becomes, the
-  deletion list is non-empty, the success metric is the north star with today's number and a target of 10x or more, and the
-  file is at most about 150 lines.
-- It has 4-6 phases; phase 1 tests the monkey or builds the oracle; every phase has a runnable check, a kill or
-  continue condition with a number, and a "not this" fence; the last phase removes the old path or the old limit.
+- MOONSHOT.md's first paragraph after the title is the full-version scene, then tonight's version, then the bet
+  in one sentence and the price in people that hid it; the phases climb from tonight's version to the full one; the
+  raw material it uses is named with paths, every ruling in the brief is listed as honoured, and the file is at
+  most about 120 lines.
+- The teaser's path is recorded, or "no teaser" with the reason.
+- It has 4-6 phases; phase 1 ends with something the owner can play with and a kill check that is their reaction
+  plus one number; every phase adds something visible, has a runnable check and a "not this" fence; no phase is
+  only plumbing.
 - Nothing in it prices work in people or per-task weeks.
 - A seed, if written: `prep-lint` printed `OK` and the turn's last line is the seed contract's `Next:` line.

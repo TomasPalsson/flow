@@ -16,35 +16,45 @@ ignorance and get re-shaped at each gate).
 ```markdown
 # Moonshot: <name>
 
-<The bet in one sentence: the constraint removed, then the means.>
-If it works, <project> becomes: <the new one-sentence description of what the product is>.
+<The full version: the scene a year in, present tense. What the owner sees, hears or touches. The billion-dollar
+one.>
+
+<Tonight's version: the small scene that is already fun. Phase 1 builds it.>
+
+<The bet in one sentence.> Teaser: <path to the rough slice made before the pitch, or "none: <why>">.
 
 | Phase | Status |
 |---|---|
 | 1 <name> | not started |
 | ... | |
 
+## Raw material
+<What this uses that only this project has: archive, the owner's data, hardware, models, existing parts, with
+paths and amounts. The delight signals it answers, quoted.>
+
 ## The accepted constraint
-<What everyone works around, with receipts (path:line, numbers, rulings). The structural cause incremental
-work cannot reach. What was tried and stalled.>
+<Only when the bet removes one: what everyone works around, with receipts (path:line, numbers, rulings), and
+what was tried. Otherwise delete this section.>
 
 ## Why it was never done, and why now
-<What made it look too expensive (in human time, usually). What changed: the part that became available or
+<The price in people and years, and the kind of company that pays it. What changed: the part that became available or
 cheap, with its source and maturity. What still is not cheap (see Re-priced).>
 
 ## Deletion list
-<What disappears when this lands. Names, not categories.>
+<What disappears when this lands, if anything. Names, not categories. A pure capability bet may write "nothing".>
 
 ## What stays
-<Untouched parts, and the interface the new part must honour.>
+<Untouched parts, and the interface the new part must honour. Every ruling from the brief, one line each, marked
+honoured; a ruling the owner agreed to change is quoted with their words and the date.>
 
 ## Oracle
-<What proves new == old: kind, input corpus, where it lives, what it does NOT pin (concurrency, performance,
+<Only when the bet replaces a part; otherwise delete this section. What proves new == old: kind, input corpus, where it lives, what it does NOT pin (concurrency, performance,
 security, environment), the accepted-divergence list (old bugs fixed on purpose).>
 
-## Success metric
-<The north star (the number the project exists to move): today's baseline and the 10x target, measured the same
-way before and after, plus one sentence a user could check.>
+## How we know it worked
+<The grin test, made checkable: what the owner does with it in an ordinary week (opens it daily, plays a round,
+shows it to someone), plus one number that is cheap to read from the project's own logs. And the reason to come
+back next week, not only on demo day.>
 
 ## Re-priced
 | Cheap now (agents) | Not cheaper (owner) |
@@ -61,10 +71,12 @@ way before and after, plus one sentence a user could check.>
 ### Phase 2 ...
 
 ## Not this
-<Plausible goals declined, including anything that came up about other users or a platform.>
+<Plausible goals declined, including any bigger version for other users, a public edition or a platform, with one
+line on why it is not this bet.>
 
 ## Alternatives
-<The boring incremental option and why it loses; the other surviving candidates and why they lost.>
+<The boring incremental option and why it loses; the smallest version that still removes the constraint and what
+the extra size buys; the other surviving candidates and why they lost; quick wins found on the way.>
 
 ## Status log
 <Append-only: date, phase, what shipped, the check result, continue / amend / kill. Never edit old entries.>
@@ -72,12 +84,17 @@ way before and after, plus one sentence a user could check.>
 
 ## Phase rules
 
-- **Phase 1 is the monkey.** A prototype that answers the killing question with a pass/fail number on a real
-  workload, or, when there is no oracle, building the oracle. State which, and whether its code is kept
+- **Phase 1 is the monkey, and it is already fun.** The smallest version the owner can play with on real data; it
+  answers the killing question (is this actually fun, does the hard part work) with their reaction and one number.
+  For a bet that replaces a part with no oracle, phase 1 is building the oracle. State which, and whether its code is kept
   (prototypes are thrown away). Schema design, scaffolding, "set up the project" are the pedestal: they fold into a
   later phase.
-- **One phase = one flow feature**: one spec, one branch, one PR, a human `Verified:`. A phase that would need two
-  specs is two phases; more than 6 phases means the bet is two bets.
+- **One phase = one flow feature**: one spec, one branch, one PR, a human `Verified:`. This binds phases 1-2, which
+  are written near spec-ready. A later phase is an outcome; if at its gate it turns out to need several specs, the
+  re-entry step splits it by Amendment. More than 6 phases at writing time means the bet is two bets.
+- **Phase 1 starts from the teaser.** The teaser showed the moment; phase 1 makes it real and repeatable.
+- **Every phase adds something visible.** A phase whose result the owner cannot see or hear is the pedestal: fold
+  it into the phase that needs it.
 - **Seam before swap.** If the old part is not behind an interface, an early phase puts it behind one and ships with
   zero behaviour change; later phases build the new part behind the same seam, behind a flag, old path still the
   default.
