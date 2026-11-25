@@ -16,7 +16,10 @@ ignorance and get re-shaped at each gate).
 ```markdown
 # Moonshot: <name>
 
-<The demo: the 30-second scene, present tense. What the owner sees, hears or touches.>
+<The full version: the scene a year in, present tense. What the owner sees, hears or touches. The billion-dollar
+one.>
+
+<Tonight's version: the small scene that is already fun. Phase 1 builds it.>
 
 <The bet in one sentence.> Teaser: <path to the rough slice made before the pitch, or "none: <why>">.
 
@@ -34,7 +37,7 @@ paths and amounts. The delight signals it answers, quoted.>
 what was tried. Otherwise delete this section.>
 
 ## Why it was never done, and why now
-<What made it look too expensive (in human time, usually). What changed: the part that became available or
+<The price in people and years, and the kind of company that pays it. What changed: the part that became available or
 cheap, with its source and maturity. What still is not cheap (see Re-priced).>
 
 ## Deletion list

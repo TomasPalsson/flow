@@ -28,7 +28,9 @@ what the owner has built for fun, the raw material it has, and the owner's rulin
 AND FUN: the version of this project they would be dying to show a friend, and never asked for because in human
 time it looked too expensive. Labour is unlimited: a fleet of AI agents writes the code, so a custom engine, a
 game, an instrument, a model trained on the owner's own data, or software for hardware in the owner's home are all
-on the table. Money, outside cooperation and the owner's own attention are not unlimited.
+on the table. The premise is a billion dollars and infinite time: pitch what a studio with that budget would
+build on this project. The billion buys labour only (agents supply it); it does not buy the owner's attention or
+outside cooperation, and no real money is spent.
 
 BRIEF:
 <brief>
@@ -57,14 +59,26 @@ Work in this order, writing each step down:
 4. For each of the 12 answer honestly: would the owner show this to a friend tonight, and would the friend ask
    how it works? Keep the 5 with the strongest yes, from at least 4 different lenses.
 5. For each of the 5, make it more fun once: what would make the owner laugh, or come back tomorrow? Rewrite.
-   Then write the card.
+6. Blow each one up, three times, writing each step: (a) "A studio with a billion dollars and no deadline is
+   handed this. What do they build?" (b) "A year in it works. What would be absurd not to add?" (c) "What would
+   make a professional in that field (a broadcast engineer, a game director, an instrument maker) jealous?"
+   Every step must make the scene the owner watches bigger or stranger. Reject any step that adds an audience,
+   coverage, compliance, analytics or a business: that is bigger for other people, not for this one. Custom
+   engines, own models trained on the owner's data, generated video and sound, hardware built for the room,
+   things that run all day and night are the right kind of bigger.
+7. Write the card. The first version from step 5 is "tonight's version"; the end of step 6 is "the full version".
+   If a keen person could finish the full version in a month, it is timid: go back to step 6.
 
 Card fields:
-- the demo: the 30-second scene, present tense, concrete (what is on screen, what sound, what the owner does)
+- the full version: the scene a year in, present tense, concrete (what is on screen, what sound, what is in the
+  room, what the owner does). This is the bet.
+- tonight's version: the small scene that is already fun; what the teaser shows and phase 1 builds
+- the climb: three or four steps from tonight's version to the full one, each a thing the owner can see
 - bet: one sentence
 - lens: which of the lenses it came from
 - raw material: what it uses from the brief, by name and amount
-- the price that hid it: what this would have cost a person or team, and why agents change that
+- the price that hid it: what the full version would cost in people and years (name the kind of company that
+  builds such things), and why agents change that
 - build vs reuse: what gets built from scratch (fine: agents are cheap) and what existing parts it reuses
 - coming back: why the owner uses it again next week, not only on demo day
 - the monkey: the single assumption that kills it if false
@@ -123,14 +137,16 @@ For each card answer:
 6. Is it for someone other than the owner, or does it give the owner a service to run for strangers? Amend it
    back to the owner. Does it break a ruling? Amend to honour it, or kill.
 7. Would a person have built it in an afternoon? KILL as a task and name it as a quick win; if its demo is the
-   funniest of the set, mark it BUILD ANYWAY so it is shown to the owner beside the survivors.
+   funniest of the set, mark it BUILD ANYWAY so it is shown to the owner beside the survivors. Could a keen
+   person finish the full version in a month? It is TIMID: AMEND it up (a studio with a billion dollars would not
+   stop there; say where they would go) and keep the old scene as tonight's version.
 8. Is it a one-day novelty: fun once, never opened again? Amend "coming back" until it has a reason, or say so
    plainly as its counterargument.
-9. Is there a more fun version of this same card? AMEND toward it. Never amend toward safer, smaller or more
-   sensible.
+9. Is there a bigger or more fun version of this same card? AMEND toward it. Never amend toward safer, smaller
+   or more sensible. Bigger means a bigger show for this owner, never more users or more worthiness.
 Never kill a card for being unproven, unprecedented, frivolous, or expensive in human time.
-Return per card: KILL with one-line reason, or KEEP/AMEND with the amended demo, bet, monkey, phase 1 and
-counterargument.
+Return per card: KILL with one-line reason, or KEEP/AMEND with the amended full version, tonight's version, bet,
+monkey, phase 1 and counterargument.
 ```
 
 ## Paired comparison (Step 3, after the skeptic)
@@ -159,8 +175,11 @@ For the top 2 or 3 after the comparison. The teaser is the reason the owner can 
   presenting, render the project's real current page from its fixtures where that is possible, screenshot it, and
   put it beside the teaser's screenshot: same ground, same type, same accent, or fix the teaser. A teaser in a
   look the owner has retired reads as "you did not look at my project", whatever the idea.
-- It shows the core moment of the demo, not the whole product: one day replayed, one story as the new thing, one
-  round of the game.
+- It shows the core moment of tonight's version, not the whole product: one day replayed, one story as the new
+  thing, one round of the game.
+- Under it, the storyboard of the full version: three or four still frames drawn in the same look (HTML and CSS
+  or SVG, real headlines and names from the repo in them), each captioned with the scene. Stills may show things
+  that do not exist yet; label the strip "storyboard", so it is not mistaken for something running.
 - Open it yourself before showing it (screenshot the page, play the first seconds). A teaser that is broken or
   dull is information: say so, and let it move the card down.
 - Cannot be made here (needs the owner's hardware, a model not on this machine): say what is missing and give the
@@ -169,8 +188,8 @@ For the top 2 or 3 after the comparison. The teaser is the reason the owner can 
 
 ## Presenting survivors
 
-At most 3. Each: the teaser path (or why none); the demo scene; the bet in one sentence; the raw material it
-uses; the price that hid it; the monkey and phase 1; coming back; strongest counterargument; rulings (all
+At most 3. Each: the teaser path (or why none); the full version's scene; tonight's version in a line; the climb
+between them; the bet in one sentence; the raw material it uses; the price that hid it; the monkey and phase 1; coming back; strongest counterargument; rulings (all
 honoured, or NEEDS RULING and which). Recommendation first, one sentence of why. A NEEDS RULING card goes last and
 is never the recommendation. Keep the whole block short enough to read in two minutes; the teasers carry the
 weight. Below it, one line each: the cards that were killed and why, and any quick wins found. Ask the user which

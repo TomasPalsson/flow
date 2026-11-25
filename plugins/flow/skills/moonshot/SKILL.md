@@ -1,6 +1,6 @@
 ---
 name: moonshot
-description: "Proposes ONE moonshot for an existing repo: the cool, fun version of the project the owner would love to show someone and never asked for because in human time it looked too expensive (our own engine, a game, an instrument, something alive or wired to the hardware in the room). Reads the project for what the owner enjoys and the raw material only it has, pitches demo-first, makes rough teasers from real data so the owner picks from things they can look at, writes MOONSHOT.md as 4-6 phases each with a kill check, and seeds phase 1 into /flow:prep. Use when the user asks for a moonshot, 'what would you rebuild with unlimited resources', 'the 10x version', 'the ugliest part of this stack', 'we have tweaked X for months', or 'let it rip'; also when a MOONSHOT.md exists and its current phase shipped. Not for a list of ideas (flow-extras:brainstorm), growing the user's own idea (flow:develop-idea), judging an idea (flow-extras:scrutinize-idea), or a cleanup of one shipped spec (flow:flow-deepen)."
+description: "Proposes ONE moonshot for an existing repo: the billion-dollars-and-infinite-time version of the project, cool and fun, that the owner would love to show someone and never asked for because in human time it looked too expensive (our own engine, a game, an instrument, something alive or wired to the hardware in the room). Reads the project for what the owner enjoys and the raw material only it has, pitches demo-first, makes rough teasers from real data so the owner picks from things they can look at, writes MOONSHOT.md as 4-6 phases each with a kill check, and seeds phase 1 into /flow:prep. Use when the user asks for a moonshot, 'what would you rebuild with unlimited resources', 'the 10x version', 'the ugliest part of this stack', 'we have tweaked X for months', or 'let it rip'; also when a MOONSHOT.md exists and its current phase shipped. Not for a list of ideas (flow-extras:brainstorm), growing the user's own idea (flow:develop-idea), judging an idea (flow-extras:scrutinize-idea), or a cleanup of one shipped spec (flow:flow-deepen)."
 argument-hint: "[the part of the stack to rebuild, or a path]"
 user-invocable: true
 ---
@@ -14,11 +14,21 @@ agent could always build something like this. It just never suggested it, becaus
 expensive." Labour is free now: agents can build the engine, the runtime, the game, the instrument, the model
 trained on the project's own data, the thing wired to the hardware in the room.
 
-**Cool and fun is the bar.** A moonshot the owner reads and thinks "sure, worthy" has failed, however sound. Four
+**A billion dollars and infinite time.** That is the premise: pitch what a studio with that budget and no
+deadline would build on top of this project, not what fits in a sprint. The billion is the price in people that
+kept it unwritten; agents pay it in labour, so no real money is spent and the owner's money rulings still hold.
+A pitch a keen person could finish in a month is **timid**: it becomes phase 1 of something bigger. Every card
+carries two scenes: **tonight's version** (small, already fun, what the teaser shows) and **the full version**
+(the scene a year in, the one that makes a professional in that field jealous). The bet is the full version.
+
+**Cool and fun is the bar, and size serves it.** Scale the spectacle, never the worthiness or the audience: a
+bigger show for this owner, not coverage, compliance or strangers. A moonshot the owner reads and thinks "sure, worthy" has failed, however sound. Five
 ways it goes lame, all of them a model's default:
 - **The worthy one.** Complete coverage of something, verification, auditing, trust, a pipeline that is more
   correct. Sound, earnest, nobody opens it twice.
 - **The cleanup.** A slimmer image, a deduplicated helper, a faster build. A chore with a big name.
+- **The timid one.** A fun page, a nice feature, a weekend toy. Good, and far too small: it is tonight's version
+  of something, so say what.
 - **The bundle.** A graph, a twin, an agent loop and a platform stacked together, opening with plumbing.
 - **The other product.** Something bigger for strangers (a private reader becomes a public newsroom). It wins with
   a judge and the owner never builds it, because it is homework for people they never mentioned.
@@ -36,7 +46,8 @@ Six words carry the method; use them in everything you write:
   the machine and hardware it runs on, its local models, its voice, its odd side features. Cool comes from using
   these in a way only this project could, not from a generic idea with the project's name on it.
 - **the price that hid it**: why nobody wrote it down ("that is a whole team", "that is a year"). Every card says
-  what it would have cost in human time; if the answer is "an afternoon", it is a task, not a moonshot.
+  what the full version would have cost in people and years ("a broadcaster's engineering floor", "a games
+  studio for three years"). An afternoon is a task; a month is timid; the answer should make you wince.
 - **the monkey**: the one assumption that, if false, kills the bet (usually: is it actually fun, or does the hard
   part work at all). Phase 1 tests it. Everything easy is **the pedestal**.
 - **the teaser**: a rough slice of the demo, made now, in this session, from the project's real data: a page to
@@ -84,10 +95,11 @@ is not an outcome of this step; every project has raw material.
 
 **2. Generate pitches cold.** Read [`references/candidates.md`](references/candidates.md); it holds the
 generator, skeptic and comparison prompts, the card fields and the lame list. Spawn one fresh subagent on the
-strongest model with the brief only, no repo access. It writes 12 one-line demos across the lenses, then keeps the
-5 it would most want to see built and writes their cards. No subagent tool in this session: generate in a separate
+strongest model with the brief only, no repo access. It writes 12 one-line demos across the lenses, keeps the
+5 it would most want to see built, blows each one up to its billion-dollar full version, and writes their cards. No subagent tool in this session: generate in a separate
 pass from the brief text alone, and say on the cards that they are not cold. Done when 5 cards came back, each
-opening with a demo scene and using at least two pieces of raw material by name.
+with both scenes (tonight's version and the full version), a price that makes you wince, and at least two pieces
+of raw material by name.
 
 **3. Ground, attack, make teasers, let the user pick.** For each card: open the code and data it names, check the
 raw material is really there in the amount claimed, and fetch the primary source of every outside part it leans on.
@@ -95,9 +107,11 @@ Mark anything unchecked UNVERIFIED. A thing that does not exist yet is not a rea
 it, and it becomes the monkey. Then:
 - **Skeptic.** One subagent (`sonnet`) with the cards, your notes and the brief. It may only kill or amend. It
   kills the lame (see the lame list), the false, the bundles and the other products; it amends a card toward the
-  more fun version of itself, never toward the safer one. No subagent tool: run it as a separate pass and say so.
+  bigger and more fun version of itself, never toward the safer one, and sends every timid card back up. No subagent tool: run it as a separate pass and say so.
 - **Compare.** A fresh subagent compares the survivors in pairs, both orders, on the grin test. No scores.
-- **Teasers.** For the top 2 or 3, make the teaser: about 20 minutes each, from real repo data, written to a
+- **Teasers.** For the top 2 or 3, make the teaser of tonight's version, and under it on the same page a
+  **storyboard** of the full version: three or four still frames in the project's current look, each one scene
+  from a year in, captioned with what is happening. About 20 minutes each, from real repo data, written to a
   scratch directory, spending no money and sending nothing outward. A static page, an audio file, an image, a
   terminal recording. Rough is fine; invented content is not. Where you did by hand the part the bet says a
   machine will do (picked the puzzle's groups, wrote the schedule), say so on the teaser: that part is the monkey.
@@ -153,6 +167,8 @@ Amendment, never rewrite the body), or stop (append the kill with its evidence; 
   |---|---|
   | "That component does not exist yet" | Agents build it; it becomes the monkey and phase 1 tests it |
   | "A smaller version is more realistic" | The smallest fun version is phase 1, not the bet |
+  | "The big version is not credible" | Credibility is phase 1's job; the pitch's job is to say out loud the thing worth a billion |
+  | "The owner is one person" | One person with a fleet of agents; pitch what the fleet can build |
   | "It would take a team a year" | That price is the reason nobody wrote it down; that is the point |
 
 - **Never grow the bet into another product.** No new audience, no going public, no service to run for strangers,
@@ -171,7 +187,8 @@ Amendment, never rewrite the body), or stop (append the kill with its evidence; 
 
 ## Done when
 
-- MOONSHOT.md's first paragraph after the title is the demo scene, the next line is the bet in one sentence, the
+- MOONSHOT.md's first paragraph after the title is the full-version scene, then tonight's version, then the bet
+  in one sentence and the price in people that hid it; the phases climb from tonight's version to the full one; the
   raw material it uses is named with paths, every ruling in the brief is listed as honoured, and the file is at
   most about 120 lines.
 - The teaser's path is recorded, or "no teaser" with the reason.
