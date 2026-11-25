@@ -69,6 +69,8 @@ step. Read the owner's docs (README, PROGRESS, plans, rulings, specs, IDEAS) and
 `node ${CLAUDE_PLUGIN_ROOT}/skills/moonshot/scripts/recon.mjs --repo <root> [--focus <path>]`
 (`--help` for the flags; do not read its source). When the user named the part, recon still runs, focused on it.
 Write the **brief**, half a page, no ideas in it:
+- **what is current**: the surface the owner is working on now, what it replaced, and its look (stylesheet path,
+  fonts, colour tokens) read from the code, not from design notes;
 - what the project is and who uses it, in the owner's words, with the quote;
 - **delight signals**: what the owner built that nobody needed (side features, easter eggs, a lab, a custom look,
   anything named "fun"), and what they said they like or hate. This is the taste the cards must hit;

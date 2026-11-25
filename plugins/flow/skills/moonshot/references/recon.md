@@ -8,6 +8,17 @@ description: How to read a repo for a moonshot brief - delight signals, raw mate
 The brief has three parts, in this order of weight. Recon.mjs helps with the third only; the first two come from
 reading.
 
+## What is current
+
+Do this first; a pitch built on the part the owner has moved on from looks stale however good the idea.
+- Where did the last few weeks of work go? `git log --since=6.weeks --stat | grep '|' | sed 's|/[^/]*$||' | sort |
+  uniq -c | sort -rn | head`, the newest specs and plan files, the newest rulings. That surface is the product now.
+- What was superseded? Rulings like "one new look replaces X", "the hub becomes the front page", "X is retired".
+  Design notes and READMEs go stale: a DESIGN.md describing the old look loses to a newer ruling and to the
+  stylesheet of the surface that is live. Write in the brief: the current surface, its stylesheet path, its fonts
+  and colour tokens copied from that file, and what is old.
+- The brief's raw material and every pitch start from the current surface; older parts are archive to draw on.
+
 ## Delight signals
 
 What the owner built that nobody needed, and what they said they like. These set the taste every card must hit.

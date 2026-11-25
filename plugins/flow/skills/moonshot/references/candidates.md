@@ -154,7 +154,11 @@ For the top 2 or 3 after the comparison. The teaser is the reason the owner can 
 - Limits: about 20 minutes each, real data from the repo (never invented content), written only to a scratch
   directory, no money spent, nothing sent outward (no posts, mail, deploys, paid APIs).
 - Forms: one self-contained HTML page; an audio file; an image or short screen recording; a terminal session.
-  Follow the project's own look where it has one (its design notes, its palette).
+- **Use the project's current look, taken from the live code, not from design notes.** Copy the tokens and fonts
+  from the stylesheet of the current surface named in the brief (inline them, or the real CSS file). Before
+  presenting, render the project's real current page from its fixtures where that is possible, screenshot it, and
+  put it beside the teaser's screenshot: same ground, same type, same accent, or fix the teaser. A teaser in a
+  look the owner has retired reads as "you did not look at my project", whatever the idea.
 - It shows the core moment of the demo, not the whole product: one day replayed, one story as the new thing, one
   round of the game.
 - Open it yourself before showing it (screenshot the page, play the first seconds). A teaser that is broken or
