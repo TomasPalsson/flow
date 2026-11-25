@@ -94,7 +94,7 @@ Per card, before the skeptic:
 - Raw material: open the paths. Is the archive that big, do the marks exist, is the hardware or model really on
   hand per the owner's docs? Correct the amounts; strike what is not there.
 - Outside parts: fetch the primary source for each (repo README, docs, release notes): does it exist, how mature,
-  does it do the specific thing. Quote the line. Missing or immature is not a reason to drop the card: the card
+  does it do the specific thing. Quote the line. No network: mark it UNVERIFIED and carry on. Missing or immature is not a reason to drop the card: the card
   builds it, and the monkey names it.
 - Owner's docs: grep for the card's core move. Written down as a wish and deferred: a strong sign; cite the line.
   Already scheduled or built: drop the card or go past it.
@@ -122,7 +122,8 @@ For each card answer:
 5. Is it two or more bets? (amend to the one with the better demo)
 6. Is it for someone other than the owner, or does it give the owner a service to run for strangers? Amend it
    back to the owner. Does it break a ruling? Amend to honour it, or kill.
-7. Would a person have built it in an afternoon? KILL as a task and name it as a quick win.
+7. Would a person have built it in an afternoon? KILL as a task and name it as a quick win; if its demo is the
+   funniest of the set, mark it BUILD ANYWAY so it is shown to the owner beside the survivors.
 8. Is it a one-day novelty: fun once, never opened again? Amend "coming back" until it has a reason, or say so
    plainly as its counterargument.
 9. Is there a more fun version of this same card? AMEND toward it. Never amend toward safer, smaller or more
@@ -159,7 +160,8 @@ For the top 2 or 3 after the comparison. The teaser is the reason the owner can 
 - Open it yourself before showing it (screenshot the page, play the first seconds). A teaser that is broken or
   dull is information: say so, and let it move the card down.
 - Cannot be made here (needs the owner's hardware, a model not on this machine): say what is missing and give the
-  command that would make it there.
+  command that would make it there. Media the project publishes but does not keep in the repo (audio, video) may
+  be fetched from the project's own site when the network allows; otherwise make the silent version and say so.
 
 ## Presenting survivors
 

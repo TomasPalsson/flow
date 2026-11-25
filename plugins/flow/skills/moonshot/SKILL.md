@@ -97,9 +97,13 @@ it, and it becomes the monkey. Then:
 - **Compare.** A fresh subagent compares the survivors in pairs, both orders, on the grin test. No scores.
 - **Teasers.** For the top 2 or 3, make the teaser: about 20 minutes each, from real repo data, written to a
   scratch directory, spending no money and sending nothing outward. A static page, an audio file, an image, a
-  terminal recording. Rough is fine; fake data is not. No teaser possible: say why and describe the scene instead.
+  terminal recording. Rough is fine; invented content is not. Where you did by hand the part the bet says a
+  machine will do (picked the puzzle's groups, wrote the schedule), say so on the teaser: that part is the monkey.
+  No teaser possible: say why and describe the scene instead.
 Show at most 3 survivors, each as the lines in candidates.md (Presenting survivors), teaser path first. Recommend
-the one that won the comparison; if the teaser of another turned out better than its pitch, say so.
+the one that won the comparison (no comparison ran: recommend from the teasers and say that is the basis); if the
+teaser of another turned out better than its pitch, say so. A card killed only for being small but that made you
+laugh is shown under the three as "build this anyway": a quick win the owner would want, not a moonshot.
 End with "Which one should Mr Claude write to MOONSHOT.md?" and stop. Done when the user's reply names one. If the
 reply is that all of them are lame, ask which was closest and what was missing, add that sentence to the brief's
 delight signals, and run Steps 2-3 once more.

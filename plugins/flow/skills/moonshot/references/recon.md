@@ -12,7 +12,9 @@ reading.
 
 What the owner built that nobody needed, and what they said they like. These set the taste every card must hit.
 - Side features with no requirement behind them: easter eggs, widgets, a lab, generated art, a voice, a puzzle, a
-  custom look. `git log --oneline | grep -i -E "fun|toy|easter|widget|art|sound|voice|game"` and the README's tour.
+  custom look. `git log --oneline | grep -i -E "fun|toy|easter|widget|art|sound|voice|game"`, the same grep over file and
+  directory names and over data keys (a `games` list in a JSON file is a shelf of things the owner plays), and the
+  README's tour. Do this before drafting the brief, not after.
 - Words in commits, docs and rulings: "fun", "love", "I like", "cool", and the opposite ("hates", "boring",
   "no X blocks"). Quote them with `path:line`; a dislike is as useful as a like.
 - Where effort went past what the task needed (a hand-tuned design system, 60 variants of one small thing).
